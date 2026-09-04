@@ -1,0 +1,11 @@
+{
+  "name": "momentum-radar-live",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/hr-snapshot.test.js"
+  },
+  "dependencies": {
+    "@vercel/blob": "2.8.0"
+  }
+}
