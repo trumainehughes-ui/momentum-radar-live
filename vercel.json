@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "rewrites": [
+    {"source": "/api", "destination": "https://momentum-radar-live-j0vpacxpm-trumainehughes-6743.vercel.app/api"}
+  ],
+  "headers": [
+    {"source": "/(.*)", "headers": [
+      {"key": "Cache-Control", "value": "no-store, no-cache, must-revalidate"},
+      {"key": "Pragma", "value": "no-cache"},
+      {"key": "Expires", "value": "0"}
+    ]}
+  ]
+}
