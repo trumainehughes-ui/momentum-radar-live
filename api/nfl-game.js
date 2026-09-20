@@ -8,7 +8,8 @@ export default async function handler(req,res){
  try{
   const summary=await json(`${ESPN}/summary?event=${encodeURIComponent(gameId)}`);
   const comp=summary.header?.competitions?.[0]||{}; const competitors=comp.competitors||[];
-  const injuries=(summary.injuries||[]).flatMap(team=>(team.injuries||[]).map(i=>({
+  const allowedIds=new Set(competitors.map(c=>String(c.team?.id||"")).filter(Boolean)); const allowedAbbr=new Set(competitors.map(c=>String(c.team?.abbreviation||"").toUpperCase()).filter(Boolean));
+  const injuries=(summary.injuries||[]).filter(team=>allowedIds.has(String(team.team?.id||""))||allowedAbbr.has(String(team.team?.abbreviation||"").toUpperCase())).flatMap(team=>(team.injuries||[]).map(i=>({
     team:team.team?.abbreviation||team.team?.displayName||null,playerId:String(i.athlete?.id||""),name:i.athlete?.displayName||i.athlete?.fullName||"Unknown",
     position:i.athlete?.position?.abbreviation||null,injury:i.details?.type||i.type?.description||i.details?.detail||null,
     status:statusMap(i.status||i.details?.status),rawStatus:i.status||i.details?.status||null,source:"ESPN game summary"
