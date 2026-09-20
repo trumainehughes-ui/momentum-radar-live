@@ -14,8 +14,8 @@ export default async function handler(req,res){
     position:i.athlete?.position?.abbreviation||null,injury:i.details?.type||i.type?.description||i.details?.detail||null,
     status:statusMap(i.status||i.details?.status),rawStatus:i.status||i.details?.status||null,source:"ESPN game summary"
   })));
-  const rosterIds=new Set((summary.rosters||[]).filter(t=>allowedIds.has(String(t.team?.id||""))||allowedAbbr.has(String(t.team?.abbreviation||"").toUpperCase())).flatMap(t=>(t.roster||t.athletes||[]).map(a=>String(a.athlete?.id||a.id||""))).filter(Boolean));
-  const scopedInjuries=rosterIds.size?injuries.filter(x=>rosterIds.has(x.playerId)):injuries;
+  const athleteTeam=new Map(); for(const t of (summary.rosters||[])){const ta=String(t.team?.abbreviation||"").toUpperCase();for(const a of (t.roster||t.athletes||[])){const id=String(a.athlete?.id||a.id||"");if(id)athleteTeam.set(id,ta)}}
+  const scopedInjuries=injuries.filter(x=>{const rosterTeam=athleteTeam.get(x.playerId);return rosterTeam?allowedAbbr.has(rosterTeam):false});
   const blockers=scopedInjuries.filter(x=>["OUT","DOUBTFUL"].includes(x.status));
   const teams=competitors.map(c=>({id:String(c.team?.id||""),abbr:c.team?.abbreviation,name:c.team?.displayName,homeAway:c.homeAway}));
   return res.status(200).json({ok:true,gameId,teams,injuries:scopedInjuries,blockers,eligibility:{ready:false,state:"VALIDATING",reason:"Official roster/inactive validation is still required before recommendations."},fetchedAt:new Date().toISOString(),source:"ESPN cross-check; NFL/team authority remains required for final eligibility"});
