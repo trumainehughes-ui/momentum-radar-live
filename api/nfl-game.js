@@ -5,7 +5,7 @@ async function json(url){const r=await fetch(url,{headers:{"accept":"application
 async function projections(competitors){
  const out=[];
  for(const c of competitors){const team=c.team||{},abbr=String(team.abbreviation||'').toUpperCase(),teamKey=abbr||String(team.id||'');if(!teamKey)continue;try{const d=await json(ESPN+'/teams/'+encodeURIComponent(teamKey)+'/roster');const groups=Array.isArray(d.athletes)?d.athletes:[];const rows=groups.flatMap(g=>Array.isArray(g.items)?g.items:Array.isArray(g.athletes)?g.athletes:[]);for(const a of rows){const pos=a.position?.abbreviation||a.position?.name||null;if(!['QB','RB','WR','TE'].includes(pos))continue;out.push({playerId:String(a.id||''),name:a.displayName||a.fullName||a.name||'Unknown',team:abbr,position:pos,stats:[],source:'ESPN current team roster'})}}catch(e){}}
- return out.slice(0,24);
+ const balanced=[]; for(const c of competitors){const abbr=String(c.team?.abbreviation||'').toUpperCase();balanced.push(...out.filter(x=>x.team===abbr).slice(0,12))} return balanced;
 }
 const statusMap=s=>{const x=String(s||"").toLowerCase();if(x.includes("out"))return"OUT";if(x.includes("doubt"))return"DOUBTFUL";if(x.includes("question"))return"QUESTIONABLE";return x?"ACTIVE":"UNKNOWN"};
 export default async function handler(req,res){
