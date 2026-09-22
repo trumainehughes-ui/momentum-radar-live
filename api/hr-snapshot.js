@@ -1,6 +1,6 @@
 import { list, put } from '@vercel/blob';
 
-const SOURCE_API = process.env.MLB_SOURCE_API_URL || 'https://momentum-radar-live-j0vpacxpm-trumainehughes-6743.vercel.app/api';
+const SOURCE_API = process.env.MLB_SOURCE_API_URL || 'https://momentum-radar-live.vercel.app/api';
 const SNAPSHOT_PREFIX = 'mlb-hr-snapshots/v1';
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -207,7 +207,8 @@ async function sourceJson(route, date, fetchImpl) {
 
 export async function getOrCreateSnapshot(date, dependencies = {}) {
   const fetchImpl = dependencies.fetch || fetch, putBlob = dependencies.put || put;
-  const existing = await readSnapshot(date, dependencies);
+  let existing = null, storageAvailable = true;
+  try { existing = await readSnapshot(date, dependencies); } catch (error) { storageAvailable = false; console.warn('HR snapshot storage read unavailable; using live fallback', error?.message || error); }
   if (existing) return existing;
   const today = dependencies.currentDate || currentMlbDate();
   if (date !== today) throw new SnapshotUnavailableError(date < today ? 'historical_snapshot_unavailable' : 'snapshot_not_yet_available');
@@ -217,6 +218,7 @@ export async function getOrCreateSnapshot(date, dependencies = {}) {
   ]);
   if (!isPregameSlate(slate)) throw new SnapshotUnavailableError('pregame_snapshot_unavailable');
   const created = buildSnapshot(date, rankingsPayload, slate);
+  if (!storageAvailable) return { ...created, persisted: false, storage: 'unavailable' };
   try {
     await putBlob(snapshotPath(date), JSON.stringify(created), {
       access: 'public',
@@ -226,9 +228,9 @@ export async function getOrCreateSnapshot(date, dependencies = {}) {
     });
     return created;
   } catch (error) {
-    const winner = await readSnapshot(date, dependencies);
-    if (winner) return winner;
-    throw error;
+    try { const winner = await readSnapshot(date, dependencies); if (winner) return winner; } catch {}
+    console.warn('HR snapshot storage write unavailable; returning live snapshot', error?.message || error);
+    return { ...created, persisted: false, storage: 'unavailable' };
   }
 }
 
