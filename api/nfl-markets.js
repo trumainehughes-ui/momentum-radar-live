@@ -5,7 +5,7 @@ const EDGE_GOOD='public, s-maxage=900, stale-while-revalidate=21600';
 const norm=x=>String(x||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const CACHE=new Map(),TTL=15*60*1000,STALE=6*60*60*1000;
-const LAST_CALL=new Map(),BACKOFF=new Map(),MIN_UPSTREAM_GAP=60*1000,RATE_BACKOFF=15*60*1000;
+const LAST_CALL=new Map(),BACKOFF=new Map(),MIN_UPSTREAM_GAP=15*60*1000,RATE_BACKOFF=60*60*1000;
 async function json(url,opts={},tries=3){let last;for(let i=0;i<tries;i++){try{const r=await fetch(url,{cache:'no-store',...opts});if(r.ok)return r.json();last=new Error('upstream_'+r.status);if(r.status===429){const retry=Number(r.headers.get('retry-after'));if(Number.isFinite(retry)&&retry>0)last.retryAfterSeconds=retry;throw last}if(![500,502,503,504].includes(r.status))throw last}catch(e){last=e;if(String(e.message||e)==='upstream_429')break}if(i<tries-1)await sleep(250*(i+1))}throw last}
 function playerName(o){const explicit=o.statEntityName||o.playerName||o.player?.name||o.statEntity?.name;if(explicit)return explicit;const m=String(o.marketName||'').match(/^(.+?)\s+(?:To Record|Touchdowns?|Passing|Rushing|Receiving|Receptions?)/i);if(m)return m[1].trim().replace(/\s+Any$/i,'');return String(o.statEntityID||'Unknown').replace(/_1_NFL$/i,'').replaceAll('_',' ').toLowerCase().replace(/\b\w/g,x=>x.toUpperCase())}
 function canonicalBook(x){x=String(x||'').toLowerCase().replace(/[^a-z]/g,'');if(x.includes('draftkings'))return'DraftKings';if(x.includes('fanduel'))return'FanDuel';return null}
