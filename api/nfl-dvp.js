@@ -1,7 +1,7 @@
 import { put, list } from '@vercel/blob';
 
 const ESPN='https://site.api.espn.com/apis/site/v2/sports/football/nfl';
-const PREFIX='nfl-dvp/v1/';
+const PREFIX='nfl-dvp/v2/';
 const TTL=60*60*1000;
 const EDGE='public, s-maxage=900, stale-while-revalidate=21600';
 const POSITIONS=['QB','RB','WR','TE'];
@@ -27,8 +27,9 @@ function labels(group,stats){
   ls.forEach((k,i)=>out[String(k||'').toUpperCase()]=stats?.[i]);
   return out;
 }
-function athletePos(a){
-  return String(a?.athlete?.position?.abbreviation||a?.position?.abbreviation||a?.athlete?.position?.name||'').toUpperCase();
+function athleteId(a){return String(a?.athlete?.id||a?.id||'')}
+function athletePos(a,posById){
+  return String(a?.athlete?.position?.abbreviation||a?.position?.abbreviation||a?.athlete?.position?.name||posById?.get(athleteId(a))||'').toUpperCase();
 }
 function addPassing(bucket,group,a){
   const m=labels(group,a.stats), ca=String(m['C/ATT']||m['COMP/ATT']||'0/0').split('/');
@@ -41,11 +42,12 @@ function addRushing(bucket,group,a){
 function addReceiving(bucket,group,a){
   const m=labels(group,a.stats);bucket.receptions+=n(m.REC);bucket.recYards+=n(m.YDS);bucket.recTD+=n(m.TD);bucket.targets+=n(m.TGTS||m.TGT);
 }
-function mergeGame(target,block){
+function mergeGame(target,block,posById){
   for(const g of block.statistics||[]){
     const name=String(g.name||g.displayName||g.type||'').toLowerCase();
     for(const a of g.athletes||[]){
-      const pos=athletePos(a);
+      let pos=athletePos(a,posById);
+      if(!pos&&name.includes('passing'))pos='QB';
       if(!POSITIONS.includes(pos))continue;
       if(name.includes('passing')&&pos==='QB')addPassing(target.QB,g,a);
       else if(name.includes('rushing'))addRushing(target[pos],g,a);
@@ -109,7 +111,15 @@ async function build(season,week){
         const off=String(block.team?.abbreviation||'').toUpperCase();if(!off)continue;
         const def=teams.find(x=>x!==off);if(!def)continue;
         const o=team(offense,off),d=team(defense,def);
-        mergeGame(o,block);mergeGame(d,block);
+        const posById=new Map();
+      for(const rt of s.rosters||[]){
+        for(const a of (rt.roster||rt.athletes||[])){
+          const id=String(a?.athlete?.id||a?.id||'');
+          const pos=String(a?.athlete?.position?.abbreviation||a?.position?.abbreviation||a?.athlete?.position?.name||'').toUpperCase();
+          if(id&&pos)posById.set(id,pos);
+        }
+      }
+      mergeGame(o,block,posById);mergeGame(d,block,posById);
       }
       teams.forEach(t=>{team(defense,t).games+=1;team(offense,t).games+=1});
     }
