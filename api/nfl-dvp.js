@@ -146,6 +146,13 @@ export default async function handler(req,res){
   if(req.method!=='GET')return res.status(405).json({ok:false,error:'method_not_allowed'});
   try{
     const season=Math.max(2020,Math.min(2100,Number(req.query.season)||new Date().getUTCFullYear()));
+    if(String(req.query.debug||'')==='1'){
+      const board=await json(ESPN+'/scoreboard?dates='+season+'&seasontype=2&week=1&limit=100');
+      const ev=(board.events||[]).find(e=>String(e.competitions?.[0]?.status?.type?.state||e.status?.type?.state||'').toLowerCase()==='post');
+      const s=ev?await json(ESPN+'/summary?event='+encodeURIComponent(ev.id)):null;
+      const block=s?.boxscore?.players?.[0]||{};
+      return res.status(200).json({ok:true,eventId:ev?.id,team:block.team,groups:(block.statistics||[]).map(g=>({name:g.name,displayName:g.displayName,labels:g.labels,names:g.names,athletes:(g.athletes||[]).slice(0,4).map(a=>({id:a?.athlete?.id||a?.id,name:a?.athlete?.displayName||a?.displayName,position:a?.athlete?.position||a?.position,stats:a?.stats}))})),roster:(s?.rosters||[]).slice(0,1)});
+    }
     const week=Math.max(1,Math.min(18,Number(req.query.week)||1));
     const key=season+'-w'+week;
     let snap=await readSnapshot(key),fresh=snap&&Date.now()-Date.parse(snap.generatedAt||0)<TTL;
