@@ -8,7 +8,7 @@ async function projections(competitors){
  for(const c of competitors){const team=c.team||{},abbr=String(team.abbreviation||'').toUpperCase(),teamKey=abbr||String(team.id||'');if(!teamKey)continue;try{const d=await json(ESPN+'/teams/'+encodeURIComponent(teamKey)+'/roster');const groups=Array.isArray(d.athletes)?d.athletes:[];const rows=groups.flatMap(g=>Array.isArray(g.items)?g.items:Array.isArray(g.athletes)?g.athletes:[]);for(const a of rows){const pos=a.position?.abbreviation||a.position?.name||null;if(!['QB','RB','WR','TE'].includes(pos))continue;out.push({playerId:String(a.id||''),name:a.displayName||a.fullName||a.name||'Unknown',team:abbr,position:pos,stats:[],source:'ESPN current team roster'})}}catch(e){}}
  const balanced=[]; for(const c of competitors){const abbr=String(c.team?.abbreviation||'').toUpperCase();balanced.push(...out.filter(x=>x.team===abbr).slice(0,12))} return balanced;
 }
-const statusMap=s=>{const x=String(s||"").toLowerCase();if(x.includes("out"))return"OUT";if(x.includes("doubt"))return"DOUBTFUL";if(x.includes("question"))return"QUESTIONABLE";return x?"ACTIVE":"UNKNOWN"};
+const statusMap=s=>{const x=String(s||"").toLowerCase();if(x.includes("out"))return"OUT";if(x.includes("doubt"))return"DOUBTFUL";if(x.includes("question"))return"QUESTIONABLE";if(x.includes("injured reserve")||x==="ir")return"IR";return x?"ACTIVE":"UNKNOWN"};
 export default async function handler(req,res){
  Object.entries(noStore).forEach(([k,v])=>res.setHeader(k,v));
  const gameId=String(req.query.gameId||""); if(!gameId)return res.status(400).json({ok:false,error:"gameId_required"});
@@ -24,7 +24,7 @@ export default async function handler(req,res){
   })));
   const athleteTeam=new Map(); for(const t of (summary.rosters||[])){const ta=String(t.team?.abbreviation||"").toUpperCase();for(const a of (t.roster||t.athletes||[])){const id=String(a.athlete?.id||a.id||"");if(id)athleteTeam.set(id,ta)}}
   const scopedInjuries=injuries.filter(x=>allowedAbbr.has(String(x.team||"").toUpperCase())||allowedAbbr.has(athleteTeam.get(x.playerId)||""));
-  const blockers=scopedInjuries.filter(x=>["OUT","DOUBTFUL"].includes(x.status));
+  const blockers=scopedInjuries.filter(x=>["OUT","DOUBTFUL","IR"].includes(x.status));
   const teams=competitors.map(c=>({id:String(c.team?.id||""),abbr:c.team?.abbreviation,name:c.team?.displayName,homeAway:c.homeAway}));
   const playerProjections=await projections(competitors);
   return res.status(200).json({ok:true,gameId,teams,injuries:scopedInjuries,blockers,playerProjections,eligibility:{ready:true,state:"ANALYTICS_READY",reason:"Core matchup, roster and injury analytics remain available independently of sportsbook market verification."},fetchedAt:new Date().toISOString(),source:"ESPN cross-check; NFL/team authority remains required for final eligibility"});
