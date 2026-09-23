@@ -1,7 +1,7 @@
 import { put, list } from '@vercel/blob';
 
 const ESPN='https://site.api.espn.com/apis/site/v2/sports/football/nfl';
-const PREFIX='nfl-dvp/v2/';
+const PREFIX='nfl-dvp/v3/';
 const TTL=60*60*1000;
 const EDGE='public, s-maxage=900, stale-while-revalidate=21600';
 const POSITIONS=['QB','RB','WR','TE'];
@@ -12,7 +12,7 @@ async function json(url){
   return r.json();
 }
 const n=v=>{const x=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(x)?x:0};
-const norm=x=>String(x||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+const alias={LA:'LAR',WAS:'WSH',JAC:'JAX'};const norm=x=>{const v=String(x||'').toUpperCase().replace(/[^A-Z0-9]/g,'');return alias[v]||v};
 const empty=()=>({
   games:0,
   QB:{attempts:0,completions:0,passYards:0,passTD:0,interceptions:0,rushAttempts:0,rushYards:0,rushTD:0},
@@ -88,37 +88,53 @@ async function readSnapshot(key){
 async function writeSnapshot(key,data){
   try{await put(PREFIX+key+'.json',JSON.stringify(data),{access:'public',addRandomSuffix:false,allowOverwrite:true})}catch{}
 }
+async function rosterPositions(abbr){
+  try{
+    const d=await json(ESPN+'/teams/'+encodeURIComponent(abbr)+'/roster');
+    const map=new Map(),groups=Array.isArray(d.athletes)?d.athletes:[];
+    for(const g of groups){
+      const groupPos=String(g.position?.abbreviation||g.position?.name||g.position||'').toUpperCase();
+      for(const a of (Array.isArray(g.items)?g.items:Array.isArray(g.athletes)?g.athletes:[])){
+        const id=String(a.id||a.athlete?.id||'');
+        const pos=String(a.position?.abbreviation||a.athlete?.position?.abbreviation||groupPos||'').toUpperCase();
+        if(id&&POSITIONS.includes(pos))map.set(id,pos);
+      }
+    }
+    return map;
+  }catch{return new Map()}
+}
 async function build(season,week){
-  const defense={},offense={},gameIds=[];
+  const defense={},offense={},gameIds=[],teamSet=new Set();
   for(let w=1;w<=week;w++){
     const board=await json(ESPN+'/scoreboard?dates='+season+'&seasontype=2&week='+w+'&limit=100');
     for(const e of board.events||[]){
       const c=e.competitions?.[0]||{},state=String(c.status?.type?.state||e.status?.type?.state||'').toLowerCase();
+      const cs=e.competitions?.[0]?.competitors||[];cs.forEach(x=>{const a=norm(x.team?.abbreviation);if(a)teamSet.add(a)});
       if(state!=='post')continue;
       if(e.id)gameIds.push(String(e.id));
     }
   }
   const unique=[...new Set(gameIds)];
+  const positionsByTeam={};
+  const teamList=[...teamSet];
+  for(let i=0;i<teamList.length;i+=8){
+    const chunk=teamList.slice(i,i+8);
+    const maps=await Promise.all(chunk.map(t=>rosterPositions(t)));
+    chunk.forEach((t,j)=>positionsByTeam[t]=maps[j]);
+  }
   for(let i=0;i<unique.length;i+=6){
     const chunk=unique.slice(i,i+6);
     const summaries=await Promise.all(chunk.map(id=>json(ESPN+'/summary?event='+encodeURIComponent(id)).catch(()=>null)));
     for(const s of summaries.filter(Boolean)){
       const comp=s.header?.competitions?.[0]||{},cs=comp.competitors||[];
-      const teams=cs.map(c=>String(c.team?.abbreviation||'').toUpperCase()).filter(Boolean);
+      const teams=cs.map(c=>norm(c.team?.abbreviation)).filter(Boolean);
       if(teams.length!==2)continue;
       const blocks=s.boxscore?.players||[];
       for(const block of blocks){
-        const off=String(block.team?.abbreviation||'').toUpperCase();if(!off)continue;
+        const off=norm(block.team?.abbreviation);if(!off)continue;
         const def=teams.find(x=>x!==off);if(!def)continue;
         const o=team(offense,off),d=team(defense,def);
-        const posById=new Map();
-      for(const rt of s.rosters||[]){
-        for(const a of (rt.roster||rt.athletes||[])){
-          const id=String(a?.athlete?.id||a?.id||'');
-          const pos=String(a?.athlete?.position?.abbreviation||a?.position?.abbreviation||a?.athlete?.position?.name||'').toUpperCase();
-          if(id&&pos)posById.set(id,pos);
-        }
-      }
+        const posById=positionsByTeam[norm(off)]||new Map();
       mergeGame(o,block,posById);mergeGame(d,block,posById);
       }
       teams.forEach(t=>{team(defense,t).games+=1;team(offense,t).games+=1});
@@ -146,13 +162,7 @@ export default async function handler(req,res){
   if(req.method!=='GET')return res.status(405).json({ok:false,error:'method_not_allowed'});
   try{
     const season=Math.max(2020,Math.min(2100,Number(req.query.season)||new Date().getUTCFullYear()));
-    if(String(req.query.debug||'')==='1'){
-      const board=await json(ESPN+'/scoreboard?dates='+season+'&seasontype=2&week=1&limit=100');
-      const ev=(board.events||[]).find(e=>String(e.competitions?.[0]?.status?.type?.state||e.status?.type?.state||'').toLowerCase()==='post');
-      const s=ev?await json(ESPN+'/summary?event='+encodeURIComponent(ev.id)):null;
-      const block=s?.boxscore?.players?.[0]||{};
-      return res.status(200).json({ok:true,eventId:ev?.id,team:block.team,groups:(block.statistics||[]).map(g=>({name:g.name,displayName:g.displayName,labels:g.labels,names:g.names,athletes:(g.athletes||[]).slice(0,4).map(a=>({id:a?.athlete?.id||a?.id,name:a?.athlete?.displayName||a?.displayName,position:a?.athlete?.position||a?.position,stats:a?.stats}))})),roster:(s?.rosters||[]).slice(0,1)});
-    }
+
     const week=Math.max(1,Math.min(18,Number(req.query.week)||1));
     const key=season+'-w'+week;
     let snap=await readSnapshot(key),fresh=snap&&Date.now()-Date.parse(snap.generatedAt||0)<TTL;
