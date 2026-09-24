@@ -35,8 +35,6 @@ function momentumScore(x,ctx){
  if(offer&&Number.isFinite(+offer.line))signals.push('verified '+x.cat+' line '+offer.line);
  return{score:Math.max(1,Math.min(99,Math.round(score))),signals};
 }
-// SGP construction is market-gated: every leg must be an active offer at the named book.
-// Momentum analytics may rank these eligible offers, but roster-only players never enter this pool.
 function buildBookSgp(rows,book,ctx){
  const all=[];
  for(const cat of ['passing','receiving','rushing','receptions','td'])for(const m of rows.filter(x=>category(x)===cat&&bookFor(x,book))){const base={...m,cat,bookOffer:bookFor(m,book)},mom=momentumScore(base,ctx);all.push({...base,momentumScore:mom.score,momentumSignals:mom.signals})}
