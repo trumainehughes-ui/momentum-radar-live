@@ -6,7 +6,6 @@
     "test": "node --test tests/hr-snapshot.test.js"
   },
   "dependencies": {
-    "@vercel/blob": "2.8.0",
-    "@vercel/functions": "latest"
+    "@vercel/blob": "2.8.0"
   }
 }
