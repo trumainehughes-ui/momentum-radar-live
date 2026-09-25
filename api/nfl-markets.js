@@ -1,4 +1,4 @@
-import { put, list } from '@vercel/blob';
+import { getCache } from '@vercel/functions';
 const SGO='https://api.sportsgameodds.com/v2/events';
 const ESPN='https://site.api.espn.com/apis/site/v2/sports/football/nfl';
 const ODDS='https://api.the-odds-api.com/v4/sports/americanfootball_nfl';
@@ -11,9 +11,9 @@ const CACHE=new Map(),TTL=15*60*1000,STALE=6*60*60*1000;
 let GLOBAL_CACHE=null;
 const LAST_CALL=new Map(),BACKOFF=new Map(),MIN_UPSTREAM_GAP=15*60*1000,RATE_BACKOFF=15*60*1000;
 const SNAP_PREFIX='nfl-markets/v1/';
-const RESP_PREFIX='nfl-markets/response-v1/';
-async function readResponseSnapshot(key){try{const pathname=RESP_PREFIX+key+'.json',x=await list({prefix:pathname,limit:100}),matches=(x.blobs||[]).filter(v=>v.pathname===pathname||v.pathname.startsWith(pathname+'-')).sort((a,b)=>new Date(b.uploadedAt||0)-new Date(a.uploadedAt||0)),b=matches[0];if(!b)return null;const r=await fetch(b.url+'?v='+encodeURIComponent(b.uploadedAt||''),{cache:'no-store'});if(!r.ok)return null;const s=await r.json();return s?.body&&Number(s.at)?s:null}catch{return null}}
-async function writeResponseSnapshot(key,body){try{await put(RESP_PREFIX+key+'.json',JSON.stringify({at:Date.now(),body}),{access:'public',addRandomSuffix:false,allowOverwrite:true})}catch(e){console.error('response_cache_write_failed',String(e?.message||e))}}
+const runtimeCache=getCache();
+async function readResponseSnapshot(key){try{return await runtimeCache.get('nfl-markets-response-v2:'+key)}catch(e){console.error('response_cache_read_failed',String(e?.message||e));return null}}
+async function writeResponseSnapshot(key,body){try{await runtimeCache.set('nfl-markets-response-v2:'+key,{at:Date.now(),body},{ttl:TTL/1000})}catch(e){console.error('response_cache_write_failed',String(e?.message||e))}}
 async function readSnapshot(date){try{const pathname=SNAP_PREFIX+date+'.json',x=await list({prefix:pathname,limit:5}),b=x.blobs?.find(v=>v.pathname===pathname);if(!b)return null;const r=await fetch(b.url,{cache:'no-store'});if(!r.ok)return null;const s=await r.json();return Array.isArray(s?.events)?{at:Number(s.at)||0,events:s.events}:null}catch{return null}}
 async function writeSnapshot(date,events){try{await put(SNAP_PREFIX+date+'.json',JSON.stringify({at:Date.now(),events}),{access:'public',addRandomSuffix:false,allowOverwrite:true})}catch{}}
 async function json(url,opts={},tries=3){let last;for(let i=0;i<tries;i++){try{const r=await fetch(url,{cache:'no-store',...opts});if(r.ok)return r.json();last=new Error('upstream_'+r.status);if(r.status===429){const retry=Number(r.headers.get('retry-after'));if(Number.isFinite(retry)&&retry>0)last.retryAfterSeconds=retry;throw last}if(![500,502,503,504].includes(r.status))throw last}catch(e){last=e;if(String(e.message||e)==='upstream_429')break}if(i<tries-1)await sleep(250*(i+1))}throw last}
