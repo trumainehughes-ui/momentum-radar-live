@@ -3,7 +3,7 @@ const SGO='https://api.sportsgameodds.com/v2/events';
 const ESPN='https://site.api.espn.com/apis/site/v2/sports/football/nfl';
 const ODDS='https://api.the-odds-api.com/v4/sports/americanfootball_nfl';
 const NS={'Cache-Control':'no-store, no-cache, must-revalidate'};
-const EDGE_GOOD='public, s-maxage=900, stale-while-revalidate=21600';
+const EDGE_GOOD='public, max-age=900, stale-while-revalidate=21600';
 const EDGE_BROWSER='public, max-age=0, must-revalidate';
 const norm=x=>String(x||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
