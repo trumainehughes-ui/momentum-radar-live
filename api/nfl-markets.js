@@ -10,12 +10,11 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const CACHE=new Map(),TTL=15*60*1000,STALE=6*60*60*1000;
 let GLOBAL_CACHE=null;
 const LAST_CALL=new Map(),BACKOFF=new Map(),MIN_UPSTREAM_GAP=15*60*1000,RATE_BACKOFF=15*60*1000;
-const SNAP_PREFIX='nfl-markets/v1/';
 const runtimeCache=getCache();
 async function readResponseSnapshot(key){try{return await runtimeCache.get('nfl-markets-response-v2:'+key)}catch(e){console.error('response_cache_read_failed',String(e?.message||e));return null}}
 async function writeResponseSnapshot(key,body){try{await runtimeCache.set('nfl-markets-response-v2:'+key,{at:Date.now(),body},{ttl:TTL/1000})}catch(e){console.error('response_cache_write_failed',String(e?.message||e))}}
-async function readSnapshot(date){try{const pathname=SNAP_PREFIX+date+'.json',x=await list({prefix:pathname,limit:5}),b=x.blobs?.find(v=>v.pathname===pathname);if(!b)return null;const r=await fetch(b.url,{cache:'no-store'});if(!r.ok)return null;const s=await r.json();return Array.isArray(s?.events)?{at:Number(s.at)||0,events:s.events}:null}catch{return null}}
-async function writeSnapshot(date,events){try{await put(SNAP_PREFIX+date+'.json',JSON.stringify({at:Date.now(),events}),{access:'public',addRandomSuffix:false,allowOverwrite:true})}catch{}}
+async function readSnapshot(date){try{const s=await runtimeCache.get('nfl-markets-upstream-v2:'+date);return Array.isArray(s?.events)&&Number(s.at)?s:null}catch(e){console.error('upstream_cache_read_failed',String(e?.message||e));return null}}
+async function writeSnapshot(date,events){try{await runtimeCache.set('nfl-markets-upstream-v2:'+date,{at:Date.now(),events},{ttl:STALE/1000})}catch(e){console.error('upstream_cache_write_failed',String(e?.message||e))}}
 async function json(url,opts={},tries=3){let last;for(let i=0;i<tries;i++){try{const r=await fetch(url,{cache:'no-store',...opts});if(r.ok)return r.json();last=new Error('upstream_'+r.status);if(r.status===429){const retry=Number(r.headers.get('retry-after'));if(Number.isFinite(retry)&&retry>0)last.retryAfterSeconds=retry;throw last}if(![500,502,503,504].includes(r.status))throw last}catch(e){last=e;if(String(e.message||e)==='upstream_429')break}if(i<tries-1)await sleep(250*(i+1))}throw last}
 function playerName(o){const explicit=o.statEntityName||o.playerName||o.player?.name||o.statEntity?.name;if(explicit)return explicit;const m=String(o.marketName||'').match(/^(.+?)\s+(?:To Record|Touchdowns?|Passing|Rushing|Receiving|Receptions?)/i);if(m)return m[1].trim().replace(/\s+Any$/i,'');return String(o.statEntityID||'Unknown').replace(/_1_NFL$/i,'').replaceAll('_',' ').toLowerCase().replace(/\b\w/g,x=>x.toUpperCase())}
 function canonicalBook(x){x=String(x||'').toLowerCase().replace(/[^a-z]/g,'');if(x.includes('draftkings'))return'DraftKings';if(x.includes('fanduel'))return'FanDuel';return null}
