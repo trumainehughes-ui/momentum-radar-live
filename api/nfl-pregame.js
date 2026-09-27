@@ -2,7 +2,9 @@ import { put, list } from '@vercel/blob';
 const P='nfl-pregame/v1';
 const SGO='https://api.sportsgameodds.com/v2/events';
 function path(gameId){return P+'/'+gameId+'.json'}
-export async function read(gameId){const x=await list({prefix:path(gameId),limit:5});const b=x.blobs?.find(v=>v.pathname===path(gameId));if(!b)return null;const r=await fetch(b.url,{cache:'no-store'});return r.ok?r.json():null}
+async function readPath(p){const x=await list({prefix:p,limit:5});const b=x.blobs?.find(v=>v.pathname===p);if(!b)return null;const r=await fetch(b.url,{cache:'no-store'});return r.ok?r.json():null}
+export async function read(gameId){return readPath(path(gameId))}
+export async function readSlate(date){return readPath(P+'/slate-'+date+'.json')}
 async function json(u,o={}){const r=await fetch(u,{cache:'no-store',...o});if(!r.ok)throw Error('upstream_'+r.status);return r.json()}
 function prob(a){a=+a;if(!Number.isFinite(a)||!a)return 0;return a>0?100/(a+100):(-a)/(-a+100)}
 function pname(o){const e=o.statEntityName||o.playerName||o.player?.name||o.statEntity?.name;if(e)return e;const m=String(o.marketName||'').match(/^(.+?)\s+(?:To Record|Touchdowns?)/i);return (m?.[1]||String(o.statEntityID||'Unknown').replace(/_1_NFL$/i,'').replaceAll('_',' ')).trim().replace(/\s+Any$/i,'')}
