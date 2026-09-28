@@ -5,9 +5,9 @@ const ESPN_INJ="https://site.api.espn.com/apis/site/v2/sports/football/nfl/injur
 const HISTORY_PREFIX='momentum-history/v1/nfl-';
 const noStore={"Cache-Control":"no-store, max-age=0","Pragma":"no-cache"};
 async function json(url){const r=await fetch(url,{headers:{"accept":"application/json"}});if(!r.ok)throw new Error("upstream_"+r.status);return r.json()}
-async function projections(competitors){
+async function projections(competitors,blockedIds=new Set()){
  const out=[];
- for(const c of competitors){const team=c.team||{},abbr=String(team.abbreviation||'').toUpperCase(),teamKey=abbr||String(team.id||'');if(!teamKey)continue;try{const d=await json(ESPN+'/teams/'+encodeURIComponent(teamKey)+'/roster');const groups=Array.isArray(d.athletes)?d.athletes:[];const rows=groups.flatMap(g=>Array.isArray(g.items)?g.items:Array.isArray(g.athletes)?g.athletes:[]);for(const a of rows){const pos=a.position?.abbreviation||a.position?.name||null;if(!['QB','RB','WR','TE'].includes(pos))continue;out.push({playerId:String(a.id||''),name:a.displayName||a.fullName||a.name||'Unknown',team:abbr,position:pos,stats:[],source:'ESPN current team roster'})}}catch(e){}}
+ for(const c of competitors){const team=c.team||{},abbr=String(team.abbreviation||'').toUpperCase(),teamKey=abbr||String(team.id||'');if(!teamKey)continue;try{const d=await json(ESPN+'/teams/'+encodeURIComponent(teamKey)+'/roster');const groups=Array.isArray(d.athletes)?d.athletes:[];const rows=groups.flatMap(g=>Array.isArray(g.items)?g.items:Array.isArray(g.athletes)?g.athletes:[]);for(const a of rows){const pos=a.position?.abbreviation||a.position?.name||null;if(!['QB','RB','WR','TE'].includes(pos)||blockedIds.has(String(a.id||'')))continue;out.push({playerId:String(a.id||''),name:a.displayName||a.fullName||a.name||'Unknown',team:abbr,position:pos,stats:[],source:'ESPN current team roster',rosterOnly:true})}}catch(e){}}
  const balanced=[]; for(const c of competitors){const abbr=String(c.team?.abbreviation||'').toUpperCase();balanced.push(...out.filter(x=>x.team===abbr).slice(0,12))} return balanced;
 }
 const statusMap=s=>{const x=String(s||"").toLowerCase();if(x.includes("out"))return"OUT";if(x.includes("doubt"))return"DOUBTFUL";if(x.includes("question"))return"QUESTIONABLE";if(x.includes("injured reserve")||x==="ir")return"IR";return x?"ACTIVE":"UNKNOWN"};
@@ -37,7 +37,7 @@ export default async function handler(req,res){
   const blockers=scopedInjuries.filter(x=>["OUT","DOUBTFUL","IR"].includes(x.status));
   const teams=competitors.map(c=>({id:String(c.team?.id||""),abbr:c.team?.abbreviation,name:c.team?.displayName,homeAway:c.homeAway}));
   if(String(req.query.mode||'')==='history-grade'){const locked=await readHistory(gameId),stats=finalStats(summary),final=String(comp.status?.type?.state||'').toLowerCase()==='post'||/final/i.test(String(comp.status?.type?.description||'')),score=competitors.map(c=>({team:c.team?.abbreviation||'',homeAway:c.homeAway,score:hnum(c.score)})),picks=(locked?.picks||[]).map(p=>({...p,grade:gradeHistory(p,stats)})),sgps=(locked?.sgps||[]).map(s=>{const legs=(s.legs||[]).map(p=>({...p,grade:gradeHistory(p,stats)}));return{...s,legs,legsHit:legs.filter(x=>x.grade.status==='HIT').length,legsTotal:legs.length,hit:legs.length>0&&legs.every(x=>x.grade.status==='HIT')}});return res.status(200).json({ok:true,gameId,final,teams:score,picks,sgps,lockedAt:locked?.lockedAt||null,gradedAt:new Date().toISOString()})}
-  const playerProjections=await projections(competitors);
+  const blockedIds=new Set(blockers.map(x=>String(x.playerId||'')).filter(Boolean));const playerProjections=await projections(competitors,blockedIds);
   return res.status(200).json({ok:true,gameId,teams,injuries:scopedInjuries,blockers,playerProjections,eligibility:{ready:true,state:"ANALYTICS_READY",reason:"Core matchup, roster and injury analytics remain available independently of sportsbook market verification."},fetchedAt:new Date().toISOString(),source:"ESPN cross-check; NFL/team authority remains required for final eligibility"});
  }catch(e){return res.status(502).json({ok:false,gameId,error:e.message,fetchedAt:new Date().toISOString()})}
 }
