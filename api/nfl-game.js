@@ -8,7 +8,7 @@ async function json(url){const r=await fetch(url,{headers:{"accept":"application
 async function projections(competitors,blockedIds=new Set()){
  const out=[];
  for(const c of competitors){const team=c.team||{},abbr=String(team.abbreviation||'').toUpperCase(),teamKey=abbr||String(team.id||'');if(!teamKey)continue;try{const d=await json(ESPN+'/teams/'+encodeURIComponent(teamKey)+'/roster');const groups=Array.isArray(d.athletes)?d.athletes:[];const rows=groups.flatMap(g=>Array.isArray(g.items)?g.items:Array.isArray(g.athletes)?g.athletes:[]);for(const a of rows){const pos=a.position?.abbreviation||a.position?.name||null;if(!['QB','RB','WR','TE'].includes(pos)||blockedIds.has(String(a.id||'')))continue;out.push({playerId:String(a.id||''),name:a.displayName||a.fullName||a.name||'Unknown',team:abbr,position:pos,stats:[],source:'ESPN current team roster',rosterOnly:true})}}catch(e){}}
- const balanced=[]; for(const c of competitors){const abbr=String(c.team?.abbreviation||'').toUpperCase();balanced.push(...out.filter(x=>x.team===abbr).slice(0,12))} return balanced;
+ const balanced=[]; for(const c of competitors){const abbr=String(c.team?.abbreviation||'').toUpperCase();balanced.push(...out.filter(x=>x.team===abbr))} return balanced;
 }
 
 function normalizeName(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'')}
@@ -19,6 +19,14 @@ const VERIFIED_GAME_ROLE_EVIDENCE={
  '401872963':[
   {name:'Case Keenum',team:'CHI',status:'EXPECTED_STARTER',authority:'NFL_OFFICIAL',source:'NFL Network / NFL.com — Ian Rapoport, 2026-09-28',checkedAt:'2026-09-28T11:32:00Z'},
   {name:'Jalen Hurts',team:'PHI',status:'CONFIRMED_STARTER',authority:'TEAM_OFFICIAL',source:'Philadelphia Eagles current game roster / QB1 cross-check',checkedAt:'2026-09-28T20:00:00Z'}
+ ],
+ '401872964':[
+  {name:'Aaron Rodgers',team:'PIT',status:'CONFIRMED_STARTER',authority:'NFL_OFFICIAL',source:'NFL.com Week 4 Steelers-Browns game center / QB leader, 2026-10-01',checkedAt:'2026-10-01T16:00:00Z'},
+  {name:'Deshaun Watson',team:'CLE',status:'CONFIRMED_STARTER',authority:'NFL_OFFICIAL',source:'NFL.com Week 4 Steelers-Browns game center / QB leader, 2026-10-01',checkedAt:'2026-10-01T16:00:00Z'},
+  {name:'Jaylen Warren',team:'PIT',status:'EXPECTED_STARTER',authority:'NFL_OFFICIAL',source:'NFL.com Week 4 preview: Warren primary workload with Rico Dowdle out, 2026-10-01',checkedAt:'2026-10-01T16:00:00Z'},
+  {name:'Quinshon Judkins',team:'CLE',status:'EXPECTED_STARTER',authority:'NFL_OFFICIAL',source:'NFL.com Week 4 preview: Judkins-led running game, 2026-10-01',checkedAt:'2026-10-01T16:00:00Z'},
+  {name:'Denzel Boston',team:'CLE',status:'EXPECTED_STARTER',authority:'NFL_OFFICIAL',source:'NFL.com Week 4 preview / current receiving leader, 2026-10-01',checkedAt:'2026-10-01T16:00:00Z'},
+  {name:'Harold Fannin Jr.',team:'CLE',status:'EXPECTED_STARTER',authority:'NFL_OFFICIAL',source:'NFL.com Week 4 preview: featured young tight end, 2026-10-01',checkedAt:'2026-10-01T16:00:00Z'}
  ]
 };
 function verifiedGameEvidence(gameId){return VERIFIED_GAME_ROLE_EVIDENCE[String(gameId)]||[]}
