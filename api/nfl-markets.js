@@ -70,16 +70,26 @@ function analyticsLine(x,cat,risk){
  return Math.max(10,Math.floor((p*mult)/10)*10);
 }
 function buildAnalyticsSgp(categories,ctx){
- const pool=[];for(const cat of ['passing','receiving','rushing','receptions','td'])for(const x of categories?.[cat]||[]){
+ const pool=[];for(const cat of ['passing','rushing','receiving','receptions','td'])for(const x of categories?.[cat]||[]){
   if(cat!=='td'&&!Number.isFinite(Number(x.projection)))continue;
   const mom=momentumScore({...x,cat,bookOffer:null},ctx);pool.push({...x,cat,momentumScore:mom.score,momentumSignals:mom.signals});
  }
  pool.sort((a,b)=>(Number(b.momentumScore)||0)-(Number(a.momentumScore)||0)||(Number(b.confidence)||0)-(Number(a.confidence)||0));
- const make=(risk,count,offset)=>{const rotated=pool.slice(offset).concat(pool.slice(0,offset)),legs=[],used=new Set(),cats=new Set();
-  for(const cat of ['passing','receiving','rushing','td','receptions']){const x=rotated.find(v=>v.cat===cat&&!used.has(v.playerID||norm(v.name)));if(!x)continue;used.add(x.playerID||norm(x.name));cats.add(cat);legs.push({...x,analyticsThreshold:analyticsLine(x,cat,risk),sportsbookVerified:false});if(legs.length===count)break}
-  for(const x of rotated){if(legs.length===count)break;const id=x.playerID||norm(x.name);if(used.has(id))continue;used.add(id);cats.add(x.cat);legs.push({...x,analyticsThreshold:analyticsLine(x,x.cat,risk),sportsbookVerified:false})}
+ const make=(risk,count,offset)=>{
+  const rotated=pool.slice(offset).concat(pool.slice(0,offset)),legs=[],used=new Set(),cats=new Set();
+  const add=x=>{if(!x)return false;const id=x.playerID||norm(x.name);if(used.has(id))return false;const threshold=analyticsLine(x,x.cat,risk);if(x.cat!=='td'&&!Number.isFinite(Number(threshold)))return false;used.add(id);cats.add(x.cat);legs.push({...x,analyticsThreshold:threshold,sportsbookVerified:false});return true};
+  const find=(cat,pred=()=>true)=>rotated.find(v=>v.cat===cat&&pred(v)&&!used.has(v.playerID||norm(v.name)));
+  // Production first: every build should lean on yardage/receptions, not TD variance.
+  add(find('passing',v=>String(v.position||'').toUpperCase()==='QB'));
+  add(find('rushing',v=>['RB','QB'].includes(String(v.position||'').toUpperCase())));
+  add(find('receiving',v=>['WR','TE','RB'].includes(String(v.position||'').toUpperCase())));
+  if(legs.length<count)add(find('receptions',v=>['WR','TE','RB'].includes(String(v.position||'').toUpperCase())));
+  // TD is optional: max one TD leg in Small/Medium, max two only in Nuke.
+  const tdCap=risk==='Nuke'?2:1,tdCount=()=>legs.filter(v=>v.cat==='td').length;
+  if(legs.length<count&&risk!=='Small'&&tdCount()<tdCap)add(find('td'));
+  for(const x of rotated){if(legs.length===count)break;if(x.cat==='td'&&tdCount()>=tdCap)continue;add(x)}
   const corr=sgpCorrelation(legs),avg=legs.length?Math.round(legs.reduce((s,x)=>s+(Number(x.momentumScore)||50),0)/legs.length):null;
-  return{book:'Combined',mode:'ANALYTICS',risk,legs,estimatedOdds:null,momentumScore:avg,sgpScore:avg==null?null:Math.max(1,Math.min(99,Math.round(avg*.8+corr.score*.2))),correlation:corr,marketMix:[...cats],verifiedAt:new Date().toISOString(),requiredLegs:count,verifiedLegs:0,reason:legs.length===count?'Analytics Build — verify every player and threshold at your sportsbook before placing. Built from current role/injury eligibility, production, recent form, matchup and correlation data.':'Not enough analytics-qualified players to complete this build yet.'};
+  return{book:'Combined',mode:'ANALYTICS',risk,legs,estimatedOdds:null,momentumScore:avg,sgpScore:avg==null?null:Math.max(1,Math.min(99,Math.round(avg*.8+corr.score*.2))),correlation:corr,marketMix:[...cats],verifiedAt:new Date().toISOString(),requiredLegs:count,verifiedLegs:0,reason:legs.length===count?'Analytics Build — production markets are prioritized across QB passing/rushing, RB rushing/receiving, WR/TE receiving/receptions, with TD exposure capped because touchdowns are higher variance. Verify every player and threshold at your sportsbook before placing.':'Not enough analytics-qualified production data to complete this diversified build yet.'};
  };
  return[make('Small',3,0),make('Medium',4,1),make('Nuke',5,2)];
 }
