@@ -24,5 +24,28 @@
       "path": "/api/nfl-health?cron=1",
       "schedule": "*/15 * * * *"
     }
-  ]
+  ],
+  "functions": {
+    "api/nfl-markets.js": {
+      "maxDuration": 300
+    },
+    "api/nfl-health.js": {
+      "maxDuration": 300
+    },
+    "api/nfl-game.js": {
+      "maxDuration": 300
+    },
+    "api/nfl-live.js": {
+      "maxDuration": 120
+    },
+    "api/nfl-schedule.js": {
+      "maxDuration": 120
+    },
+    "api/nfl-dvp.js": {
+      "maxDuration": 300
+    },
+    "api/sports-data.js": {
+      "maxDuration": 300
+    }
+  }
 }
