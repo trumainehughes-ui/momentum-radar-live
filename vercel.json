@@ -21,7 +21,7 @@
   ],
   "crons": [
     {
-      "path": "/api/nfl-history-lock",
+      "path": "/api/nfl-health?cron=1",
       "schedule": "*/15 * * * *"
     }
   ]
