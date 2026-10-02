@@ -18,11 +18,5 @@
         }
       ]
     }
-  ],
-  "crons": [
-    {
-      "path": "/api/nfl-health?cron=1",
-      "schedule": "*/15 * * * *"
-    }
   ]
 }
