@@ -123,13 +123,14 @@ function buildAnalyticsSgp(categories,ctx){
   const pick=(cat,pred)=>add(ranked(cat,pred)[0]);
   // No position or market is forced. Rank every eligible offensive starter/high-use player by the same data model.
   // The strongest offense-vs-defense / DVP / recent-production evidence wins, with light market-diversity controls.
-  const tdCap=risk==='Small'?0:1,catCap=2;
-  // TDs compete with yards/receptions on evidence. Never force a TD merely for market variety.
-  // A touchdown is selected only when its model strength outranks the more repeatable volume-based outcomes.
-  for(const x of riskPool){if(legs.length===count)break;if(x.cat==='td'&&legs.filter(v=>v.cat==='td').length>=tdCap)continue;if(legs.filter(v=>v.cat===x.cat).length>=catCap)continue;add(x)}
-  for(const x of riskPool){if(legs.length===count)break;if(x.cat==='td'&&legs.filter(v=>v.cat==='td').length>=tdCap)continue;add(x)}
+  const catCap=2;
+  // Data first: no market is automatically required, excluded, or given a TD-specific quota.
+  // Every qualified outcome competes on the same model evidence; diversity only prevents one market type
+  // from crowding out an otherwise stronger set of independent player outcomes.
+  for(const x of riskPool){if(legs.length===count)break;if(legs.filter(v=>v.cat===x.cat).length>=catCap)continue;add(x)}
+  for(const x of riskPool){if(legs.length===count)break;add(x)}
   const corr=sgpCorrelation(legs),avg=legs.length?Math.round(legs.reduce((s,x)=>s+(Number(x.momentumScore)||50),0)/legs.length):null;
-  return{book:'Combined',mode:'DATA_MODEL',risk,legs,estimatedOdds:null,momentumScore:avg,sgpScore:avg==null?null:Math.max(1,Math.min(99,Math.round(avg*.8+corr.score*.2))),correlation:corr,explanation:sgpExplanation(risk,legs,corr),marketMix:[...cats],verifiedAt:new Date().toISOString(),requiredLegs:count,verifiedLegs:0,reason:legs.length===count?'Analytics Build — starter/high-usage production is matchup-adjusted using offense production and opponent defense-vs-position. Small targets the floor, Medium the adjusted expectation, and Nuke the supported ceiling; TD exposure is capped. Verify availability at your sportsbook before placing.':'Not enough starter/high-usage analytics data to complete this build yet.'};
+  return{book:'Combined',mode:'DATA_MODEL',risk,legs,estimatedOdds:null,momentumScore:avg,sgpScore:avg==null?null:Math.max(1,Math.min(99,Math.round(avg*.8+corr.score*.2))),correlation:corr,explanation:sgpExplanation(risk,legs,corr),marketMix:[...cats],verifiedAt:new Date().toISOString(),requiredLegs:count,verifiedLegs:0,reason:legs.length===count?'Analytics Build — starter/high-usage production is matchup-adjusted using offense production and opponent defense-vs-position. Small targets the floor, Medium the adjusted expectation, and Nuke the supported ceiling; every market competes on model evidence. Verify availability at your sportsbook before placing.':'Not enough starter/high-usage analytics data to complete this build yet.'};
  };
  const nukeCount=Math.min(8,Math.max(3,pool.filter(x=>Number.isFinite(Number(analyticsLine(x,x.cat,'Nuke',ctx)))||x.cat==='td').length));return[make('Small',2),make('Medium',3),make('Nuke',nukeCount)];
 }
