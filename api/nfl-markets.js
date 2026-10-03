@@ -155,11 +155,11 @@ function analyticsUsageEligible(x,r,cat){
  return false;
 }
 function roleFilter(rows,gate,cat){
- if(!gate?.checked)return[];
- const eligible=(rows||[]).filter(x=>{const r=roleFor(gate,x);if(!r)return false;const pos=String(x.position||r.position||'').toUpperCase(),status=String(r.starterStatus||r.status||'').toUpperCase();if(/(^|[_ -])(OUT|INACTIVE|IR|SUSPENDED|SUSPEND|DOUBTFUL)($|[_ -])/.test(status))return false;if(!x.analyticsOnly&&(Number.isFinite(Number(x.perGame))||x.usagePerGame))return analyticsUsageEligible(x,r,cat);if(!x.analyticsOnly)return true;return analyticsUsageEligible(x,r,cat)});
+ const slateFallback=!gate?.checked;
+ const eligible=(rows||[]).filter(x=>{const r=slateFallback?{position:x.position,recommendationEligible:true}:roleFor(gate,x);if(!r)return false;const pos=String(x.position||r.position||'').toUpperCase(),status=String(r.starterStatus||r.status||'').toUpperCase();if(/(^|[_ -])(OUT|INACTIVE|IR|SUSPENDED|SUSPEND|DOUBTFUL)($|[_ -])/.test(status))return false;if(!x.analyticsOnly&&(Number.isFinite(Number(x.perGame))||x.usagePerGame))return analyticsUsageEligible(x,r,cat);if(!x.analyticsOnly)return true;return analyticsUsageEligible(x,r,cat)});
  // Fail closed to the highest-usage players at each team/position. QB is QB1 only; skill positions allow primary plus substantial rotation.
  const limits={QB:1,RB:2,WR:3,TE:2},groups=new Map();
- for(const x of eligible){const r=roleFor(gate,x),pos=String(x.position||r?.position||'').toUpperCase(),k=norm(x.team)+'|'+pos;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(x)}
+ for(const x of eligible){const r=slateFallback?{position:x.position}:roleFor(gate,x),pos=String(x.position||r?.position||'').toUpperCase(),k=norm(x.team)+'|'+pos;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(x)}
  const keep=new Set();
  for(const [k,a] of groups){const pos=k.split('|')[1],n=limits[pos]||1;a.sort((p,q)=>{const pu=p.usagePerGame||{},qu=q.usagePerGame||{};const ps=Number(p.perGame)||0,qs=Number(q.perGame)||0;const catScore=(x,u)=>cat==='passing'?Number(x.perGame)||0:cat==='rushing'?Number(u.rushYards)||Number(x.perGame)||0:(cat==='receiving'||cat==='receptions')?((Number(u.targets)||0)*8+(Number(u.receptions)||0)*5+(Number(u.recYards)||0)):Number(x.perGame)||0;const pUsage=catScore(p,pu),qUsage=catScore(q,qu);return qUsage-pUsage||qs-ps});for(const x of a.slice(0,n))keep.add(String(x.playerID||x.playerId||norm(x.name)))}
  return eligible.filter(x=>keep.has(String(x.playerID||x.playerId||norm(x.name))));
