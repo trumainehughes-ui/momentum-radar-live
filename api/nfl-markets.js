@@ -114,7 +114,14 @@ function buildAnalyticsSgp(categories,ctx){
   const mom=momentumScore({...x,cat,bookOffer:null},ctx),matchup=matchupAdjustedProjection(x,cat,ctx);
   pool.push({...x,cat,momentumScore:mom.score,momentumSignals:mom.signals,matchupProjection:matchup?.adjusted??null,matchupFactor:matchup?.factor??null,matchupDefenseRank:matchup?.defRank??null,matchupOffenseRank:matchup?.offRank??null});
  }
- const strength=(x,risk='Medium')=>{const pg=Math.max(.1,Number(x.perGame)||Number(x.projection)||.1),adj=Number(x.matchupProjection)||Number(x.projection)||0,usage=x.usagePerGame||{},opp=x.cat==='rushing'?Number(usage.rushYards)||pg:(x.cat==='receiving'||x.cat==='receptions')?(Number(usage.targets)||0)*8+(Number(usage.receptions)||0)*5+(Number(usage.recYards)||0):pg,ceil=Number(x.range?.ceiling)||adj,ceilingLift=(ceil-pg)/Math.max(1,pg),matchupLift=(adj-pg)/Math.max(1,pg);return (Number(x.momentumScore)||0)+Math.min(18,Math.log1p(Math.max(0,opp))*4)+Math.min(10,(adj/pg)*6)+(risk==='Nuke'?Math.max(-8,Math.min(18,ceilingLift*30+matchupLift*25)):0)};pool.sort((a,b)=>strength(b)-strength(a)||(Number(b.confidence)||0)-(Number(a.confidence)||0));
+ const strength=(x,risk='Medium')=>{
+  const pg=Math.max(.1,Number(x.perGame)||Number(x.projection)||.1),adj=Number(x.matchupProjection)||Number(x.projection)||0,usage=x.usagePerGame||{},opp=x.cat==='rushing'?Number(usage.rushYards)||pg:(x.cat==='receiving'||x.cat==='receptions')?(Number(usage.targets)||0)*8+(Number(usage.receptions)||0)*5+(Number(usage.recYards)||0):pg,ceil=Number(x.range?.ceiling)||adj,ceilingLift=(ceil-pg)/Math.max(1,pg),matchupLift=(adj-pg)/Math.max(1,pg);
+  // Compare candidates at the actual tier target, not just raw production. Recent target hit rate is direct evidence.
+  const target=analyticsLine(x,x.cat,risk,ctx),vals=Array.isArray(x.recentForm?.last5)?x.recentForm.last5.map(Number).filter(Number.isFinite):[];
+  const targetHit=(x.cat!=='td'&&Number.isFinite(Number(target))&&vals.length)?vals.filter(v=>v>=Number(target)).length/vals.length:null;
+  const sampleAdj=targetHit==null?0:Math.max(-12,Math.min(12,(targetHit-.5)*24));
+  return (Number(x.momentumScore)||0)+Math.min(18,Math.log1p(Math.max(0,opp))*4)+Math.min(10,(adj/pg)*6)+sampleAdj+(risk==='Nuke'?Math.max(-8,Math.min(18,ceilingLift*30+matchupLift*25)):0)
+ };pool.sort((a,b)=>strength(b)-strength(a)||(Number(b.confidence)||0)-(Number(a.confidence)||0));
  const make=(risk,count)=>{
   const legs=[],used=new Set(),cats=new Set(),riskPool=[...pool].sort((a,b)=>strength(b,risk)-strength(a,risk)||(Number(b.confidence)||0)-(Number(a.confidence)||0));
   const eligible=x=>{const pos=String(x?.position||'').toUpperCase();return x&&['QB','RB','WR','TE'].includes(pos)};
