@@ -144,7 +144,7 @@ function buildAnalyticsSgp(categories,ctx){
 async function gameRoleGate(gameId,base){if(!gameId)return{checked:false,roles:new Map()};try{const r=await fetch(base+'/api/nfl-game?gameId='+encodeURIComponent(gameId)+'&ts='+Date.now(),{cache:'no-store'});if(!r.ok)return{checked:false,roles:new Map()};const d=await r.json(),m=new Map();for(const x of d.playerProjections||[]){if(x.playerId)m.set(String(x.playerId),x);if(x.name)m.set('name:'+norm(x.name),x)}return{checked:true,roles:m,source:d.source||null}}catch{return{checked:false,roles:new Map()}}}
 function roleFor(gate,x){const roles=gate?.roles||new Map();return roles.get(String(x.playerID||x.playerId||''))||roles.get('name:'+norm(x.name))||null}
 function analyticsUsageEligible(x,r,cat){
- const pos=String(x.position||r?.position||'').toUpperCase(),u=x.usagePerGame||{},pg=Number(x.gamesPlayed)||0,per=Number(x.perGame)||0,tgt=Number(u.targets)||0,rec=Number(u.receptions)||0,rush=Number(u.rushYards)||0,recv=Number(u.recYards)||0;
+ const pos=String(x.position||r?.position||'').toUpperCase(),u=x.usagePerGame||{},pg=Number(x.gamesPlayed)||Number(x.evidence?.games)||0,per=Number(x.perGame)||0,tgt=Number(u.targets)||Number(x.evidence?.targets)||0,rec=Number(u.receptions)||0,rush=Number(u.rushYards)||0,recv=Number(u.recYards)||0;
  if(pg<1||!['QB','RB','WR','TE'].includes(pos))return false;
  // A verified role is necessary context, not a substitute for meaningful production/opportunity.
  if(cat==='passing')return pos==='QB'&&per>=100;
