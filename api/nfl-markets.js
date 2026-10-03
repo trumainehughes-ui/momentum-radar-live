@@ -124,9 +124,8 @@ function buildAnalyticsSgp(categories,ctx){
   // No position or market is forced. Rank every eligible offensive starter/high-use player by the same data model.
   // The strongest offense-vs-defense / DVP / recent-production evidence wins, with light market-diversity controls.
   const tdCap=risk==='Small'?0:1,catCap=2;
-  // Keep Small conservative. Medium/Nuke intentionally mix in the strongest qualified Anytime TD
-  // when one exists, while the model still decides which player owns that TD slot.
-  if(tdCap>0){const bestTd=riskPool.find(x=>x.cat==='td'&&eligible(x));if(bestTd)add(bestTd)}
+  // TDs compete with yards/receptions on evidence. Never force a TD merely for market variety.
+  // A touchdown is selected only when its model strength outranks the more repeatable volume-based outcomes.
   for(const x of riskPool){if(legs.length===count)break;if(x.cat==='td'&&legs.filter(v=>v.cat==='td').length>=tdCap)continue;if(legs.filter(v=>v.cat===x.cat).length>=catCap)continue;add(x)}
   for(const x of riskPool){if(legs.length===count)break;if(x.cat==='td'&&legs.filter(v=>v.cat==='td').length>=tdCap)continue;add(x)}
   const corr=sgpCorrelation(legs),avg=legs.length?Math.round(legs.reduce((s,x)=>s+(Number(x.momentumScore)||50),0)/legs.length):null;
