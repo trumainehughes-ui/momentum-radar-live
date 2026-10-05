@@ -163,7 +163,18 @@ export default async function handler(req,res){
   try{
     const season=Math.max(2020,Math.min(2100,Number(req.query.season)||new Date().getUTCFullYear()));
 
-    const week=Math.max(1,Math.min(18,Number(req.query.week)||1));
+    let requestedWeek=Number(req.query.week);
+    if(!Number.isFinite(requestedWeek)||requestedWeek<1){
+      try{
+        const board=await json(ESPN+'/scoreboard?dates='+season+'&seasontype=2&limit=100');
+        requestedWeek=Number(board?.week?.number||board?.leagues?.[0]?.calendar?.find?.(x=>x?.value)?.value)||1;
+        if(!Number.isFinite(requestedWeek)||requestedWeek<1){
+          const eventWeek=Number(board?.events?.[0]?.week?.number||board?.events?.[0]?.season?.week);
+          if(Number.isFinite(eventWeek)&&eventWeek>0)requestedWeek=eventWeek;
+        }
+      }catch{requestedWeek=1}
+    }
+    const week=Math.max(1,Math.min(18,requestedWeek||1));
     const key=season+'-w'+week;
     let snap=await readSnapshot(key),fresh=snap&&Date.now()-Date.parse(snap.generatedAt||0)<TTL;
     if(!fresh){snap=await build(season,week);await writeSnapshot(key,snap)}
