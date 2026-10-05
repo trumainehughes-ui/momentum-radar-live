@@ -33,7 +33,7 @@ function manualAtlNoTonightSgps(date,home,away){
   {book:'FanDuel',player:'Chris Olave',market:'Receiving yards',line:'85.5',odds:'-113'},
   {book:'FanDuel',player:'Tyler Shough',market:'Rushing yards',line:'16.5',odds:'-113'}
  ]};
- const leg=(name,team,position,cat,threshold,manualForm)=>({name,team,position,cat,analyticsThreshold:threshold,displayLabel:cat==='td'?'Anytime TD':cat==='passTD'?'Passing TDs: '+threshold+'+':(cat==='passing'?'Passing yards':cat==='rushing'?'Rushing yards':cat==='receiving'?'Receiving yards':'Receptions')+': '+threshold,sportsbookVerified:false,manualOverride:true,manualForm,source:src});
+ const leg=(name,team,position,cat,threshold,manualForm)=>({name,team,position,cat,analyticsThreshold:cat==='td'?'Anytime TD':threshold,projectionLabel:cat==='td'?'Anytime TD':String(threshold),displayLabel:cat==='td'?'Anytime TD':cat==='passTD'?'Passing TDs: '+threshold+'+':(cat==='passing'?'Passing yards':cat==='rushing'?'Rushing yards':cat==='receiving'?'Receiving yards':'Receptions')+': '+threshold,sportsbookVerified:false,manualOverride:true,manualForm,source:src});
  const small=[
   leg('Tyler Shough','NO','QB','passing',225,'917 pass yards / 3 games; 305.7 per game; ATL allows 263.0 pass yards/game'),
   leg('Chris Olave','NO','WR','receiving',70,'375 receiving yards / 3 games; 125.0 per game; 27 receptions'),
