@@ -170,11 +170,13 @@ function analyticsLine(x,cat,risk,ctx){
  if(risk==='Nuke'){
   const desiredLift=cat==='passing'?25:cat==='receptions'?1:10;
   const observedCeiling=Number.isFinite(ceiling)?ceiling:expected*1.18;
-  const supportedCeiling=Math.max(expected*1.05,observedCeiling,Number.isFinite(ceilingAdj)?ceilingAdj:0);
-  // Never manufacture a Nuke threshold above what production + matchup evidence supports.
-  // If there is not enough ceiling headroom, this candidate is rejected and another starter is used.
+  // A Nuke is a plus/ceiling outcome, not the absolute mathematical maximum. Keep the target
+  // meaningfully above MR's central prediction while limiting matchup inflation to a realistic band.
+  const maxLift=cat==='passing'?75:cat==='receptions'?2:30;
+  const supportedCeiling=Math.min(Math.max(avg+desiredLift,observedCeiling),avg+maxLift);
   if(supportedCeiling<avg+desiredLift)return null;
-  p=Math.min(Math.max(expected*1.08,ceilingAdj*.90,avg+desiredLift),supportedCeiling);
+  const modelCeiling=Math.max(avg+desiredLift,avg*(cat==='passing'?1.10:cat==='receptions'?1.12:1.15));
+  p=Math.min(modelCeiling,supportedCeiling);
  }
  if(cat==='passing')return Math.max(125,risk==='Nuke'?Math.ceil(p/25)*25:Math.floor(p/25)*25);
  if(cat==='receptions')return Math.max(1,risk==='Nuke'?Math.ceil(p):Math.floor(p));
