@@ -17,37 +17,35 @@ function sgpOddsInBand(risk,odds){const b=SGP_ODDS_BANDS[risk];return !!b&&Numbe
 function sgpPayoutLabel(risk){return risk==='Small'?'$10 → $200–$300 total return':risk==='Medium'?'$10 → $300–$800 total return':'$10 → $1,000+ total return'}
 function manualAtlNoTonightSgps(date,home,away){
  const teams=new Set([norm(home),norm(away)]);if(date!=='2026-10-05'||!teams.has('ATL')||!(teams.has('NO')||teams.has('NOS')))return null;
- const leg=(name,team,position,cat,threshold,manualForm)=>({name,team,position,cat,analyticsThreshold:threshold,displayLabel:cat==='td'?'Anytime TD':cat==='passTD'?'Passing TDs: '+threshold+'+':(cat==='passing'?'Passing yards':cat==='rushing'?'Rushing yards':cat==='receiving'?'Receiving yards':'Receptions')+': '+threshold,sportsbookVerified:true,manualOverride:true,manualForm,source:'User-supplied FanDuel screenshots • 2026 Weeks 1–3 only'});
+ const src='ESPN + NFL.com • 2026 Weeks 1–3 • matchup model';
+ const leg=(name,team,position,cat,threshold,manualForm)=>({name,team,position,cat,analyticsThreshold:threshold,displayLabel:cat==='td'?'Anytime TD':cat==='passTD'?'Passing TDs: '+threshold+'+':(cat==='passing'?'Passing yards':cat==='rushing'?'Rushing yards':cat==='receiving'?'Receiving yards':'Receptions')+': '+threshold,sportsbookVerified:false,manualOverride:true,manualForm,source:src});
  const small=[
-  leg('Tyler Shough','NO','QB','passing',225,'2026 W1–W3 passing: 410, 252, 255'),
-  leg('Chris Olave','NO','WR','receiving',60,'2026 W1–W3 receiving: 182, 86, 107'),
-  leg('Juwan Johnson','NO','TE','receiving',25,'2026 W1–W3 receiving: 54, 66, 53'),
-  leg('Bijan Robinson','ATL','RB','rushing',87.5,'2026 W1–W3 rushing: 83, 72, 194'),
-  leg('Chris Olave','NO','WR','td',null,'Anytime TD market supplied manually')
+  leg('Tyler Shough','NO','QB','passing',225,'917 pass yards / 3 games; 305.7 per game; ATL allows 263.0 pass yards/game'),
+  leg('Chris Olave','NO','WR','receiving',70,'375 receiving yards / 3 games; 125.0 per game; 27 receptions'),
+  leg('Juwan Johnson','NO','TE','receiving',35,'173 receiving yards / 3 games; 57.7 per game; 15 receptions'),
+  leg('Bijan Robinson','ATL','RB','rushing',80,'349 rush yards / 3 games; 116.3 per game; 5.3 YPC; NO allows 128.7 rush yards/game')
  ];
  const medium=[
-  leg('Tyler Shough','NO','QB','passing',257.5,'2026 W1–W3 passing: 410, 252, 255'),
-  leg('Chris Olave','NO','WR','receiving',84.5,'2026 W1–W3 receiving: 182, 86, 107'),
-  leg('Bijan Robinson','ATL','RB','rushing',87.5,'2026 W1–W3 rushing: 83, 72, 194'),
-  leg('Juwan Johnson','NO','TE','receiving',45.5,'2026 W1–W3 receiving: 54, 66, 53'),
-  leg('Chris Olave','NO','WR','td',null,'Anytime TD market supplied manually'),
-  leg('Juwan Johnson','NO','TE','td',null,'Anytime TD market supplied manually'),
-  leg('Tyler Shough','NO','QB','passTD',2,'2+ passing TD market supplied manually')
+  leg('Tyler Shough','NO','QB','passing',250,'2026 passing: 410, 252, 255; NO No. 3 passing offense vs ATL No. 29 pass defense'),
+  leg('Chris Olave','NO','WR','receiving',85,'2026 receiving: 182, 86, 107; 125.0 per game'),
+  leg('Bijan Robinson','ATL','RB','rushing',100,'2026 rushing: 83, 72, 194; ATL No. 2 rushing offense vs NO No. 27 run defense'),
+  leg('Juwan Johnson','NO','TE','receiving',45,'2026 receiving: 54, 66, 53; 57.7 per game'),
+  leg('Bijan Robinson','ATL','RB','td',null,'2 rushing TD plus 1 receiving TD through three games; favorable run matchup')
  ];
  const nuke=[
-  leg('Bijan Robinson','ATL','RB','rushing',110,'2026 W1–W3 rushing: 83, 72, 194'),
-  leg('Bijan Robinson','ATL','RB','td',null,'Anytime TD market supplied manually'),
-  leg('Chris Olave','NO','WR','td',null,'Anytime TD market supplied manually'),
-  leg('Juwan Johnson','NO','TE','td',null,'Anytime TD market supplied manually'),
-  leg('Chris Olave','NO','WR','receiving',100,'2026 W1–W3 receiving: 182, 86, 107'),
-  leg('Juwan Johnson','NO','TE','receiving',60,'2026 W1–W3 receiving: 54, 66, 53'),
-  leg('Tyler Shough','NO','QB','passing',325,'2026 W1–W3 passing: 410, 252, 255')
+  leg('Bijan Robinson','ATL','RB','rushing',125,'Ceiling threshold supported by 194-yard Week 3 and favorable NO run defense'),
+  leg('Bijan Robinson','ATL','RB','td',null,'Primary ATL scoring/volume ceiling'),
+  leg('Chris Olave','NO','WR','receiving',100,'Cleared 100 in 2 of 3 games; 125.0 receiving yards/game'),
+  leg('Chris Olave','NO','WR','td',null,'27 catches / 375 yards through three games; high-volume passing environment'),
+  leg('Juwan Johnson','NO','TE','receiving',60,'54, 66, 53 through three games; ceiling threshold just above current average'),
+  leg('Juwan Johnson','NO','TE','td',null,'3 TD through three games'),
+  leg('Tyler Shough','NO','QB','passing',300,'917 yards / 3 games; 305.7 average; ATL allows 263.0 passing yards/game')
  ];
- const make=(risk,legs,actualOdds,note)=>({book:'FanDuel',mode:'MANUAL_TONIGHT',risk,legs,estimatedOdds:actualOdds,actualSgpOdds:actualOdds,payoutTarget:sgpPayoutLabel(risk),targetOddsBand:SGP_ODDS_BANDS[risk],payoutBandVerified:Number.isFinite(actualOdds)?sgpOddsInBand(risk,actualOdds):false,manualOverride:true,verifiedAt:new Date().toISOString(),requiredLegs:legs.length,verifiedLegs:legs.length,marketMix:[...new Set(legs.map(x=>x.cat))],correlation:sgpCorrelation(legs),explanation:{summary:note+' Tonight-only manual override uses the user-supplied sportsbook markets and 2026 Weeks 1–3 form, then aligns the legs to ATL rushing offense vs NO run defense and NO passing offense vs ATL pass defense. Prior-season Week 16–18 results are excluded from current-form hit rates.',legs:legs.map(x=>x.name+': '+x.manualForm),correlation:[]},reason:'Temporary ATL–NO manual data override while sportsbook APIs are unavailable. Expires after tonight; does not alter the permanent NFL model.'});
+ const make=(risk,legs,note)=>({book:'Model Projection',mode:'MANUAL_TONIGHT',risk,legs,estimatedOdds:null,actualSgpOdds:null,payoutTarget:sgpPayoutLabel(risk),targetOddsBand:SGP_ODDS_BANDS[risk],payoutBandVerified:false,manualOverride:true,verifiedAt:new Date().toISOString(),requiredLegs:legs.length,verifiedLegs:0,marketMix:[...new Set(legs.map(x=>x.cat))],correlation:sgpCorrelation(legs),explanation:{summary:note+' These are Momentum Radar projection thresholds, not copied sportsbook lines. Current 2026 production is combined with team offense vs opponent defense, DVP context and injury availability.',legs:legs.map(x=>x.name+': '+x.manualForm),correlation:[]},reason:'Tonight-only ESPN/NFL.com data-model override while sportsbook APIs are unavailable. Rebuild on material injury/inactive/role news; expires after tonight.'});
  return[
-  make('Small',small,null,'Small uses reduced passing/receiving thresholds around the strongest matchup signals; final correlated price still needs sportsbook confirmation.'),
-  make('Medium',medium,3206,'Medium is the seven-leg build manually confirmed at +3206.'),
-  make('Nuke',nuke,14150,'Nuke is the seven-leg ceiling build manually confirmed at +14150.')
+  make('Small',small,'High-confidence matchup build with thresholds set below current player averages/ceilings.'),
+  make('Medium',medium,'Stronger performance thresholds aligned to the same ATL-run / NO-pass matchup thesis.'),
+  make('Nuke',nuke,'Ceiling build requiring the strongest versions of the two matchup advantages.')
  ];
 }
 async function readResponseSnapshot(key){const local=RESPONSE_CACHE.get(key);if(local)return local;try{const path=SNAP_PREFIX+encodeURIComponent(key)+'.json',x=await list({prefix:path,limit:5}),b=x.blobs?.find(v=>v.pathname===path);if(!b)return null;const r=await fetch(b.url,{cache:'no-store'});if(!r.ok)return null;const snap=await r.json();RESPONSE_CACHE.set(key,snap);return snap}catch{return null}}
