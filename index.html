@@ -45,7 +45,7 @@ const dvpPrimary={QB:['passYards','passTD','rushYards','rushTD'],RB:['rushYards'
 function dvpRow(data,off,def,pos,teamName){
  const dr=data?.defenseRanks?.[pos]?.[def],or=data?.offenseRanks?.[pos]?.[off],vals=data?.defense?.[def]?.[pos]||{};
  const choices=(dvpPrimary[pos]||[]).map(metric=>({metric,rank:Number(dr?.[metric]?.rankMost)||99,value:vals?.[metric]})).filter(x=>x.rank<99).sort((a,b)=>a.rank-b.rank);
- let best=choices.slice(0,2);if(pos==='RB'){const rush=choices.find(x=>x.metric==='rushYards');if(rush&&!best.some(x=>x.metric==='rushYards'))best=best.length<2?[...best,rush]:[rush,best[0]];}const primary=best[0],offRank=primary?Number(or?.[primary.metric]?.rankMost)||null:null;
+ let best=choices.slice(0,2);if(pos==='RB'){const rush=choices.find(x=>x.metric==='rushYards');if(rush&&!best.some(x=>x.metric==='rushYards'))best=best.length<2?[...best,rush]:[rush,best[0]];}if(pos==='WR'){const recYds=choices.find(x=>x.metric==='recYards');if(recYds&&!best.some(x=>x.metric==='recYards'))best=best.length<2?[...best,recYds]:[recYds,best[0]];}const primary=best[0],offRank=primary?Number(or?.[primary.metric]?.rankMost)||null:null;
  const defName=teamName(def),offName=teamName(off),metric=primary?(dvpLabels[primary.metric]||primary.metric):'this category';
  const ordinal=n=>{const j=n%10,k=n%100;return n+(j===1&&k!==11?'st':j===2&&k!==12?'nd':j===3&&k!==13?'rd':'th')};
  const detail=best.length?best.map(x=>'<div><b>'+defName+' DEFENSE:</b> Allows the <strong>'+ordinal(x.rank)+'-most '+(dvpLabels[x.metric]||x.metric)+'</strong>'+(Number.isFinite(Number(x.value))?' — '+x.value+'/game':'')+'</div>').join(''):'<div>'+defName+' defensive position ranking unavailable.</div>';
