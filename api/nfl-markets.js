@@ -17,7 +17,7 @@ function sgpOddsInBand(risk,odds){const b=SGP_ODDS_BANDS[risk];return !!b&&Numbe
 function sgpPayoutLabel(risk){return risk==='Small'?'$10 → $200–$300 total return':risk==='Medium'?'$10 → $300–$800 total return':'$10 → $1,000+ total return'}
 function manualAtlNoTonightSgps(date,home,away){
  const teams=new Set([norm(home),norm(away)]);if(date!=='2026-10-05'||!teams.has('ATL')||!(teams.has('NO')||teams.has('NOS')))return null;
- const leg=(name,team,position,cat,threshold,manualForm)=>({name,team,position,cat,analyticsThreshold:threshold,sportsbookVerified:true,manualOverride:true,manualForm,source:'User-supplied FanDuel screenshots • 2026 Weeks 1–3 only'});
+ const leg=(name,team,position,cat,threshold,manualForm)=>({name,team,position,cat,analyticsThreshold:threshold,displayLabel:cat==='td'?'Anytime TD':cat==='passTD'?'Passing TDs: '+threshold+'+':(cat==='passing'?'Passing yards':cat==='rushing'?'Rushing yards':cat==='receiving'?'Receiving yards':'Receptions')+': '+threshold,sportsbookVerified:true,manualOverride:true,manualForm,source:'User-supplied FanDuel screenshots • 2026 Weeks 1–3 only'});
  const small=[
   leg('Tyler Shough','NO','QB','passing',225,'2026 W1–W3 passing: 410, 252, 255'),
   leg('Chris Olave','NO','WR','receiving',60,'2026 W1–W3 receiving: 182, 86, 107'),
