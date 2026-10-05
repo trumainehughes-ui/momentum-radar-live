@@ -176,9 +176,9 @@ function analyticsLine(x,cat,risk,ctx){
   if(supportedCeiling<avg+desiredLift)return null;
   p=Math.min(Math.max(expected*1.08,ceilingAdj*.90,avg+desiredLift),supportedCeiling);
  }
- if(cat==='passing')return Math.max(125,Math.floor(p/25)*25);
- if(cat==='receptions')return Math.max(1,Math.floor(p));
- return Math.max(10,Math.floor(p/10)*10);
+ if(cat==='passing')return Math.max(125,risk==='Nuke'?Math.ceil(p/25)*25:Math.floor(p/25)*25);
+ if(cat==='receptions')return Math.max(1,risk==='Nuke'?Math.ceil(p):Math.floor(p));
+ return Math.max(10,risk==='Nuke'?Math.ceil(p/10)*10:Math.floor(p/10)*10);
 }
 function bookThresholdCaps(x,cat){
  const refs=x?.publicMarketRefs||[];const caps={};
