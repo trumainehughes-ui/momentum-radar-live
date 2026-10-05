@@ -13,11 +13,26 @@ const RESPONSE_CACHE=new Map(),ANALYTICS_CACHE=new Map();const ANALYTICS_TTL=6*6
 const SNAP_PREFIX='momentum-nfl-markets/v2/';
 // SGP payout tiers use total return on a $10 stake: Small $200-$300, Medium $300-$800, Nuke $1,000+.
 const SGP_ODDS_BANDS={Small:{min:1900,max:2900},Medium:{min:2900,max:7900},Nuke:{min:9900,max:Infinity}};
+// Source hierarchy when sportsbook APIs are degraded:
+// 1) NFL.com / ESPN performance, roles and injuries drive the football projection.
+// 2) Team offense vs opponent defense + DVP adjusts the projection.
+// 3) Public DraftKings / FanDuel pages are a market-reference fallback for playable thresholds and +/- pricing.
+// 4) Public market prices validate context; they never replace the football model and must carry source/timestamp.
+// This contract is intentionally sport-portable so the future NBA module can use NBA.com / ESPN + public DK/FD the same way.
+const MARKET_SOURCE_POLICY={projection:['NFL.com','ESPN','team offense vs defense','DVP','injuries/roles'],marketFallback:['DraftKings public','FanDuel public'],apiPreferred:['SportsGameOdds','The Odds API'],rule:'projection_first_market_validation_second'};
 function sgpOddsInBand(risk,odds){const b=SGP_ODDS_BANDS[risk];return !!b&&Number.isFinite(Number(odds))&&Number(odds)>=b.min&&Number(odds)<=b.max}
 function sgpPayoutLabel(risk){return risk==='Small'?'$10 → $200–$300 total return':risk==='Medium'?'$10 → $300–$800 total return':'$10 → $1,000+ total return'}
 function manualAtlNoTonightSgps(date,home,away){
  const teams=new Set([norm(home),norm(away)]);if(date!=='2026-10-05'||!teams.has('ATL')||!(teams.has('NO')||teams.has('NOS')))return null;
  const src='ESPN + NFL.com • 2026 Weeks 1–3 • matchup model';
+ const publicMarketSnapshot={checkedAt:'2026-10-05',sources:['DraftKings public','FanDuel public'],references:[
+  {book:'DraftKings',player:'Bijan Robinson',market:'Rushing yards',line:'100+',odds:'+138'},
+  {book:'DraftKings',player:'Bijan Robinson',market:'Anytime TD',line:'Anytime TD',odds:'-210'},
+  {book:'DraftKings',player:'Chris Olave',market:'Anytime TD',line:'Anytime TD',odds:'+125'},
+  {book:'DraftKings',player:'Juwan Johnson',market:'Anytime TD',line:'Anytime TD',odds:'+245'},
+  {book:'FanDuel',player:'Chris Olave',market:'Receiving yards',line:'85.5',odds:'-113'},
+  {book:'FanDuel',player:'Tyler Shough',market:'Rushing yards',line:'16.5',odds:'-113'}
+ ]};
  const leg=(name,team,position,cat,threshold,manualForm)=>({name,team,position,cat,analyticsThreshold:threshold,displayLabel:cat==='td'?'Anytime TD':cat==='passTD'?'Passing TDs: '+threshold+'+':(cat==='passing'?'Passing yards':cat==='rushing'?'Rushing yards':cat==='receiving'?'Receiving yards':'Receptions')+': '+threshold,sportsbookVerified:false,manualOverride:true,manualForm,source:src});
  const small=[
   leg('Tyler Shough','NO','QB','passing',225,'917 pass yards / 3 games; 305.7 per game; ATL allows 263.0 pass yards/game'),
@@ -41,7 +56,7 @@ function manualAtlNoTonightSgps(date,home,away){
   leg('Juwan Johnson','NO','TE','td',null,'3 TD through three games'),
   leg('Tyler Shough','NO','QB','passing',300,'917 yards / 3 games; 305.7 average; ATL allows 263.0 passing yards/game')
  ];
- const make=(risk,legs,note)=>({book:'Model Projection',mode:'MANUAL_TONIGHT',risk,legs,estimatedOdds:null,actualSgpOdds:null,payoutTarget:sgpPayoutLabel(risk),targetOddsBand:SGP_ODDS_BANDS[risk],payoutBandVerified:false,manualOverride:true,verifiedAt:new Date().toISOString(),requiredLegs:legs.length,verifiedLegs:0,marketMix:[...new Set(legs.map(x=>x.cat))],correlation:sgpCorrelation(legs),explanation:{summary:note+' These are Momentum Radar projection thresholds, not copied sportsbook lines. Current 2026 production is combined with team offense vs opponent defense, DVP context and injury availability.',legs:legs.map(x=>x.name+': '+x.manualForm),correlation:[]},reason:'Tonight-only ESPN/NFL.com data-model override while sportsbook APIs are unavailable. Rebuild on material injury/inactive/role news; expires after tonight.'});
+ const make=(risk,legs,note)=>({book:'Model Projection',mode:'MANUAL_TONIGHT',risk,legs,estimatedOdds:null,actualSgpOdds:null,payoutTarget:sgpPayoutLabel(risk),targetOddsBand:SGP_ODDS_BANDS[risk],payoutBandVerified:false,manualOverride:true,sourcePolicy:MARKET_SOURCE_POLICY,publicMarketSnapshot,verifiedAt:new Date().toISOString(),requiredLegs:legs.length,verifiedLegs:0,marketMix:[...new Set(legs.map(x=>x.cat))],correlation:sgpCorrelation(legs),explanation:{summary:note+' These are Momentum Radar projection thresholds, not copied sportsbook lines. Current 2026 production is combined with team offense vs opponent defense, DVP context and injury availability.',legs:legs.map(x=>x.name+': '+x.manualForm),correlation:[]},reason:'Tonight-only ESPN/NFL.com data-model override while sportsbook APIs are unavailable. Rebuild on material injury/inactive/role news; expires after tonight.'});
  return[
   make('Small',small,'High-confidence matchup build with thresholds set below current player averages/ceilings.'),
   make('Medium',medium,'Stronger performance thresholds aligned to the same ATL-run / NO-pass matchup thesis.'),
