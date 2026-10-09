@@ -1,0 +1,152 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import handler from '../api/ai-analysis.js';
+const originalKey=process.env.GROQ_API_KEY;
+const originalFetch=globalThis.fetch;
+// Each independent test simulates a different caller so regression growth does not consume
+// the production per-client hourly limiter. Repeated requests for the same game remain one caller.
+const request=(mode,data,headers={})=>({method:'POST',body:{mode,data},headers:{'x-forwarded-for':'test-client-'+String(data?.gameId||'unknown').slice(0,64),...headers}});
+const response=()=>({statusCode:200,setHeader(){return this},status(n){this.statusCode=n;return this},json(body){this.body=body;return this}});
+test('provider response, cache hit, no credential exposure',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ let calls=0;
+ globalThis.fetch=async(url,opts)=>{
+  calls++;assert.match(url,/api.groq.com/);assert.match(opts.headers.Authorization,/^Bearer /);
+  const payload=JSON.parse(opts.body);assert.equal(payload.temperature,0.1);
+  return {ok:true,json:async()=>({choices:[{message:{content:'Evidence is limited.'}}]})};
+ };
+ const req=request('matchup',{gameId:'mock-unique-1',home:{name:'Home'},away:{name:'Away'}});
+ const first=response();await handler(req,first);
+ assert.equal(first.statusCode,200);assert.equal(first.body.analysis,'Evidence is limited.');assert.equal(first.body.verified,false);
+ assert.doesNotMatch(JSON.stringify(first.body),/fake-test-secret/);
+ const second=response();await handler(req,second);assert.equal(second.body.cached,true);assert.equal(calls,1);
+});
+test('preserves deep matchup metric and parlay leg details in AI prompt',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ let prompt='';
+ globalThis.fetch=async(_,opts)=>{prompt=JSON.parse(opts.body).messages[1].content;return {ok:true,json:async()=>({choices:[{message:{content:'Grounded summary.'}}]})}};
+ const data={gameId:'nested-depth-test',matchup:{leagueCompletedGames:65,sides:[{offense:'PHI',opponentDefense:'JAX',defenseSampleGames:4,positions:[{position:'QB',metrics:[{metric:'passYards',defenseAllowedPerGame:287.5,defenseRankMost:2}]}]}]},sgps:[{risk:'Nuke',legs:[{name:'QB',category:'passing',modelThreshold:300,bookOdds:null}]}]};
+ const res=response();await handler(request('matchup',data),res);
+ assert.equal(res.statusCode,200);
+ assert.match(prompt,/"defenseAllowedPerGame":287.5/);
+ assert.match(prompt,/"defenseSampleGames":4/);
+ assert.match(prompt,/"modelThreshold":300/);
+});
+test('provider refuses output that calls a rushing quarterback a running back',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ globalThis.fetch=async()=>({ok:true,json:async()=>({choices:[{message:{content:"PHI's RB Jalen Hurts averages 26.3 rushing yards."}}]})});
+ const res=response();await handler(request('matchup',{gameId:'qb-rush-role-conflict',playerRoleFacts:[{name:'Jalen Hurts',team:'PHI',position:'QB'}],categories:{rushing:[{name:'Jalen Hurts',team:'PHI',position:'QB',perGame:26.3}]}}),res);
+ assert.equal(res.statusCode,422);assert.equal(res.body.error,'ai_role_mismatch');
+});
+test('provider allows correctly attributed QB rushing analysis',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ globalThis.fetch=async()=>({ok:true,json:async()=>({choices:[{message:{content:'QB Jalen Hurts averages 26.3 rushing yards per game.'}}]})});
+ const res=response();await handler(request('matchup',{gameId:'qb-rush-position-correct',playerRoleFacts:[{name:'Jalen Hurts',team:'PHI',position:'QB'}]}),res);
+ assert.equal(res.statusCode,200);
+});
+test('repairs one unambiguous DVP rank without discarding the AI analysis',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ globalThis.fetch=async()=>({ok:true,json:async()=>({choices:[{message:{content:"PHI's RB group rushed 81 yards per game; JAX's defense allowed 47.5 yards (rank 13)."}}]})});
+ const matchup={sides:[{offense:'PHI',opponentDefense:'JAX',positions:[
+  {position:'QB',metrics:[{metric:'rushYards',defenseAllowedPerGame:17.5,defenseRankMost:13,offenseProducedPerGame:26.3,offenseRankMost:10}]},
+  {position:'RB',metrics:[{metric:'rushYards',defenseAllowedPerGame:47.5,defenseRankMost:32,offenseProducedPerGame:81,offenseRankMost:12}]}
+ ]}]};
+ const res=response();await handler(request('matchup',{gameId:'jax-bad-rank',matchup}),res);
+ assert.equal(res.statusCode,200);assert.equal(res.body.sourceRankCorrections,1);
+ assert.match(res.body.analysis,/47\.5 yards \(rank 32\)/);
+ assert.doesNotMatch(res.body.analysis,/47\.5 yards \(rank 13\)/);
+ assert.match(res.body.analysis,/RB group rushed 81 yards/);
+ assert.match(res.body.analysis,/Source check:/);
+});
+test('allows valid paired RB and QB allowed ranks independently',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ globalThis.fetch=async()=>({ok:true,json:async()=>({choices:[{message:{content:"JAX allows RBs 47.5 yards (rank 32), and QBs 17.5 rushing yards (rank 13)."}}]})});
+ const matchup={sides:[{offense:'PHI',opponentDefense:'JAX',positions:[
+  {position:'QB',metrics:[{metric:'rushYards',defenseAllowedPerGame:17.5,defenseRankMost:13}]},
+  {position:'RB',metrics:[{metric:'rushYards',defenseAllowedPerGame:47.5,defenseRankMost:32}]}
+ ]}]};
+ const res=response();await handler(request('matchup',{gameId:'jax-correct-rank',matchup}),res);
+ assert.equal(res.statusCode,200);assert.equal(res.body.analysis.includes('rank 32'),true);
+});
+test('rank checking avoids false mismatches when a yardage value has multiple valid rankings',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ globalThis.fetch=async()=>({ok:true,json:async()=>({choices:[{message:{content:'A 47.5 yards (rank 13) stat is ambiguous here.'}}]})});
+ const matchup={sides:[{offense:'PHI',opponentDefense:'JAX',positions:[
+  {position:'QB',metrics:[{metric:'rushYards',defenseAllowedPerGame:47.5,defenseRankMost:13}]},
+  {position:'RB',metrics:[{metric:'rushYards',defenseAllowedPerGame:47.5,defenseRankMost:32}]}
+ ]}]};
+ const res=response();await handler(request('matchup',{gameId:'ambiguous-dvp-rank',matchup}),res);
+ assert.equal(res.statusCode,200);
+});
+test('unsupported play-calling style and defense-tier labels are neutralized',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ globalThis.fetch=async()=>({ok:true,json:async()=>({choices:[{message:{content:"Philadelphia's pass-heavy offense vs Jacksonville's pass defense. Jacksonville's rushing attack meets Philadelphia's middle-tier RB defense."}}]})});
+ const r=response();await handler(request('matchup',{gameId:'unsupported-style-labels'}),r);
+ assert.equal(r.statusCode,200);
+ assert.match(r.body.analysis,/passing offense/);
+ assert.match(r.body.analysis,/RB defense/);
+ assert.doesNotMatch(r.body.analysis,/pass-heavy|middle-tier/i);
+});
+test('source correction is cached and does not cause another model call',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ let calls=0;
+ globalThis.fetch=async()=>{calls++;return {ok:true,json:async()=>({choices:[{message:{content:'JAX RB defense has allowed 47.5 yards (rank 13).'}}]})}};
+ const data={gameId:'rank-correction-cache',matchup:{sides:[{offense:'PHI',opponentDefense:'JAX',positions:[{position:'RB',metrics:[{metric:'rushYards',defenseAllowedPerGame:47.5,defenseRankMost:32}]}]}]}};
+ const first=response();await handler(request('matchup',data),first);
+ const second=response();await handler(request('matchup',data),second);
+ assert.equal(first.statusCode,200);assert.equal(second.statusCode,200);
+ assert.equal(second.body.cached,true);assert.equal(second.body.sourceRankCorrections,1);
+ assert.equal(calls,1);
+});
+test('more than two ranking errors still blocks unsafe generated analysis',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ globalThis.fetch=async()=>({ok:true,json:async()=>({choices:[{message:{content:'JAX RB 47.5 yards (rank 13), QB passing 287.5 yards (rank 31), and PHI RB 102.3 yards (rank 22).'}}]})});
+ const data={gameId:'too-many-dvp-errors',matchup:{sides:[
+ {positions:[{position:'RB',metrics:[{metric:'rushYards',defenseAllowedPerGame:47.5,defenseRankMost:32}]},{position:'QB',metrics:[{metric:'passYards',defenseAllowedPerGame:287.5,defenseRankMost:2}]}]},
+ {positions:[{position:'RB',metrics:[{metric:'rushYards',defenseAllowedPerGame:102.3,defenseRankMost:10}]}]}
+ ]}};
+ const res=response();await handler(request('matchup',data),res);
+ assert.equal(res.statusCode,422);assert.equal(res.body.error,'ai_stat_rank_mismatch');
+});
+test('does not invent corrections for unrelated yardage or missing ranks',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ const message='A player had 49 yards (rank 13); JAX defense conceded 47.5 yards with no rank reported.';
+ globalThis.fetch=async()=>({ok:true,json:async()=>({choices:[{message:{content:message}}]})});
+ const data={gameId:'unknown-yardage-not-rewritten',matchup:{sides:[{positions:[{position:'RB',metrics:[{metric:'rushYards',defenseAllowedPerGame:47.5,defenseRankMost:32}]}]}]}};
+ const res=response();await handler(request('matchup',data),res);
+ assert.equal(res.statusCode,200);assert.equal(res.body.sourceRankCorrections,0);
+ assert.equal(res.body.analysis,message);
+});
+test('provider error is sanitized and leaves projections untouched',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ globalThis.fetch=async()=>({ok:false,status:401});
+ const res=response();await handler(request('injury',{gameId:'mock-unique-2'}),res);
+ assert.equal(res.statusCode,502);assert.equal(res.body.error,'provider_auth_failed');
+});
+test('provider 429 surfaces controlled retry signal',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ globalThis.fetch=async()=>({ok:false,status:429});
+ const res=response();await handler(request('results',{gameId:'mock-unique-3'}),res);
+ assert.equal(res.statusCode,429);assert.equal(res.body.error,'provider_rate_limited');
+});
+test('empty provider result is rejected',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ globalThis.fetch=async()=>({ok:true,json:async()=>({choices:[]})});
+ const res=response();await handler(request('parlay',{gameId:'mock-unique-4'}),res);
+ assert.equal(res.statusCode,502);assert.equal(res.body.error,'empty_ai_response');
+});
+test('provider network failure is handled',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ globalThis.fetch=async()=>{throw Error('simulated outage')};
+ const res=response();await handler(request('matchup',{gameId:'mock-unique-5'}),res);
+ assert.equal(res.statusCode,502);assert.equal(res.body.error,'ai_provider_unavailable');
+});
+test('provider 413 token capacity limit is translated to a retry signal',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ globalThis.fetch=async()=>({ok:false,status:413,json:async()=>({error:{code:'rate_limit_exceeded'}})});
+ const res=response();await handler(request('matchup',{gameId:'mock-capacity-limited'}),res);
+ assert.equal(res.statusCode,429);
+ assert.equal(res.body.error,'ai_capacity_limited');
+ assert.ok(res.body.retryAfterSeconds>=60);
+});
+test.after(()=>{globalThis.fetch=originalFetch;if(originalKey===undefined)delete process.env.GROQ_API_KEY;else process.env.GROQ_API_KEY=originalKey});

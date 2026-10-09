@@ -29,7 +29,7 @@ test('history renders selected player, actual result, stars and all SGP leg outc
  const ctx=vm.createContext({});vm.runInContext(code,ctx);
  const p={...pick,grade:{status:'HIT',target:1,actual:2}};
  const out=ctx.nflHistoryCard({picks:[p],sgps:[{book:'DraftKings',risk:'Small',status:'HIT',hit:true,legsHit:1,legsTotal:1,legs:[p]}]});
- assert.match(out,/⭐ Test Player Anytime touchdown/);assert.match(out,/Actual: 2/);assert.match(out,/⭐ DraftKings Small — HIT/);
+ assert.match(out,/⭐ Test Player.*Anytime touchdown/s);assert.match(out,/Actual: 2/);assert.match(out,/⭐ DraftKings Small SGP — HIT/);
  assert.doesNotMatch(ctx.nflResultRow({...p,grade:{status:'MISS',actual:0}}),/⭐/);
  assert.doesNotMatch(ctx.nflResultRow({...p,name:'<script>'}),/<script>/);
 });

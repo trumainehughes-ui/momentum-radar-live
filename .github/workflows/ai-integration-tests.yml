@@ -1,0 +1,68 @@
+name: AI Integration Tests
+on:
+  push:
+    branches: [feature/groq-ai-analysis]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  syntax:
+    name: 1 - Syntax and integration checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-package-lock
+      - run: node --check api/ai-analysis.js
+      - run: node --check public-ai.js
+      - run: node --check api/nfl-markets.js
+      - run: node --check api/nfl-game.js
+
+  unit:
+    name: 2 - API and provider regression
+    needs: syntax
+    if: ${{ needs.syntax.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-package-lock
+      - run: node --test tests/ai-analysis.test.js tests/ai-provider.test.js
+
+  integration:
+    name: 3 - UI and NFL regression
+    needs: unit
+    if: ${{ needs.unit.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-package-lock
+      - run: node --test tests/ai-ui.test.js tests/nfl-results.test.js
+
+  full:
+    name: 4 - Complete regression suite
+    needs: integration
+    if: ${{ needs.integration.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-package-lock
+      - run: npm test
