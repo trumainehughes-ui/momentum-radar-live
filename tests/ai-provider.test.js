@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import handler from '../api/ai-analysis.js';
 const originalKey=process.env.GROQ_API_KEY;
 const originalFetch=globalThis.fetch;
-const request=(mode,data,headers={})=>({method:'POST',body:{mode,data},headers});
+// Each independent test simulates a different caller so regression growth does not consume
+// the production per-client hourly limiter. Repeated requests for the same game remain one caller.
+const request=(mode,data,headers={})=>({method:'POST',body:{mode,data},headers:{'x-forwarded-for':'test-client-'+String(data?.gameId||'unknown').slice(0,64),...headers}});
 const response=()=>({statusCode:200,setHeader(){return this},status(n){this.statusCode=n;return this},json(body){this.body=body;return this}});
 test('provider response, cache hit, no credential exposure',async()=>{
  process.env.GROQ_API_KEY='fake-test-secret';
