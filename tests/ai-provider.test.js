@@ -78,6 +78,15 @@ test('rank checking avoids false mismatches when a yardage value has multiple va
  const res=response();await handler(request('matchup',{gameId:'ambiguous-dvp-rank',matchup}),res);
  assert.equal(res.statusCode,200);
 });
+test('unsupported play-calling style and defense-tier labels are neutralized',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ globalThis.fetch=async()=>({ok:true,json:async()=>({choices:[{message:{content:"Philadelphia's pass-heavy offense vs Jacksonville's pass defense. Jacksonville's rushing attack meets Philadelphia's middle-tier RB defense."}}]})});
+ const r=response();await handler(request('matchup',{gameId:'unsupported-style-labels'}),r);
+ assert.equal(r.statusCode,200);
+ assert.match(r.body.analysis,/passing offense/);
+ assert.match(r.body.analysis,/RB defense/);
+ assert.doesNotMatch(r.body.analysis,/pass-heavy|middle-tier/i);
+});
 test('source correction is cached and does not cause another model call',async()=>{
  process.env.GROQ_API_KEY='fake-test-secret';
  let calls=0;
