@@ -3,6 +3,46 @@
  const CATS=['td','passing','rushing','receiving','receptions'];
  const POS={QB:['passYards','rushYards','passTD'],RB:['rushYards','recYards','receptions'],WR:['recYards','receptions','targets'],TE:['recYards','receptions','targets']};
  const RISKS=['Small','Medium','Nuke'];
+ // Keep provider prompts bounded; the detailed app data still stays in the ordinary NFL tabs.
+ const FOCUS={QB:['passYards','rushYards'],RB:['rushYards','recYards'],WR:['recYards','receptions'],TE:['recYards']};
+ let aiCooldownUntil=0;
+ function conciseMatchup(m){
+  if(!m)return null;
+  return {...m,sides:(m.sides||[]).map(s=>({...s,positions:(s.positions||[]).map(p=>({...p,metrics:(p.metrics||[]).filter(x=>(FOCUS[p.position]||[]).includes(x.metric))})).filter(p=>p.metrics.length)}))};
+ }
+ function conciseRoster(r,mode){
+  if(!r)return null;
+  const n=mode==='injury'?15:8;
+  const relevant=new Set((r.playerChecks||[]).slice(0,n).map(x=>norm(x.name)));
+  const injuries=(r.injuries||[]).filter(x=>relevant.has(norm(x.name))||['OUT','IR','DOUBTFUL','QUESTIONABLE'].includes(x.status)).slice(0,mode==='injury'?15:8);
+  return {source:r.source,fetchedAt:r.fetchedAt,injuries,blocked:(r.blocked||[]).slice(0,8),roles:(r.roles||[]).slice(0,mode==='injury'?10:5),playerChecks:(r.playerChecks||[]).slice(0,n),roleVerificationRequired:true};
+ }
+ function dataOnlySummary(mode,d,reason){
+  const out=['AI explanation temporarily unavailable ('+reason+').','Data-only summary from available application feeds (not AI-generated):'];
+  const m=d.matchup;
+  if(m?.sides?.length){
+   for(const side of m.sides.slice(0,2)){
+    const qb=(side.positions||[]).find(x=>x.position==='QB')?.metrics?.find(x=>x.metric==='passYards');
+    const rb=(side.positions||[]).find(x=>x.position==='RB')?.metrics?.find(x=>x.metric==='rushYards');
+    const sample=side.defenseSampleGames;
+    const sampleText=sample==null?'unverified sample':sample+' defensive games'+(sample<5?' (limited sample)':'');
+    const measures=[qb&&'QB passing '+qb.defenseAllowedPerGame+' allowed/game',rb&&'RB rushing '+rb.defenseAllowedPerGame+' allowed/game'].filter(Boolean);
+    out.push(side.offense+' vs '+side.opponentDefense+' defense: '+sampleText+(measures.length?' • '+measures.join(' • '):''));
+   }
+  }
+  if(mode==='parlay'){
+   for(const s of (d.sgps||[]).filter(x=>x.source==='Analytics').slice(0,3)){
+    out.push(s.risk+' model: '+s.legs.map(x=>x.name+' '+(x.modelThreshold??'threshold pending')).join('; ')+(s.payoutBandVerified?' • book payout verified':' • sportsbook payout not verified'));
+   }
+  }else{
+   const selected=['passing','rushing','receiving'].flatMap(cat=>(d.categories?.[cat]||[]).slice(0,1).map(p=>p.name+' '+p.projection+' projected '+cat+' yards'));
+   if(selected.length)out.push('Model projections: '+selected.join('; ')+'.');
+  }
+  const problems=d.playerAvailability?.playerChecks?.filter(x=>x.status==='TEAM_MISMATCH'||x.injuryStatus==='OUT'||x.injuryStatus==='IR')||[];
+  if(problems.length)out.push('Player verification flags: '+problems.slice(0,3).map(x=>x.name+' ('+(x.injuryStatus||x.status)+')').join('; ')+'.');
+  out.push('Official starters, inactives, and current sportsbook prices still require independent verification. Existing picks are unchanged.');
+  return out.join('\n\n');
+ }
  const number=x=>x===null||x===undefined||x===''?null:(Number.isFinite(Number(x))?Number(x):null);
  const compact=(v,n=160)=>v==null?null:String(v).slice(0,n);
  const norm=x=>String(x||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
@@ -87,19 +127,27 @@
     for(const s of packSgps(m))for(const l of s.legs)candidates.push({name:l.name,team:l.team});
     const defensive=matchups(d,game),availability=roster(g,gameId,candidates);
     if(!m?.categories&&!defensive&&!availability){out.textContent='Matchup, player, and market sources are currently unavailable. Existing picks remain unchanged.';return}
-    const categories={};for(const cat of CATS)categories[cat]=(m?.categories?.[cat]||[]).slice(0,4).map(player);
+    const mode=document.getElementById('momentumAiMode').value;
+    const categories={};for(const cat of CATS)categories[cat]=(m?.categories?.[cat]||[]).slice(0,mode==='injury'?2:3).map(player);
+    const selectedSgps=mode==='parlay'?packSgps(m).map(s=>({...s,legs:s.legs.slice(0,7)})):[];
     const sources={model:m?.categories?'available':'unavailable',sportsbook:m?.validation?.sportsbookVerificationAvailable===true&&!m.stale?'market evidence present; independently verify book prices':'not verified or currently unavailable',roster:availability?'ESPN current-game cross-check':'unavailable',defense:defensive?'ESPN completed-game box-score splits':'unavailable'};
     const data={
      gameId,game:{home:game.home?.name,homeAbbr:game.home?.abbr,away:game.away?.name,awayAbbr:game.away?.abbr,kickoff:game.kickoff,status:game.status,week:game.week},
      sources,model:{fetchedAt:compact(m?.fetchedAt),stale:m?.stale===true,degraded:m?.degraded===true,analyticsAvailable:m?.analyticsAvailable===true,validation:m?.validation?{injuryEligibilityChecked:m.validation.injuryEligibilityChecked,starterRoleRequired:m.validation.sgpChecks?.starterRoleRequired,sportsbookVerificationAvailable:m.validation.sportsbookVerificationAvailable}:null},
-     categories,matchup:defensive,playerAvailability:availability,sgps:packSgps(m),
+     categories,matchup:mode==='injury'?null:conciseMatchup(defensive),playerAvailability:conciseRoster(availability,mode),sgps:selectedSgps,
      instruction:'Explain only evidence actually available. Report opponent-specific sample games, never the leaguewide total as an individual team sample. Samples under five games are limited. Use playerAvailability.playerChecks to identify specific unresolved roles, injuries and any wrong-team rows before generic cautions. Missing odds must not be called verified; model SGP payout targets are not sportsbook payouts. Defense rankMost 1 means most allowed, not strongest defense. Injury absence is not confirmed health; roster membership does not prove starting.'
     };
+    if(Date.now()<aiCooldownUntil){out.textContent=dataOnlySummary(mode,data,'provider capacity limit; retry later');return}
     out.textContent='Analyzing available evidence…';
-    const response=await fetch('/api/ai-analysis',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:document.getElementById('momentumAiMode').value,data})});
+    const response=await fetch('/api/ai-analysis',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode,data})});
     const result=await response.json();
-    out.textContent=result.ok?String(result.analysis||'').replace(/\*\*/g,'').replace(/^#{1,6}\s*/gm,''):'AI unavailable: '+(result.error||'unknown_error')+'. Existing projections are unchanged.';
-   }catch{out.textContent='AI connection failed. Existing projections are unchanged.'}
+    if(result.ok){
+     out.textContent=String(result.analysis||'').replace(/\*\*/g,'').replace(/^#{1,6}\s*/gm,'');
+    }else{
+     if(result.error==='ai_capacity_limited'||result.error==='provider_rate_limited')aiCooldownUntil=Date.now()+Math.max(60,Number(result.retryAfterSeconds)||90)*1000;
+     out.textContent=dataOnlySummary(mode,data,result.error||'unknown_error');
+    }
+   }catch{out.textContent='AI connection failed. Existing projections are unchanged. Retry shortly.'}
    finally{button.disabled=false}
   };
  };

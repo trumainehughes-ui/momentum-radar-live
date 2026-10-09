@@ -54,4 +54,12 @@ test('provider network failure is handled',async()=>{
  const res=response();await handler(request('matchup',{gameId:'mock-unique-5'}),res);
  assert.equal(res.statusCode,502);assert.equal(res.body.error,'ai_provider_unavailable');
 });
+test('provider 413 token capacity limit is translated to a retry signal',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ globalThis.fetch=async()=>({ok:false,status:413,json:async()=>({error:{code:'rate_limit_exceeded'}})});
+ const res=response();await handler(request('matchup',{gameId:'mock-capacity-limited'}),res);
+ assert.equal(res.statusCode,429);
+ assert.equal(res.body.error,'ai_capacity_limited');
+ assert.ok(res.body.retryAfterSeconds>=60);
+});
 test.after(()=>{globalThis.fetch=originalFetch;if(originalKey===undefined)delete process.env.GROQ_API_KEY;else process.env.GROQ_API_KEY=originalKey});

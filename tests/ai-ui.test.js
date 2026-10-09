@@ -11,7 +11,7 @@ function harness(options={}){
  const calls=[],payloads=[];
  const fetch=async(url,opts={})=>{
   calls.push(url);
-  if(url==='/api/ai-analysis'){payloads.push(JSON.parse(opts.body));return {ok:true,json:async()=>({ok:true,analysis:options.aiText||'Evidence is limited.'})}}
+  if(url==='/api/ai-analysis'){payloads.push(JSON.parse(opts.body));return {ok:!options.providerError,json:async()=>options.providerError?{ok:false,error:options.providerError,retryAfterSeconds:90}:{ok:true,analysis:options.aiText||'Evidence is limited.'}}}
   if(url.startsWith('/api/nfl-game'))return {ok:true,json:async()=>options.roster??{ok:false}};
   if(url.startsWith('/api/nfl-dvp'))return {ok:true,json:async()=>options.dvp??{ok:false}};
   throw Error('Unknown route '+url);
@@ -33,7 +33,7 @@ test('selected game sends sourced market, roster and offense-v-defense evidence'
  assert.equal(d.matchup.leagueCompletedGames,3);
  assert.match(d.matchup.sampleInterpretation,/leagueCompletedGames is an NFL-wide total/);
  assert.equal(d.playerAvailability.injuries[0].status,'QUESTIONABLE');
- assert.equal(d.sgps[0].risk,'Small');assert.equal(d.sources.roster,'ESPN current-game cross-check');
+ assert.equal(d.sgps.length,0);assert.equal(d.sources.roster,'ESPN current-game cross-check');
  assert.equal(h.calls.length,3);
 });
 test('a leaguewide game total never substitutes for a team sample',async()=>{
@@ -73,6 +73,24 @@ test('parlay review includes three model tiers and both book source labels',asyn
 test('formatted AI output safely removes markdown heading markers',async()=>{
  const h=harness({aiText:'**Confirmed Data**\n### Projection only.'});await h.button.onclick();
  assert.equal(h.output.textContent,'Confirmed Data\nProjection only.');
+});
+test('limits matchup context and retains real team sample counts',async()=>{
+ const h=harness({dvp:{ok:true,season:2026,week:5,completedGames:65,defense:{HOM:{games:4,QB:{passYards:287,rushYards:31},RB:{rushYards:85}},AWY:{games:4}},offense:{AWY:{games:4,QB:{passYards:260}},HOM:{games:4}},defenseRanks:{QB:{HOM:{passYards:{rankMost:2}}}}}});
+ await h.button.onclick();
+ const x=h.payloads[0].data.matchup;
+ assert.equal(x.leagueCompletedGames,65);
+ assert.equal(x.sides[0].defenseSampleGames,4);
+ assert.ok(x.sides[0].positions.find(y=>y.position==='QB'));
+ assert.equal(h.payloads[0].data.sgps.length,0);
+});
+test('Groq capacity limit shows transparent app-data fallback, not empty analysis',async()=>{
+ const h=harness({providerError:'ai_capacity_limited',dvp:{ok:true,season:2026,week:5,completedGames:65,defense:{HOM:{games:4,QB:{passYards:287}}},offense:{AWY:{games:4}},defenseRanks:{QB:{HOM:{passYards:{rankMost:2}}}}}});
+ await h.button.onclick();
+ assert.match(h.output.textContent,/Data-only summary/);
+ assert.match(h.output.textContent,/4 defensive games \(limited sample\)/);
+ assert.match(h.output.textContent,/Existing picks are unchanged/);
+ const before=h.payloads.length;await h.button.onclick();
+ assert.equal(h.payloads.length,before);
 });
 test('no selected game does not call any network route',async()=>{
  const h=harness();h.ctx.nflSelected=null;await h.button.onclick();
