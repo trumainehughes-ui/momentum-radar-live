@@ -30,9 +30,22 @@
   });
   return{source:'ESPN completed-game box scores (position splits); NFL.com totals reference',season:d.season,week:d.week,completedGames:number(d.completedGames),generatedAt:compact(d.generatedAt),rankDirection:'rankMost 1 = most yards/count allowed (favorable for opposing offensive production)',sides};
  }
- function roster(d,id){
+ function roster(d,id,candidates=[]){
   if(!d?.ok||String(d.gameId||'')!==id)return null;
-  return{source:compact(d.source),fetchedAt:compact(d.fetchedAt),injuries:(d.injuries||[]).slice(0,20).map(x=>({name:x.name,team:x.team,position:x.position,status:x.status,injury:x.injury,source:x.source})),blocked:(d.blockers||[]).slice(0,20).map(x=>({name:x.name,team:x.team,status:x.status,source:x.source})),roles:(d.roleSignals||[]).slice(0,20).map(x=>({name:x.name,team:x.team,status:x.status,source:x.source,checkedAt:x.checkedAt})),players:(d.playerProjections||[]).filter(p=>['QB','RB','WR','TE'].includes(p.position)).slice(0,20).map(p=>({name:p.name,team:p.team,position:p.position,availability:p.availability,starterStatus:p.starterStatus,starterVerified:!!p.starterVerified,roleEvidence:p.verification?.role?.source||null})),roleVerificationRequired:true};
+  const all=(d.playerProjections||[]).filter(p=>['QB','RB','WR','TE'].includes(p.position));
+  const activeGameRoster=new Map(all.map(p=>[norm(p.name),p]));
+  const watched=new Map();
+  for(const c of candidates){
+   if(!c?.name||watched.has(norm(c.name)))continue;
+   const match=activeGameRoster.get(norm(c.name)),reportedTeam=norm(c.team),rosterTeam=norm(match?.team);
+   const status=!match?'NOT_CONFIRMED_IN_ROSTER_SNAPSHOT':reportedTeam&&reportedTeam!==rosterTeam?'TEAM_MISMATCH':match.starterVerified?'ROLE_EVIDENCE_REPORTED':'ROSTER_MEMBER_STARTER_UNVERIFIED';
+   const injury=(d.blockers||[]).find(x=>norm(x.name)===norm(c.name))||(d.injuries||[]).find(x=>norm(x.name)===norm(c.name));
+   watched.set(norm(c.name),{name:c.name,marketTeam:c.team||null,rosterTeam:match?.team||null,position:match?.position||null,status,injuryStatus:injury?.status||null,starterEvidenceSource:match?.verification?.role?.source||null});
+   if(watched.size>=30)break;
+  }
+  const priorities=new Set(watched.keys());
+  const players=[...all].sort((a,b)=>Number(priorities.has(norm(b.name)))-Number(priorities.has(norm(a.name)))).slice(0,24);
+  return{source:compact(d.source),fetchedAt:compact(d.fetchedAt),injuries:(d.injuries||[]).slice(0,20).map(x=>({name:x.name,team:x.team,position:x.position,status:x.status,injury:x.injury,source:x.source})),blocked:(d.blockers||[]).slice(0,20).map(x=>({name:x.name,team:x.team,status:x.status,source:x.source})),roles:(d.roleSignals||[]).slice(0,20).map(x=>({name:x.name,team:x.team,status:x.status,source:x.source,checkedAt:x.checkedAt})),players:players.map(p=>({name:p.name,team:p.team,position:p.position,availability:p.availability,starterStatus:p.starterStatus,starterVerified:!!p.starterVerified,roleEvidence:p.verification?.role?.source||null})),playerChecks:[...watched.values()],roleVerificationRequired:true,note:'Not found in the current roster snapshot does not prove ineligible; independent official starter and injury verification is still required.'};
  }
  function player(x){
   return{name:x.name,team:x.team,position:x.position,projection:number(x.edgeAnalytics?.modelProjection??x.predictiveProjection??x.projection),perGame:number(x.perGame),modelScore:number(x.momentumScore),confidence:number(x.confidence),estimatedRushingPercent:number(x.rushingChance?.estimatedPercent),gamesPlayed:number(x.gamesPlayed),matchup:x.matchup?{opponent:x.matchup.opponent,position:x.matchup.position,metric:x.matchup.metric,rankMost:number(x.matchup.rankMost),allowedPerGame:number(x.matchup.allowedPerGame),label:x.matchup.label}:null,book:x.bestBook?.book||null,marketLine:number(x.edgeAnalytics?.sportsbookLine??x.bestBook?.line),bookOdds:number(x.bestBook?.odds),recentHitRates:x.recentHitRates||null};
@@ -68,7 +81,9 @@
      teamCodes.length===2?getJson('/api/nfl-dvp?'+new URLSearchParams({season:String(season),week:String(week),teams:teamCodes.join(',')})).catch(()=>null):Promise.resolve(null)
     ];
     const [m,g,d]=await Promise.all(requests);
-    const defensive=matchups(d,game),availability=roster(g,gameId);
+    const candidates=CATS.flatMap(cat=>(m?.categories?.[cat]||[]).slice(0,4).map(x=>({name:x.name,team:x.team})));
+    for(const s of packSgps(m))for(const l of s.legs)candidates.push({name:l.name,team:l.team});
+    const defensive=matchups(d,game),availability=roster(g,gameId,candidates);
     if(!m?.categories&&!defensive&&!availability){out.textContent='Matchup, player, and market sources are currently unavailable. Existing picks remain unchanged.';return}
     const categories={};for(const cat of CATS)categories[cat]=(m?.categories?.[cat]||[]).slice(0,4).map(player);
     const sources={model:m?.categories?'available':'unavailable',sportsbook:m?.validation?.sportsbookVerificationAvailable===true&&!m.stale?'market evidence present; independently verify book prices':'not verified or currently unavailable',roster:availability?'ESPN current-game cross-check':'unavailable',defense:defensive?'ESPN completed-game box-score splits':'unavailable'};
