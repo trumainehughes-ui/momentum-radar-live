@@ -32,10 +32,12 @@ const calc=(x,ctx)=>predict(x,ctx,norm,y=>y.bestBook??null);
 
 test('rushing rankings show explicit five-yard target and model percentage, not arbitrary 50/100',()=>{
   const out=show({...fixture(),projection:124,confidence:80,momentumScore:50,
-    rushingChance:{modelTargetYards:100,estimatedPercent:67,historySample:4,variationYards:28,matchupSummary:'Offense #4 vs defense #6'}});
+    rushingChance:{modelTargetYards:100,estimatedPercent:67,nearProjectionTargetYards:120,nearProjectionPercent:54,historySample:4,variationYards:28,matchupSummary:'Offense #4 vs defense #6'}});
   assert.match(out,/Projected: 124 rushing yards/);
   assert.match(out,/Suggested model target: 100\+ rushing yards/);
   assert.match(out,/Estimated chance of 100\+ rushing yards/);
+  assert.match(out,/Near-projection model line: 120\+ rushing yards/);
+  assert.match(out,/Model-estimated chance of 120\+ yards: 54%/);
   assert.match(out,/67%/);
   assert.match(out,/Offense vs defense/);
   assert.doesNotMatch(out,/50\/100|80%|Momentum rating/);
@@ -67,6 +69,7 @@ test('rushing targets use 5-yard steps but projections remain precise',()=>{
   for(const [projection,expected] of [[124,100],[94,75],[78,60],[69,55]]){
     const row=calc({...fixture(),projection,perGame:projection,position:'RB'},context(12,12));
     assert.equal(row.rushingChance.modelTargetYards,expected);
+    assert.equal(row.rushingChance.nearProjectionTargetYards,Math.max(5,Math.floor(row.projection/5)*5));
     assert.ok(row.rushingChance.estimatedPercent>0&&row.rushingChance.estimatedPercent<=99);
   }
 });
