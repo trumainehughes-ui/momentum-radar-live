@@ -8,7 +8,7 @@ const MAX_BODY = 50000;
 const MAX_CALLS_PER_HOUR = 12;
 const ttl = 15 * 60 * 1000;
 const ROLE_TITLES={QB:['RB','WR','TE','running back','wide receiver','tight end'],RB:['QB','WR','TE','quarterback','wide receiver','tight end'],WR:['QB','RB','TE','quarterback','running back','tight end'],TE:['QB','RB','WR','quarterback','running back','wide receiver']};
-function escapedRegex(s){return String(s).replace(/[.*+?^$\{\}()|[\]\\]/g,'\\const ttl = 15 * 60 * 1000;')}
+function escapedRegex(s){return String(s).replace(/[^a-zA-Z0-9 ]/g,ch=>'\\'+ch)}
 function responseRoleConflict(text,data){
  const known=new Map();
  for(const role of data.playerRoleFacts||[])if(role?.name&&['QB','RB','WR','TE'].includes(role.position))known.set(String(role.name).toLowerCase(),role);
