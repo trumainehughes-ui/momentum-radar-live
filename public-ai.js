@@ -22,7 +22,7 @@
    try{
     const response=await fetch('/api/ai-analysis',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:document.getElementById('momentumAiMode').value,data})});
     const result=await response.json();
-    out.textContent=result.ok?result.analysis:'AI unavailable: '+(result.error||'unknown_error')+'. Existing projections are unchanged.';
+    out.textContent=result.ok?String(result.analysis||'').replace(/\*\*/g,''):'AI unavailable: '+(result.error||'unknown_error')+'. Existing projections are unchanged.';
    }catch{out.textContent='AI connection failed. Existing projections are unchanged.'}
    finally{button.disabled=false}
   };
