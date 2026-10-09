@@ -8,9 +8,9 @@
   document.getElementById('momentumAiRun').onclick=async()=>{
    const out=document.getElementById('momentumAiOutput'),button=document.getElementById('momentumAiRun');
    const selected=typeof nflSelected!=='undefined'?nflSelected:null;
-   const gameId=String(selected?.gameId||'');
+   const gameId=String(selected?.gameId||selected?.id||'');
    if(!gameId){out.textContent='Choose an NFL game first.';return}
-   const game=(typeof nflData!=='undefined'?nflData?.games:[])?.find(g=>String(g.gameId)===gameId);
+   const game=(typeof nflData!=='undefined'?nflData?.games:[])?.find(g=>String(g.gameId||g.id)===gameId);
    if(!game){out.textContent='Selected game data is unavailable. Refresh the NFL feed.';return}
    const data={gameId,game:{home:game.home,away:game.away,kickoff:game.kickoff,injuries:(game.injuries||[]).slice(0,12),picks:(game.picks||[]).slice(0,12),sgps:(game.sgps||[]).slice(0,3),dvp:game.dvp||null},selected:{gameId}};
    button.disabled=true;out.textContent='Analyzing available application data…';
