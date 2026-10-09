@@ -43,6 +43,27 @@ test('a leaguewide game total never substitutes for a team sample',async()=>{
  assert.equal(h.payloads[0].data.matchup.sides[0].defenseSampleGames,4);
  assert.equal(h.payloads[0].data.matchup.sides[0].limitedSample,true);
 });
+test('priority ESPN skill-position injuries survive context trimming and are not labeled official inactives',async()=>{
+ const injuryNames=['Reserve A','Reserve B','Reserve C','Reserve D','Reserve E','Reserve F','Reserve G','Reserve H','DeVonta Smith','Saquon Barkley'];
+ const inj=injuryNames.map((name,i)=>({name,team:i>=8?'HOM':'AWY',position:i===8?'WR':i===9?'RB':'S',status:i>=8?'OUT':'IR',source:'ESPN game summary'}));
+ const h=harness({roster:{ok:true,gameId:'game-123',injuries:inj,playerProjections:[],blockers:[],roleSignals:[]}});
+ await h.button.onclick();
+ const d=h.payloads[0].data;
+ assert.equal(d.playerAvailability.reportedInjuryEntries,10);
+ assert.equal(d.playerAvailability.officialInactivesVerified,false);
+ assert.ok(d.playerAvailability.skillPositionAlerts.some(x=>x.name==='DeVonta Smith'&&x.status==='OUT'));
+ assert.ok(d.playerAvailability.skillPositionAlerts.some(x=>x.name==='Saquon Barkley'&&x.status==='OUT'));
+ assert.equal(d.playerAvailability.injuries.length,8);
+});
+test('model tier availability remains distinct from book odds even in matchup mode',async()=>{
+ const tiers=['Small','Medium','Nuke'].map(risk=>({risk,legs:[{name:'Quarterback',cat:'passing',threshold:250}]}));
+ const h=harness({market:{categories:{passing:[{name:'Quarterback',team:'AWY',projection:250}]},marketRows:0,validation:{sportsbookVerificationAvailable:false},sgps:{Analytics:tiers}}});
+ await h.button.onclick();
+ assert.equal(h.payloads[0].data.model.modelSgpTierCount,3);
+ assert.equal(h.payloads[0].data.model.sportsbookMarketRows,0);
+ assert.equal(h.payloads[0].data.sgps.length,0);
+ assert.match(h.payloads[0].data.model.modelAvailabilityNote,/Model-generated SGPs exist/);
+});
 test('model picks are checked against the selected-game roster without assuming starter status',async()=>{
  const h=harness({roster:{ok:true,gameId:'game-123',injuries:[],blockers:[],roleSignals:[],playerProjections:[{name:'Quarterback',team:'HOM',position:'QB',starterVerified:false}]}});
  await h.button.onclick();

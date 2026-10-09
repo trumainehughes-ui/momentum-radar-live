@@ -14,8 +14,10 @@
   if(!r)return null;
   const n=mode==='injury'?15:8;
   const relevant=new Set((r.playerChecks||[]).slice(0,n).map(x=>norm(x.name)));
-  const injuries=(r.injuries||[]).filter(x=>relevant.has(norm(x.name))||['OUT','IR','DOUBTFUL','QUESTIONABLE'].includes(x.status)).slice(0,mode==='injury'?15:8);
-  return {source:r.source,fetchedAt:r.fetchedAt,injuries,blocked:(r.blocked||[]).slice(0,8),roles:(r.roles||[]).slice(0,mode==='injury'?10:5),playerChecks:(r.playerChecks||[]).slice(0,n),roleVerificationRequired:true};
+  const priority=x=>(relevant.has(norm(x.name))?100:0)+(['QB','RB','WR','TE'].includes(x.position)?50:0)+(['OUT','IR'].includes(x.status)?20:0)+(x.status==='QUESTIONABLE'||x.status==='DOUBTFUL'?10:0);
+  const injuries=(r.injuries||[]).filter(x=>relevant.has(norm(x.name))||['OUT','IR','DOUBTFUL','QUESTIONABLE'].includes(x.status)).sort((a,b)=>priority(b)-priority(a)).slice(0,mode==='injury'?15:8);
+  const skillPositionAlerts=injuries.filter(x=>['QB','RB','WR','TE'].includes(x.position)&&['OUT','IR','DOUBTFUL','QUESTIONABLE'].includes(x.status)).map(x=>({name:x.name,team:x.team,position:x.position,status:x.status,source:x.source}));
+  return {source:r.source,fetchedAt:r.fetchedAt,reportedInjuryEntries:r.injuries?.length||0,injuries,skillPositionAlerts,blocked:(r.blocked||[]).slice(0,4),roles:(r.roles||[]).slice(0,mode==='injury'?8:4),playerChecks:(r.playerChecks||[]).slice(0,n),roleVerificationRequired:true,officialInactivesVerified:false};
  }
  function dataOnlySummary(mode,d,reason){
   const out=['AI explanation temporarily unavailable ('+reason+').','Data-only summary from available application feeds (not AI-generated):'];
@@ -38,6 +40,8 @@
    const selected=['passing','rushing','receiving'].flatMap(cat=>(d.categories?.[cat]||[]).slice(0,1).map(p=>p.name+' '+p.projection+' projected '+cat+' yards'));
    if(selected.length)out.push('Model projections: '+selected.join('; ')+'.');
   }
+  const injuryAlerts=d.playerAvailability?.skillPositionAlerts||[];
+  if(injuryAlerts.length)out.push('ESPN-reported injury statuses (not official game-day inactives): '+injuryAlerts.slice(0,4).map(x=>x.name+' '+x.team+' '+x.status).join('; ')+'.');
   const problems=d.playerAvailability?.playerChecks?.filter(x=>x.status==='TEAM_MISMATCH'||x.injuryStatus==='OUT'||x.injuryStatus==='IR')||[];
   if(problems.length)out.push('Player verification flags: '+problems.slice(0,3).map(x=>x.name+' ('+(x.injuryStatus||x.status)+')').join('; ')+'.');
   out.push('Official starters, inactives, and current sportsbook prices still require independent verification. Existing picks are unchanged.');
@@ -131,11 +135,12 @@
     const categories={};for(const cat of CATS)categories[cat]=(m?.categories?.[cat]||[]).slice(0,mode==='injury'?2:3).map(player);
     const selectedSgps=mode==='parlay'?packSgps(m).map(s=>({...s,legs:s.legs.slice(0,7)})):[];
     const sources={model:m?.categories?'available':'unavailable',sportsbook:m?.validation?.sportsbookVerificationAvailable===true&&!m.stale?'market evidence present; independently verify book prices':'not verified or currently unavailable',roster:availability?'ESPN current-game cross-check':'unavailable',defense:defensive?'ESPN completed-game box-score splits':'unavailable'};
+    const modelTierCount=(m?.sgps?.Analytics||[]).filter(x=>['Small','Medium','Nuke'].includes(x.risk)).length;
     const data={
      gameId,game:{home:game.home?.name,homeAbbr:game.home?.abbr,away:game.away?.name,awayAbbr:game.away?.abbr,kickoff:game.kickoff,status:game.status,week:game.week},
-     sources,model:{fetchedAt:compact(m?.fetchedAt),stale:m?.stale===true,degraded:m?.degraded===true,analyticsAvailable:m?.analyticsAvailable===true,validation:m?.validation?{injuryEligibilityChecked:m.validation.injuryEligibilityChecked,starterRoleRequired:m.validation.sgpChecks?.starterRoleRequired,sportsbookVerificationAvailable:m.validation.sportsbookVerificationAvailable}:null},
+     sources,model:{fetchedAt:compact(m?.fetchedAt),stale:m?.stale===true,degraded:m?.degraded===true,analyticsAvailable:m?.analyticsAvailable===true,modelSgpTierCount:modelTierCount,sportsbookMarketRows:number(m?.marketRows)??0,modelAvailabilityNote:modelTierCount?'Model-generated SGPs exist but are not verified sportsbook offers or actual payout odds.':'Model SGP tiers unavailable for this game.',validation:m?.validation?{injuryEligibilityChecked:m.validation.injuryEligibilityChecked,starterRoleRequired:m.validation.sgpChecks?.starterRoleRequired,sportsbookVerificationAvailable:m.validation.sportsbookVerificationAvailable}:null},
      categories,matchup:mode==='injury'?null:conciseMatchup(defensive),playerAvailability:conciseRoster(availability,mode),sgps:selectedSgps,
-     instruction:'Explain only evidence actually available. Report opponent-specific sample games, never the leaguewide total as an individual team sample. Samples under five games are limited. Use playerAvailability.playerChecks to identify specific unresolved roles, injuries and any wrong-team rows before generic cautions. Missing odds must not be called verified; model SGP payout targets are not sportsbook payouts. Defense rankMost 1 means most allowed, not strongest defense. Injury absence is not confirmed health; roster membership does not prove starting.'
+     instruction:'Explain only evidence actually available. Report opponent-specific sample games, never leaguewide count as individual sample; under five games is limited. IMPORTANT: before generic role warnings, mention any playerAvailability.skillPositionAlerts such as ESPN-reported OUT/IR/Q statuses and potential impact without inventing revised projections; these are NOT confirmed official game-day inactives. Do not imply an unreported injury status means confirmed healthy. Use playerChecks for wrong-team flags. Model SGP tiers exist separately from unverified sportsbook offers and prices. Do not say ALL betting information is unavailable if model tiers and projections are present. Keep missing-verification cautions short. RankMost 1 means most allowed, not strongest defense. Roster membership does not prove starting.'
     };
     if(Date.now()<aiCooldownUntil){out.textContent=dataOnlySummary(mode,data,'provider capacity limit; retry later');return}
     out.textContent='Analyzing available evidence…';
