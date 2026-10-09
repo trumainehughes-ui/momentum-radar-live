@@ -12,7 +12,6 @@
    if(!gameId){out.textContent='Choose an NFL game first.';return}
    const game=(typeof nflData!=='undefined'?nflData?.games:[])?.find(g=>String(g.gameId||g.id)===gameId);
    if(!game){out.textContent='Selected game data is unavailable. Refresh the NFL feed.';return}
-   const button=document.getElementById('momentumAiRun'),out=document.getElementById('momentumAiOutput');
    button.disabled=true;out.textContent='Loading current game data…';
    let markets=null;try{markets=await getNFLMarkets(gameId)}catch{}
    if(!markets?.categories){out.textContent='Current player markets are unavailable. AI analysis is paused rather than using incomplete game data.';button.disabled=false;return}
