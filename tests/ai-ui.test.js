@@ -36,3 +36,13 @@ test('AI panel stops before calling provider when market data is unavailable',as
  vm.runInContext(source,ctx);await button.onclick();
  assert.equal(calls,0);assert.match(output.textContent,/unavailable/);assert.equal(button.disabled,false);
 });
+
+test('AI output removes literal Markdown heading markers safely',async()=>{
+ const source=readFileSync(new URL('../public-ai.js',import.meta.url),'utf8');
+ const root={prepend(){}},button={disabled:false},output={textContent:''},mode={value:'matchup'};
+ const document={readyState:'complete',getElementById(id){return ({nfl:root,momentumAiRun:button,momentumAiOutput:output,momentumAiMode:mode})[id]||null},createElement(){return {}}};
+ const game={gameId:'game-789'};
+ const ctx=vm.createContext({document,nflSelected:game,nflData:{games:[game]},getNFLMarkets:async()=>({categories:{passing:[]},sgps:{}}),fetch:async()=>({json:async()=>({ok:true,analysis:'**Confirmed Data**\nA complete sentence.'})})});
+ vm.runInContext(source,ctx);await button.onclick();
+ assert.equal(output.textContent,'Confirmed Data\nA complete sentence.');
+});
