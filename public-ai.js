@@ -12,7 +12,7 @@
    if(!gameId){out.textContent='Choose an NFL game first.';return}
    const game=(typeof nflData!=='undefined'?nflData?.games:[])?.find(g=>String(g.gameId)===gameId);
    if(!game){out.textContent='Selected game data is unavailable. Refresh the NFL feed.';return}
-   const data={gameId,game:JSON.parse(JSON.stringify(game,(k,v)=>{if(['raw','response','events','roster','rosters','athletes','statistics','playByPlay','plays'].includes(k))return undefined;return v}).slice(0,7500)),selected:{gameId}};
+   const data={gameId,game:{home:game.home,away:game.away,kickoff:game.kickoff,injuries:(game.injuries||[]).slice(0,12),picks:(game.picks||[]).slice(0,12),sgps:(game.sgps||[]).slice(0,3),dvp:game.dvp||null},selected:{gameId}};
    button.disabled=true;out.textContent='Analyzing available application data…';
    try{
     const response=await fetch('/api/ai-analysis',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:document.getElementById('momentumAiMode').value,data})});
