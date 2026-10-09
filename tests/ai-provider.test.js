@@ -19,6 +19,17 @@ test('provider response, cache hit, no credential exposure',async()=>{
  assert.doesNotMatch(JSON.stringify(first.body),/fake-test-secret/);
  const second=response();await handler(req,second);assert.equal(second.body.cached,true);assert.equal(calls,1);
 });
+test('preserves deep matchup metric and parlay leg details in AI prompt',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ let prompt='';
+ globalThis.fetch=async(_,opts)=>{prompt=JSON.parse(opts.body).messages[1].content;return {ok:true,json:async()=>({choices:[{message:{content:'Grounded summary.'}}]})}};
+ const data={gameId:'nested-depth-test',matchup:{leagueCompletedGames:65,sides:[{offense:'PHI',opponentDefense:'JAX',defenseSampleGames:4,positions:[{position:'QB',metrics:[{metric:'passYards',defenseAllowedPerGame:287.5,defenseRankMost:2}]}]}]},sgps:[{risk:'Nuke',legs:[{name:'QB',category:'passing',modelThreshold:300,bookOdds:null}]}]};
+ const res=response();await handler(request('matchup',data),res);
+ assert.equal(res.statusCode,200);
+ assert.match(prompt,/"defenseAllowedPerGame":287.5/);
+ assert.match(prompt,/"defenseSampleGames":4/);
+ assert.match(prompt,/"modelThreshold":300/);
+});
 test('provider error is sanitized and leaves projections untouched',async()=>{
  process.env.GROQ_API_KEY='fake-test-secret';
  globalThis.fetch=async()=>({ok:false,status:401});

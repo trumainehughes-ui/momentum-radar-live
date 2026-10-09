@@ -20,16 +20,28 @@ function harness(options={}){
  vm.runInContext(source,ctx);return {nodes,button,output,mode,calls,payloads,ctx};
 }
 test('selected game sends sourced market, roster and offense-v-defense evidence',async()=>{
- const h=harness({roster:{ok:true,gameId:'game-123',fetchedAt:'2026-10-09T00:00:00Z',injuries:[{name:'Runner',team:'HOM',status:'QUESTIONABLE',source:'ESPN'}],blockers:[{name:'Backup',status:'OUT'}],roleSignals:[{name:'Quarterback',team:'AWY',status:'EXPECTED_STARTER'}],playerProjections:[]},dvp:{ok:true,season:2026,week:5,completedGames:3,defense:{HOM:{QB:{passYards:270}}},offense:{AWY:{QB:{passYards:280}}},defenseRanks:{QB:{HOM:{passYards:{rankMost:4}}}},offenseRanks:{QB:{AWY:{passYards:{rankMost:8}}}}}});
+ const h=harness({roster:{ok:true,gameId:'game-123',fetchedAt:'2026-10-09T00:00:00Z',injuries:[{name:'Runner',team:'HOM',status:'QUESTIONABLE',source:'ESPN'}],blockers:[{name:'Backup',status:'OUT'}],roleSignals:[{name:'Quarterback',team:'AWY',status:'EXPECTED_STARTER'}],playerProjections:[]},dvp:{ok:true,season:2026,week:5,completedGames:3,defense:{HOM:{games:4,QB:{passYards:270}}},offense:{AWY:{games:4,QB:{passYards:280}}},defenseRanks:{QB:{HOM:{passYards:{rankMost:4}}}},offenseRanks:{QB:{AWY:{passYards:{rankMost:8}}}}}});
  assert.ok(h.nodes.has('momentumAiPanel'));await h.button.onclick();
  assert.equal(h.output.textContent,'Evidence is limited.');
  assert.equal(h.payloads.length,1);const d=h.payloads[0].data;
  assert.equal(d.categories.passing[0].projection,255);
  assert.equal(d.matchup.sides[0].positions[0].metrics[0].defenseAllowedPerGame,270);
  assert.equal(d.matchup.sides[0].positions[0].metrics[0].defenseRankMost,4);
+ assert.equal(d.matchup.sides[0].defenseSampleGames,4);
+ assert.equal(d.matchup.sides[0].offenseSampleGames,4);
+ assert.equal(d.matchup.sides[0].limitedSample,true);
+ assert.equal(d.matchup.leagueCompletedGames,3);
+ assert.match(d.matchup.sampleInterpretation,/leagueCompletedGames is an NFL-wide total/);
  assert.equal(d.playerAvailability.injuries[0].status,'QUESTIONABLE');
  assert.equal(d.sgps[0].risk,'Small');assert.equal(d.sources.roster,'ESPN current-game cross-check');
  assert.equal(h.calls.length,3);
+});
+test('a leaguewide game total never substitutes for a team sample',async()=>{
+ const h=harness({dvp:{ok:true,season:2026,week:5,completedGames:65,defense:{HOM:{games:4,QB:{passYards:270}},AWY:{games:4}},offense:{AWY:{games:4,QB:{passYards:280}},HOM:{games:4}},defenseRanks:{QB:{HOM:{passYards:{rankMost:4}}}}}});
+ await h.button.onclick();
+ assert.equal(h.payloads[0].data.matchup.leagueCompletedGames,65);
+ assert.equal(h.payloads[0].data.matchup.sides[0].defenseSampleGames,4);
+ assert.equal(h.payloads[0].data.matchup.sides[0].limitedSample,true);
 });
 test('model picks are checked against the selected-game roster without assuming starter status',async()=>{
  const h=harness({roster:{ok:true,gameId:'game-123',injuries:[],blockers:[],roleSignals:[],playerProjections:[{name:'Quarterback',team:'HOM',position:'QB',starterVerified:false}]}});
