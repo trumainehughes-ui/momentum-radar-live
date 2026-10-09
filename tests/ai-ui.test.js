@@ -31,6 +31,14 @@ test('selected game sends sourced market, roster and offense-v-defense evidence'
  assert.equal(d.sgps[0].risk,'Small');assert.equal(d.sources.roster,'ESPN current-game cross-check');
  assert.equal(h.calls.length,3);
 });
+test('model picks are checked against the selected-game roster without assuming starter status',async()=>{
+ const h=harness({roster:{ok:true,gameId:'game-123',injuries:[],blockers:[],roleSignals:[],playerProjections:[{name:'Quarterback',team:'HOM',position:'QB',starterVerified:false}]}});
+ await h.button.onclick();
+ const checks=h.payloads[0].data.playerAvailability.playerChecks;
+ assert.equal(checks[0].name,'Quarterback');
+ assert.equal(checks[0].status,'TEAM_MISMATCH');
+ assert.equal(checks[0].rosterTeam,'HOM');
+});
 test('partial injury/dvp evidence still analyzed when market API is exhausted',async()=>{
  const h=harness({market:null,roster:{ok:true,gameId:'game-123',playerProjections:[],injuries:[]}});await h.button.onclick();
  assert.equal(h.payloads.length,1);assert.equal(h.payloads[0].data.sources.model,'unavailable');
