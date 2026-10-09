@@ -3,6 +3,7 @@ const ALLOWED = new Set(['matchup','injury','parlay','results']);
 const MODEL = 'llama-3.1-8b-instant';
 const cache = new Map();
 const buckets = new Map();
+// Best-effort per-instance limiter; enforce global limits at the edge before broad rollout.
 const MAX_BODY = 12000;
 const MAX_CALLS_PER_HOUR = 12;
 const ttl = 15 * 60 * 1000;
@@ -29,7 +30,7 @@ export default async function handler(req,res) {
   const body=req.body||{},mode=String(body.mode||'');
   if(!ALLOWED.has(mode))return respond(res,400,{ok:false,error:'invalid_mode'});
   const data=clean(body.data);
-  if(!data||typeof data!=='object')return respond(res,400,{ok:false,error:'structured_data_required'});
+  if(!data||typeof data!=='object'||Array.isArray(data))return respond(res,400,{ok:false,error:'structured_data_required'});
   const serialized=JSON.stringify({mode,data});
   if(serialized.length>MAX_BODY)return respond(res,413,{ok:false,error:'payload_too_large'});
   const key=serialized;
