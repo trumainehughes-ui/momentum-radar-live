@@ -72,7 +72,7 @@ async function loadNFLDvp(g){
   const hasBook=book&&['DraftKings','FanDuel'].includes(book.book)&&book.odds!==null&&book.odds!==undefined&&book.odds!==''&&Number.isFinite(Number(book.odds));
   const hasVerifiedOffer=Boolean(hasBook&&(cat==='td'||hasLine));
   const bookName=hasVerifiedOffer?String(book.book):'';
-  const line=hasLine?nflThreshold({...x,threshold:Number(raw)},cat):null;
+  const line=hasLine?((cat==='passing'?'Passing yards':cat==='receiving'?'Receiving yards':cat==='rushing'?'Rushing yards':cat==='receptions'?'Receptions':'Yards')+': '+Number(raw)):null;
   const projection=Number(x.projection),rawLine=hasLine?Number(raw):null;
   const edge=hasVerifiedOffer&&hasLine&&Number.isFinite(projection)?projection-rawLine:null;
   const metric=cat==='receptions'?'receptions':'yards';
