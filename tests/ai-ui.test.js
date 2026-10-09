@@ -4,9 +4,9 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 const source=readFileSync(new URL('../public-ai.js',import.meta.url),'utf8');
 function harness(options={}){
- const nodes=new Map(),root={prepend(panel){nodes.set(panel.id,panel)}};
+ const nodes=new Map(),root={style:{display:'none'},prepend(panel){nodes.set(panel.id,panel)}};
  const button={disabled:false,onclick:null},output={textContent:''},mode={value:options.mode||'matchup'};
- const document={readyState:'complete',getElementById(id){return ({nfl:root,momentumAiRun:button,momentumAiOutput:output,momentumAiMode:mode})[id]||nodes.get(id)||null},createElement(){return {id:'',className:'',innerHTML:''}}};
+ const document={readyState:'complete',getElementById(id){return ({nflAiMount:root,momentumAiRun:button,momentumAiOutput:output,momentumAiMode:mode})[id]||nodes.get(id)||null},createElement(){return {id:'',className:'',innerHTML:''}}};
  const game=options.game||{gameId:'game-123',home:{name:'Home',abbr:'HOM'},away:{name:'Away',abbr:'AWY'},kickoff:'2026-10-11T18:00:00Z',week:5};
  const calls=[],payloads=[];
  const fetch=async(url,opts={})=>{
@@ -16,9 +16,30 @@ function harness(options={}){
   if(url.startsWith('/api/nfl-dvp'))return {ok:true,json:async()=>options.dvp??{ok:false}};
   throw Error('Unknown route '+url);
  };
- const ctx=vm.createContext({document,nflSelected:game,nflData:{games:[game]},getNFLMarkets:async()=>options.market===undefined?{categories:{passing:[{name:'Quarterback',team:'AWY',projection:255,momentumScore:78}]},sgps:{Analytics:[{risk:'Small',legs:[{name:'Quarterback',cat:'passing',threshold:250}]}]}}:options.market,fetch,URLSearchParams});
- vm.runInContext(source,ctx);return {nodes,button,output,mode,calls,payloads,ctx};
+ const window={};
+ const ctx=vm.createContext({document,window,nflSelected:game,nflData:{games:[game]},getNFLMarkets:async()=>options.market===undefined?{categories:{passing:[{name:'Quarterback',team:'AWY',projection:255,momentumScore:78}]},sgps:{Analytics:[{risk:'Small',legs:[{name:'Quarterback',cat:'passing',threshold:250}]}]}}:options.market,fetch,URLSearchParams});
+ vm.runInContext(source,ctx);return {nodes,root,window,button,output,mode,calls,payloads,ctx};
 }
+test('one-tap in-game AI tab routes to selected matchup and caches current report',async()=>{
+ const h=harness();
+ assert.ok(h.nodes.has('momentumAiPanel'));
+ assert.equal(typeof h.window.momentumAiOpenSelected,'function');
+ h.window.momentumAiGameChanged(h.ctx.nflSelected);
+ await h.window.momentumAiOpenSelected();
+ assert.equal(h.payloads.length,1);
+ assert.equal(h.payloads[0].data.gameId,'game-123');
+ await h.window.momentumAiOpenSelected();
+ assert.equal(h.payloads.length,1,'opening the same game tab does not spend another provider call');
+ h.window.momentumAiGameChanged({...h.ctx.nflSelected,gameId:'new-game'});
+ assert.match(h.output.textContent,/Select/);
+});
+test('font contrast and in-game tab exist in the NFL detail HTML',()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.match(html,/data-matchtab="ai"/);
+ assert.match(html,/id="nflAiMount" data-matchpanel="ai"/);
+ assert.match(html,/window\.momentumAiOpenSelected\(\)/);
+ assert.match(html,/#nflAiMount #momentumAiOutput\{color:#edf7ff!important/);
+});
 test('selected game sends sourced market, roster and offense-v-defense evidence',async()=>{
  const h=harness({roster:{ok:true,gameId:'game-123',fetchedAt:'2026-10-09T00:00:00Z',injuries:[{name:'Runner',team:'HOM',status:'QUESTIONABLE',source:'ESPN'}],blockers:[{name:'Backup',status:'OUT'}],roleSignals:[{name:'Quarterback',team:'AWY',status:'EXPECTED_STARTER'}],playerProjections:[]},dvp:{ok:true,season:2026,week:5,completedGames:3,defense:{HOM:{games:4,QB:{passYards:270}}},offense:{AWY:{games:4,QB:{passYards:280}}},defenseRanks:{QB:{HOM:{passYards:{rankMost:4}}}},offenseRanks:{QB:{AWY:{passYards:{rankMost:8}}}}}});
  assert.ok(h.nodes.has('momentumAiPanel'));await h.button.onclick();

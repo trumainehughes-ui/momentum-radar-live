@@ -6,6 +6,7 @@
  // Keep provider prompts bounded; the detailed app data still stays in the ordinary NFL tabs.
  const FOCUS={QB:['passYards','rushYards'],RB:['rushYards','recYards'],WR:['recYards','receptions'],TE:['recYards']};
  let aiCooldownUntil=0;
+ let analysisEpoch=0,lastCompletedKey='',analyzingKey='';
  function conciseMatchup(m){
   if(!m)return null;
   return {...m,sides:(m.sides||[]).map(s=>({...s,positions:(s.positions||[]).map(p=>({...p,metrics:(p.metrics||[]).filter(x=>(FOCUS[p.position]||[]).includes(x.metric))})).filter(p=>p.metrics.length)}))};
@@ -104,16 +105,31 @@
    result.push({source,risk,book:s.book||null,payoutTarget:s.payoutTarget||null,estimatedOdds:number(s.estimatedOdds),actualSgpOdds:number(s.actualSgpOdds),payoutBandVerified:s.payoutBandVerified===true,bookVerificationPending:s.bookVerificationPending===true,sourcePolicy:s.sourcePolicy?.rule||null,legs:(s.legs||[]).slice(0,10).map(leg)});
   }return result;
  }
+ function displayAnalysis(out,value){
+  const clean=String(value||'').replace(/\*\*/g,'').replace(/^#{1,6}\s*/gm,'');
+  if(typeof out.replaceChildren!=='function'||typeof out.appendChild!=='function'){out.textContent=clean;return}
+  out.replaceChildren();
+  const lines=clean.split('\n');
+  const titles=/^(?:\d+\.\s*)?(?:ESPN injury|injury|workload implications|blocked candidates|role uncertainty|missing verification|sportsbook uncertainties|sportsbook uncertainty|offense.vs.defense|offense vs defense|matchup|player projections|reported injuries|data.only summary|model projections)/i;
+  for(const line of lines){
+   const n=document.createElement('div');const t=line.trim();
+   n.className=!t?'momentumAiSpacer':titles.test(t)&&!/^\d+\.\s+.*\b(?:yards|allowed|averaged|projected)\b/i.test(t)?'momentumAiHeading':'momentumAiText';
+   n.textContent=line;out.appendChild(n);
+  }
+ }
  const ready=()=>{
-  const root=document.getElementById('nfl');if(!root||document.getElementById('momentumAiPanel'))return;
-  const panel=document.createElement('section');panel.id='momentumAiPanel';panel.className='panel';
-  panel.innerHTML='<h3 style="margin:0 0 8px;color:#4df0a2">Momentum Radar AI <small style="font-size:11px;color:#9ee7ff">Beta</small></h3><p class="note">AI explains model projections alongside available NFL injury, roster, offense-vs-defense and sportsbook evidence. Unverified fields stay labeled.</p><select id="momentumAiMode" style="padding:10px;background:#14222e;color:#fff;border:1px solid #31586d;border-radius:8px"><option value="matchup">Matchup analysis</option><option value="injury">Injury / lineup impact</option><option value="parlay">SGP review</option><option value="results">Results review</option></select> <button id="momentumAiRun" class="analysis" style="width:auto">Analyze selected game</button><div id="momentumAiOutput" class="msg" style="margin-top:12px;white-space:pre-wrap;font-size:14px;line-height:1.6;overflow-wrap:anywhere;padding:14px" aria-live="polite">Select an NFL game, then request AI analysis.</div>';
+  const root=document.getElementById('nflAiMount');if(!root||document.getElementById('momentumAiPanel'))return;
+  const panel=document.createElement('section');panel.id='momentumAiPanel';panel.className='momentumAiPanel';
+  panel.innerHTML='<h3>Momentum Radar AI <small style="font-size:11px;color:#b3edff">Beta</small></h3><p class="momentumAiNote">The analysis follows the game you opened. NFL model data and ESPN injury reports are described separately from sportsbook-verified odds.</p><div id="momentumAiGameName" class="momentumAiGameName" aria-live="polite">Open a matchup to view analysis</div><div class="momentumAiActions"><select id="momentumAiMode" aria-label="Analysis type"><option value="matchup">Matchup analysis</option><option value="injury">Injury / lineup impact</option><option value="parlay">SGP review</option><option value="results">Results review</option></select><button id="momentumAiRun" type="button">Refresh analysis</button></div><div id="momentumAiOutput" role="status" aria-live="polite">Tap AI Analysis above to analyze this matchup.</div>';
   root.prepend(panel);
   document.getElementById('momentumAiRun').onclick=async()=>{
    const out=document.getElementById('momentumAiOutput'),button=document.getElementById('momentumAiRun');
    if(button.disabled)return;
+   const requestEpoch=++analysisEpoch;
    const selected=typeof nflSelected!=='undefined'?nflSelected:null;
    const gameId=String(selected?.gameId||selected?.id||'');
+   const selectionKey=gameId+'|'+String(document.getElementById('momentumAiMode')?.value||'matchup');
+   analyzingKey=selectionKey;
    if(!gameId){out.textContent='Choose an NFL game first.';return}
    const game=(typeof nflData!=='undefined'?nflData?.games:[])?.find(g=>String(g.gameId||g.id)===gameId);
    if(!game){out.textContent='Selected game data is unavailable. Refresh the NFL feed.';return}
@@ -127,6 +143,7 @@
      teamCodes.length===2?getJson('/api/nfl-dvp?'+new URLSearchParams({season:String(season),week:String(week),teams:teamCodes.join(',')})).catch(()=>null):Promise.resolve(null)
     ];
     const [m,g,d]=await Promise.all(requests);
+    if(requestEpoch!==analysisEpoch)return;
     const candidates=CATS.flatMap(cat=>(m?.categories?.[cat]||[]).slice(0,4).map(x=>({name:x.name,team:x.team})));
     for(const s of packSgps(m))for(const l of s.legs)candidates.push({name:l.name,team:l.team});
     const defensive=matchups(d,game),availability=roster(g,gameId,candidates);
@@ -142,18 +159,39 @@
      categories,matchup:mode==='injury'?null:conciseMatchup(defensive),playerAvailability:conciseRoster(availability,mode),sgps:selectedSgps,
      instruction:'Explain only evidence actually available. Report opponent-specific sample games, never leaguewide count as individual sample; under five games is limited. IMPORTANT: before generic role warnings, mention any playerAvailability.skillPositionAlerts such as ESPN-reported OUT/IR/Q statuses and potential impact without inventing revised projections; these are NOT confirmed official game-day inactives. Do not imply an unreported injury status means confirmed healthy. Use playerChecks for wrong-team flags. Model SGP tiers exist separately from unverified sportsbook offers and prices. Do not say ALL betting information is unavailable if model tiers and projections are present. Keep missing-verification cautions short. RankMost 1 means most allowed, not strongest defense. Roster membership does not prove starting.'
     };
-    if(Date.now()<aiCooldownUntil){out.textContent=dataOnlySummary(mode,data,'provider capacity limit; retry later');return}
+    if(Date.now()<aiCooldownUntil){displayAnalysis(out,dataOnlySummary(mode,data,'provider capacity limit; retry later'));if(requestEpoch===analysisEpoch)lastCompletedKey=selectionKey;return}
     out.textContent='Analyzing available evidence…';
     const response=await fetch('/api/ai-analysis',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode,data})});
     const result=await response.json();
+    if(requestEpoch!==analysisEpoch)return;
     if(result.ok){
-     out.textContent=String(result.analysis||'').replace(/\*\*/g,'').replace(/^#{1,6}\s*/gm,'');
+     displayAnalysis(out,result.analysis||'No explanation returned.');
     }else{
      if(result.error==='ai_capacity_limited'||result.error==='provider_rate_limited')aiCooldownUntil=Date.now()+Math.max(60,Number(result.retryAfterSeconds)||90)*1000;
-     out.textContent=dataOnlySummary(mode,data,result.error||'unknown_error');
+     displayAnalysis(out,dataOnlySummary(mode,data,result.error||'unknown_error'));
     }
-   }catch{out.textContent='AI connection failed. Existing projections are unchanged. Retry shortly.'}
-   finally{button.disabled=false}
+    lastCompletedKey=selectionKey;
+   }catch{if(requestEpoch===analysisEpoch)out.textContent='AI connection failed. Existing projections are unchanged. Retry shortly.'}
+   finally{if(requestEpoch===analysisEpoch){button.disabled=false;analyzingKey=''}}
+  };
+  window.momentumAiGameChanged=game=>{
+   analysisEpoch++;analyzingKey='';lastCompletedKey='';
+   const button=document.getElementById('momentumAiRun'),out=document.getElementById('momentumAiOutput'),name=document.getElementById('momentumAiGameName');
+   if(button)button.disabled=false;
+   if(name)name.textContent=game?(game.away?.name||game.away?.abbr||'Away')+' @ '+(game.home?.name||game.home?.abbr||'Home'):'Open a matchup to view analysis';
+   if(out)out.textContent=game?'Select ✨ AI Analysis to load this game’s breakdown.':'Open a matchup to view analysis.';
+  };
+  window.momentumAiOpenSelected=()=>{
+   const g=typeof nflSelected!=='undefined'?nflSelected:null;
+   if(!g)return;
+   const selectedKey=String(g.gameId||g.id||'')+'|'+String(document.getElementById('momentumAiMode')?.value||'matchup');
+   if(lastCompletedKey===selectedKey||analyzingKey===selectedKey)return;
+   document.getElementById('momentumAiRun')?.onclick?.();
+  };
+  const select=document.getElementById('momentumAiMode');
+  if(select)select.onchange=()=>{
+   lastCompletedKey='';
+   if(root.style.display!=='none')window.momentumAiOpenSelected();
   };
  };
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready);else ready();
