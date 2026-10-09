@@ -33,7 +33,7 @@ const calc=(x,ctx)=>predict(x,ctx,norm,y=>y.bestBook??null);
 test('rushing rankings show explicit five-yard target and model percentage, not arbitrary 50/100',()=>{
   const out=show({...fixture(),projection:124,confidence:80,momentumScore:50,
     rushingChance:{modelTargetYards:100,estimatedPercent:67,nearProjectionTargetYards:120,nearProjectionPercent:54,historySample:4,variationYards:28,matchupSummary:'Offense #4 vs defense #6'}});
-  assert.match(out,/Projected: 124 rushing yards/);
+  assert.match(out,/Projected: 125 rushing yards/);
   assert.match(out,/Safer model target: 100\+ rushing yards/);
   assert.match(out,/Estimated chance of 100\+ rushing yards/);
   assert.match(out,/Near-projection model line: 120\+ rushing yards/);
@@ -94,4 +94,52 @@ test('when DVP unavailable estimate is explicitly weakened and matchup marked pe
   assert.equal(missing.rushingChance.defenseRankMost,null);
   assert.match(missing.rushingChance.matchupSummary,/unavailable/);
   assert.ok(available.rushingChance.estimatedPercent>=missing.rushingChance.estimatedPercent);
+});
+
+
+const modelYards=new Function('x','cat','ctx','norm',
+  take(server,'function analyticsMetric(','function bookThresholdCaps(')+
+  ';const groups={passing:[],rushing:[],receiving:[],receptions:[]};groups[cat]=[x];const p=populatePredictiveLines(groups,ctx)[cat][0];return {projection:p.projection,small:analyticsLine(p,cat,"Small",ctx),medium:analyticsLine(p,cat,"Medium",ctx),nuke:analyticsLine(p,cat,"Nuke",ctx)};');
+
+test('all three yardage categories display five-yard projections rather than 84 or 88',()=>{
+  for(const cat of ['passing','rushing','receiving']){
+    const out84=show({rank:1,name:'Yardage Player',projection:84,gamesPlayed:4,perGame:84},cat);
+    const out88=show({rank:2,name:'Yardage Player',projection:88,gamesPlayed:4,perGame:88},cat);
+    assert.match(out84,/Projected: 85 (?:passing|rushing|receiving) yards/);
+    assert.match(out88,/Projected: 90 (?:passing|rushing|receiving) yards/);
+    assert.doesNotMatch(out84,/Projected: 84/);
+    assert.doesNotMatch(out88,/Projected: 88/);
+  }
+});
+
+test('passing rushing and receiving backend model projections and all SGP tiers use steps of five',()=>{
+  for(const [cat,pos,proj] of [['passing','QB',248],['rushing','RB',88],['receiving','WR',84]]){
+    const v=modelYards({position:pos,team:'ATL',opponent:'NO',projection:proj,perGame:proj,gamesPlayed:5,
+      recentForm:{last5:[proj,proj+3,proj-4,proj+8,proj-6]},range:{floor:proj*.7,ceiling:proj*1.4}},cat,{dvp:null},norm);
+    for(const [key,n] of Object.entries(v)){
+      assert.ok(Number.isFinite(n),cat+' '+key+' needs a numeric model target');
+      assert.equal(n%5,0,cat+' '+key+' must be divisible by 5, saw '+n);
+    }
+    assert.ok(v.small<v.medium);
+    assert.ok(v.nuke>v.projection);
+  }
+});
+
+test('five-yard model lines are distinct from exact sportsbook over unders',()=>{
+  const fn=new Function('x','cat','nflLabels','nflEscape',
+    take(html,'function nflThreshold(','async function loadNFLRanks(')+
+    ';return {model:nflModelLine(x,cat),sportsbook:nflThreshold(x,cat)};');
+  for(const cat of ['rushing','passing','receiving']){
+    const x={projection:88,bestBook:{book:'FanDuel',line:87.5,odds:-110}};
+    const z=fn(x,cat,labels,escape);
+    assert.match(z.model,/90\+/);
+    assert.match(z.sportsbook,/87\.5/);
+  }
+});
+
+test('front-end uses model yardage lines on home preview game player cards parlays and multigame',()=>{
+  assert.match(html,/\$\{'Projected: '\+nflProjection\(x,k\)\}/);
+  assert.match(html,/\$\{'Model: '\+nflProjection\(x,cat\)\}/);
+  assert.match(html,/nflModelLine\(x,x.cat\)/);
+  assert.match(html,/const target=nflModelLine\(x,cat\)/);
 });
