@@ -211,6 +211,7 @@ function rushingProbability(x,ctx){
     const raw=1-standardNormalCdf((threshold-.5-projected)/sigma);
     return Math.max(1,Math.min(99,Math.round(100*(.5+(raw-.5)*reliability))));
   };
+  const nearProjectionTarget=Math.max(5,Math.floor(projected/5)*5),nearProjectionPercent=estimate(nearProjectionTarget);
   const targetChance=estimate(target),offer=bestBook(x);
   const bookLine=offer?.line!==null&&offer?.line!==undefined&&offer?.line!==''&&Number.isFinite(Number(offer.line))?Number(offer.line):null;
   const bookVerified=Boolean(offer&&['DraftKings','FanDuel'].includes(offer.book)&&
@@ -220,7 +221,7 @@ function rushingProbability(x,ctx){
     hasDefense?'Defense #'+defRank+' most rushing yards allowed to '+pos:
     'Opponent/team positional ranking unavailable';
   return{
-    estimatedPercent:targetChance,modelTargetYards:target,
+    estimatedPercent:targetChance,modelTargetYards:target,nearProjectionTargetYards:nearProjectionTarget,nearProjectionPercent,
     marketOverPercent:marketChance,marketLine:bookVerified?bookLine:null,marketBook:bookVerified?offer.book:null,
     offenseRankMost:hasOffense?offRank:null,defenseRankMost:hasDefense?defRank:null,
     defenseAllowedPerGame:hasDefense&&Number.isFinite(Number(def?.value))?Number(def.value):null,
