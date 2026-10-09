@@ -45,11 +45,11 @@ export default async function handler(req,res) {
       body:JSON.stringify({model:MODEL,temperature:0.1,max_tokens:350,messages:[{role:'system',content:system},{role:'user',content:'Analyze this unverified application data. Explicitly distinguish confirmed data from missing verification.\n'+serialized}]}),
       signal:AbortSignal.timeout(12000)
     });
-    if(!response.ok)return respond(res,response.status===429?429:502,{ok:false,error:response.status===429?'provider_rate_limited':'ai_provider_unavailable'});
+    if(!response.ok){const error=response.status===401||response.status===403?'provider_auth_failed':response.status===400||response.status===404?'provider_request_rejected':response.status===429?'provider_rate_limited':'ai_provider_unavailable';console.error('groq_request_failed',{status:response.status,error});return respond(res,response.status===429?429:502,{ok:false,error})}
     const json=await response.json();
     const text=String(json.choices?.[0]?.message?.content||'').trim().slice(0,2000);
     if(!text)return respond(res,502,{ok:false,error:'empty_ai_response'});
     cache.set(key,{text,expires:now+ttl});
     return respond(res,200,{ok:true,analysis:text,cached:false,model:MODEL,verified:false});
-  }catch{return respond(res,502,{ok:false,error:'ai_provider_unavailable'})}
+  }catch(e){const reason=e?.name==='TimeoutError'?'provider_timeout':'ai_provider_unavailable';console.error('groq_request_exception',{reason,name:String(e?.name||'unknown')});return respond(res,502,{ok:false,error:reason})}
 }
