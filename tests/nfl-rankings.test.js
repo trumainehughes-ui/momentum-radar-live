@@ -34,7 +34,7 @@ test('rushing rankings show explicit five-yard target and model percentage, not 
   const out=show({...fixture(),projection:124,confidence:80,momentumScore:50,
     rushingChance:{modelTargetYards:100,estimatedPercent:67,nearProjectionTargetYards:120,nearProjectionPercent:54,historySample:4,variationYards:28,matchupSummary:'Offense #4 vs defense #6'}});
   assert.match(out,/Projected: 124 rushing yards/);
-  assert.match(out,/Suggested model target: 100\+ rushing yards/);
+  assert.match(out,/Safer model target: 100\+ rushing yards/);
   assert.match(out,/Estimated chance of 100\+ rushing yards/);
   assert.match(out,/Near-projection model line: 120\+ rushing yards/);
   assert.match(out,/Model-estimated chance of 120\+ yards: 54%/);
