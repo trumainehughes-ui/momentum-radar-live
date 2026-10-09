@@ -66,25 +66,36 @@ async function loadNFLDvp(g){
   return d;
  }catch(e){box.innerHTML='<div class="note">Defense-vs-position rankings are temporarily unavailable. Existing roster, injury and sportsbook analytics remain active.</div>';return null}
 }function nflThreshold(x,cat){if(cat==='td')return'Anytime TD';const raw=x.bookOffer?.line??x.threshold??x.bestBook?.line,n=Number(raw);if(!Number.isFinite(n))return'Model projection';const label=cat==='passing'?'Passing yards':cat==='receiving'?'Receiving yards':cat==='rushing'?'Rushing yards':cat==='receptions'?'Receptions':'Yards';return label+': '+n}function nflProjection(x,cat){if(cat==='td')return x.projectionLabel||'Anytime TD';const p=Number(x.projection??x.analyticsThreshold);if(!Number.isFinite(p))return'Insufficient projection data';return cat==='receptions'?p.toFixed(1)+' receptions':Math.round(p)+' '+cat+' yards'}function nflRankCard(x,cat){
-  const proj=nflProjection(x,cat);
-  const book=x.bestBook;
-  const raw=x.bookOffer?.line??x.threshold??book?.line;
+  const proj=nflProjection(x,cat),book=x.bestBook||x.bookOffer;
+  const raw=book?.line;
   const hasLine=cat!=='td'&&raw!==null&&raw!==undefined&&raw!==''&&Number.isFinite(Number(raw));
   const hasBook=book&&['DraftKings','FanDuel'].includes(book.book)&&book.odds!==null&&book.odds!==undefined&&book.odds!==''&&Number.isFinite(Number(book.odds));
   const hasVerifiedOffer=Boolean(hasBook&&(cat==='td'||hasLine));
   const bookName=hasVerifiedOffer?String(book.book):'';
-  const line=hasLine?nflThreshold(x,cat):null;
+  const line=hasLine?nflThreshold({...x,threshold:Number(raw)},cat):null;
   const projection=Number(x.projection),rawLine=hasLine?Number(raw):null;
   const edge=hasVerifiedOffer&&hasLine&&Number.isFinite(projection)?projection-rawLine:null;
   const metric=cat==='receptions'?'receptions':'yards';
   const rating=x.momentumScore!==null&&x.momentumScore!==undefined&&Number.isFinite(Number(x.momentumScore))?Math.round(Number(x.momentumScore)):null;
   const gp=Number(x.gamesPlayed),pg=Number(x.perGame);
-  const sample=Number.isFinite(gp)&&gp>0?`${gp} completed games${Number.isFinite(pg)?' • '+pg.toFixed(cat==='receptions'?1:1)+' '+metric+'/game':''}`:'Season sample pending';
+  const sample=Number.isFinite(gp)&&gp>0?`${gp} completed games${Number.isFinite(pg)?' • '+pg.toFixed(1)+' '+metric+'/game':''}`:'Season sample pending';
   const matchup=[x.team,x.opponent?`vs ${x.opponent}`:''].filter(Boolean).join(' ');
   const market=hasVerifiedOffer
     ?`<div class="meta">${nflEscape(bookName)} • ${cat==='td'?'Anytime TD':nflEscape(line)}${edge!==null?' • Projection minus line '+(edge>0?'+':'')+edge.toFixed(cat==='receptions'?1:0):''}</div>`
     :'<div class="meta">Model-only • DraftKings/FanDuel line not verified</div>';
   const bookBadge=hasVerifiedOffer?`<span class="badge">${nflEscape(bookName)}: ${Number(book.odds)>0?'+':''}${nflEscape(book.odds)}</span>`:'';
+  if(cat==='rushing'){
+    const p=x.rushingChance,target=Number(p?.modelTargetYards),estimate=Number(p?.estimatedPercent);
+    const ready=p&&Number.isFinite(target)&&target>=5&&Number.isFinite(estimate)&&estimate>=1&&estimate<=99;
+    const matchupContext=p?.matchupSummary?`<div class="note">Offense vs defense: ${nflEscape(p.matchupSummary)}</div>`:'<div class="note">Opponent matchup data pending</div>';
+    const bookEstimate=hasVerifiedOffer&&p?.marketBook===bookName&&p?.marketOverPercent!=null
+      ?`<div class="note">Model-estimated chance above ${nflEscape(bookName)} line (${nflEscape(rawLine)}): ${nflEscape(p.marketOverPercent)}% • not sportsbook implied probability</div>`:'';
+    const chance=ready
+      ?`<div class="pick">Suggested model target: ${target}+ rushing yards</div><div class="pct"><small>Estimated chance of ${target}+ rushing yards</small>${estimate}%</div>`
+      :'<div class="note">Estimated chance pending — need at least 3 completed games with valid production data.</div>';
+    const evidence=ready?`${matchupContext}<div class="note">Recent games used: ${nflEscape(p.historySample)} • estimated game-to-game variation: ${nflEscape(p.variationYards)} yards</div><div class="note">Early-season model estimate, not a calibrated guarantee or quoted betting odds.</div>`:'';
+    return `<div class="card"><div class="rank">#${nflEscape(x.rank)} • Rushing Yards</div><div class="name">${nflEscape(x.name)}</div>${matchup?`<div class="meta">${nflEscape(matchup)}</div>`:''}<div class="pick">Projected: ${nflEscape(proj)}</div>${chance}${market}${bookEstimate}<div class="note">${nflEscape(sample)}</div>${evidence}${bookBadge}</div>`;
+  }
   return `<div class="card"><div class="rank">#${nflEscape(x.rank)} • ${nflLabels[cat]}</div><div class="name">${nflEscape(x.name)}</div>${matchup?`<div class="meta">${nflEscape(matchup)}</div>`:''}<div class="pick">Projected: ${nflEscape(proj)}</div>${market}<div class="pct"><small>Momentum rating (not hit probability)</small>${rating===null?'Pending':rating+'/100'}</div><div class="note">${nflEscape(sample)}</div><div class="reason">${nflEscape(x.reason||'Projection relies on available production and matchup data.')}</div>${bookBadge}</div>`;
 }
 async function loadNFLRanks(cat,gameId=''){if(!nflData?.date)return;const d=await getNFLMarkets(gameId);if(!gameId)nflMarketData=d;const rows=d.categories?.[cat]||[];return rows}async function loadNFLTracker(){const box=$('#nflLiveOverview'),preview=$('#nflLivePreview');if(!nflData?.games?.length)return;try{const active=nflData.games.filter(g=>['LIVE','FINAL','IN','POST'].some(x=>String(g.status||'').toUpperCase().includes(x)));const targets=active.length?active:nflData.games;const live=await Promise.all(targets.map(async g=>{try{const r=await fetch('/api/nfl-live?'+new URLSearchParams({gameId:g.gameId,ts:Date.now()}),{cache:'no-store'});if(!r.ok)return null;const data=await r.json();return data?.ok?{data,game:g}:null}catch{return null}}));const rows=live.filter(Boolean).flatMap(({data,game})=>(data.touchdowns||[]).map(x=>({...x,game}))).sort((a,b)=>(b.period||0)-(a.period||0));const html=rows.length?rows.map(x=>`<div class="card"><b class="nflTdScorer">${x.star?'⭐ ':''}${x.name}</b><div class="meta">${x.game.away.abbr} @ ${x.game.home.abbr} • ${x.clock||''}</div><div class="note">${x.text}</div></div>`).join(''):'No touchdowns recorded yet in today\'s games.';if(box)box.innerHTML=html;if(preview)preview.innerHTML=rows.length?rows.slice(0,4).map(x=>`<div class="nflGameRow"><div><b class="nflTdScorer">${x.star?'⭐ ':''}${x.name}</b><div class="meta">${x.game.away.abbr} @ ${x.game.home.abbr} • ${x.clock||''}</div></div></div>`).join(''):'No live touchdown activity yet.'}catch{if(box)box.textContent='Live touchdown data is temporarily unavailable.';if(preview)preview.textContent='Live touchdown data is temporarily unavailable.'}}
