@@ -192,7 +192,7 @@ function rushingProbability(x,ctx){
   // Never silently display a 50% "guess" for missing data or tiny samples.
   if(!Number.isFinite(gp)||gp<3||!Number.isFinite(projected)||projected<=0||
      !Number.isFinite(avg)||avg<=0||history.length<3)return null;
-  const target=Math.max(5,Math.floor(projected*.82/5)*5);
+  const target=Math.max(5,Math.floor(avg*.82/5)*5); // Stable season-based benchmark; matchup affects odds, not benchmark.
   const pos=String(x.position||'').toUpperCase(),team=norm(x.team),opp=norm(x.opponent)||ctx?.opponents?.[team]||'';
   const metric='rushYards',def=ctx?.dvp?.defenseRanks?.[pos]?.[opp]?.[metric]||null;
   const off=ctx?.dvp?.offenseRanks?.[pos]?.[team]?.[metric]||null;
