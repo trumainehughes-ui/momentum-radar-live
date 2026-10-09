@@ -42,7 +42,7 @@ test('provider allows correctly attributed QB rushing analysis',async()=>{
  const res=response();await handler(request('matchup',{gameId:'qb-rush-position-correct',playerRoleFacts:[{name:'Jalen Hurts',team:'PHI',position:'QB'}]}),res);
  assert.equal(res.statusCode,200);
 });
-test('blocks an AI rank stolen from QB data and applied to 47.5 RB yards',async()=>{
+test('repairs one unambiguous DVP rank without discarding the AI analysis',async()=>{
  process.env.GROQ_API_KEY='fake-test-secret';
  globalThis.fetch=async()=>({ok:true,json:async()=>({choices:[{message:{content:"PHI's RB group rushed 81 yards per game; JAX's defense allowed 47.5 yards (rank 13)."}}]})});
  const matchup={sides:[{offense:'PHI',opponentDefense:'JAX',positions:[
@@ -50,7 +50,11 @@ test('blocks an AI rank stolen from QB data and applied to 47.5 RB yards',async(
   {position:'RB',metrics:[{metric:'rushYards',defenseAllowedPerGame:47.5,defenseRankMost:32,offenseProducedPerGame:81,offenseRankMost:12}]}
  ]}]};
  const res=response();await handler(request('matchup',{gameId:'jax-bad-rank',matchup}),res);
- assert.equal(res.statusCode,422);assert.equal(res.body.error,'ai_stat_rank_mismatch');
+ assert.equal(res.statusCode,200);assert.equal(res.body.sourceRankCorrections,1);
+ assert.match(res.body.analysis,/47\.5 yards \(rank 32\)/);
+ assert.doesNotMatch(res.body.analysis,/47\.5 yards \(rank 13\)/);
+ assert.match(res.body.analysis,/RB group rushed 81 yards/);
+ assert.match(res.body.analysis,/Source check:/);
 });
 test('allows valid paired RB and QB allowed ranks independently',async()=>{
  process.env.GROQ_API_KEY='fake-test-secret';
@@ -71,6 +75,36 @@ test('rank checking avoids false mismatches when a yardage value has multiple va
  ]}]};
  const res=response();await handler(request('matchup',{gameId:'ambiguous-dvp-rank',matchup}),res);
  assert.equal(res.statusCode,200);
+});
+test('source correction is cached and does not cause another model call',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ let calls=0;
+ globalThis.fetch=async()=>{calls++;return {ok:true,json:async()=>({choices:[{message:{content:'JAX RB defense has allowed 47.5 yards (rank 13).'}}]})}};
+ const data={gameId:'rank-correction-cache',matchup:{sides:[{offense:'PHI',opponentDefense:'JAX',positions:[{position:'RB',metrics:[{metric:'rushYards',defenseAllowedPerGame:47.5,defenseRankMost:32}]}]}]}};
+ const first=response();await handler(request('matchup',data),first);
+ const second=response();await handler(request('matchup',data),second);
+ assert.equal(first.statusCode,200);assert.equal(second.statusCode,200);
+ assert.equal(second.body.cached,true);assert.equal(second.body.sourceRankCorrections,1);
+ assert.equal(calls,1);
+});
+test('more than two ranking errors still blocks unsafe generated analysis',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ globalThis.fetch=async()=>({ok:true,json:async()=>({choices:[{message:{content:'JAX RB 47.5 yards (rank 13), QB passing 287.5 yards (rank 31), and PHI RB 102.3 yards (rank 22).'}}]})});
+ const data={gameId:'too-many-dvp-errors',matchup:{sides:[
+ {positions:[{position:'RB',metrics:[{metric:'rushYards',defenseAllowedPerGame:47.5,defenseRankMost:32}]},{position:'QB',metrics:[{metric:'passYards',defenseAllowedPerGame:287.5,defenseRankMost:2}]}]},
+ {positions:[{position:'RB',metrics:[{metric:'rushYards',defenseAllowedPerGame:102.3,defenseRankMost:10}]}]}
+ ]}};
+ const res=response();await handler(request('matchup',data),res);
+ assert.equal(res.statusCode,422);assert.equal(res.body.error,'ai_stat_rank_mismatch');
+});
+test('does not invent corrections for unrelated yardage or missing ranks',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ const message='A player had 49 yards (rank 13); JAX defense conceded 47.5 yards with no rank reported.';
+ globalThis.fetch=async()=>({ok:true,json:async()=>({choices:[{message:{content:message}}]})});
+ const data={gameId:'unknown-yardage-not-rewritten',matchup:{sides:[{positions:[{position:'RB',metrics:[{metric:'rushYards',defenseAllowedPerGame:47.5,defenseRankMost:32}]}]}]}};
+ const res=response();await handler(request('matchup',data),res);
+ assert.equal(res.statusCode,200);assert.equal(res.body.sourceRankCorrections,0);
+ assert.equal(res.body.analysis,message);
 });
 test('provider error is sanitized and leaves projections untouched',async()=>{
  process.env.GROQ_API_KEY='fake-test-secret';
