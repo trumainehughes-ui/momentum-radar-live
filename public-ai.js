@@ -9,7 +9,7 @@
  let analysisEpoch=0,lastCompletedKey='',analyzingKey='';
  function conciseMatchup(m){
   if(!m)return null;
-  return {...m,sides:(m.sides||[]).map(s=>({...s,positions:(s.positions||[]).map(p=>({...p,metrics:(p.metrics||[]).filter(x=>(FOCUS[p.position]||[]).includes(x.metric))})).filter(p=>p.metrics.length)}))};
+  return {...m,statUnit:'TEAM_POSITION_GROUP_PER_GAME (not individual player averages)',sides:(m.sides||[]).map(s=>({...s,positions:(s.positions||[]).map(p=>({...p,positionGroup:p.position,groupScope:'combined production by '+p.position+' players; never attribute as individual average',metrics:(p.metrics||[]).filter(x=>(FOCUS[p.position]||[]).includes(x.metric)).map(x=>({...x,statScope:p.position+' position group, per game',metricLabel:p.position+' '+(x.metric==='passYards'?'passing yards':x.metric==='rushYards'?'rushing yards':x.metric==='recYards'?'receiving yards':x.metric==='receptions'?'receptions':x.metric)}))})).filter(p=>p.metrics.length)}))};
  }
  function conciseRoster(r,mode){
   if(!r)return null;
@@ -153,11 +153,18 @@
     const selectedSgps=mode==='parlay'?packSgps(m).map(s=>({...s,legs:s.legs.slice(0,7)})):[];
     const sources={model:m?.categories?'available':'unavailable',sportsbook:m?.validation?.sportsbookVerificationAvailable===true&&!m.stale?'market evidence present; independently verify book prices':'not verified or currently unavailable',roster:availability?'ESPN current-game cross-check':'unavailable',defense:defensive?'ESPN completed-game box-score splits':'unavailable'};
     const modelTierCount=(m?.sgps?.Analytics||[]).filter(x=>['Small','Medium','Nuke'].includes(x.risk)).length;
+    const canonicalPlayers=new Map();
+    for(const group of Object.values(categories))for(const row of group){if(row?.name&&row.position&&['QB','RB','WR','TE'].includes(row.position))canonicalPlayers.set(norm(row.name),{name:row.name,team:row.team,position:row.position})}
+    for(const check of availability?.playerChecks||[]){
+      if(check.position&&check.rosterTeam&&check.status!=='TEAM_MISMATCH'&&['QB','RB','WR','TE'].includes(check.position))canonicalPlayers.set(norm(check.name),{name:check.name,team:check.rosterTeam,position:check.position});
+    }
+    const playerRoleFacts=[...canonicalPlayers.values()].slice(0,25);
+    const identityConflicts=(availability?.playerChecks||[]).filter(x=>x.status==='TEAM_MISMATCH').map(x=>({name:x.name,marketTeam:x.marketTeam,rosterTeam:x.rosterTeam,position:x.position}));
     const data={
      gameId,game:{home:game.home?.name,homeAbbr:game.home?.abbr,away:game.away?.name,awayAbbr:game.away?.abbr,kickoff:game.kickoff,status:game.status,week:game.week},
      sources,model:{fetchedAt:compact(m?.fetchedAt),stale:m?.stale===true,degraded:m?.degraded===true,analyticsAvailable:m?.analyticsAvailable===true,modelSgpTierCount:modelTierCount,sportsbookMarketRows:number(m?.marketRows)??0,modelAvailabilityNote:modelTierCount?'Model-generated SGPs exist but are not verified sportsbook offers or actual payout odds.':'Model SGP tiers unavailable for this game.',validation:m?.validation?{injuryEligibilityChecked:m.validation.injuryEligibilityChecked,starterRoleRequired:m.validation.sgpChecks?.starterRoleRequired,sportsbookVerificationAvailable:m.validation.sportsbookVerificationAvailable}:null},
-     categories,matchup:mode==='injury'?null:conciseMatchup(defensive),playerAvailability:conciseRoster(availability,mode),sgps:selectedSgps,
-     instruction:'Explain only evidence actually available. Report opponent-specific sample games, never leaguewide count as individual sample; under five games is limited. IMPORTANT: before generic role warnings, mention any playerAvailability.skillPositionAlerts such as ESPN-reported OUT/IR/Q statuses and potential impact without inventing revised projections; these are NOT confirmed official game-day inactives. Do not imply an unreported injury status means confirmed healthy. Use playerChecks for wrong-team flags. Model SGP tiers exist separately from unverified sportsbook offers and prices. Do not say ALL betting information is unavailable if model tiers and projections are present. Keep missing-verification cautions short. RankMost 1 means most allowed, not strongest defense. Roster membership does not prove starting.'
+     categories,playerRoleFacts,identityConflicts,matchup:mode==='injury'?null:conciseMatchup(defensive),playerAvailability:conciseRoster(availability,mode),sgps:selectedSgps,
+     instruction:'Explain only evidence actually available. Report opponent-specific sample games, never leaguewide count as individual sample; under five games is limited. IMPORTANT: before generic role warnings, mention any playerAvailability.skillPositionAlerts such as ESPN-reported OUT/IR/Q statuses and potential impact without inventing revised projections; these are NOT confirmed official game-day inactives. Do not imply an unreported injury status means confirmed healthy. Use playerChecks for wrong-team flags. Model SGP tiers exist separately from unverified sportsbook offers and prices. Do not say ALL betting information is unavailable if model tiers and projections are present. Keep missing-verification cautions short. Each playerRoleFacts position is the player actual position; QB rushing yards are compared to QB defense rushYards, not RB defense rushYards. Position-group team averages are not individual player averages. Never identify Jalen Hurts or any QB as an RB, or Chris Rodriguez Jr. or any RB as a QB. Never attach a team-group metric to an individual player. RankMost 1 means most allowed, not strongest defense. Roster membership does not prove starting.'
     };
     if(Date.now()<aiCooldownUntil){displayAnalysis(out,dataOnlySummary(mode,data,'provider capacity limit; retry later'));if(requestEpoch===analysisEpoch)lastCompletedKey=selectionKey;return}
     out.textContent='Analyzing available evidence…';

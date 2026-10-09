@@ -57,6 +57,16 @@ test('selected game sends sourced market, roster and offense-v-defense evidence'
  assert.equal(d.sgps.length,0);assert.equal(d.sources.roster,'ESPN current-game cross-check');
  assert.equal(h.calls.length,3);
 });
+test('rushing quarterback stays QB and matchup metrics retain explicit QB group scope',async()=>{
+ const h=harness({roster:{ok:true,gameId:'game-123',playerProjections:[{name:'Jalen Hurts',team:'AWY',position:'QB',starterVerified:false}]},market:{categories:{rushing:[{name:'Jalen Hurts',position:'QB',team:'AWY',projection:30,perGame:26.3}],passing:[{name:'Jalen Hurts',position:'QB',team:'AWY',projection:175,perGame:178.3}]},sgps:{}},dvp:{ok:true,season:2026,week:5,completedGames:65,defense:{HOM:{games:4,QB:{rushYards:17.5},RB:{rushYards:47.5}}},offense:{AWY:{games:4,QB:{rushYards:26.3},RB:{rushYards:81}}},defenseRanks:{QB:{HOM:{rushYards:{rankMost:13}}}},offenseRanks:{QB:{AWY:{rushYards:{rankMost:10}}}}}});
+ await h.button.onclick();
+ const d=h.payloads[0].data,role=d.playerRoleFacts.find(x=>x.name==='Jalen Hurts');
+ assert.equal(role.position,'QB');
+ assert.equal(d.categories.rushing[0].position,'QB');
+ const qb=d.matchup.sides[0].positions.find(x=>x.position==='QB');
+ assert.equal(qb.metrics.find(x=>x.metric==='rushYards').statScope,'QB position group, per game');
+ assert.equal(d.matchup.statUnit,'TEAM_POSITION_GROUP_PER_GAME (not individual player averages)');
+});
 test('a leaguewide game total never substitutes for a team sample',async()=>{
  const h=harness({dvp:{ok:true,season:2026,week:5,completedGames:65,defense:{HOM:{games:4,QB:{passYards:270}},AWY:{games:4}},offense:{AWY:{games:4,QB:{passYards:280}},HOM:{games:4}},defenseRanks:{QB:{HOM:{passYards:{rankMost:4}}}}}});
  await h.button.onclick();

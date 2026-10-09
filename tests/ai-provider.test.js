@@ -30,6 +30,18 @@ test('preserves deep matchup metric and parlay leg details in AI prompt',async()
  assert.match(prompt,/"defenseSampleGames":4/);
  assert.match(prompt,/"modelThreshold":300/);
 });
+test('provider refuses output that calls a rushing quarterback a running back',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ globalThis.fetch=async()=>({ok:true,json:async()=>({choices:[{message:{content:"PHI's RB Jalen Hurts averages 26.3 rushing yards."}}]})});
+ const res=response();await handler(request('matchup',{gameId:'qb-rush-role-conflict',playerRoleFacts:[{name:'Jalen Hurts',team:'PHI',position:'QB'}],categories:{rushing:[{name:'Jalen Hurts',team:'PHI',position:'QB',perGame:26.3}]}}),res);
+ assert.equal(res.statusCode,422);assert.equal(res.body.error,'ai_role_mismatch');
+});
+test('provider allows correctly attributed QB rushing analysis',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ globalThis.fetch=async()=>({ok:true,json:async()=>({choices:[{message:{content:'QB Jalen Hurts averages 26.3 rushing yards per game.'}}]})});
+ const res=response();await handler(request('matchup',{gameId:'qb-rush-position-correct',playerRoleFacts:[{name:'Jalen Hurts',team:'PHI',position:'QB'}]}),res);
+ assert.equal(res.statusCode,200);
+});
 test('provider error is sanitized and leaves projections untouched',async()=>{
  process.env.GROQ_API_KEY='fake-test-secret';
  globalThis.fetch=async()=>({ok:false,status:401});
