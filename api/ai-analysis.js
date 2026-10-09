@@ -42,13 +42,13 @@ export default async function handler(req,res) {
     const response=await fetch('https://api.groq.com/openai/v1/chat/completions',{
       method:'POST',
       headers:{Authorization:'Bearer '+process.env.GROQ_API_KEY,'Content-Type':'application/json'},
-      body:JSON.stringify({model:MODEL,temperature:0.1,max_tokens:350,messages:[{role:'system',content:system},{role:'user',content:'Analyze this unverified application data. Explicitly distinguish confirmed data from missing verification.\n'+serialized}]}),
+      body:JSON.stringify({model:MODEL,temperature:0.1,max_completion_tokens:1200,reasoning_effort:'low',messages:[{role:'system',content:system},{role:'user',content:'Analyze this unverified application data. Explicitly distinguish confirmed data from missing verification.\n'+serialized}]}),
       signal:AbortSignal.timeout(12000)
     });
     if(!response.ok){const error=response.status===401||response.status===403?'provider_auth_failed':response.status===400||response.status===404?'provider_request_rejected':response.status===429?'provider_rate_limited':'ai_provider_unavailable';let providerCode='unknown';try{const detail=await response.json();providerCode=String(detail?.error?.code||detail?.error?.type||'unknown').slice(0,80)}catch{}console.error('groq_request_failed',{status:response.status,error,providerCode,model:MODEL});return respond(res,response.status===429?429:502,{ok:false,error})}
     const json=await response.json();
     const text=String(json.choices?.[0]?.message?.content||'').trim().slice(0,2000);
-    if(!text)return respond(res,502,{ok:false,error:'empty_ai_response'});
+    if(!text){console.error('groq_empty_response',{model:MODEL,finishReason:String(json.choices?.[0]?.finish_reason||'unknown'),completionTokens:json.usage?.completion_tokens||0,reasoningTokens:json.usage?.completion_tokens_details?.reasoning_tokens||0});return respond(res,502,{ok:false,error:'empty_ai_response'})}
     cache.set(key,{text,expires:now+ttl});
     return respond(res,200,{ok:true,analysis:text,cached:false,model:MODEL,verified:false});
   }catch(e){const reason=e?.name==='TimeoutError'?'provider_timeout':'ai_provider_unavailable';console.error('groq_request_exception',{reason,name:String(e?.name||'unknown')});return respond(res,502,{ok:false,error:reason})}
