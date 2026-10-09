@@ -23,7 +23,7 @@ test('provider error is sanitized and leaves projections untouched',async()=>{
  process.env.GROQ_API_KEY='fake-test-secret';
  globalThis.fetch=async()=>({ok:false,status:401});
  const res=response();await handler(request('injury',{gameId:'mock-unique-2'}),res);
- assert.equal(res.statusCode,502);assert.equal(res.body.error,'ai_provider_unavailable');
+ assert.equal(res.statusCode,502);assert.equal(res.body.error,'provider_auth_failed');
 });
 test('provider 429 surfaces controlled retry signal',async()=>{
  process.env.GROQ_API_KEY='fake-test-secret';
