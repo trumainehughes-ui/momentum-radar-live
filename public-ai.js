@@ -186,7 +186,7 @@
    if(!g)return;
    const selectedKey=String(g.gameId||g.id||'')+'|'+String(document.getElementById('momentumAiMode')?.value||'matchup');
    if(lastCompletedKey===selectedKey||analyzingKey===selectedKey)return;
-   document.getElementById('momentumAiRun')?.onclick?.();
+   return document.getElementById('momentumAiRun')?.onclick?.();
   };
   const select=document.getElementById('momentumAiMode');
   if(select)select.onchange=()=>{
