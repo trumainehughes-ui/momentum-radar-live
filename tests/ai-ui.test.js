@@ -67,6 +67,19 @@ test('rushing quarterback stays QB and matchup metrics retain explicit QB group 
  assert.equal(qb.metrics.find(x=>x.metric==='rushYards').statScope,'QB position group, per game');
  assert.equal(d.matchup.statUnit,'TEAM_POSITION_GROUP_PER_GAME (not individual player averages)');
 });
+test('data-only fallback uses the RB-specific source rank, not the nearby QB rank',async()=>{
+ const h=harness({providerError:'ai_stat_rank_mismatch',dvp:{
+  ok:true,season:2026,week:5,completedGames:65,
+  defense:{HOM:{games:4,QB:{passYards:280,rushYards:17.5},RB:{rushYards:47.5}}},
+  offense:{AWY:{games:4,QB:{passYards:170,rushYards:26.3},RB:{rushYards:81}}},
+  defenseRanks:{QB:{HOM:{passYards:{rankMost:2},rushYards:{rankMost:13}}},RB:{HOM:{rushYards:{rankMost:32}}}},
+  offenseRanks:{}
+ }});
+ await h.button.onclick();
+ assert.match(h.output.textContent,/RB rushing 47\.5 allowed\/game \(rank #32 most allowed\)/);
+ assert.doesNotMatch(h.output.textContent,/RB rushing 47\.5 allowed\/game \(rank #13/);
+ assert.match(h.output.textContent,/Existing picks are unchanged/);
+});
 test('a leaguewide game total never substitutes for a team sample',async()=>{
  const h=harness({dvp:{ok:true,season:2026,week:5,completedGames:65,defense:{HOM:{games:4,QB:{passYards:270}},AWY:{games:4}},offense:{AWY:{games:4,QB:{passYards:280}},HOM:{games:4}},defenseRanks:{QB:{HOM:{passYards:{rankMost:4}}}}}});
  await h.button.onclick();

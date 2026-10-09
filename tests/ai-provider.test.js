@@ -42,6 +42,36 @@ test('provider allows correctly attributed QB rushing analysis',async()=>{
  const res=response();await handler(request('matchup',{gameId:'qb-rush-position-correct',playerRoleFacts:[{name:'Jalen Hurts',team:'PHI',position:'QB'}]}),res);
  assert.equal(res.statusCode,200);
 });
+test('blocks an AI rank stolen from QB data and applied to 47.5 RB yards',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ globalThis.fetch=async()=>({ok:true,json:async()=>({choices:[{message:{content:"PHI's RB group rushed 81 yards per game; JAX's defense allowed 47.5 yards (rank 13)."}}]})});
+ const matchup={sides:[{offense:'PHI',opponentDefense:'JAX',positions:[
+  {position:'QB',metrics:[{metric:'rushYards',defenseAllowedPerGame:17.5,defenseRankMost:13,offenseProducedPerGame:26.3,offenseRankMost:10}]},
+  {position:'RB',metrics:[{metric:'rushYards',defenseAllowedPerGame:47.5,defenseRankMost:32,offenseProducedPerGame:81,offenseRankMost:12}]}
+ ]}]};
+ const res=response();await handler(request('matchup',{gameId:'jax-bad-rank',matchup}),res);
+ assert.equal(res.statusCode,422);assert.equal(res.body.error,'ai_stat_rank_mismatch');
+});
+test('allows valid paired RB and QB allowed ranks independently',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ globalThis.fetch=async()=>({ok:true,json:async()=>({choices:[{message:{content:"JAX allows RBs 47.5 yards (rank 32), and QBs 17.5 rushing yards (rank 13)."}}]})});
+ const matchup={sides:[{offense:'PHI',opponentDefense:'JAX',positions:[
+  {position:'QB',metrics:[{metric:'rushYards',defenseAllowedPerGame:17.5,defenseRankMost:13}]},
+  {position:'RB',metrics:[{metric:'rushYards',defenseAllowedPerGame:47.5,defenseRankMost:32}]}
+ ]}]};
+ const res=response();await handler(request('matchup',{gameId:'jax-correct-rank',matchup}),res);
+ assert.equal(res.statusCode,200);assert.equal(res.body.analysis.includes('rank 32'),true);
+});
+test('rank checking avoids false mismatches when a yardage value has multiple valid rankings',async()=>{
+ process.env.GROQ_API_KEY='fake-test-secret';
+ globalThis.fetch=async()=>({ok:true,json:async()=>({choices:[{message:{content:'A 47.5 yards (rank 13) stat is ambiguous here.'}}]})});
+ const matchup={sides:[{offense:'PHI',opponentDefense:'JAX',positions:[
+  {position:'QB',metrics:[{metric:'rushYards',defenseAllowedPerGame:47.5,defenseRankMost:13}]},
+  {position:'RB',metrics:[{metric:'rushYards',defenseAllowedPerGame:47.5,defenseRankMost:32}]}
+ ]}]};
+ const res=response();await handler(request('matchup',{gameId:'ambiguous-dvp-rank',matchup}),res);
+ assert.equal(res.statusCode,200);
+});
 test('provider error is sanitized and leaves projections untouched',async()=>{
  process.env.GROQ_API_KEY='fake-test-secret';
  globalThis.fetch=async()=>({ok:false,status:401});
