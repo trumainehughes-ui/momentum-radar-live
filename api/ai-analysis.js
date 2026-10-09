@@ -1,6 +1,6 @@
 // Groq-powered explanation layer. Never treats generated text as verified game data.
 const ALLOWED = new Set(['matchup','injury','parlay','results']);
-const MODEL = 'llama-3.1-8b-instant';
+const MODEL = 'openai/gpt-oss-20b';
 const cache = new Map();
 const buckets = new Map();
 // Best-effort per-instance limiter; enforce global limits at the edge before broad rollout.
