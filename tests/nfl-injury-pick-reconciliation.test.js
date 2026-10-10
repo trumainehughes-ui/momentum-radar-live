@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {nflGameInjuryEvidence,nflInjuryStatus,nflInjuryExcludesFromPicks,
- nflPlayerBlockedByInjury} from "../lib/nfl-injury-evidence.js";
+ nflPlayerBlockedByInjury,nflLeaguePickExclusions} from "../lib/nfl-injury-evidence.js";
 import {guardFinalNflSgpCards} from "../lib/ai-mechanics/nfl-sgp-tiers.js";
 
 const teams=[{team:{id:"16",abbreviation:"MIN"}},{team:{id:"18",abbreviation:"NO"}}];
@@ -132,4 +132,28 @@ test("forced injury refresh makes older market requests lose the UI race",()=>{
  assert.ok(src.includes("if(nflMarketInflight.get(key)===p)nflMarketInflight.delete(key)"));
  assert.ok(src.includes("if(nflRenderEpoch.get(id)!==renderEpoch"));
  assert.ok(src.includes("nflOpen(gameId,true)"));
+});
+
+test("league-wide injury data removes Questionable/Out players from Top 10 stat categories",()=>{
+ const league={injuries:[
+  group("16","MIN",[jeff]),
+  group("18","NO",[olave])
+ ]};
+ const result=nflLeaguePickExclusions(league,{checkedAt:now});
+ assert.equal(result.available,true);
+ assert.equal(result.pickBlockers.length,2);
+ assert.equal(result.officialInactivesVerified,false);
+ assert.equal(nflPlayerBlockedByInjury({playerID:"111",name:"Justin Jefferson",team:"MIN"},result),true);
+ assert.equal(nflPlayerBlockedByInjury({playerID:"222",name:"Chris Olave",team:"NO"},result),true);
+ assert.equal(nflPlayerBlockedByInjury({playerID:"333",name:"Active Runner",team:"MIN"},result),false);
+ const missing=nflLeaguePickExclusions(null,{checkedAt:now});
+ assert.equal(missing.available,false);
+ assert.equal(missing.status,"REPORT_UNAVAILABLE");
+});
+test("slate stats are filtered after ESPN analytics merges, not only selected-game props",()=>{
+ const api=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
+ assert.ok(api.includes("const slateInjuries=gameId?null:await"));
+ assert.ok(api.includes("const injuryContext=gameId?eligibility.injuryReport:slateInjuries"));
+ assert.ok(api.includes("if(gameId||slateInjuries?.available)for(const cat of"));
+ assert.ok(api.includes("nflPlayerBlockedByInjury(x,injuryContext)"));
 });
