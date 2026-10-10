@@ -9,9 +9,9 @@ const pick = { gameId:"g1", playerId:"p1", team:"PHI", market:"rushing_yards",
   line:84.5, sportsbook:"FanDuel" };
 const raw = {statEntityID:"SGO-player-9",teamID:"PHI",marketName:"player_rush_yds",
   periodID:"game",betTypeID:"ou",sideID:"over",byBookmaker:{
-    fanduel:{odds:-110,overUnder:84.5,available:true},
-    draftkings:{odds:-105,overUnder:85.5,available:true},
-    otherbook:{odds:+120,overUnder:84.5,available:true}
+    fanduel:{odds:-110,overUnder:84.5,available:true,lastUpdatedAt:new Date(1000).toISOString()},
+    draftkings:{odds:-105,overUnder:85.5,available:true,lastUpdatedAt:new Date(1000).toISOString()},
+    otherbook:{odds:+120,overUnder:84.5,available:true,lastUpdatedAt:new Date(1000).toISOString()}
   }};
 const event = { eventID:"e1",teams:{home:{teamID:"PHI"},away:{teamID:"CHI"}},
   odds:{prop1:raw} };
@@ -53,7 +53,7 @@ test("expired player mapping fails closed", () =>
 test("market with unavailable FanDuel quote fails closed", () =>
   assert.equal(reviewRawSgoGameSnapshot({...input,event:{...event,odds:{prop1:{...raw,byBookmaker:{fanduel:{...raw.byBookmaker.fanduel,available:false}}}}}}).ready,false));
 test("suspicious price value is rejected", () =>
-  assert.equal(reviewRawSgoGameSnapshot({...input,event:{...event,odds:{prop1:{...raw,byBookmaker:{fanduel:{odds:-12,overUnder:84.5,available:true}}}}}}).ready,false));
+  assert.equal(reviewRawSgoGameSnapshot({...input,event:{...event,odds:{prop1:{...raw,byBookmaker:{fanduel:{odds:-12,overUnder:84.5,available:true,lastUpdatedAt:new Date(1000).toISOString()}}}}}}).ready,false));
 test("wrong market or side fails closed", () =>
   assert.equal(reviewRawSgoGameSnapshot({...input,event:{...event,odds:{prop1:{...raw,sideID:"under"}}}}).ready,false));
 test("name-only raw row without identity cannot verify quote", () =>
@@ -61,8 +61,34 @@ test("name-only raw row without identity cannot verify quote", () =>
 test("real anytime TD Yes market normalized with 1-touchdown semantic line", () => {
   const tdPick={...pick,market:"anytime_td",line:1};
   const tdRaw={...raw,marketName:"touchdowns",statID:"touchdowns",betTypeID:"yn",sideID:"yes",
-    byBookmaker:{fanduel:{available:true,odds:120}}};
+    byBookmaker:{fanduel:{available:true,odds:120,lastUpdatedAt:new Date(1000).toISOString()}}};
   assert.equal(reviewRawSgoGameSnapshot({...input,picks:[tdPick],event:{...event,odds:{prop1:tdRaw}}}).ready,true);
 });
 test("zero raw odds never causes positive review", () =>
   assert.equal(reviewRawSgoGameSnapshot({...input,event:{...event,odds:{}}}).ready,false));
+
+test("bookmaker quote with missing update timestamp is not verified", () =>
+  assert.equal(reviewRawSgoGameSnapshot({...input,event:{...event,odds:{prop1:{...raw,byBookmaker:{fanduel:{odds:-110,overUnder:84.5,available:true}}}}}}).ready,false));
+test("expired bookmaker quote cannot be made fresh by a new snapshot", () =>
+  assert.equal(reviewRawSgoGameSnapshot({...input,now:1000001,capturedAt:1000001,event:{...event,odds:{prop1:{...raw,byBookmaker:{fanduel:{...raw.byBookmaker.fanduel,lastUpdatedAt:new Date(1).toISOString()}}}}}}).ready,false));
+test("future bookmaker quote timestamps fail closed", () =>
+  assert.equal(reviewRawSgoGameSnapshot({...input,event:{...event,odds:{prop1:{...raw,byBookmaker:{fanduel:{...raw.byBookmaker.fanduel,lastUpdatedAt:new Date(1200).toISOString()}}}}}}).ready,false));
+test("official SGO long team IDs require explicit event crosswalk", () => {
+  const teams={PHI:"PHILADELPHIA_EAGLES_NFL",CHI:"CHICAGO_BEARS_NFL"};
+  const ev={...event,teams:{home:{teamID:teams.PHI},away:{teamID:teams.CHI}},
+    players:{"SGO-player-9":{playerID:"SGO-player-9",teamID:teams.PHI}},
+    odds:{prop1:{...raw,teamID:undefined}}};
+  assert.equal(reviewRawSgoGameSnapshot({...input,event:ev}).ready,false);
+  const reviewed=reviewRawSgoGameSnapshot({...input,event:ev,
+    eventMapping:{...input.eventMapping,teamIds:teams},
+    playerMappings:[{...playerMappings[0],sgoTeamId:teams.PHI}]});
+  assert.equal(reviewed.ready,true,JSON.stringify(reviewed));
+});
+test("documented event.players teamID mismatch blocks quote", () => {
+  const ev={...event,players:{"SGO-player-9":{playerID:"SGO-player-9",teamID:"CHI"}}};
+  assert.equal(reviewRawSgoGameSnapshot({...input,event:ev}).ready,false);
+});
+test("SGO market stats ID supports human-readable marketName", () => {
+  const odds={...raw,marketName:"Rushing Yards Over/Under",statID:"rushing_yards"};
+  assert.equal(reviewRawSgoGameSnapshot({...input,event:{...event,odds:{prop1:odds}}}).ready,true);
+});
