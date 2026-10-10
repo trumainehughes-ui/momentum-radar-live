@@ -433,11 +433,15 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
    oddsDebug.error=String(e?.message||e);
    console.warn('primary_market_degraded',oddsDebug.error);
   }
-  const primaryBooksReady=Boolean((directRows||[]).some(m=>bookFor(m,'DraftKings')||bookFor(m,'FanDuel')));
+  // "Available" means enough real yardage markets for the diversified SGP
+  // builder, not simply one isolated TD offer from a single sportsbook.
+  const yardOffers=(directRows||[]).filter(m=>['passing','rushing','receiving'].includes(category(m))&&
+   (bookFor(m,'DraftKings')||bookFor(m,'FanDuel')));
+  const primaryBooksReady=new Set(yardOffers.map(category)).size>=2&&
+   new Set(yardOffers.map(m=>norm(m.playerID||m.name))).size>=3;
   const backupAllowed=sgoEnabled&&shouldUseSgoBackup({
    gameId,kickoff,finalCheck:/^(1|true)$/i.test(String(req.query.finalCheck||'')),
    lockRun:/^(1|true)$/i.test(String(req.query.lockRun||'')),
-   operatorBackup:/^(1|true)$/i.test(String(req.query.providerBackup||'')),
    primaryBooksReady
   });
   oddsDebug.sgoRole='reserve_only';oddsDebug.backupEligible=backupAllowed;
