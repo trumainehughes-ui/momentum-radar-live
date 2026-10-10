@@ -115,7 +115,7 @@ test("both API paths and the UI share strict status/coverage and revalidate ever
  const game=readFileSync(new URL("../api/nfl-game.js",import.meta.url),"utf8");
  const ui=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  assert.ok(markets.includes("for(const x of injury.pickBlockers)"));
- assert.ok(markets.includes("categories[cat]=(categories[cat]||[]).filter(x=>!nflPlayerBlockedByInjury(x,eligibility.injuryReport))"));
+ assert.ok(markets.includes("categories[cat]=(categories[cat]||[]).filter(x=>!nflPlayerBlockedByInjury(x,injuryContext))"));
  assert.ok(markets.includes("if(gameId&&nflPlayerBlockedByInjury(x,eligibility.injuryReport))return false"));
  assert.ok(markets.includes("v85-injury-pick-reconcile"));
  assert.ok(game.includes("pickBlockers=scopedInjuries.filter"));
