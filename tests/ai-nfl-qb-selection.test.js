@@ -45,5 +45,5 @@ test("NFL market builder never mutates shared analytics cached player rows",()=>
  assert.ok(src.includes("analytics.filter(a=>!isBackupQbForVerifiedGame(a,roles))"));
  assert.ok(!src.includes("x._excludeBackupQb=true"));
  assert.ok(!src.includes("analytics.filter(a=>!a._excludeBackupQb)"));
- assert.ok(src.includes("v81-game-specific-immutable-qb1"));
+ assert.ok(src.includes("v82-sgp-tier-composition"));
 });
