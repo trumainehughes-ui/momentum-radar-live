@@ -1,0 +1,24 @@
+name: NFL SGP Projection and Starter Guards
+on:
+  push:
+    branches:
+      - fix/nfl-sgp-projection-starter-guards-20261010
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+jobs:
+  nfl-projection-guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-package-lock
+      - name: Validate NFL models and API syntax
+        run: node --check api/nfl-markets.js && node --check lib/ai-mechanics/nfl-projection-safety.js
+      - name: Test photographed Medium yardage examples and unverified QBs
+        run: node --test tests/nfl-sgp-projection-starter-guards.test.js tests/nfl-sgp-yardage-mix.test.js
+      - name: Full application regression
+        run: npm test
