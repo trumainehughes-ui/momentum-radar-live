@@ -56,8 +56,10 @@
   const basis=readiness?.sampleSource==='PRIOR_SEASON'?
    ' • Historical baseline: '+safe((readiness?.historicalSeason||2026)-1)+'–'+safe(String(readiness?.historicalSeason||2026).slice(-2))+' (NOT current-season results)':
    readiness?.sampleSource==='NO_COMPLETED_GAMES'?' • No eligible completed game samples':'';
-  const source='<div class="refresh">Pregame model: '+safe(stage)+basis+' • AI review: '+safe(readiness?.aiReviewStatus||'PENDING')+' • Last model/injury check: '+safe(freshness)+
-   ' • Injury evidence: '+safe(injury)+'</div>';
+  const stale=readiness?.status==='STALE'?
+   '<div class="note"><b>STALE NBA MODEL — new pregame injury/roster check required.</b> '+safe(readiness.reason||'')+'</div>':'';
+  const source=stale+'<div class="refresh">Pregame model: '+safe(stage)+basis+' • AI review: '+safe(readiness?.aiReviewStatus||'PENDING')+' • Last model/injury check: '+safe(freshness)+
+   ' • Injury evidence: '+safe(injury)+' ('+safe(readiness?.injuryReportStatus||'UNVERIFIED')+')</div>';
   return source+rows.map(s=>{
    const ready=s.status==='MODEL_CANDIDATE'&&Array.isArray(s.legs)&&s.legs.length>0;
    const list=ready?s.legs.map((l,i)=>
@@ -90,7 +92,7 @@
    renderInjuries(d);
    if(!d.players?.length){
     qs('#nbaPlayers').innerHTML='<div class="msg">'+
-     (d.status==='SCHEDULED'?'Game has not started. Pregame projections will remain unavailable until verified player data and eligibility checks are connected.':'No verified player box-score statistics yet.')+
+     (d.status==='SCHEDULED'?'Game has not started. See the separate SGP section for any current model-only historical candidates; player box-score RESULTS will appear after tip-off.':'No verified player box-score statistics yet.')+
      '</div>';return;
    }
    const ranked=[...d.players].filter(x=>Number.isFinite(Number(x.points))).sort((a,b)=>b.points-a.points);
