@@ -55,6 +55,8 @@ test("bookmaker combined odds take precedence over independent multiplied leg es
 test("American odds tier targets preserve $10 gross return bands",()=>{
  assert.equal(classifyNflSgpOdds(1900),"Small");
  assert.equal(classifyNflSgpOdds(2899),"Small");
+ assert.equal(classifyNflSgpOdds(2900),"Small");
+ assert.equal(classifyNflSgpOdds(2901),"Medium");
  assert.equal(classifyNflSgpOdds(3000),"Medium");
  assert.equal(classifyNflSgpOdds(6000),"Medium");
  assert.equal(classifyNflSgpOdds(10000),"Nuke");
