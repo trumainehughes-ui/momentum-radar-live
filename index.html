@@ -119,20 +119,25 @@ async function nflRefreshInjuryPanel(gameId,manual=false){
   const d=await r.json();
   if(String(nflSelected?.gameId||'')!==String(gameId))return;
   const valid=r.ok&&d.ok&&d.reportAvailable;
-  const at=Date.now(),signature=valid?(d.injuries||[]).map(x=>String(x.playerId||x.name)+'|'+x.status).sort().join(';'):'REPORT_UNAVAILABLE';
+  const observedRows=Array.isArray(d.injuries)?d.injuries:[];
+  const at=Date.now(),signature=[d.status||'REPORT_UNAVAILABLE',(d.coveredTeams||[]).join(','),...observedRows.map(x=>String(x.playerId||x.name)+'|'+x.team+'|'+x.status).sort()].join(';');
   const hadPrior=prior.signature!==undefined;
   nflInjuryRefresh.set(gameId,{at,signature,running:false,refreshMinutes:d.refreshMinutes||15});
   const safe=v=>nflEscape(v);
   if(!valid){
-   box.innerHTML='<div class="note">Injury status cannot be verified right now. Do not interpret a blank report as healthy; review official NFL/team reports before placing any selection.</div><button type="button" onclick="nflRefreshInjuryPanel('+JSON.stringify(gameId)+',true)">Retry injury check</button>';
+   const rows=observedRows.map(x=>'<div class="nflMarketLine"><b>'+safe(x.name)+'</b><div class="meta">'+safe(x.team)+' • '+safe(x.position||'—')+' • '+safe(x.status)+'</div>'+(x.injury?'<div class="note">'+safe(x.injury)+'</div>':'')+'</div>').join('');
+   box.innerHTML='<div class="note"><b>INCOMPLETE INJURY REPORT</b> • '+safe(d.status||'REPORT_UNAVAILABLE')+'. ESPN coverage: '+safe((d.coveredTeams||[]).join(', ')||'none')+'. Missing: '+safe((d.missingTeams||[]).join(', ')||'unverified')+'. These are reported injuries only; the missing team is NOT cleared. All player recommendations require another check.</div>'+rows+'<button type="button" onclick="nflRefreshInjuryPanel('+JSON.stringify(gameId)+',true)">Retry injury check</button>';
   }else{
    const time=d.checkedAt?new Date(d.checkedAt).toLocaleString():'Time unknown';
    const rows=(d.injuries||[]).map(x=>'<div class="nflMarketLine"><b>'+safe(x.name)+'</b><div class="meta">'+safe(x.team)+' • '+safe(x.position||'—')+' • '+safe(x.status)+'</div>'+(x.injury?'<div class="note">'+safe(x.injury)+'</div>':'')+'</div>').join('');
    const warning=d.officialInactivesRequired?'GAME-DAY INACTIVES: independent official confirmation still required.':'Official game-day inactives not yet independently verified.';
-   box.innerHTML='<div class="meta">ESPN checked '+safe(time)+' • Source publication time not supplied • Refresh '+d.refreshMinutes+' min</div><div class="note">'+safe(warning)+'</div>'+(rows||'<div class="note">No injury entries returned by the available ESPN report. This does not confirm an official active list.</div>')+'<button type="button" onclick="nflRefreshInjuryPanel('+JSON.stringify(gameId)+',true)">Refresh injury report</button>';
+   box.innerHTML='<div class="meta">ESPN checked '+safe(time)+' • Both teams reported: '+safe((d.coveredTeams||[]).join(', '))+' • Source publication time not supplied • Refresh '+d.refreshMinutes+' min</div><div class="note">'+safe(warning)+' Questionable and conflicting statuses are held out of player picks until cleared.</div>'+(rows||'<div class="note">No injury entries returned by the available ESPN report. This does not confirm an official active list.</div>')+'<button type="button" onclick="nflRefreshInjuryPanel('+JSON.stringify(gameId)+',true)">Refresh injury report</button>';
   }
   if(hadPrior&&prior.signature!==signature){
    if(nflData?.date)nflMarketCache.delete(nflData.date+'|'+gameId);
+   const props=$('#nflProps'),sgp=$('#nflSGP');
+   if(props)props.textContent='Injury status changed. Rechecking every player prop before displaying picks…';
+   if(sgp)sgp.textContent='Injury status changed. Rebuilding Small, Medium and Nuke with available players and yardage…';
    // Status changed: reopen the selected game to force the parlay API to re-check roles/injuries.
    if(nflSelected?.gameId===gameId)nflOpen(gameId,true);
   }
