@@ -74,7 +74,7 @@ test("missing exact player name or team cannot verify sportsbook rows",()=>{
 });
 test("NFL live handler wires only existing server-side ESPN/SGO snapshots",()=>{
  const src=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
- assert.match(src,/sgoShadow=inspectNflSgoShadow\(/);
+ assert.ok(src.includes("inspectedSgo=inspectNflSgoShadow("));
  assert.match(src,/gameIdentity:eligibility\.gameIdentity/);
  assert.match(src,/rolePlayers:roles\.players\|\|\[\]/);
  assert.match(src,/events:chosen/);
