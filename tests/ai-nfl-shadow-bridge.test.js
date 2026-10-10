@@ -80,7 +80,7 @@ test("NFL live handler wires only existing server-side ESPN/SGO snapshots",()=>{
  assert.match(src,/events:chosen/);
  assert.match(src,/capturedAt:Number\(CACHE\.get\(date\)\?\.at\)/);
  assert.match(src,/verifiedCombinedBookQuotes:0/);
- assert.match(src,/approvedMarketRows=gameId&&eligibility.checked===true&&roles.checked===true&&inspectedSgo.ready===true/);
+ assert.match(src,/approvedMarketRows=gameId&&eligibility.checked===true&&eligibility.injuryFeedChecked===true&&roles.checked===true&&inspectedSgo.ready===true/);
  assert.match(src,/eligibilityFilter\(approvedMarketRows,eligibility\)/);
  assert.doesNotMatch(src,/eligibilityFilter\(rawRows,eligibility\)/);
 });
