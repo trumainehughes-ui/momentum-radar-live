@@ -9,22 +9,26 @@ function response(){
   status(s){this.statusCode=s;return this},
   json(body){this.payload=body;return this}};
 }
-async function check(flag,key){
- const oldFlag=process.env.NFL_PUBLIC_WEB_SEARCH_ENABLED,
-  oldKey=process.env.BRAVE_SEARCH_API_KEY;
+async function check(flag,key,budget=false){
+ const keys=["NFL_PUBLIC_WEB_SEARCH_ENABLED","BRAVE_SEARCH_API_KEY",
+  "UPSTASH_REDIS_REST_URL","UPSTASH_REDIS_REST_TOKEN"];
+ const old=Object.fromEntries(keys.map(k=>[k,process.env[k]]));
  try{
-  if(flag===undefined)delete process.env.NFL_PUBLIC_WEB_SEARCH_ENABLED;
-  else process.env.NFL_PUBLIC_WEB_SEARCH_ENABLED=flag;
-  if(key===undefined)delete process.env.BRAVE_SEARCH_API_KEY;
-  else process.env.BRAVE_SEARCH_API_KEY=key;
+  for(const keyName of keys)delete process.env[keyName];
+  if(flag!==undefined)process.env.NFL_PUBLIC_WEB_SEARCH_ENABLED=flag;
+  if(key!==undefined)process.env.BRAVE_SEARCH_API_KEY=key;
+  if(budget){
+   process.env.UPSTASH_REDIS_REST_URL="https://example-budget.upstash.io";
+   process.env.UPSTASH_REDIS_REST_TOKEN="private-budget-token";
+  }
   const res=response();
   handler({method:"GET"},res);
   return res;
  }finally{
-  if(oldFlag===undefined)delete process.env.NFL_PUBLIC_WEB_SEARCH_ENABLED;
-  else process.env.NFL_PUBLIC_WEB_SEARCH_ENABLED=oldFlag;
-  if(oldKey===undefined)delete process.env.BRAVE_SEARCH_API_KEY;
-  else process.env.BRAVE_SEARCH_API_KEY=oldKey;
+  for(const keyName of keys){
+   if(old[keyName]===undefined)delete process.env[keyName];
+   else process.env[keyName]=old[keyName];
+  }
  }
 }
 test("disabled Brave connector gives public, key-free status",async()=>{
@@ -44,11 +48,15 @@ test("enabled Brave without secret is still unavailable",async()=>{
 });
 test("configured and explicitly enabled search is still research-only",async()=>{
  const secret="NEVER_PRINT_THIS_SECRET";
- const r=await check("true",secret);
+ const noBudget=await check("true",secret);
+ assert.equal(noBudget.statusCode,200);
+ assert.equal(noBudget.payload.state,"MISSING_SHARED_BUDGET");
+ assert.equal(noBudget.payload.ready,false);
+ const r=await check("true",secret,true);
  assert.equal(r.statusCode,200);
  assert.equal(r.payload.state,"READY_RESEARCH_ONLY");
  assert.equal(r.payload.ready,true);
- assert.equal(r.payload.sharedGlobalRateLimit,false);
+ assert.equal(r.payload.sharedGlobalRateLimit,true);
  assert.equal(r.payload.livePlayerOddsVerified,false);
  assert.equal(JSON.stringify(r.payload).includes(secret),false);
 });
