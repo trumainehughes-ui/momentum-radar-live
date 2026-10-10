@@ -95,4 +95,7 @@ test("NFL view renders corrected model-first mode and changed-lineup warnings",(
  assert.ok(source.includes("s.eligibilityPruned?"));
  assert.ok(source.includes("nflEscape(s.reason||'Lineup changed; rebuild the entire parlay.')"));
  assert.ok(source.includes("T-minus-30: "));
+ assert.ok(source.includes("Zero verified book offers does not block model-only analysis."));
+ assert.ok(source.includes("d.bookMarketAudit?.confirmedStarterRows"));
+ assert.ok(source.includes("s.eligibilityPruned?"));
 });
