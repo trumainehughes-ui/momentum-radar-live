@@ -201,7 +201,8 @@
     const result=await response.json();
     if(requestEpoch!==analysisEpoch)return;
     if(result.ok){
-     displayAnalysis(out,summarizeAdvisory(result.mechanics)+(result.analysis||'No explanation returned.'));
+     const source=result.provider==='openrouter'?'AI: OpenRouter backup':result.provider==='groq'?'AI: Groq primary':'AI: deterministic evidence only';
+     displayAnalysis(out,source+'\\n\\n'+summarizeAdvisory(result.mechanics)+(result.analysis||'No explanation returned.'));
     }else{
      if(result.error==='ai_capacity_limited'||result.error==='provider_rate_limited')aiCooldownUntil=Date.now()+Math.max(60,Number(result.retryAfterSeconds)||90)*1000;
      displayAnalysis(out,summarizeAdvisory(result.mechanics)+dataOnlySummary(mode,data,result.error||'unknown_error'));
