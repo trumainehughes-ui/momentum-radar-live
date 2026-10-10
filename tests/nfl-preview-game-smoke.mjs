@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 
-const endpoint=new URL('/api/nfl-markets','https://momentum-radar-live-3mhqmuhm8-trumainehughes-6743.vercel.app');
+const endpoint=new URL('/api/nfl-markets','https://momentum-radar-live-dwnl405kf-trumainehughes-6743.vercel.app');
 endpoint.searchParams.set('date','2026-10-11');
 endpoint.searchParams.set('gameId','401872987');
 const rsp=await fetch(endpoint,{signal:AbortSignal.timeout(180000),headers:{accept:'application/json'}});
