@@ -98,7 +98,7 @@ test('NFL UI has Sunday Monday Thursday selector, date-scoped load and manual re
  for(const day of ['0','1','4'])assert.ok(html.includes('data-nflday="'+day+'"'));
  assert.ok(html.includes("const selectedDay=$('#nflDate')?.value||''"));
  assert.ok(html.includes("new URLSearchParams({...selectedDay?{date:selectedDay}:{}"));
- assert.ok(html.includes('if(league===\\'nfl\\')loadNFL()'));
+ assert.ok(html.includes("if(league==='nfl')loadNFL()"));
 });
 test('15-minute collector scans today and tomorrow, never invents market health',()=>{
  const source=readFileSync(new URL('../api/nfl-health.js',import.meta.url),'utf8');
