@@ -58,5 +58,5 @@ test("all SGP categories are rechecked even when injury coverage is not complete
  const api=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
  assert.ok(api.includes("return guardFinalNflSgpCards(sgps,{"));
  assert.ok(!api.includes("if(!elig?.checked)return sgps"));
- assert.ok(api.includes("CACHE_SCHEMA='v84-injury-freshness-gate'"));
+ assert.ok(api.includes("CACHE_SCHEMA='v85-official-weekly-reconcile'"));
 });
