@@ -96,7 +96,7 @@ test("model-only SGP legs cannot retain inferred book eligibility or quote times
  });
  assert.equal(s.displayable,true);
  assert.equal(s.publishable,false);
- assert.equal(s.candidateComplete,true);
+ assert.equal(s.candidateComplete,false); // two unpriced legs lack a valid Small market mix
  assert.equal(s.combinedBookQuoteVerified,false);
  assert.equal(s.verifiedLegs,0);
  assert.equal(s.eligibleBookLegs,0);
