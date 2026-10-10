@@ -1,11 +1,13 @@
 import { makeOfficialNflMarketSearch,
  queryOfficialNflMarketSearch } from "../lib/ai-mechanics/nfl-public-market-search.js";
 import { makeNflSearchBroker } from "../lib/ai-mechanics/nfl-search-broker.js";
+import { makeNflSharedSearchAuthorizer, configuredNflSearchBudget } from "../lib/ai-mechanics/nfl-shared-search-budget.js";
 
 // Intentionally disabled until explicitly enabled with a server-side key.
 // One sportsbook, one player, one market and ONE search request per click.
 // Never touches DK/FD private endpoints, odds caches or SGP verification gates.
-const runSearch=makeNflSearchBroker({search:queryOfficialNflMarketSearch});
+const runSearch=makeNflSearchBroker({search:queryOfficialNflMarketSearch,
+ authorize:makeNflSharedSearchAuthorizer()});
 function reply(res,code,data){
  res.setHeader("Cache-Control","private, no-store");
  return res.status(code).json(data);
@@ -27,6 +29,7 @@ export default async function handler(req,res){
   return reply(res,503,{ok:false,error:"search_disabled",message:"NFL public web research requires explicit server-side enablement."});
  const key=process.env.BRAVE_SEARCH_API_KEY;
  if(!key)return reply(res,503,{ok:false,error:"search_not_configured",message:"Brave Search API key not configured in Vercel."});
+ if(!configuredNflSearchBudget())return reply(res,503,{ok:false,error:"search_budget_unconfigured",message:"Cross-instance search budget is not connected; no paid searches were attempted."});
  const body=req.body||{};
  if(typeof body!=="object"||Array.isArray(body)||!body)
   return reply(res,400,{ok:false,error:"invalid_body"});
