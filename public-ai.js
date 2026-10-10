@@ -154,12 +154,28 @@
     researchGameId=id||'';
     researchPlayer.replaceChildren();
     researchResults.textContent='';
+    researchButton.disabled=true;
     marketSearchPanel.hidden=!researchQueue.length;
     for(let i=0;i<researchQueue.length;i++){
       const p=researchQueue[i],o=document.createElement('option');
       o.value=String(i);
       o.textContent=p.player+' • '+p.team+' • '+p.market;
       researchPlayer.appendChild(o);
+    }
+  }
+  async function refreshSearchConnection(epoch,gameId){
+    try{
+      const response=await fetch('/api/nfl-public-market-status');
+      const status=await response.json();
+      if(epoch!==analysisEpoch||researchGameId!==gameId)return;
+      researchButton.disabled=!status?.ready;
+      researchResults.textContent=status?.ready
+        ?'Official-page search connected. Indexed links are not verified odds.'
+        :'Search not connected yet. Set the Brave Search API key and Preview enablement flag in Vercel. The player research checklist still works.';
+    }catch{
+      if(epoch!==analysisEpoch||researchGameId!==gameId)return;
+      researchButton.disabled=true;
+      researchResults.textContent='Search connection status unavailable. Research checklist only.';
     }
   }
   researchButton.onclick=async()=>{
@@ -270,6 +286,7 @@
       }
       if(requestEpoch!==analysisEpoch)return;
       setResearchQueue(research.queue,gameId);
+      if(research.queue?.length)void refreshSearchConnection(requestEpoch,gameId);
       data.research={queue:research.queue.slice(0,8),
        researchMessage:research.message,
        quotedBookPricesVerified:0,combinedSgpQuotesVerified:0,
