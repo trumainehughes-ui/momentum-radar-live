@@ -109,3 +109,18 @@ test('15-minute collector scans today and tomorrow, never invents market health'
  assert.ok(source.includes('nflRunCollectorBatch(due'));
  assert.ok(source.includes("status:'SEPARATE_SERVICE'"));
 });
+
+test('anytime TD uses current completed weeks and counts one game per player',()=>{
+ const src=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
+ assert.ok(src.includes('const currentWeek=Number(sc.week?.number||sc.events?.[0]?.week?.number||0)'));
+ assert.ok(src.includes('w<=lastCompletedWeek;w++'));
+ assert.ok(src.includes('games:new Set()'));
+ assert.ok(src.includes('u.games.add(String(s.header?.id'));
+ assert.ok(src.includes('const gp=Math.max(1,u.games.size),oppPG=opps/gp'));
+ assert.ok(!src.includes('u.games++;usage.set(id,u)'));
+});
+test('verified sportsbook availability is set only by provider and qualified prop rows',()=>{
+ const src=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
+ assert.ok(src.includes("sportsbookVerificationAvailable:Boolean(gameId&&sgpRows.length>0&&['The Odds API','SportsGameOdds (backup)'].includes(provider))"));
+ assert.ok(src.includes('combinedBookSgpQuoteAvailable:false'));
+});
