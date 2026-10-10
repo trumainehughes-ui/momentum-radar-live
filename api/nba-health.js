@@ -128,6 +128,9 @@ export default async function handler(req,res){
  // Vercel Cron includes Authorization: Bearer CRON_SECRET if configured.
  if(!authorized(req,process.env.CRON_SECRET))
   return res.status(401).json({ok:false,error:'cron_auth_required'});
+ if(!process.env.BLOB_READ_WRITE_TOKEN)
+  return res.status(503).json({ok:false,error:'pregame_storage_not_configured',
+   action:'Connect an existing Vercel Blob store to this project before running the snapshot collector.'});
  const date=dateET(),tomorrow=addDay(date,1),dates=[date,tomorrow];
  const schedules=await Promise.all(dates.map(async day=>{
   try{return await json('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates='+day.replaceAll('-','')+'&limit=100',12_000)}
