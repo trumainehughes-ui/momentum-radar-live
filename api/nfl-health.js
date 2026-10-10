@@ -104,6 +104,9 @@ export default async function handler(req,res){
  // ONLY for the Vercel-signed cron, never public ?cron=1 queries.
  if(cron&&!nflCronAuthorized(req,process.env.CRON_SECRET))
   return res.status(401).json({ok:false,error:'cron_auth_required'});
+ if(cron&&!process.env.BLOB_READ_WRITE_TOKEN)
+  return res.status(503).json({ok:false,error:'pregame_storage_not_configured',
+   action:'Connect an existing Vercel Blob store to persist game-specific SGP and injury snapshots.'});
  const base='https://'+String(req.headers?.host||'momentum-radar-live.vercel.app');
  try{
   const today=date&&/^\d{4}-\d{2}-\d{2}$/.test(date)?date:day(new Date());
