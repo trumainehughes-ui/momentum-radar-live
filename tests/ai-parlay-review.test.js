@@ -1,0 +1,12 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { reviewParlay } from "../lib/ai-mechanics/parlay-review.js";
+const player={id:"p1",team:"A",status:"active"};
+const market={playerId:"p1",market:"rushing_yards",line:85,available:true};
+const leg={playerId:"p1",team:"A",market:"rushing_yards",line:85,sportsbook:"FanDuel"};
+const input={legs:[leg],tier:"nuke",combinedAmericanOdds:10000,sportsbook:"FanDuel",priceSource:"verified_book_quote",context:{activePlayers:[player],markets:[market]}};
+test("verified nuke quote passes advisory review",()=>assert.equal(reviewParlay(input).valid,true));
+test("missing quote provenance is blocked",()=>assert.ok(reviewParlay({...input,priceSource:"model_estimate"}).reasons.includes("verified_combined_price_required")));
+test("mixed sportsbooks are blocked",()=>assert.ok(reviewParlay({...input,legs:[{...leg,sportsbook:"DraftKings"}]}).reasons.some(x=>x.includes("sportsbook_mismatch"))));
+test("nuke price below payout target is blocked",()=>assert.ok(reviewParlay({...input,combinedAmericanOdds:5000}).reasons.includes("tier_payout_below_target")));
+test("inactive player is blocked",()=>assert.ok(reviewParlay({...input,context:{...input.context,activePlayers:[{...player,status:"out"}]}}).reasons.some(x=>x.includes("unverified_active_player_or_team"))));
