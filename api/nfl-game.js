@@ -1,6 +1,7 @@
 import { gradeHistory, parlayStatus } from '../lib/nfl-results.js';
 import { filterCurrentRoleEvidence, isVerifiedNflStarterRole } from '../lib/ai-mechanics/role-evidence.js';
 import { currentAvailabilityOverrides } from '../lib/ai-mechanics/availability-overrides.js';
+import { assessNflTeamInjuryEvidence, nflPlayerAvailability } from '../lib/ai-mechanics/nfl-injury-evidence.js';
 import { put, list, del } from '@vercel/blob';
 const ESPN="https://site.api.espn.com/apis/site/v2/sports/football/nfl";
 const ESPN_STATS="https://site.web.api.espn.com/apis/common/v3/sports/football/nfl/statistics/byathlete";
@@ -55,12 +56,51 @@ export default async function handler(req,res){
   const summary=await json(`${ESPN}/summary?event=${encodeURIComponent(gameId)}`);
   const comp=summary.header?.competitions?.[0]||{}; const competitors=comp.competitors||[];
   const allowedIds=new Set(competitors.map(c=>String(c.team?.id||"")).filter(Boolean)); const allowedAbbr=new Set(competitors.map(c=>String(c.team?.abbreviation||"").toUpperCase()).filter(Boolean));
-  let injuryGroups=summary.injuries||[];if(!injuryGroups.length){try{const leagueInj=await json(ESPN_INJ);injuryGroups=leagueInj.injuries||leagueInj.items||[]}catch(e){}}
-  const injuries=(injuryGroups||[]).filter(team=>allowedIds.has(String(team.team?.id||""))||allowedAbbr.has(String(team.team?.abbreviation||"").toUpperCase())).flatMap(team=>(team.injuries||[]).map(i=>({
-    team:team.team?.abbreviation||team.team?.displayName||null,playerId:String(i.athlete?.id||""),name:i.athlete?.displayName||i.athlete?.fullName||"Unknown",
-    position:i.athlete?.position?.abbreviation||null,injury:i.details?.type||i.type?.description||i.details?.detail||null,
-    status:statusMap(i.status||i.details?.status),rawStatus:i.status||i.details?.status||null,source:"ESPN game summary"
-  })));
+  const expectedTeams=competitors.map(c=>({
+    id:String(c.team?.id||""),abbr:String(c.team?.abbreviation||"")
+  }));
+  const summaryInjuryGroups=Array.isArray(summary.injuries)?summary.injuries:[];
+  let injuryGroups=[...summaryInjuryGroups];
+  let injuryEvidence=assessNflTeamInjuryEvidence({
+    teams:expectedTeams,groups:injuryGroups
+  });
+  let injurySource="ESPN game summary";
+  if(!injuryEvidence.checked){
+    try{
+      const leagueInj=await json(ESPN_INJ);
+      const leagueGroups=Array.isArray(leagueInj.injuries)
+        ?leagueInj.injuries:Array.isArray(leagueInj.items)?leagueInj.items:[];
+      injuryGroups=[...summaryInjuryGroups,...leagueGroups];
+      injuryEvidence=assessNflTeamInjuryEvidence({
+        teams:expectedTeams,groups:injuryGroups
+      });
+      injurySource="ESPN summary and league injury feed";
+    }catch(e){
+      console.warn("nfl_game_injury_fallback_unavailable",String(e?.message||e));
+    }
+  }
+  const injuries=injuryGroups.filter(group=>{
+    const id=String(group?.team?.id||"");
+    const abbr=String(group?.team?.abbreviation||"").toUpperCase();
+    return expectedTeams.some(t=>(id||abbr)&&(!id||id===t.id)&&
+      (!abbr||abbr===t.abbr.toUpperCase()));
+  }).flatMap(team=>{
+    const records=Array.isArray(team.injuries)?team.injuries:
+      Array.isArray(team.items)?team.items:Array.isArray(team.athletes)?team.athletes:[];
+    return records.map(i=>({
+      team:team.team?.abbreviation||null,
+      playerId:String(i.athlete?.id||i.player?.id||""),
+      name:i.athlete?.displayName||i.athlete?.fullName||
+        i.player?.displayName||i.player?.fullName||"Unknown",
+      position:i.athlete?.position?.abbreviation||null,
+      injury:i.details?.type||i.type?.description||i.details?.detail||null,
+      status:statusMap(typeof i.status==="string"?i.status:
+        i.status?.type?.name||i.details?.status||""),
+      rawStatus:typeof i.status==="string"?i.status:
+        i.status?.type?.name||i.details?.status||null,
+      source:injurySource
+    }));
+  });
   const athleteTeam=new Map(); for(const t of (summary.rosters||[])){const ta=String(t.team?.abbreviation||"").toUpperCase();for(const a of (t.roster||t.athletes||[])){const id=String(a.athlete?.id||a.id||"");if(id)athleteTeam.set(id,ta)}}
   const scopedInjuries=injuries.filter(x=>allowedAbbr.has(String(x.team||"").toUpperCase())||allowedAbbr.has(athleteTeam.get(x.playerId)||""));
   const blockers=scopedInjuries.filter(x=>["OUT","DOUBTFUL","IR"].includes(x.status));const gameRoleBlockers=[];if(String(gameId)==='401872966'){gameRoleBlockers.push({team:'NYG',playerId:'4689114',name:'Jaxson Dart',position:'QB',injury:'Knee',status:'IR',rawStatus:'Season-ending regular-season injury',source:'New York Giants official starter update'});}for(const x of gameRoleBlockers)if(!blockers.some(b=>String(b.playerId)===String(x.playerId)))blockers.push(x);const questionableIds=new Set(scopedInjuries.filter(x=>x.status==="QUESTIONABLE").map(x=>x.playerId));
@@ -72,7 +112,25 @@ export default async function handler(req,res){
     '401872979':[{team:'NO',playerId:'4239996',name:'Travis Etienne Jr.',position:'RB',status:'IR',rawStatus:'Reserve/Injured',source:'NFL/Saints official roster — placed on IR Oct. 1, 2026',checkedAt:'2026-10-01T16:00:00Z'}]
   };
   for(const x of currentAvailabilityOverrides(officialAvailabilityOverrides[String(gameId)]||[],{now:Date.now(),kickoff:Date.parse(comp.date||'')})){if(!blockers.some(b=>String(b.playerId)===String(x.playerId)||normalizeName(b.name)===normalizeName(x.name)))blockers.push(x)}
-  const blockedIds=new Set(blockers.map(x=>String(x.playerId||'')).filter(Boolean));const rosterCandidates=await projections(competitors,blockedIds);const roleSignals=resolveRoleSignals(summary,rosterCandidates,blockedIds);for(const p of rosterCandidates){if(blockedIds.has(p.playerId)||p._roleSignal)continue;const pos=String(p.position||'').toUpperCase();if(!['QB','RB','WR','TE'].includes(pos))continue;const u=Number(p.usagePerGame?.targets||0)+Number(p.usagePerGame?.rushAttempts||0);if((pos==='QB'&&Number(p.gamesPlayed||0)>0)||u>=3)p._roleSignal={name:p.name,team:p.team,status:'HIGH_USAGE_ROLE',source:'ESPN current roster + completed-game usage',kind:'DATA_VERIFIED_ROLE',checkedAt:new Date().toISOString()}}const kickoff=Date.parse(comp.date||summary.header?.competitions?.[0]?.date||'');/* Only server-controlled role records may assert official starter authority. Do not elevate client-supplied roleEvidence. */const currentGameEvidence=filterCurrentRoleEvidence(verifiedGameEvidence(gameId),{now:Date.now(),kickoff});roleSignals.push(...applyExpectedStarterEvidence(rosterCandidates,blockedIds,currentGameEvidence));const injuryById=new Map(scopedInjuries.map(x=>[String(x.playerId||''),x]));const playerProjections=rosterCandidates.map(x=>{const inj=injuryById.get(x.playerId),availability=questionableIds.has(x.playerId)?'QUESTIONABLE':'ACTIVE_ROTATION';const officialStarter=isVerifiedNflStarterRole(x._roleSignal,{now:Date.now(),kickoff}),starterEligible=officialStarter&&availability==='ACTIVE_ROTATION';return{...x,availability,starterVerified:starterEligible,starterStatus:x._roleSignal?.status||'UNVERIFIED_ROLE',recommendationEligible:starterEligible,verification:{availability:{verified:true,status:availability,source:inj?.source||'ESPN current game/roster cross-check',checkedAt:new Date().toISOString()},role:{verified:officialStarter,status:x._roleSignal?.status||'UNVERIFIED_ROLE',source:x._roleSignal?.source||null,kind:x._roleSignal?.kind||null,checkedAt:x._roleSignal?.checkedAt||null},sportsbook:{verified:false,status:'PENDING_MARKET_MATCH',source:null,checkedAt:null}},evidence:['ESPN current team roster','ESPN game injury cross-check'],rule:'Availability never implies starter status. Starter role requires independent current-game role evidence.'}});
-  return res.status(200).json({ok:true,gameId,teams,injuries:scopedInjuries,blockers,roleSignals,playerProjections,eligibility:{ready:true,state:"ROLE_RECONCILIATION_REQUIRED",failClosed:true,requiredEvidence:["availability","gameRole","sportsbookMarket"],reason:"Roster membership, practice participation, and active status never independently verify a starter. Starter-dependent recommendations require separate current-game role evidence plus current injury/inactive validation and sportsbook market verification."},fetchedAt:new Date().toISOString(),source:"ESPN roster/injury cross-check; official NFL/team game status and sportsbook market evidence are required before starter-dependent recommendations"});
+  const blockedIds=new Set([...injuryEvidence.blockedIds,
+    ...blockers.map(x=>String(x.playerId||'')).filter(Boolean)]);
+  const blockedNames=new Set([...injuryEvidence.blockedNames].map(normalizeName));
+  for(const x of blockers)if(x.name)blockedNames.add(normalizeName(x.name));
+  const rosterCandidates=(await projections(competitors,blockedIds)).filter(x=>
+    !blockedIds.has(String(x.playerId))&&!blockedNames.has(normalizeName(x.name)));const roleSignals=resolveRoleSignals(summary,rosterCandidates,blockedIds);for(const p of rosterCandidates){if(blockedIds.has(p.playerId)||p._roleSignal)continue;const pos=String(p.position||'').toUpperCase();if(!['QB','RB','WR','TE'].includes(pos))continue;const u=Number(p.usagePerGame?.targets||0)+Number(p.usagePerGame?.rushAttempts||0);if((pos==='QB'&&Number(p.gamesPlayed||0)>0)||u>=3)p._roleSignal={name:p.name,team:p.team,status:'HIGH_USAGE_ROLE',source:'ESPN current roster + completed-game usage',kind:'DATA_VERIFIED_ROLE',checkedAt:new Date().toISOString()}}const kickoff=Date.parse(comp.date||summary.header?.competitions?.[0]?.date||'');/* Only server-controlled role records may assert official starter authority. Do not elevate client-supplied roleEvidence. */const currentGameEvidence=filterCurrentRoleEvidence(verifiedGameEvidence(gameId),{now:Date.now(),kickoff});roleSignals.push(...applyExpectedStarterEvidence(rosterCandidates,blockedIds,currentGameEvidence));const injuryById=new Map(scopedInjuries.map(x=>[String(x.playerId||''),x]));
+  const questionableNames=new Set(scopedInjuries.filter(x=>x.status==="QUESTIONABLE").map(x=>normalizeName(x.name)));
+  const roleRosterCovered=expectedTeams.length===2&&expectedTeams.every(team=>
+    rosterCandidates.some(p=>p.team===team.abbr.toUpperCase()));
+  const playerProjections=rosterCandidates.map(x=>{
+    const inj=injuryById.get(x.playerId);
+    const av=nflPlayerAvailability({playerId:x.playerId,name:x.name,
+      injuryEvidence,questionableIds,questionableNames:new Set(
+        [...questionableNames].map(x=>x.toUpperCase())),
+      overrideBlockedIds:blockedIds,overrideBlockedNames:new Set(
+        [...blockedNames].map(x=>x.toUpperCase()))});
+    const availability=av.status;
+    const officialStarter=isVerifiedNflStarterRole(x._roleSignal,{now:Date.now(),kickoff});
+    const starterEligible=officialStarter&&av.eligible;return{...x,availability,starterVerified:starterEligible,starterStatus:x._roleSignal?.status||'UNVERIFIED_ROLE',recommendationEligible:starterEligible,verification:{availability:{verified:av.verified,status:availability,source:inj?.source||injurySource,checkedAt:av.verified?new Date().toISOString():null},role:{verified:officialStarter,status:x._roleSignal?.status||'UNVERIFIED_ROLE',source:x._roleSignal?.source||null,kind:x._roleSignal?.kind||null,checkedAt:x._roleSignal?.checkedAt||null},sportsbook:{verified:false,status:'PENDING_MARKET_MATCH',source:null,checkedAt:null}},evidence:['ESPN current team roster','ESPN game injury cross-check'],rule:'Availability never implies starter status. Starter role requires independent current-game role evidence.'}});
+  return res.status(200).json({ok:true,gameId,teams,injuries:scopedInjuries,blockers,roleSignals,playerProjections,eligibility:{ready:injuryEvidence.checked&&roleRosterCovered,injuryFeedChecked:injuryEvidence.checked,injuryCoveredTeams:injuryEvidence.coveredTeams,rosterCoveredBothTeams:roleRosterCovered,state:injuryEvidence.checked&&roleRosterCovered?"ROLE_RECONCILIATION_REQUIRED":"INJURY_OR_ROSTER_SOURCE_INCOMPLETE",failClosed:true,requiredEvidence:["availability","gameRole","sportsbookMarket"],reason:"Roster membership, practice participation, and active status never independently verify a starter. Starter-dependent recommendations require separate current-game role evidence plus current injury/inactive validation and sportsbook market verification."},fetchedAt:new Date().toISOString(),source:"ESPN roster/injury cross-check; official NFL/team game status and sportsbook market evidence are required before starter-dependent recommendations"});
  }catch(e){return res.status(502).json({ok:false,gameId,error:e.message,fetchedAt:new Date().toISOString()})}
 }
