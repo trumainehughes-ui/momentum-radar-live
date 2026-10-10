@@ -1,11 +1,11 @@
 import { makeOfficialNflMarketSearch,
  queryOfficialNflMarketSearch } from "../lib/ai-mechanics/nfl-public-market-search.js";
+import { makeNflSearchBroker } from "../lib/ai-mechanics/nfl-search-broker.js";
 
 // Intentionally disabled until explicitly enabled with a server-side key.
 // One sportsbook, one player, one market and ONE search request per click.
 // Never touches DK/FD private endpoints, odds caches or SGP verification gates.
-const hourlyCounts=new Map(),recent=new Map();
-const LIMIT_PER_HOUR=20,SEARCH_CACHE_MS=10*60*1000;
+const runSearch=makeNflSearchBroker({search:queryOfficialNflMarketSearch});
 function reply(res,code,data){
  res.setHeader("Cache-Control","private, no-store");
  return res.status(code).json(data);
@@ -34,25 +34,8 @@ export default async function handler(req,res){
  if(!size||size>1500)return reply(res,400,{ok:false,error:"invalid_body"});
  const request=makeOfficialNflMarketSearch(body);
  if(!request)return reply(res,400,{ok:false,error:"invalid_market_lookup"});
- const now=Date.now();
- // Best effort protection on each warm function instance. Do NOT enable
- // broadly without a durable global budget; preview research only.
  const ip=String(req.headers?.["x-forwarded-for"]||"unknown")
    .split(",")[0].slice(0,65);
- const bucket=ip+"|"+Math.floor(now/3600000);
- const count=hourlyCounts.get(bucket)||0;
- if(count>=LIMIT_PER_HOUR)return reply(res,429,{ok:false,error:"research_budget_reached"});
- if(hourlyCounts.size>80)hourlyCounts.clear();
- const cacheKey=[request.gameId,request.player,request.team,request.market,request.book].join("|");
- const cached=recent.get(cacheKey);
- if(cached&&cached.expires>now)return reply(res,200,{
-  ...cached.value,cached:true
- });
- hourlyCounts.set(bucket,count+1);
- const output=await queryOfficialNflMarketSearch({request,apiKey:key,now});
- if(!output.ok)return reply(res,output.error==="search_rate_limited"?429:502,output);
- if(recent.size>60)recent.clear();
- recent.set(cacheKey,{value:output,expires:now+SEARCH_CACHE_MS});
- return reply(res,200,{...output,book:request.book,market:request.market,
-  player:request.player,team:request.team,gameId:request.gameId,cached:false});
+ const result=await runSearch({request,apiKey:key,clientId:ip});
+ return reply(res,result.code,result.body);
 }
