@@ -127,6 +127,88 @@
   const panel=document.createElement('section');panel.id='momentumAiPanel';panel.className='momentumAiPanel';
   panel.innerHTML='<h3>Momentum Radar AI <small style="font-size:11px;color:#b3edff">Beta</small></h3><p class="momentumAiNote">The analysis follows the game you opened. NFL model data and ESPN injury reports are described separately from sportsbook-verified odds.</p><div id="momentumAiGameName" class="momentumAiGameName" aria-live="polite">Open a matchup to view analysis</div><div class="momentumAiActions"><select id="momentumAiMode" aria-label="Analysis type"><option value="matchup">Matchup analysis</option><option value="injury">Injury / lineup impact</option><option value="parlay">SGP review</option><option value="research">Player &amp; market research</option><option value="results">Results review</option></select><button id="momentumAiRun" type="button">Refresh analysis</button></div><div id="momentumAiOutput" role="status" aria-live="polite">Tap AI Analysis above to analyze this matchup.</div>';
   root.prepend(panel);
+  const marketSearchPanel=document.createElement('section');
+  marketSearchPanel.id='momentumAiSearchTools';
+  marketSearchPanel.hidden=true;
+  const researchHeading=document.createElement('p');
+  researchHeading.className='momentumAiNote';
+  researchHeading.textContent='Search official sportsbook pages for research. Search-index links are not current book odds; open each page to confirm the player, stat, state and price.';
+  const researchPlayer=document.createElement('select');
+  researchPlayer.setAttribute('aria-label','Player and prop to research');
+  const researchBook=document.createElement('select');
+  researchBook.setAttribute('aria-label','Sportsbook to research');
+  for(const book of ['DraftKings','FanDuel']){
+    const o=document.createElement('option');o.value=book;o.textContent=book;
+    researchBook.appendChild(o);
+  }
+  const researchButton=document.createElement('button');
+  researchButton.type='button';researchButton.textContent='Search official sportsbook pages';
+  const researchResults=document.createElement('div');
+  researchResults.setAttribute('role','status');
+  researchResults.setAttribute('aria-live','polite');
+  marketSearchPanel.append(researchHeading,researchPlayer,researchBook,researchButton,researchResults);
+  panel.appendChild(marketSearchPanel);
+  let researchQueue=[],researchGameId='';
+  function setResearchQueue(queue,id){
+    researchQueue=Array.isArray(queue)?queue.slice(0,10):[];
+    researchGameId=id||'';
+    researchPlayer.replaceChildren();
+    researchResults.textContent='';
+    marketSearchPanel.hidden=!researchQueue.length;
+    for(let i=0;i<researchQueue.length;i++){
+      const p=researchQueue[i],o=document.createElement('option');
+      o.value=String(i);
+      o.textContent=p.player+' • '+p.team+' • '+p.market;
+      researchPlayer.appendChild(o);
+    }
+  }
+  researchButton.onclick=async()=>{
+    const pick=researchQueue[Number(researchPlayer.value)];
+    if(!pick||!researchGameId||researchButton.disabled)return;
+    const requestedGame=researchGameId,epoch=analysisEpoch;
+    researchButton.disabled=true;
+    researchResults.textContent='Searching indexed official sportsbook pages (not live odds)…';
+    try{
+      const response=await fetch('/api/nfl-public-market-search',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({gameId:researchGameId,player:pick.player,
+          team:pick.team,market:pick.category,book:researchBook.value})
+      });
+      const result=await response.json();
+      if(epoch!==analysisEpoch||requestedGame!==researchGameId)return;
+      researchResults.replaceChildren();
+      if(!result.ok){
+        researchResults.textContent=result.error==='search_disabled'||
+          result.error==='search_not_configured'
+          ?'Automatic web discovery is not enabled yet. Use the suggested official-book lookup phrases above until a server-side search key is connected.'
+          :'Search temporarily unavailable ('+(result.error||'source_error')+'). No sportsbook odds were verified.';
+        return;
+      }
+      const p=document.createElement('p');
+      p.textContent='Indexed '+result.book+' links only. No live line, plus/minus odds or SGP combined price verified.';
+      researchResults.appendChild(p);
+      if(!result.results?.length){
+        const empty=document.createElement('p');
+        empty.textContent='No matching official sportsbook pages found. The market may still be available in the app.';
+        researchResults.appendChild(empty);
+      }
+      for(const row of (result.results||[]).slice(0,5)){
+        const wrapper=document.createElement('div'),link=document.createElement('a');
+        link.href=row.url;link.target='_blank';link.rel='noopener noreferrer';
+        link.textContent=row.title||'Official sportsbook page';
+        wrapper.appendChild(link);
+        if(row.description){
+          const snippet=document.createElement('p');
+          snippet.textContent=row.description;
+          wrapper.appendChild(snippet);
+        }
+        researchResults.appendChild(wrapper);
+      }
+    }catch{
+      if(epoch===analysisEpoch)researchResults.textContent=
+       'Search connection failed. No sportsbook odds were verified.';
+    }finally{researchButton.disabled=false}
+  };
   document.getElementById('momentumAiRun').onclick=async()=>{
    const out=document.getElementById('momentumAiOutput'),button=document.getElementById('momentumAiRun');
    if(button.disabled)return;
@@ -135,6 +217,7 @@
    const gameId=String(selected?.gameId||selected?.id||'');
    const selectionKey=gameId+'|'+String(document.getElementById('momentumAiMode')?.value||'matchup');
    analyzingKey=selectionKey;
+   setResearchQueue([],null);
    if(!gameId){out.textContent='Choose an NFL game first.';return}
    const game=(typeof nflData!=='undefined'?nflData?.games:[])?.find(g=>String(g.gameId||g.id)===gameId);
    if(!game){out.textContent='Selected game data is unavailable. Refresh the NFL feed.';return}
@@ -185,6 +268,8 @@
        displayAnalysis(out,dataOnlySummary(mode,data,'research checklist temporarily unavailable'));
        return;
       }
+      if(requestEpoch!==analysisEpoch)return;
+      setResearchQueue(research.queue,gameId);
       data.research={queue:research.queue.slice(0,8),
        researchMessage:research.message,
        quotedBookPricesVerified:0,combinedSgpQuotesVerified:0,
@@ -207,6 +292,7 @@
   };
   window.momentumAiGameChanged=game=>{
    analysisEpoch++;analyzingKey='';lastCompletedKey='';
+   setResearchQueue([],null);
    const button=document.getElementById('momentumAiRun'),out=document.getElementById('momentumAiOutput'),name=document.getElementById('momentumAiGameName');
    if(button)button.disabled=false;
    if(name)name.textContent=game?(game.away?.name||game.away?.abbr||'Away')+' @ '+(game.home?.name||game.home?.abbr||'Home'):'Open a matchup to view analysis';
@@ -221,6 +307,7 @@
   };
   const select=document.getElementById('momentumAiMode');
   if(select)select.onchange=()=>{
+   setResearchQueue([],null);
    lastCompletedKey='';
    if(root.style.display!=='none')window.momentumAiOpenSelected();
   };
