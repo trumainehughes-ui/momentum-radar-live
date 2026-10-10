@@ -6,7 +6,19 @@ const source=readFileSync(new URL('../public-ai.js',import.meta.url),'utf8');
 function harness(options={}){
  const nodes=new Map(),root={style:{display:'none'},prepend(panel){nodes.set(panel.id,panel)}};
  const button={disabled:false,onclick:null},output={textContent:''},mode={value:options.mode||'matchup'};
- const document={readyState:'complete',getElementById(id){return ({nflAiMount:root,momentumAiRun:button,momentumAiOutput:output,momentumAiMode:mode})[id]||nodes.get(id)||null},createElement(){return {id:'',className:'',innerHTML:''}}};
+ const document={readyState:'complete',
+  getElementById(id){return ({nflAiMount:root,momentumAiRun:button,momentumAiOutput:output,momentumAiMode:mode})[id]||nodes.get(id)||null},
+  createElement(tag){
+   const el={tagName:String(tag||'').toUpperCase(),id:'',className:'',innerHTML:'',
+    textContent:'',value:'',style:{},attributes:{},children:[],hidden:false,
+    setAttribute(key,value){this.attributes[key]=String(value)},
+    append(...items){this.children.push(...items)},
+    appendChild(item){this.children.push(item);return item},
+    replaceChildren(...items){this.children=[...items]}
+   };
+   return el;
+  }
+ };
  const game=options.game||{gameId:'game-123',home:{name:'Home',abbr:'HOM'},away:{name:'Away',abbr:'AWY'},kickoff:'2026-10-11T18:00:00Z',week:5};
  const calls=[],payloads=[];
  const fetch=async(url,opts={})=>{
