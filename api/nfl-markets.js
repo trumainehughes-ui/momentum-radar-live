@@ -242,7 +242,7 @@ function rushingProbability(x,ctx){
 
 function analyticsLine(x,cat,risk,ctx){
  if(cat==='td')return 'Anytime TD';
- const m=matchupAdjustedProjection(x,cat,ctx);if(!m){const fallback=Number(x.projection??x.perGame);if(!Number.isFinite(fallback))return null;const p=risk==='Small'?fallback*.72:risk==='Medium'?fallback*.92:fallback*1.15;if(cat==='receptions')return Math.max(1,Math.floor(p));return Math.max(cat==='passing'?125:5,yardTarget5(p,'floor'));}
+ const m=matchupAdjustedProjection(x,cat,ctx);if(!m){const fallback=Number(x.projection??x.perGame);if(!Number.isFinite(fallback))return null;const p=risk==='Small'?fallback*.72:risk==='Medium'?fallback*.92:fallback*1.15;if(cat==='receptions')return Math.max(1,Math.floor(p));return capNflTierYardTarget({category:cat,tier:risk,target:Math.max(cat==='passing'?125:5,yardTarget5(p,risk==='Nuke'?'ceil':'floor')),projection:x.projection??x.perGame});}
  const floor=Number(x.range?.floor),ceiling=Number(x.range?.ceiling),expected=m.adjusted,avg=Number(x.perGame)||Number(x.projection)||expected;
  const floorAdj=Number.isFinite(floor)?floor*m.factor:expected*.72,ceilingAdj=Number.isFinite(ceiling)?ceiling*m.factor:expected*1.22;
  let p=risk==='Small'?Math.max(expected*.60,Math.min(expected*.78,floorAdj*.95)):risk==='Medium'?expected*.92:Math.max(expected*1.08,ceilingAdj*.90);
