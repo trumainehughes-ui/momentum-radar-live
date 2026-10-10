@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { reconcileEspnGameStarters } from "../lib/ai-mechanics/nfl-game-starter-source.js";
 
-const now=Date.parse("2026-10-10T15:00:00Z"),kickoff=Date.parse("2026-10-11T17:00:00Z");
+const now=Date.parse("2026-10-11T15:45:00Z"),kickoff=Date.parse("2026-10-11T17:00:00Z");
 const competitors=[
  {homeAway:"home",team:{id:"4",abbreviation:"DEN"}},
  {homeAway:"away",team:{id:"12",abbreviation:"KC"}}
@@ -51,6 +51,7 @@ test("wrong source game and past kickoff never inherit historical starter flags"
  assert.deepEqual(reconcileEspnGameStarters({...input,sourceGameId:"other-game"}),[]);
  assert.deepEqual(reconcileEspnGameStarters({...input,now:kickoff+1000}),[]);
  assert.deepEqual(reconcileEspnGameStarters({...input,kickoff:now+8*24*3600000}),[]);
+ assert.deepEqual(reconcileEspnGameStarters({...input,kickoff:now+91*60*1000}),[]);
 });
 test("known unavailable players cannot be marked verified starters",()=>{
  const r=reconcileEspnGameStarters({...input,blockedIds:new Set(["p1"])});
