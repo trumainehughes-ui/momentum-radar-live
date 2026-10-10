@@ -1,4 +1,5 @@
 import {put,list} from '@vercel/blob';
+import {timingSafeEqual} from 'node:crypto';
 import {pregameAiAudit} from '../lib/pregame-ai-review.js';
 import {
  nflEasternDate,nflAddDate,nflCollectorDueGames,nflTierReadiness,
@@ -6,6 +7,12 @@ import {
 } from '../lib/nfl-collector-readiness.js';
 const P='momentum-history/v1/nfl-';
 const day=nflEasternDate;
+export function nflCronAuthorized(req,secret){
+ if(!secret)return false;
+ const got=Buffer.from(String(req?.headers?.authorization||'')),
+  expected=Buffer.from('Bearer '+secret);
+ return got.length===expected.length&&timingSafeEqual(got,expected);
+}
 async function priorSnapshot(id){
  try{
   const p=P+id+'.json',x=await list({prefix:p,limit:5}),
@@ -93,6 +100,13 @@ export default async function handler(req,res){
  res.setHeader('Cache-Control','no-store');
  const date=String(req.query?.date||''),cron=String(req.query?.cron||'')==='1'||
   Boolean(req.headers?.['x-vercel-cron']);
+ // Expensive writes, sportsbook backup and full injury refresh are permitted
+ // ONLY for the Vercel-signed cron, never public ?cron=1 queries.
+ if(cron&&!nflCronAuthorized(req,process.env.CRON_SECRET))
+  return res.status(401).json({ok:false,error:'cron_auth_required'});
+ if(cron&&!process.env.BLOB_READ_WRITE_TOKEN)
+  return res.status(503).json({ok:false,error:'pregame_storage_not_configured',
+   action:'Connect an existing Vercel Blob store to persist game-specific SGP and injury snapshots.'});
  const base='https://'+String(req.headers?.host||'momentum-radar-live.vercel.app');
  try{
   const today=date&&/^\d{4}-\d{2}-\d{2}$/.test(date)?date:day(new Date());

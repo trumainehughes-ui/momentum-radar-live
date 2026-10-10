@@ -5,6 +5,7 @@ import {pregameAiAudit} from '../lib/pregame-ai-review.js';
 import {nflRunCollectorBatch} from '../lib/nfl-collector-readiness.js';
 const PREFIX='momentum-pregame/v1/nba-';
 const MS=60_000,LOOKAHEAD=36*60*MS;
+export const NBA_PREGAME_MODEL_VERSION='v2-season-aware-freshness';
 const path=id=>PREFIX+id+'.json';
 const DAY='America/New_York';
 const dateET=(when=new Date())=>{
@@ -40,6 +41,8 @@ export function nbaPregameStage(game,prior,{now=Date.now()}={}){
  const before=Date.parse(game.kickoff)-now;
  if(!Number.isFinite(before)||before<=0||before>LOOKAHEAD)return{due:false,stage:'OUTSIDE_WINDOW'};
  const stage=before<=30*MS?'FINAL_T_MINUS_30':before<=90*MS?'PREGAME_VALIDATION':'DAY_AHEAD_BUILD';
+ if(prior?.modelVersion&&prior.modelVersion!==NBA_PREGAME_MODEL_VERSION)
+  return{due:true,stage,reason:'model_version_changed'};
  const at=Date.parse(prior?.checkedAt||''),
    age=Number.isFinite(at)?now-at:Infinity;
  const ttl=stage==='FINAL_T_MINUS_30'?10*MS:
@@ -94,7 +97,9 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   checkedAt:new Date(now).toISOString(),
   injuryCheckedAt:observed?new Date(now).toISOString():null,
   injuryReportStatus:observed?'ESPN_SUMMARY_RECHECKED':'ESPN_SUMMARY_UNAVAILABLE',
-  stage:plan.stage,revision:(Number(prior?.revision)||0)+1,
+  stage:plan.stage,modelVersion:NBA_PREGAME_MODEL_VERSION,
+  seasonYear:game.seasonYear||null,seasonType:game.seasonType||null,
+  revision:(Number(prior?.revision)||0)+1,
   changedFromPrior:Boolean(prior)&&!same,
   aiReviewed:false,adjustmentPolicy:'Deterministic roster and injury revalidation; Groq/OpenRouter advisory cannot silently change picks',
   verifiedInjuries:injuries,completed:false,
@@ -123,6 +128,9 @@ export default async function handler(req,res){
  // Vercel Cron includes Authorization: Bearer CRON_SECRET if configured.
  if(!authorized(req,process.env.CRON_SECRET))
   return res.status(401).json({ok:false,error:'cron_auth_required'});
+ if(!process.env.BLOB_READ_WRITE_TOKEN)
+  return res.status(503).json({ok:false,error:'pregame_storage_not_configured',
+   action:'Connect an existing Vercel Blob store to this project before running the snapshot collector.'});
  const date=dateET(),tomorrow=addDay(date,1),dates=[date,tomorrow];
  const schedules=await Promise.all(dates.map(async day=>{
   try{return await json('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates='+day.replaceAll('-','')+'&limit=100',12_000)}
@@ -133,7 +141,9 @@ export default async function handler(req,res){
   const c=ev.competitions?.[0]||{},parts=c.competitors||[],
    home=parts.find(x=>x.homeAway==='home'),away=parts.find(x=>x.homeAway==='away');
   return [String(ev.id),{gameId:String(ev.id),status:String(c.status?.type?.state||ev.status?.type?.state)==='pre'?'SCHEDULED':'CLOSED',
-   kickoff:ev.date,home:{id:String(home?.team?.id||''),abbr:home?.team?.abbreviation},
+   kickoff:ev.date,seasonYear:ev?.season?.year||null,seasonType:ev?.season?.type||null,
+   stage:ev?.season?.type===1?'PRESEASON':'REGULAR SEASON',
+   home:{id:String(home?.team?.id||''),abbr:home?.team?.abbreviation},
    away:{id:String(away?.team?.id||''),abbr:away?.team?.abbreviation}}]
  })).values()].filter(g=>g.status==='SCHEDULED'&&nbaPregameStage(g,null).stage!=='OUTSIDE_WINDOW');
  const histories=await Promise.all(games.map(g=>nbaReadPregame(g.gameId)));

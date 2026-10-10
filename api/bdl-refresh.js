@@ -14,6 +14,8 @@ export default async function handler(req,res){
   return res.status(401).json({ok:false,error:'cron_auth_required'});
  if(!process.env.BALLDONTLIE_API_KEY)
   return res.status(503).json({ok:false,error:'bdl_key_not_configured'});
+ if(!process.env.BLOB_READ_WRITE_TOKEN)
+  return res.status(503).json({ok:false,error:'bdl_cache_storage_not_configured'});
  // DATE cannot be supplied by the requester. Only the current Eastern NBA/NFL
  // day is refreshed. The protected cron makes at most four upstream requests.
  const date=bdlIsoDay(new Date());
