@@ -36,15 +36,19 @@ function renderTracker(){const rows=[...tracker].sort((a,b)=>new Date(b.latestHo
 async function updateTrackerResults(){try{const d=await api('hr_tracker');tracker=Array.isArray(d.hitters)?d.hitters:[]}catch{tracker=[]}if(cat==='TRACKER')renderTracker()}
 function renderQuick(){if(cat==='TRACKER'){renderTracker();return}if(cat==='SHADOW'){renderShadow();return}let rows=(rankings[cat]||[]).filter(eligible).sort((a,b)=>prob(b,cat)-prob(a,cat));if(cat==='HR'){rows=divHR(rows,10)}else rows=rows.slice(0,5);$('#quick').innerHTML=rows.length?rows.map((p,i)=>card(p,cat,i)).join(''):'<div class="msg">No eligible upcoming players right now.</div>';bindAnalysis()}function renderHidden(){let rows=(rankings.HIDDEN||[]).filter(eligible).sort((a,b)=>hitP(b)-hitP(a)).slice(0,9);$('#hidden').innerHTML=rows.length?rows.map(p=>`<div class="card"><div class="rank">${p.team} vs ${p.opponent} • ${fmt(p.startTime)}</div><div class="name">${p.name}</div><div class="pct"><small>Hit Probability</small>${hitP(p)}%</div><div class="stats"><div class="stat"><b>${p.platoon?.obp?.toFixed?.(3)||'—'}</b><small>Split OBP</small></div><div class="stat"><b>${p.platoon?.ops?.toFixed?.(3)||'—'}</b><small>Split OPS</small></div><div class="stat"><b>${p.platoon?.pa||0}</b><small>Split PA</small></div><div class="stat"><b>${p.stats?.plateAppearances||0}</b><small>PA</small></div></div></div>`).join(''):'<div class="msg">No upcoming hidden-gem candidates.</div>'}function renderHR(){const rows=divHR((rankings.HR||[]).filter(eligible),10);$('#hrboard').innerHTML=rows.length?rows.map((p,i)=>card(p,'HR',i)).join(''):'<div class="msg">No upcoming HR candidates.</div>';bindAnalysis()}function renderTabs(){$('#qt').innerHTML=Object.entries(cats).map(([k,v])=>`<button class="qtab ${k===cat?'active':''}" data-c="${k}">${v}</button>`).join('');document.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{cat=b.dataset.c;renderTabs();renderQuick()})}
 let nflData=null,nflSelected=null,nflMarketData=null;
-const nflMarketCache=new Map(),nflMarketInflight=new Map(),nflMarketBlocked=new Map();
+const nflMarketCache=new Map(),nflMarketInflight=new Map(),nflMarketBlocked=new Map(),nflFinalCheckLastAttempt=new Map();
 async function getNFLMarkets(gameId=''){
   if(!nflData?.date)throw Error('nfl_date_unavailable');
   const key=nflData.date+'|'+gameId,now=Date.now(),blocked=nflMarketBlocked.get(key)||0;
+  const kickoffMs=Date.parse(nflData.games?.find(g=>String(g.gameId)===String(gameId))?.kickoff||'');
+  const dueForFinalCheck=Boolean(gameId&&Number.isFinite(kickoffMs)&&kickoffMs>now&&kickoffMs-now<=30*60*1000);
+  const isFinalCheck=dueForFinalCheck&&now-(nflFinalCheckLastAttempt.get(key)||0)>=20*60*1000;
   if(now<blocked)throw Error('sportsbook_cooldown');
   const hit=nflMarketCache.get(key);
-  if(hit&&now-hit.at<15*60*1000)return hit.data;
+  if(hit&&!isFinalCheck&&now-hit.at<15*60*1000)return hit.data;
   if(nflMarketInflight.has(key))return nflMarketInflight.get(key);
-  const p=(async()=>{const q={date:nflData.date};if(gameId)q.gameId=gameId;const r=await fetch('/api/nfl-markets?'+new URLSearchParams(q));const d=await r.json();if(!r.ok||!d.ok){const retry=Math.max(60,Number(r.headers.get('retry-after'))||900);nflMarketBlocked.set(key,Date.now()+retry*1000);throw Error(d.error||'markets')}nflMarketBlocked.delete(key);nflMarketCache.set(key,{at:Date.now(),data:d});return d})().finally(()=>nflMarketInflight.delete(key));
+  if(isFinalCheck)nflFinalCheckLastAttempt.set(key,now);
+  const p=(async()=>{const q={date:nflData.date};if(gameId)q.gameId=gameId;if(isFinalCheck)q.finalCheck='true';const r=await fetch('/api/nfl-markets?'+new URLSearchParams(q),isFinalCheck?{cache:'no-store'}:{});const d=await r.json();if(!r.ok||!d.ok){const retry=Math.max(60,Number(r.headers.get('retry-after'))||900);nflMarketBlocked.set(key,Date.now()+retry*1000);throw Error(d.error||'markets')}nflMarketBlocked.delete(key);nflMarketCache.set(key,{at:Date.now(),data:d});return d})().finally(()=>nflMarketInflight.delete(key));
   nflMarketInflight.set(key,p);return p
 }const nflLabels={td:'Anytime TDs',passing:'Passing Yards',rushing:'Rushing Yards',receiving:'Receiving Yards',receptions:'Receptions'};
 let nflDvpData=null;
