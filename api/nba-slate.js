@@ -1,4 +1,5 @@
 import {parseNbaScoreboard} from '../lib/nba-data-model.js';
+import {bdlFreeReport} from '../lib/balldontlie-free.js';
 const ESPN='https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard';
 const iso=x=>/^\d{4}-\d{2}-\d{2}$/.test(String(x))?String(x):null;
 function etDate(){
@@ -27,6 +28,7 @@ export default async function handler(req,res){
   if(!req.query?.date&&!data.games.length){
    for(let n=1;n<=2;n++){const d=await scoreboard(plusDay(date,n));if(d.games.length){data=d;break}}
   }
+  data.ballDontLieFree=await bdlFreeReport('nba',data.date,data.games);
   return res.status(200).json(data);
  }catch(e){
   console.warn('nba_schedule_unavailable',{reason:String(e?.message||e).slice(0,100)});
