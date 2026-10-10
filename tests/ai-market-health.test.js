@@ -2,9 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { summarizeMarketEvidence } from "../lib/ai-mechanics/market-health.js";
 
-const row={books:[{book:"FanDuel",odds:-110,line:84.5,available:true}]};
+const row={books:[{book:"FanDuel",odds:-110,line:84.5,available:true,lastUpdatedAt:new Date(1000).toISOString()}]};
 test("provider-observed player prop is not a combined SGP quote",()=>{
-  const x=summarizeMarketEvidence({rows:[row]});
+  const x=summarizeMarketEvidence({rows:[row],now:1100});
   assert.equal(x.state,"BOOK_LINES_OBSERVED_UNQUOTED");
   assert.equal(x.observedBookLines,1);
   assert.equal(x.combinedSgpQuoteVerified,false);
@@ -38,4 +38,15 @@ test("stale cached snapshot overrides formerly observed odds",()=>{
 test("empty or corrupt input fails gracefully to model-only",()=>{
   assert.equal(summarizeMarketEvidence({rows:null}).state,"ANALYTICS_ONLY");
   assert.equal(summarizeMarketEvidence().observedBookLines,0);
+});
+
+test("cached stale underlying quote is not considered current by refresh time",()=>{
+  const x=summarizeMarketEvidence({rows:[row],now:1000000});
+  assert.equal(x.state,"ANALYTICS_ONLY");
+  assert.equal(x.observedBookLines,0);
+  assert.equal(x.combinedSgpQuoteVerified,false);
+});
+test("quote without the provider update time cannot be marked as observed",()=>{
+  const x=summarizeMarketEvidence({rows:[{books:[{...row.books[0],lastUpdatedAt:null}]}],now:1100});
+  assert.equal(x.state,"ANALYTICS_ONLY");
 });
