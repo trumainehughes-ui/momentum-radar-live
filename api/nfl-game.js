@@ -1,6 +1,6 @@
 import { gradeHistory, parlayStatus } from '../lib/nfl-results.js';
 import {nflGameInjuryEvidence,nflInjuryBlocks} from '../lib/nfl-injury-evidence.js';
-import {nflPublishedWeeklyGameReport} from '../lib/nfl-weekly-source.js';
+import {nflWeeklyForGame} from '../lib/nfl-injury-weekly-loader.js';
 import { put, list, del } from '@vercel/blob';
 const ESPN="https://site.api.espn.com/apis/site/v2/sports/football/nfl";
 const ESPN_STATS="https://site.web.api.espn.com/apis/common/v3/sports/football/nfl/statistics/byathlete";
@@ -57,7 +57,7 @@ export default async function handler(req,res){
   const allowedIds=new Set(competitors.map(c=>String(c.team?.id||"")).filter(Boolean)); const allowedAbbr=new Set(competitors.map(c=>String(c.team?.abbreviation||"").toUpperCase()).filter(Boolean));
   let leagueInj=null;
   try{leagueInj=await json(ESPN_INJ)}catch(e){console.warn('league_injury_unavailable',String(e?.message||e))}
-  const weekly=nflPublishedWeeklyGameReport({gameId,date:comp.date,teams:competitors});
+  const weekly=await nflWeeklyForGame({gameId,summary,competitors});
   const injuryReport=nflGameInjuryEvidence({summary,league:leagueInj,weekly,competitors,checkedAt:new Date().toISOString()});
   const injuries=injuryReport.injuries;
   const athleteTeam=new Map(); for(const t of (summary.rosters||[])){const ta=String(t.team?.abbreviation||"").toUpperCase();for(const a of (t.roster||t.athletes||[])){const id=String(a.athlete?.id||a.id||"");if(id)athleteTeam.set(id,ta)}}

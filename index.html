@@ -148,22 +148,24 @@ async function nflRefreshInjuryPanel(gameId,manual=false){
    const time=d.checkedAt?new Date(d.checkedAt).toLocaleString():'Time unknown';
    const weekly=Boolean(d.weeklyCoverage);
    const published=d.weeklyPublishedAt?new Date(d.weeklyPublishedAt).toLocaleString():'not supplied';
+   const lastOfficial=d.officialSourceCheckedAt?new Date(d.officialSourceCheckedAt).toLocaleString():null;
    const warning=d.officialInactivesRequired?'Final game-day inactive list is NOT independently verified.':'Final game-day inactives are NOT independently verified yet.';
    const info='<div class="nflInjuryMeta">ESPN checked: '+safe(time)+' • Refresh every '+safe(d.refreshSeconds||180)+' seconds</div>'+
-    (weekly?'<div class="nflInjuryMeta">NFL published weekly report: '+safe(published)+' • <a class="nflInjurySourceLink" href="'+safe(d.weeklySourceUrl||'#')+'" target="_blank" rel="noopener noreferrer">View NFL report</a></div>':
+    (weekly?'<div class="nflInjuryMeta">'+(d.officialSourceAutomated?'NFL automatic weekly report':'NFL published weekly snapshot')+' • Week '+safe(d.officialSourceWeek||'—')+' • Report published '+safe(published)+(lastOfficial?' • Checked '+safe(lastOfficial):'')+' • <a class="nflInjurySourceLink" href="'+safe(d.weeklySourceUrl||'#')+'" target="_blank" rel="noopener noreferrer">View NFL report</a></div>':
      '<div class="nflInjuryCaution">Official weekly game statuses have NOT been cross-checked for this matchup. ESPN may be missing important OUT players. Model picks require additional review.</div>')+
     '<div class="nflInjuryCaution">'+safe(warning)+'</div>';
    const items=Array.isArray(d.injuries)?d.injuries:[];
    const labels={OUT:0,INACTIVE:0,DOUBTFUL:1,QUESTIONABLE:2,IR:3,UNKNOWN:4};
    const card=x=>{
     const status=['OUT','DOUBTFUL','QUESTIONABLE','INACTIVE','IR','ACTIVE','PROBABLE','REPORTED_OTHER','UNKNOWN'].includes(x.status)?x.status:'UNKNOWN';
-    const source=x.gameDesignationVerified?'NFL WEEKLY':'ESPN TRACKER';
+    const source=x.gameDesignationVerified?'NFL WEEKLY':x.section==='PRACTICE'?'NFL PRACTICE':'ESPN TRACKER';
     return '<div class="nflInjuryCard"><div class="nflInjuryPlayer">'+safe(x.name)+
       '<span class="nflInjuryStatus '+status+'">'+status+'</span></div>'+
       '<div class="nflInjuryDetails">'+safe(x.position||'—')+' • '+safe(x.injury||'Injury detail not supplied')+
-      ' • '+source+'</div></div>';
+      ' • '+source+(x.practiceStatus?' • '+safe(x.practiceStatus):'')+'</div></div>';
    };
    const sections=[{id:'WEEKLY',heading:'Weekly game statuses (NFL published report)'},
+    {id:'PRACTICE',heading:'NFL practice report — no official OUT/game status assigned'},
     {id:'TRACKER',heading:'Additional ESPN tracker entries — not independently confirmed game statuses'},
     {id:'RESERVE',heading:'Reserve / long-term injuries'}];
    const teamParts=(d.teams||[]).map(team=>{

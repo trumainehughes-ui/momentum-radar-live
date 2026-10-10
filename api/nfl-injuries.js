@@ -1,5 +1,5 @@
 import {nflGameInjuryEvidence} from '../lib/nfl-injury-evidence.js';
-import {nflPublishedWeeklyGameReport} from '../lib/nfl-weekly-source.js';
+import {nflWeeklyForGame} from '../lib/nfl-injury-weekly-loader.js';
 const ESPN='https://site.api.espn.com/apis/site/v2/sports/football/nfl';
 async function load(url){
  const r=await fetch(url,{cache:'no-store',headers:{accept:'application/json'},signal:AbortSignal.timeout(12000)});
@@ -22,7 +22,7 @@ export default async function handler(req,res){
  try{league=await load(ESPN+'/injuries');}
  catch(e){errors.push('league:'+String(e?.message||e))}
  const comp=summary.header.competitions[0],competitors=comp.competitors||[];
- const weekly=nflPublishedWeeklyGameReport({gameId,date:comp.date,teams:competitors});
+ const weekly=await nflWeeklyForGame({gameId,summary,competitors});
  const report=nflGameInjuryEvidence({summary,league,weekly,competitors,checkedAt});
  const kickoff=comp.date||summary.header?.competitions?.[0]?.date||null;
  const mins=kickoff&&Number.isFinite(Date.parse(kickoff))?Math.round((Date.parse(kickoff)-Date.now())/60000):null;

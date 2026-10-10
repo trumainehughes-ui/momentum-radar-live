@@ -13,10 +13,10 @@ test('injury UI renders separate team headings, clear statuses and dated officia
  assert.ok(!html.includes('ESPN checked '+"'+safe(time)+' • Source publication time not supplied"));
 });
 test('official published cross-check is shared by injury API, game roster, and final SGP eligibility',()=>{
- assert.ok(source.includes('nflPublishedWeeklyGameReport({gameId,date:comp.date,teams:competitors})'));
- assert.ok(game.includes('nflPublishedWeeklyGameReport({gameId,date:comp.date,teams:competitors})'));
- assert.ok(markets.includes('nflPublishedWeeklyGameReport({gameId,date:comp.date,teams})'));
+ assert.ok(source.includes('nflWeeklyForGame({gameId,summary,competitors})'));
+ assert.ok(game.includes('nflWeeklyForGame({gameId,summary,competitors})'));
+ assert.ok(markets.includes('nflWeeklyForGame({gameId,summary:d,competitors:teams})'));
  assert.ok(game.includes('blockedNames=new Set(blockers.flatMap'));
  assert.ok(markets.includes('...(x.aliases||[])'));
- assert.ok(markets.includes("CACHE_SCHEMA='v85-official-weekly-reconcile'"));
+ assert.ok(markets.includes("CACHE_SCHEMA='v86-dynamic-official-all-games'"));
 });
