@@ -1,4 +1,5 @@
 import {put,list} from '@vercel/blob';
+import {pregameAiAudit} from '../lib/pregame-ai-review.js';
 import {
  nflEasternDate,nflAddDate,nflCollectorDueGames,nflTierReadiness,
  nflCollectorSnapshotReady,nflRunCollectorBatch,MAX_NFL_COLLECTOR_CONCURRENCY
@@ -49,7 +50,11 @@ export function historySnap(g,m,prior=null){
  return {league:'nfl',gameId:g.gameId,lockedAt:new Date().toISOString(),
   firstLockedAt:prior?.firstLockedAt||prior?.lockedAt||new Date().toISOString(),
   revision:Number(prior?.revision||0)+1,lockStage:stage,lockSource:'SERVER_COLLECTOR',
-  modelTierReadiness:tiers,game:g,picks,sgps};
+  modelTierReadiness:tiers,modelDataStatus:nflCollectorSnapshotReady({picks,sgps})?'MODEL_ONLY':'NOT_READY',
+  injuryChecks:{rosterAndInjuryEligibilityChecked:m.validation?.injuryEligibilityChecked===true,
+    blockedPlayerCount:Number(m.validation?.blockedPlayerCount)||0,
+    officialInactivesVerified:false},
+  checkedAt:new Date().toISOString(),game:g,picks,sgps};
 }
 async function autoLock(base,games){
  const due=nflCollectorDueGames(games);
@@ -66,14 +71,22 @@ async function autoLock(base,games){
   if(!m?.ok)return{gameId:g.gameId,status:'markets_unavailable'};
   const prior=await priorSnapshot(g.gameId);
   const snap=historySnap(g,m,prior);
-  if(!nflCollectorSnapshotReady(snap))
-   return{gameId:g.gameId,status:'no_qualified_model_data',
-    modelTierReadiness:snap.modelTierReadiness};
+  const currentSignature=JSON.stringify(snap.sgps.map(s=>[s.risk,s.legs.map(l=>[l.playerID||l.playerId,l.category,l.threshold])]));
+  const priorSignature=JSON.stringify((prior?.sgps||[]).map(s=>[s.risk,(s.legs||[]).map(l=>[l.playerID||l.playerId,l.category,l.threshold])]));
+  const changed=Boolean(prior)&&currentSignature!==priorSignature;
+  snap.changedFromPrior=changed;
+  snap.priorCandidateInvalidated=snap.modelDataStatus==='NOT_READY'&&prior?.modelDataStatus==='MODEL_ONLY';
+  // The model rebuilds on fresh injury/role evidence. AI reviews the outcome,
+  // but can never silently edit player eligibility or numeric sportsbook odds.
+  if(snap.lockStage==='FINAL_T_MINUS_30'&&(changed||prior?.lockStage!=='FINAL_T_MINUS_30')&&snap.sgps.length)
+    snap.aiReview=await pregameAiAudit('nfl',g,snap,{base});
+  else snap.aiReview=prior?.aiReview||{status:'PENDING',reason:'no_T30_model_change'};
   await put(P+g.gameId+'.json',JSON.stringify(snap),
    {access:'public',addRandomSuffix:false,allowOverwrite:true});
-  return {gameId:g.gameId,status:prior?'updated':'locked',
+  return {gameId:g.gameId,status:snap.modelDataStatus==='NOT_READY'?'no_qualified_model_data':prior?'updated':'locked',
    stage:snap.lockStage,revision:snap.revision,picks:snap.picks.length,
-   sgps:snap.sgps.length,modelTierReadiness:snap.modelTierReadiness};
+   sgps:snap.sgps.length,aiReview:snap.aiReview?.status||'PENDING',
+   changed,modelTierReadiness:snap.modelTierReadiness};
  },{concurrency:MAX_NFL_COLLECTOR_CONCURRENCY});
 }
 export default async function handler(req,res){

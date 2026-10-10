@@ -49,12 +49,26 @@
    '<div class="note">No usable injury entries were returned for this matchup. This does NOT confirm a healthy or active roster.</div>';
  }
  function sgps(d){
-  const rows=d?.sgps||[];
-  return rows.map(s=>'<div class="nflSgpMini" style="margin-bottom:12px">'+
-   '<b>'+safe(s.risk)+' SGP</b><div class="meta">NOT READY • sportsbook-verified combined odds unavailable</div>'+
-   '<div class="note">'+safe(s.reason)+'</div>'+
-   '<div class="refresh">'+safe(s.requires)+'</div></div>').join('')+
-   '<div class="note">No fabricated player lines, projected probabilities or bookmaker SGP quotes.</div>';
+  const rows=d?.sgps||[],readiness=d?.pregameReadiness;
+  const stage=readiness?.stage?String(readiness.stage).replaceAll('_',' '):'AWAITING FIRST PREGAME BUILD';
+  const freshness=readiness?.checkedAt?new Date(readiness.checkedAt).toLocaleString():'Not collected';
+  const injury=readiness?.injuryCheckedAt?new Date(readiness.injuryCheckedAt).toLocaleString():'Pending';
+  const source='<div class="refresh">Pregame model: '+safe(stage)+' • AI review: '+safe(readiness?.aiReviewStatus||'PENDING')+' • Last model/injury check: '+safe(freshness)+
+   ' • Injury evidence: '+safe(injury)+'</div>';
+  return source+rows.map(s=>{
+   const ready=s.status==='MODEL_CANDIDATE'&&Array.isArray(s.legs)&&s.legs.length>0;
+   const list=ready?s.legs.map((l,i)=>
+    '<div class="nflMarketLine"><b>'+(i+1)+'. '+safe(l.name)+' • '+safe(l.team)+'</b>'+
+    '<div class="meta">'+safe(l.threshold)+'+ '+safe(l.category)+' • historical mean '+safe(l.projection)+
+    ' • '+safe(l.sampleGames)+' completed games</div></div>').join(''):'';
+   return '<div class="nflSgpMini" style="margin-bottom:12px">'+
+    '<b>'+safe(s.risk)+' SGP</b>'+
+    '<div class="meta">'+(ready?'MODEL-ONLY CANDIDATE':'NOT READY')+
+    ' • Combined sportsbook odds NOT VERIFIED</div>'+list+
+    '<div class="note">'+safe(s.reason||'No verified model data.')+'</div>'+
+    (s.requires?'<div class="refresh">'+safe(s.requires)+'</div>':'')+'</div>';
+  }).join('')+
+   '<div class="note">Automatically rebuilt when eligible evidence changes. ESPN roster listing does not verify a starter, and these projected alternate thresholds are NOT sportsbook offers. AI review cannot override eligibility or invent odds.</div>';
  }
  async function openGame(id){
   const game=data?.games?.find(x=>x.gameId===id);if(!game)return;
