@@ -18,12 +18,12 @@ Leave the flag off in Production until an authenticated, budgeted workflow has b
 Obtain the key from the Brave Search API dashboard and ensure the Web Search product is active. Brave documents `GET https://api.search.brave.com/res/v1/web/search` and the `X-Subscription-Token` header:
 https://api-dashboard.search.brave.com/app/documentation/web-search
 
-When either flag or key is absent the endpoint reports `search_disabled` or `search_not_configured`; the Groq research queue still works without any Brave API call.
+When either flag or key is absent the search endpoint reports `search_disabled` or `search_not_configured`; the Groq research queue still works without any Brave API call. The read-only `GET /api/nfl-public-market-status` endpoint exposes only `DISABLED`, `MISSING_KEY`, or `READY_RESEARCH_ONLY` status, never credentials. The research panel disables its search button when disconnected.
 
 ## Budget and safety
 
 - Each user click requests **one** player, one bookmaker and one prop market (not an entire slate).
-- The endpoint allows at most 20 searches per hour **per warm server instance** and caches identical discovery results for ten minutes per instance. These are not a globally durable quota and must NOT be treated as production-ready rate enforcement.
+- The endpoint allows at most 20 searches per hour **per warm server instance** and caches identical discovery results for ten minutes per instance. Simultaneous identical player/market/book lookups on the same warm instance share one upstream request; cached responses preserve the associated exact player, book, game and stat labels. Failed searches are not cached, and duplicate requests do not spend additional search credits on that instance. These are still **not a globally durable quota** across Vercel instances, and must NOT be treated as production-ready rate enforcement.
 - Queries are server-built from bounded player/team/market values. No arbitrary URL is fetched.
 - Only indexed links with **HTTPS and an exact** `sportsbook.draftkings.com` or `sportsbook.fanduel.com` hostname are returned; untrusted links and redirect hosts are rejected.
 - The output has no verified line, sportsbook price, source-quote timestamp, or correlated SGP odds. Indexed snippets can be outdated, regionalized or unavailable when opened.
@@ -31,7 +31,7 @@ When either flag or key is absent the endpoint reports `search_disabled` or `sea
 
 ## Verification
 
-Run `npm test`, including `tests/ai-nfl-public-market-search.test.js`, then test the preview with:
+Run `npm test`, including `tests/ai-nfl-public-market-search.test.js`, `tests/ai-nfl-search-broker.test.js` and `tests/ai-nfl-public-market-status.test.js`, then test the preview with:
 
 1. Select an NFL game, open AI Analysis and choose **Player & market research**.
 2. Generate the research queue and choose a player and DraftKings or FanDuel.
