@@ -27,7 +27,8 @@ test('unavailable feeds are NOT shown as all-clear, a valid empty report is dist
  assert.equal(unavailable.reportAvailable,false);
  assert.equal(unavailable.status,'REPORT_UNAVAILABLE');
  assert.equal(unavailable.injuries.length,0);
- const empty=nflGameInjuryEvidence({summary:{header:{competitions:[{competitors}]},injuries:[]}});
- assert.equal(empty.reportAvailable,true);
+ const summaryOnly=nflGameInjuryEvidence({summary:{header:{competitions:[{competitors}]},injuries:[]}});
+ assert.equal(summaryOnly.reportAvailable,false,'an empty game summary is not an independent injury report');
+ const empty=nflGameInjuryEvidence({summary:{header:{competitions:[{competitors}]},injuries:[]},league:{injuries:[]}});
  assert.equal(empty.status,'NO_ITEMS_REPORTED');
 });
