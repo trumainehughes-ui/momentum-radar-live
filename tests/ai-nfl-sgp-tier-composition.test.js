@@ -84,7 +84,8 @@ test("NFL builder enforces tier diversity even in its fallback pass",()=>{
 });
 test("NFL UI labels payout targets as illustrative and does not imply combined odds",()=>{
  const ui=readFileSync(new URL("../index.html",import.meta.url),"utf8");
- assert.ok(ui.includes("Illustrative target (not verified): "));
+ assert.ok(ui.includes("Illustrative $10 NET profit target (unverified): "));
+ assert.ok(ui.includes("Waiting for qualified passing, rushing and receiving yardage picks"));
  assert.ok(ui.includes("MODEL COMPOSITION ONLY • Combined sportsbook odds unverified"));
  assert.ok(ui.includes("Needs rebuild: "));
 });
