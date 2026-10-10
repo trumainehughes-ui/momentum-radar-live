@@ -29,7 +29,7 @@ export function historySnap(g,m,prior=null){
  const sgps=[];
  for(const s of m.sgps?.Analytics||[]){
   if(tiers[s.risk]?.status!=='MODEL_CANDIDATE')continue;
-  sgps.push({...s,book:'Data Model',source:'DATA_MODEL',
+  sgps.push({...s,book:'Data Model',source:'DATA_MODEL',combinedBookQuoteVerified:false,actualSgpOdds:null,publishable:false,
    legs:s.legs.map(x=>({...x,category:x.cat,
     threshold:x.cat==='td'?1:(x.analyticsThreshold??x.threshold??x.line??null),
     projectionAtLock:x.projection??x.perGame??null,
