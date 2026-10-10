@@ -162,7 +162,7 @@
      revisions:[...(w.revisions||[]),{at:new Date().toISOString(),reason:'reported_roster_or_lineup_change',
         priorLegs:clone(w.legs),removed:[]}].slice(-12)};
   });
-  if(revised)persist();
+  if(revised){persist();render();}
  }
 
  function decorate(game,data){
@@ -195,7 +195,7 @@
  const lastPoll=new Map(),inflight=new Set();
  async function pollTracked(){
   if(root.document.hidden)return;
-  const ids=[...new Set(watches.map(w=>w.gameId))].slice(0,8);
+  const ids=[...new Set(watches.map(w=>w.gameId))];
   for(const id of ids){
    if(inflight.has(id)||String(root.momentumSelectedNflGame?.()||'')===id)continue;
    const last=lastPoll.get(id)||0;
