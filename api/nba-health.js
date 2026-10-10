@@ -27,7 +27,7 @@ async function json(url,timeout=10_000){
  if(!r.ok)throw Error('upstream_'+r.status);
  return r.json();
 }
-export async function nbaReadPregame(id){
+export async function nbaReadPregame(id,{strict=false}={}){
  if(!/^\d{7,12}$/.test(String(id)))return null;
  try{
   const key=path(id),a=await list({prefix:key,limit:3}),
@@ -35,7 +35,7 @@ export async function nbaReadPregame(id){
   if(!hit)return null;
   const d=await json(hit.url,6500);
   return d.gameId===String(id)&&Array.isArray(d?.sgps)?d:null;
- }catch{return null}
+ }catch(e){if(strict)throw Error('nba_snapshot_read_unavailable');return null}
 }
 export function nbaPregameStage(game,prior,{now=Date.now()}={}){
  if(game?.status!=='SCHEDULED')return{due:false,stage:'CLOSED'};

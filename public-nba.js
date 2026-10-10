@@ -25,10 +25,21 @@
   if(!games.length){box.innerHTML='<div class="msg">No NBA games listed for this date. Select another date.</div>';return}
   box.innerHTML=games.map(g=>{
    const result=['LIVE','FINAL'].includes(g.status)?' • '+(g.away.score??'—')+' - '+(g.home.score??'—'):'';
+   const readiness=g.coverage;
+   const sgpState=readiness?(readiness.status==='MODEL_ONLY'?
+     'MODEL ONLY • '+readiness.tierCount+' candidate tier(s)':
+     readiness.status==='WINDOW_NOT_STARTED'?'SGP build begins 36h before tipoff':
+     readiness.status==='NOT_READY'?'SGP model NOT READY':
+     readiness.status==='STALE'?'SGP model refresh pending':
+     readiness.status==='PENDING'?'SGP model pending':
+     readiness.status==='SNAPSHOT_UNAVAILABLE'?'Pregame snapshot unavailable':
+     readiness.status==='IDENTITY_MISMATCH'?'Pregame identity review needed':
+     readiness.status):'';
    return '<button type="button" data-nba-game="'+safe(g.gameId)+'" class="card" style="width:100%;text-align:left;margin:7px 0;cursor:pointer">'+
     '<div class="rank">'+safe(g.stage)+' • '+safe(g.status)+'</div>'+
     '<div class="name">'+safe(g.away.abbr)+' @ '+safe(g.home.abbr)+safe(result)+'</div>'+
     '<div class="meta">'+safe(time(g.kickoff))+'</div>'+
+    (sgpState&&g.status==='SCHEDULED'?'<div class="refresh">'+safe(sgpState)+'</div>':'')+
     '<div class="refresh">View NBA game details →</div></button>';
   }).join('');
   box.querySelectorAll('[data-nba-game]').forEach(button=>button.addEventListener('click',()=>openGame(button.dataset.nbaGame)));
@@ -141,6 +152,19 @@
    '<div class="refresh">Observed box-score result, not a projected betting line</div></div>').join(''):
    '<div class="msg">No source-verified '+safe(cats[thisTab])+' results are available for these games yet.</div>';
  }
+ async function loadCoverage(date,slateRef){
+  try{
+   const coverage=await json('/api/nba-coverage?date='+encodeURIComponent(date));
+   if(data!==slateRef||qs('#nbaDate')?.value!==date)return;
+   const lookup=new Map((coverage.games||[]).map(g=>[g.gameId,g]));
+   // Read-only status, never copy inferred lines or unofficial odds.
+   data.games=data.games.map(g=>({...g,coverage:lookup.get(g.gameId)||null}));
+   renderGames();
+  }catch{
+   // Coverage is optional: never hide the working ESPN game slate because
+   // Vercel Blob or a second scoreboard request failed.
+  }
+ }
  async function load(){
   if(loading)return;
   loading=true;selected=null;++token;
@@ -151,6 +175,9 @@
    data=await json('/api/nba-slate?date='+encodeURIComponent(date));
    qs('#nbaFresh').textContent=data.games.length+' games • ESPN checked '+new Date(data.fetchedAt).toLocaleTimeString()+' • BDL Free: '+(data.ballDontLieFree?.state||'PENDING')+(data.ballDontLieFree?.gameCrosscheck?' ('+data.ballDontLieFree.gameCrosscheck.matched+'/'+data.ballDontLieFree.gameCrosscheck.checked+' ESPN matchups cross-checked)':'')+' • refresh on demand';
    renderGames();
+   // Independently load a per-game readiness diagnostic in the background;
+   // the normal slate and selected game view remain available immediately.
+   void loadCoverage(date,data);
    await renderLeaders();
   }catch{
    data=null;qs('#nbaFresh').textContent='NBA source temporarily unavailable';
