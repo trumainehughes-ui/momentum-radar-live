@@ -119,7 +119,8 @@ test("the UI requires a direct click and labels indexed links as unquoted",()=>{
  assert.ok(src.includes("researchButton.onclick=async()=>"));
  assert.ok(src.includes("fetch('/api/nfl-public-market-search'"));
  assert.ok(src.includes("setResearchQueue(research.queue,gameId)"));
- assert.ok(src.includes("No live line, plus/minus odds or SGP combined price verified."));
+ assert.ok(src.includes("Game identity and live line, plus/minus odds or SGP combined price are NOT verified."));
+ assert.ok(src.includes("Indexed player + prop mention only; exact matchup, offered line and current price still unverified."));
  assert.ok(src.includes("link.rel='noopener noreferrer'"));
  assert.ok(src.includes("researchResults.replaceChildren()"));
 });
