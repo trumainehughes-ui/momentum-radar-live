@@ -137,6 +137,11 @@
    return {...next,updatedAt:changed?new Date().toISOString():w.updatedAt};
   });
   if(changed){persist();render();}
+  const selected=String(root.momentumSelectedNflGame?.()||'')===id;
+  if(selected&&watches.some(w=>w.gameId===id&&['MODEL_REBUILD_REQUIRED','MODEL_RECHECK_REQUIRED'].includes(w.status))){
+   const current=root.momentumModelTiersForGame?.(id)||[];
+   if(current.length)updateWatchesWithCandidates(id,current,report);
+  }
   return before!==undefined&&before!==after;
  }
  function updateWatchesWithCandidates(gameId,tiers,report){
@@ -203,7 +208,9 @@
    lastPoll.set(id,Date.now());inflight.add(id);
    try{
     const r=await root.fetch('/api/nfl-injuries?'+new URLSearchParams({gameId:id,ts:Date.now()}),{cache:'no-store'});
-    const report=await r.json(),usable={...report,ok:r.ok&&report.ok};const changed=onSnapshot(id,usable);if(changed&&usable.ok)await rebuildBackgroundGame(id,usable);
+    const report=await r.json(),usable={...report,ok:r.ok&&report.ok};const changed=onSnapshot(id,usable);
+    const needsRebuild=watches.some(w=>w.gameId===id&&['MODEL_REBUILD_REQUIRED','MODEL_RECHECK_REQUIRED'].includes(w.status));
+    if(usable.ok&&(changed||needsRebuild))await rebuildBackgroundGame(id,usable);
    }catch{onSnapshot(id,{ok:false,reportAvailable:false});}
    finally{inflight.delete(id);}
   }
