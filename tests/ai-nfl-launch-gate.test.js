@@ -57,6 +57,6 @@ test("missing event crosswalk always prevents published sportsbook status",()=>{
 test("NFL route never assumes a fake bookmaker quote or identity proof",()=>{
  const s=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
  assert.match(s,/releaseReadiness=assessNflLaunchReadiness/);
- assert.match(s,/crosswalkVerified:sgoShadow\\.crosswalkVerified===true/);
+ assert.ok(s.includes("crosswalkVerified:sgoShadow.crosswalkVerified===true"));
  assert.match(s,/verifiedCombinedBookQuotes:0/);
 });
