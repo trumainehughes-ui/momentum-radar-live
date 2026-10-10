@@ -1,4 +1,5 @@
 import {nflGameInjuryEvidence} from '../lib/nfl-injury-evidence.js';
+import {nflPublishedWeeklyGameReport} from '../lib/nfl-weekly-source.js';
 const ESPN='https://site.api.espn.com/apis/site/v2/sports/football/nfl';
 async function load(url){
  const r=await fetch(url,{cache:'no-store',headers:{accept:'application/json'},signal:AbortSignal.timeout(12000)});
@@ -21,7 +22,8 @@ export default async function handler(req,res){
  try{league=await load(ESPN+'/injuries');}
  catch(e){errors.push('league:'+String(e?.message||e))}
  const comp=summary.header.competitions[0],competitors=comp.competitors||[];
- const report=nflGameInjuryEvidence({summary,league,competitors,checkedAt});
+ const weekly=nflPublishedWeeklyGameReport({gameId,date:comp.date,teams:competitors});
+ const report=nflGameInjuryEvidence({summary,league,weekly,competitors,checkedAt});
  const kickoff=comp.date||summary.header?.competitions?.[0]?.date||null;
  const mins=kickoff&&Number.isFinite(Date.parse(kickoff))?Math.round((Date.parse(kickoff)-Date.now())/60000):null;
  const pregame=mins!==null&&mins<=90&&mins>=-240;
@@ -46,6 +48,7 @@ export default async function handler(req,res){
   rosterSignals,rosterSignalsAvailable:rosterGroups.length>0,
   defensiveInjurySignals:(report.injuries||[]).filter(x=>/^(CB|S|SS|FS|DB|LB|ILB|OLB|DE|DT|DL|NT|EDGE)$/.test(x.position||'')),
   teamStrategySignalsVerified:false,
+  reportCompleteness:report.weeklyCoverage?'NFL_PUBLISHED_WEEKLY_CROSS_CHECK':'ESPN_ONLY_OFFICIAL_WEEKLY_UNVERIFIED',
   officialInactivesRequired:pregame,
   officialInactivesStatus:pregame?'AWAITING_INDEPENDENT_VERIFICATION':'NOT_YET_VERIFIED',
   sourceHealth:errors.length?errors.join(';'):'ESPN responses received',

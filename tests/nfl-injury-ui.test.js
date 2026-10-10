@@ -6,8 +6,8 @@ test('injury status has independent no-store refresh and never claims blank mean
  assert.ok(html.includes("'/api/nfl-injuries?'"));
  assert.ok(html.includes("cache:'no-store'"));
  assert.ok(html.includes('const intervalMs=Number.isFinite(minutes)&&minutes<=120&&minutes>=-240?30*1000:180*1000'));
- assert.ok(html.includes('Official game-day inactives not yet independently verified.'));
- assert.ok(html.includes('No injury entries returned by the available ESPN report.'));
+ assert.ok(html.includes('Final game-day inactives are NOT independently verified yet.'));
+ assert.ok(html.includes('No injuries returned. This is NOT confirmation that both rosters are healthy.'));
  assert.ok(html.includes('nflMarketCache.delete(nflData.date'));
  assert.ok(html.includes('nflOpen(gameId,true)'));
  assert.ok(html.includes('momentumParlayWatch.onSnapshot(gameId'));
