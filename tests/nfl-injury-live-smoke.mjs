@@ -17,4 +17,19 @@ for(const row of data.injuries||[]){
  assert.ok(['IR','INACTIVE','OUT','DOUBTFUL','QUESTIONABLE','PROBABLE','ACTIVE','REPORTED_OTHER','UNKNOWN'].includes(row.status),'unknown normalized injury status');
 }
 for(const row of data.blockers||[])assert.ok(['IR','INACTIVE','OUT','DOUBTFUL'].includes(row.status));
+const gameUrl='https://momentum-radar-live-9b4013052-trumainehughes-6743.vercel.app/api/nfl-game?gameId=401872987';
+const gameRsp=await fetch(gameUrl,{signal:AbortSignal.timeout(160000),headers:{accept:'application/json'}});
+assert.equal(gameRsp.status,200,'roster/injury eligibility feed failed');
+const game=await gameRsp.json();
+assert.equal(game.ok,true);
+assert.equal(game.injuryReport?.reportAvailable,true);
+assert.equal(game.injuryReport?.officialInactivesVerified,false);
+const invalid=new Set((game.blockers||[]).map(x=>String(x.playerId||'')));
+for(const player of game.playerProjections||[]){
+ assert.ok(!invalid.has(String(player.playerId||'')),'excluded player in model projection: '+player.name);
+ if(player.availability==='QUESTIONABLE')
+  assert.equal(player.recommendationEligible,false,'questionable player must be held for review');
+ if(player.recommendationEligible)assert.equal(player.verification?.availability?.verified,true);
+}
+
 console.log(JSON.stringify({gameId:data.gameId,teams:data.teams.map(x=>x.abbr),reportStatus:data.status,reportSource:data.source,checkedAt:data.checkedAt,injuryCount:data.injuries.length,blockerCount:data.blockers.length,refreshMinutes:data.refreshMinutes,officialInactivesVerified:data.officialInactivesVerified,warning:data.officialInactivesStatus},null,2));
