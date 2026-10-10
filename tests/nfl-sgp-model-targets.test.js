@@ -50,6 +50,6 @@ test("model-only rules are used for the SGP generator and nuke eligibility",()=>
  const src=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
  assert.ok(src.includes("modelNflSgpStatThreshold(x,x.cat,risk,requested)"));
  assert.ok(src.includes("modelNflSgpStatThreshold(x,x.cat,'Nuke',analyticsLine("));
- assert.ok(src.includes("CACHE_SCHEMA='v80-game-no-stale-book-quotes'"));
+ assert.ok(src.includes("CACHE_SCHEMA='v81-no-stale-market-fallback'"));
  assert.ok(src.includes("sportsbookVerified:false"));
 });
