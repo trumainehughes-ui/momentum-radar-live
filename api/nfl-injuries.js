@@ -25,11 +25,27 @@ export default async function handler(req,res){
  const kickoff=comp.date||summary.header?.competitions?.[0]?.date||null;
  const mins=kickoff&&Number.isFinite(Date.parse(kickoff))?Math.round((Date.parse(kickoff)-Date.now())/60000):null;
  const pregame=mins!==null&&mins<=90&&mins>=-240;
- const refreshMinutes=mins!==null&&mins<=120&&mins>=-240?5:15;
+ const refreshSeconds=mins!==null&&mins<=120&&mins>=-240?30:180;
+ const refreshMinutes=refreshSeconds/60;
+ const rosterSignals=[];
+ const rosterGroups=Array.isArray(summary.rosters)?summary.rosters:[];
+ const abbrs=new Set(competitors.map(c=>String(c.team?.abbreviation||'').toUpperCase()));
+ for(const group of rosterGroups){
+  const team=String(group.team?.abbreviation||'').toUpperCase();if(!abbrs.has(team))continue;
+  for(const r of group.roster||group.athletes||[]){
+   const a=r.athlete||r,id=String(a.id||''),name=a.displayName||a.fullName||'',pos=String(a.position?.abbreviation||'').toUpperCase();
+   if(!id&&!name)continue;
+   rosterSignals.push({playerId:id,name,team,position:pos,starterReported:r.starter===true||r.isStarter===true,source:'ESPN game roster'});
+  }
+ }
+ rosterSignals.sort((a,b)=>a.team.localeCompare(b.team)||a.playerId.localeCompare(b.playerId));
  return res.status(report.reportAvailable?200:503).json({
   ok:report.reportAvailable,gameId,
   teams:competitors.map(x=>({id:String(x.team?.id||''),abbr:x.team?.abbreviation||'',homeAway:x.homeAway})),
-  ...report,kickoff,minutesToKickoff:mins,refreshMinutes,
+  ...report,kickoff,minutesToKickoff:mins,refreshMinutes,refreshSeconds,
+  rosterSignals,rosterSignalsAvailable:rosterGroups.length>0,
+  defensiveInjurySignals:(report.injuries||[]).filter(x=>/^(CB|S|SS|FS|DB|LB|ILB|OLB|DE|DT|DL|NT|EDGE)$/.test(x.position||'')),
+  teamStrategySignalsVerified:false,
   officialInactivesRequired:pregame,
   officialInactivesStatus:pregame?'AWAITING_INDEPENDENT_VERIFICATION':'NOT_YET_VERIFIED',
   sourceHealth:errors.length?errors.join(';'):'ESPN responses received',

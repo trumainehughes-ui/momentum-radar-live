@@ -1,0 +1,20 @@
+name: NFL Parlay Impact Preview Smoke
+on:
+  push:
+    branches: [feat/nfl-impact-watch-20261010]
+    paths:
+      - tests/nfl-impact-preview-smoke.mjs
+      - .github/workflows/nfl-impact-preview-smoke.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  impact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node tests/nfl-impact-preview-smoke.mjs
