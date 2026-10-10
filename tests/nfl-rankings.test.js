@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {validNflDvpRank,capNflTierYardTarget} from '../lib/ai-mechanics/nfl-projection-safety.js';
 
 const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const server=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
@@ -15,7 +16,7 @@ const labels={td:'Anytime TDs',passing:'Passing Yards',rushing:'Rushing Yards',r
 const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const show=(x,cat='rushing')=>render(x,cat,labels,escape);
 const norm=s=>String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
-const predict=new Function('x','ctx','norm','bestBook',
+const predict=new Function('x','ctx','norm','bestBook','validNflDvpRank',
   take(server,'function analyticsMetric(','function analyticsLine(')+
   ';const row=populatePredictiveLines({passing:[],rushing:[x],receiving:[],receptions:[]},ctx).rushing[0];return {...row,rushingChance:rushingProbability(row,ctx)};');
 const fixture=(vals=[73,84,100,95])=>({
@@ -28,7 +29,7 @@ const context=(offRank,defRank)=>({
   dvp:{defenseRanks:{RB:{NO:{rushYards:{rankMost:defRank,value:110}}}},
        offenseRanks:{RB:{ATL:{rushYards:{rankMost:offRank,value:140}}}}}
 });
-const calc=(x,ctx)=>predict(x,ctx,norm,y=>y.bestBook??null);
+const calc=(x,ctx)=>predict(x,ctx,norm,y=>y.bestBook??null,validNflDvpRank);
 
 test('rushing rankings show explicit five-yard target and model percentage, not arbitrary 50/100',()=>{
   const out=show({...fixture(),projection:124,confidence:80,momentumScore:50,
@@ -97,7 +98,7 @@ test('when DVP unavailable estimate is explicitly weakened and matchup marked pe
 });
 
 
-const modelYards=new Function('x','cat','ctx','norm',
+const modelYards=new Function('x','cat','ctx','norm','validNflDvpRank','capNflTierYardTarget',
   take(server,'function analyticsMetric(','function bookThresholdCaps(')+
   ';const groups={passing:[],rushing:[],receiving:[],receptions:[]};groups[cat]=[x];const p=populatePredictiveLines(groups,ctx)[cat][0];return {projection:p.projection,small:analyticsLine(p,cat,"Small",ctx),medium:analyticsLine(p,cat,"Medium",ctx),nuke:analyticsLine(p,cat,"Nuke",ctx)};');
 
@@ -115,7 +116,7 @@ test('all three yardage categories display five-yard projections rather than 84 
 test('passing rushing and receiving backend model projections and all SGP tiers use steps of five',()=>{
   for(const [cat,pos,proj] of [['passing','QB',248],['rushing','RB',88],['receiving','WR',84]]){
     const v=modelYards({position:pos,team:'ATL',opponent:'NO',projection:proj,perGame:proj,gamesPlayed:5,
-      recentForm:{last5:[proj,proj+3,proj-4,proj+8,proj-6]},range:{floor:proj*.7,ceiling:proj*1.4}},cat,{dvp:null},norm);
+      recentForm:{last5:[proj,proj+3,proj-4,proj+8,proj-6]},range:{floor:proj*.7,ceiling:proj*1.4}},cat,{dvp:null},norm,validNflDvpRank,capNflTierYardTarget);
     for(const [key,n] of Object.entries(v)){
       assert.ok(Number.isFinite(n),cat+' '+key+' needs a numeric model target');
       assert.equal(n%5,0,cat+' '+key+' must be divisible by 5, saw '+n);
