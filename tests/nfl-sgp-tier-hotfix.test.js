@@ -50,7 +50,8 @@ test("Small $300 total boundary is +2900; Nuke minimum is +10000",()=>{
 test("production hotfix rejects all-TD Small model and marks it unpublishable",()=>{
  const api=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
  assert.ok(api.includes("if(x.cat==='td'&&legs.filter(v=>v.cat==='td').length>=(risk==='Small'?1:2))return false"));
- assert.ok(api.includes("const tierAssessment=assessNflSgpTier({risk,legs,requiredLegs:count})"));
+ assert.ok(api.includes("const mix=fillNflSgpMarketMix({risk,count,pool:riskPool,legs,add})"));
+ assert.ok(api.includes("const mix=fillNflSgpMarketMix({risk,count,pool:rotated,legs,add})"));
  assert.ok(api.includes("modelOnly:true,candidateComplete:tierAssessment.compositionOk,publishable:false"));
  assert.ok(api.includes("sgps.Analytics=(sgps.Analytics||[]).map(s=>({...s,publishable:false"));
  assert.ok(!api.includes("sgps.Analytics=buildAnalyticsSgp(categories,ctx).map(s=>({...s,publishable:true"));
