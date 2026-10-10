@@ -330,7 +330,25 @@ function roleFilter(rows,gate,cat){
 function sgpRoleFilter(rows,gate){if(!gate?.checked)return[];return(rows||[]).map(x=>{const r=roleFor(gate,x);if(!r||r.recommendationEligible!==true)return null;const cat=category(x),pos=String(x.position||r.position||'').toUpperCase();if(cat==='passing'&&(pos!=='QB'||r.starterVerified!==true))return null;return{...x,playerID:r.playerId||x.playerID||x.playerId,team:norm(r.team||x.team),position:pos,starterVerified:r.starterVerified===true,starterStatus:r.starterStatus||'VERIFIED_ROLE',roleSource:r.verification?.role?.source||null}}).filter(Boolean)}
 async function gameEligibility(gameId){if(!gameId)return{blockedIds:new Set(),blockedNames:new Set(),rosterById:new Map(),rosterByName:new Map(),checked:false};try{const d=await json(ESPN+'/summary?event='+encodeURIComponent(gameId),{},1),comp=d.header?.competitions?.[0]||{},teams=comp.competitors||[],ids=new Set(teams.map(x=>String(x.team?.id||'')).filter(Boolean)),abbrs=new Set(teams.map(x=>String(x.team?.abbreviation||'').toUpperCase()).filter(Boolean));let groups=d.injuries||[];if(!groups.length){try{const league=await json(ESPN+'/injuries',{},1);groups=league.injuries||league.items||[]}catch(e){console.error('league_injury_fallback_failed',String(e?.message||e))}}groups=(groups||[]).filter(g=>ids.has(String(g.team?.id||''))||abbrs.has(String(g.team?.abbreviation||'').toUpperCase()));const blockedIds=new Set(),blockedNames=new Set();for(const g of groups)for(const x of g.injuries||[]){const st=String(x.status||x.details?.status||'').toLowerCase();if(!(st.includes('out')||st.includes('doubt')||st.includes('injured reserve')||st==='ir'||st.includes('inactive')))continue;const id=String(x.athlete?.id||'');const name=norm(x.athlete?.displayName||x.athlete?.fullName||'');if(id)blockedIds.add(id);if(name)blockedNames.add(name)}const rosterById=new Map(),rosterByName=new Map();for(const abbr of abbrs){try{const rd=await json(ESPN+'/teams/'+encodeURIComponent(abbr)+'/roster',{},1),groups=Array.isArray(rd.athletes)?rd.athletes:[],athletes=groups.flatMap(g=>Array.isArray(g.items)?g.items:Array.isArray(g.athletes)?g.athletes:[]);for(const a of athletes){const id=String(a.id||a.athlete?.id||''),name=a.displayName||a.fullName||a.athlete?.displayName||a.athlete?.fullName||'',pos=a.position?.abbreviation||a.athlete?.position?.abbreviation||'';if(id)rosterById.set(id,{team:abbr,name,pos});if(name)rosterByName.set(norm(name),{team:abbr,id,pos})}}catch(e){console.error('current_roster_fetch_failed',abbr,String(e?.message||e))}}return{blockedIds,blockedNames,rosterById,rosterByName,checked:true,source:(d.injuries||[]).length?'ESPN game summary + current team rosters':'ESPN league injury fallback + current team rosters'}}catch(e){console.error('game_eligibility_failed',String(e?.message||e));return{blockedIds:new Set(),blockedNames:new Set(),rosterById:new Map(),rosterByName:new Map(),checked:false}}}
 function eligibilityFilter(rows,elig){if(!elig?.checked)return rows;return(rows||[]).filter(x=>{const id=String(x.playerID||x.playerId||''),name=norm(x.name);if(elig.blockedIds.has(id)||elig.blockedNames.has(name))return false;const rr=elig.rosterById?.get(id)||elig.rosterByName?.get(name);if(!rr)return false;return !x.team||norm(rr.team)===norm(x.team)})}
-function pruneSgpsForEligibility(sgps,elig){if(!elig?.checked)return sgps;const blocked=x=>elig.blockedIds.has(String(x.playerID||x.playerId||''))||elig.blockedNames.has(norm(x.name));const out={};for(const [book,sets] of Object.entries(sgps||{})){if(!Array.isArray(sets)){out[book]=sets;continue}out[book]=sets.map(s=>({...s,legs:(s.legs||[]).filter(x=>!blocked(x))})).filter(s=>s.legs?.length)}return out}
+function pruneSgpsForEligibility(sgps,elig){
+ if(!elig?.checked)return sgps;
+ const blocked=x=>elig.blockedIds.has(String(x.playerID||x.playerId||''))||elig.blockedNames.has(norm(x.name));
+ const out={};
+ for(const [book,sets] of Object.entries(sgps||{})){
+  if(!Array.isArray(sets)){out[book]=sets;continue}
+  out[book]=sets.map(s=>{
+    const prior=s.legs||[],surviving=prior.filter(x=>!blocked(x));
+    if(prior.length===surviving.length)return s;
+    const tierAssessment=assessNflSgpTier({risk:s.risk,legs:surviving,requiredLegs:s.requiredLegs});
+    return {...s,legs:[],tierAssessment,eligibilityPruned:true,
+      candidateComplete:false,publishable:false,combinedBookQuoteVerified:false,
+      verifiedLegs:0,estimatedOdds:null,actualSgpOdds:null,payoutBandVerified:false,
+      nukePayoutVerified:false,momentumScore:null,sgpScore:null,explanation:null,
+      reason:"Injury or roster change invalidated this SGP. Rebuild using verified available yardage and at most the permitted touchdowns."};
+  });
+ }
+ return out;
+}
 function oddsApiCategory(k){return k==='player_anytime_td'?'td':k==='player_pass_yds'||k==='player_pass_yds_alternate'?'passing':k==='player_rush_yds'||k==='player_rush_yds_alternate'?'rushing':k==='player_reception_yds'||k==='player_reception_yds_alternate'?'receiving':k==='player_receptions'||k==='player_receptions_alternate'?'receptions':null}
 function oddsApiRows(d,eventID){
  const out=[];
