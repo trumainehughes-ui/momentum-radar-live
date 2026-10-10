@@ -62,13 +62,19 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   access:'public',addRandomSuffix:false,allowOverwrite:true})}={}){
  const plan=nbaPregameStage(game,prior,{now});
  if(!plan.due)return {gameId:game.gameId,status:'held',stage:plan.stage};
- const observed=await fetchJson('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event='+game.gameId,12_000);
- // Identity and source freshness: fail closed, not a made-up "no injuries."
- const comp=observed?.header?.competitions?.[0],
-  id=String(comp?.id||observed?.header?.id||''),
-  teams=(comp?.competitors||[]).map(x=>x?.team?.abbreviation).filter(Boolean);
- if(id!==String(game.gameId)||!teams.includes(game.home.abbr)||!teams.includes(game.away.abbr))
-  throw Error('nba_current_game_identity_mismatch');
+ let observed=null;
+ try{observed=await fetchJson('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event='+game.gameId,12_000)}
+ catch{observed=null}
+ // A day-ahead summary may not have been published yet. ESPN's scoreboard
+ // event identity and team IDs remain the game anchor, but current injuries
+ // must explicitly remain UNVERIFIED until that separate source is present.
+ if(observed){
+  const comp=observed?.header?.competitions?.[0],
+   id=String(comp?.id||observed?.header?.id||''),
+   teams=(comp?.competitors||[]).map(x=>x?.team?.abbreviation).filter(Boolean);
+  if(id!==String(game.gameId)||!teams.includes(game.home.abbr)||!teams.includes(game.away.abbr))
+   throw Error('nba_current_game_identity_mismatch');
+ }
  const injuries=[];
  for(const g of observed?.injuries||[]){
   const team=g?.team?.abbreviation;
@@ -85,11 +91,15 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   JSON.stringify((evidence.sgps||[]).map(s=>({risk:s.risk,status:s.status,
   legs:(s.legs||[]).map(x=>[x.playerId,x.category,x.threshold])})));
  const result={...evidence,gameId:game.gameId,kickoff:game.kickoff,
-  checkedAt:new Date(now).toISOString(),injuryCheckedAt:new Date(now).toISOString(),
+  checkedAt:new Date(now).toISOString(),
+  injuryCheckedAt:observed?new Date(now).toISOString():null,
+  injuryReportStatus:observed?'ESPN_SUMMARY_RECHECKED':'ESPN_SUMMARY_UNAVAILABLE',
   stage:plan.stage,revision:(Number(prior?.revision)||0)+1,
   changedFromPrior:Boolean(prior)&&!same,
   aiReviewed:false,adjustmentPolicy:'Deterministic roster and injury revalidation; Groq/OpenRouter advisory cannot silently change picks',
-  verifiedInjuries:injuries,completed:false};
+  verifiedInjuries:injuries,completed:false,
+  injuryLimitations:observed?'ESPN reported statuses, official inactives not confirmed':
+   'Current ESPN game summary unavailable; injury status is UNVERIFIED. Do not treat absent names as healthy or starting.'};
  // A failed data source must never overwrite an earlier populated model
  // without explaining the degradation. In either case, store audit metadata.
  if(result.status==='NOT_READY'&&prior?.status==='MODEL_ONLY')
@@ -127,7 +137,7 @@ export default async function handler(req,res){
    away:{id:String(away?.team?.id||''),abbr:away?.team?.abbreviation}}]
  })).values()].filter(g=>g.status==='SCHEDULED'&&nbaPregameStage(g,null).stage!=='OUTSIDE_WINDOW');
  const histories=await Promise.all(games.map(g=>nbaReadPregame(g.gameId)));
- const pending=games.map((g,i)=>({g,prior:histories[i],plan:nbaPregameStage(g,histories[i])}))
+ const pending=games.map((g,i)=>({gameId:g.gameId,g,prior:histories[i],plan:nbaPregameStage(g,histories[i])}))
    .filter(x=>x.plan.due);
  const reports=await nflRunCollectorBatch(pending,async({g,prior})=>
   nbaCollectPregame(g,{prior}),{concurrency:3});
