@@ -1,0 +1,129 @@
+import {list,put} from '@vercel/blob';
+import {timingSafeEqual} from 'node:crypto';
+import {nbaPrepareEvidence} from '../lib/nba-pregame-model.js';
+import {nflRunCollectorBatch} from '../lib/nfl-collector-readiness.js';
+const PREFIX='momentum-pregame/v1/nba-';
+const MS=60_000,LOOKAHEAD=36*60*MS;
+const path=id=>PREFIX+id+'.json';
+const DAY='America/New_York';
+const dateET=(when=new Date())=>{
+ const o=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:DAY,year:'numeric',month:'2-digit',day:'2-digit'})
+  .formatToParts(when).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));
+ return [o.year,o.month,o.day].join('-');
+};
+const addDay=(date,days)=>{
+ const d=new Date(date+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10);
+};
+const authorized=(req,key)=>{
+ if(!key)return false;
+ const a=Buffer.from(String(req.headers?.authorization||'')),b=Buffer.from('Bearer '+key);
+ return a.length===b.length&&timingSafeEqual(a,b);
+};
+async function json(url,timeout=10_000){
+ const r=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout(timeout)});
+ if(!r.ok)throw Error('upstream_'+r.status);
+ return r.json();
+}
+export async function nbaReadPregame(id){
+ if(!/^\d{7,12}$/.test(String(id)))return null;
+ try{
+  const key=path(id),a=await list({prefix:key,limit:3}),
+   hit=a.blobs?.find(b=>b.pathname===key);
+  if(!hit)return null;
+  const d=await json(hit.url,6500);
+  return d.gameId===String(id)&&Array.isArray(d?.sgps)?d:null;
+ }catch{return null}
+}
+export function nbaPregameStage(game,prior,{now=Date.now()}={}){
+ if(game?.status!=='SCHEDULED')return{due:false,stage:'CLOSED'};
+ const before=Date.parse(game.kickoff)-now;
+ if(!Number.isFinite(before)||before<=0||before>LOOKAHEAD)return{due:false,stage:'OUTSIDE_WINDOW'};
+ const stage=before<=30*MS?'FINAL_T_MINUS_30':before<=90*MS?'PREGAME_VALIDATION':'DAY_AHEAD_BUILD';
+ const at=Date.parse(prior?.checkedAt||''),
+   age=Number.isFinite(at)?now-at:Infinity;
+ const ttl=stage==='FINAL_T_MINUS_30'?10*MS:
+  stage==='PREGAME_VALIDATION'?45*MS:6*60*MS;
+ return{due:!prior||!Number.isFinite(age)||age<0||age>=ttl||prior.stage!==stage,
+  stage,minutesToTipoff:Math.ceil(before/MS),snapshotAgeMs:Number.isFinite(age)?age:null};
+}
+export function nbaPregameStatus(snapshot){
+ if(!snapshot)return{status:'PENDING',reason:'No scheduled pregame build has completed.'};
+ const ready=(snapshot.sgps||[]).filter(x=>x.status==='MODEL_CANDIDATE');
+ return{status:ready.length?'MODEL_ONLY':'NOT_READY',tiers:ready.map(x=>x.risk),
+  checkedAt:snapshot.checkedAt,stage:snapshot.stage,revision:snapshot.revision,
+  injuryCheckedAt:snapshot.injuryCheckedAt,
+  sportsbookVerified:false,aiReviewed:snapshot.aiReviewed===true,
+  reason:snapshot.reason||'No verified pregame player models available.'};
+}
+export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=nbaPrepareEvidence,
+ fetchJson=json,write=async data=>put(path(game.gameId),JSON.stringify(data),{
+  access:'public',addRandomSuffix:false,allowOverwrite:true})}={}){
+ const plan=nbaPregameStage(game,prior,{now});
+ if(!plan.due)return {gameId:game.gameId,status:'held',stage:plan.stage};
+ const observed=await fetchJson('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event='+game.gameId,12_000);
+ // Identity and source freshness: fail closed, not a made-up "no injuries."
+ const comp=observed?.header?.competitions?.[0],
+  id=String(comp?.id||observed?.header?.id||''),
+  teams=(comp?.competitors||[]).map(x=>x?.team?.abbreviation).filter(Boolean);
+ if(id!==String(game.gameId)||!teams.includes(game.home.abbr)||!teams.includes(game.away.abbr))
+  throw Error('nba_current_game_identity_mismatch');
+ const injuries=[];
+ for(const g of observed?.injuries||[]){
+  const team=g?.team?.abbreviation;
+  if(![game.home.abbr,game.away.abbr].includes(team))continue;
+  for(const x of g.injuries||[]){
+   const name=x?.athlete?.displayName||x?.athlete?.fullName;
+   if(name)injuries.push({name,team,status:x.status||x.type?.description||'Unknown',
+    source:'ESPN-reported; official starter status pending'});
+  }
+ }
+ const evidence=await prepare({...game,injuries},{fetchJson});
+ const same=JSON.stringify((prior?.sgps||[]).map(s=>({risk:s.risk,status:s.status,
+  legs:(s.legs||[]).map(x=>[x.playerId,x.category,x.threshold])})))===
+  JSON.stringify((evidence.sgps||[]).map(s=>({risk:s.risk,status:s.status,
+  legs:(s.legs||[]).map(x=>[x.playerId,x.category,x.threshold])})));
+ const result={...evidence,gameId:game.gameId,kickoff:game.kickoff,
+  checkedAt:new Date(now).toISOString(),injuryCheckedAt:new Date(now).toISOString(),
+  stage:plan.stage,revision:(Number(prior?.revision)||0)+1,
+  changedFromPrior:Boolean(prior)&&!same,
+  aiReviewed:false,adjustmentPolicy:'Deterministic roster and injury revalidation; Groq/OpenRouter advisory cannot silently change picks',
+  verifiedInjuries:injuries,completed:false};
+ // A failed data source must never overwrite an earlier populated model
+ // without explaining the degradation. In either case, store audit metadata.
+ if(result.status==='NOT_READY'&&prior?.status==='MODEL_ONLY')
+  result.priorCandidateInvalidated=true;
+ await write(result);
+ return{gameId:game.gameId,status:result.status,stage:plan.stage,revision:result.revision,
+  changed:result.changedFromPrior,modelTiers:(result.sgps||[]).filter(x=>x.status==='MODEL_CANDIDATE').map(x=>x.risk),
+  injuryCount:injuries.length,reason:result.reason||null};
+}
+export default async function handler(req,res){
+ res.setHeader('Cache-Control','no-store');
+ if(req.method!=='GET')return res.status(405).json({ok:false,error:'method_not_allowed'});
+ // Vercel Cron includes Authorization: Bearer CRON_SECRET if configured.
+ if(!authorized(req,process.env.CRON_SECRET))
+  return res.status(401).json({ok:false,error:'cron_auth_required'});
+ const date=dateET(),tomorrow=addDay(date,1),dates=[date,tomorrow];
+ const schedules=await Promise.all(dates.map(async day=>{
+  try{return await json('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates='+day.replaceAll('-','')+'&limit=100',12_000)}
+  catch{return{events:[],sourceFailed:true}}
+ }));
+ if(schedules.every(x=>x.sourceFailed))return res.status(503).json({ok:false,error:'nba_scoreboard_unavailable'});
+ const games=[...new Map(schedules.flatMap(x=>x.events||[]).map(ev=>{
+  const c=ev.competitions?.[0]||{},parts=c.competitors||[],
+   home=parts.find(x=>x.homeAway==='home'),away=parts.find(x=>x.homeAway==='away');
+  return [String(ev.id),{gameId:String(ev.id),status:String(c.status?.type?.state||ev.status?.type?.state)==='pre'?'SCHEDULED':'CLOSED',
+   kickoff:ev.date,home:{id:String(home?.team?.id||''),abbr:home?.team?.abbreviation},
+   away:{id:String(away?.team?.id||''),abbr:away?.team?.abbreviation}}]
+ })).values()].filter(g=>g.status==='SCHEDULED'&&nbaPregameStage(g,null).stage!=='OUTSIDE_WINDOW');
+ const histories=await Promise.all(games.map(g=>nbaReadPregame(g.gameId)));
+ const pending=games.map((g,i)=>({g,prior:histories[i],plan:nbaPregameStage(g,histories[i])}))
+   .filter(x=>x.plan.due);
+ const reports=await nflRunCollectorBatch(pending,async({g,prior})=>
+  nbaCollectPregame(g,{prior}),{concurrency:3});
+ return res.status(200).json({ok:true,datesChecked:dates,games:games.length,
+  due:pending.length,checked:reports.length,results:reports,
+  failed:reports.filter(r=>r?.status==='collector_error').length,
+  note:'NBA model-only SGP candidates; same game is rechecked for injuries and eligible legs at 30 minutes. AI does not silently override deterministic selections.',
+  checkedAt:new Date().toISOString()});
+}
