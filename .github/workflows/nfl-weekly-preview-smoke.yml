@@ -1,0 +1,20 @@
+name: NFL Week 5 Official Injury Preview Smoke
+on:
+  push:
+    branches: [fix/nfl-official-weekly-injuries-20261010]
+    paths:
+      - tests/nfl-weekly-preview-smoke.mjs
+      - .github/workflows/nfl-weekly-preview-smoke.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  phi-jax:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node tests/nfl-weekly-preview-smoke.mjs
