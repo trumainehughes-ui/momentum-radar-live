@@ -53,7 +53,7 @@
   const stage=readiness?.stage?String(readiness.stage).replaceAll('_',' '):'AWAITING FIRST PREGAME BUILD';
   const freshness=readiness?.checkedAt?new Date(readiness.checkedAt).toLocaleString():'Not collected';
   const injury=readiness?.injuryCheckedAt?new Date(readiness.injuryCheckedAt).toLocaleString():'Pending';
-  const source='<div class="refresh">Pregame model: '+safe(stage)+' • Last model/injury check: '+safe(freshness)+
+  const source='<div class="refresh">Pregame model: '+safe(stage)+' • AI review: '+safe(readiness?.aiReviewStatus||'PENDING')+' • Last model/injury check: '+safe(freshness)+
    ' • Injury evidence: '+safe(injury)+'</div>';
   return source+rows.map(s=>{
    const ready=s.status==='MODEL_CANDIDATE'&&Array.isArray(s.legs)&&s.legs.length>0;
