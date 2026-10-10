@@ -60,7 +60,7 @@ test("Brave token is header only; request stays on fixed documented endpoint",as
    assert.equal(opts.redirect,"error");
    assert.equal(opts.cache,"no-store");
    return {ok:true,status:200,json:async()=>({web:{results:[
-    {title:"Public DK Page",url:"https://sportsbook.draftkings.com/nfl/props",description:"+250 listed in a web snippet"}
+    {title:"Dallas Goedert receiving yards player props",url:"https://sportsbook.draftkings.com/nfl/props",description:"Dallas Goedert receiving yards +250 listed in an indexed web snippet"}
    ]}})};
   }
  });
@@ -68,6 +68,12 @@ test("Brave token is header only; request stays on fixed documented endpoint",as
  assert.equal(output.ok,true);
  assert.equal(output.results.length,1);
  assert.equal(output.results[0].livePriceVerified,false);
+ assert.equal(output.results[0].relevance.playerMentioned,true);
+ assert.equal(output.results[0].relevance.marketMentioned,true);
+ assert.equal(output.results[0].relevance.gameVerified,false);
+ assert.equal(output.results[0].relevance.currentPriceVerified,false);
+ assert.equal(output.playerMatchedResults,1);
+ assert.equal(output.marketMentionedResults,1);
  assert.equal(output.quotedBookPricesVerified,0);
  assert.equal(output.combinedSgpQuotesVerified,0);
  assert.equal(JSON.stringify(output).includes("secret-do-not-leak"),false);
