@@ -128,7 +128,7 @@
   qs('#nbaFresh').textContent='Loading NBA games…';
   try{
    data=await json('/api/nba-slate?date='+encodeURIComponent(date));
-   qs('#nbaFresh').textContent=data.games.length+' games • ESPN checked '+new Date(data.fetchedAt).toLocaleTimeString()+' • refresh on demand';
+   qs('#nbaFresh').textContent=data.games.length+' games • ESPN checked '+new Date(data.fetchedAt).toLocaleTimeString()+' • BDL Free: '+(data.ballDontLieFree?.state||'PENDING')+(data.ballDontLieFree?.gameCrosscheck?' ('+data.ballDontLieFree.gameCrosscheck.matched+'/'+data.ballDontLieFree.gameCrosscheck.checked+' ESPN matchups cross-checked)':'')+' • refresh on demand';
    renderGames();
    await renderLeaders();
   }catch{

@@ -23,6 +23,10 @@
     {
       "path": "/api/nfl-health?cron=1",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/bdl-refresh",
+      "schedule": "0 12 * * *"
     }
   ],
   "functions": {
@@ -52,6 +56,9 @@
     },
     "api/nba-game.js": {
       "maxDuration": 60
+    },
+    "api/bdl-refresh.js": {
+      "maxDuration": 120
     }
   }
 }
