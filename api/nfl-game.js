@@ -1,5 +1,6 @@
 import { gradeHistory, parlayStatus } from '../lib/nfl-results.js';
 import { filterCurrentRoleEvidence, isVerifiedNflStarterRole } from '../lib/ai-mechanics/role-evidence.js';
+import { reconcileEspnGameStarters } from '../lib/ai-mechanics/nfl-game-starter-source.js';
 import { currentAvailabilityOverrides } from '../lib/ai-mechanics/availability-overrides.js';
 import { assessNflTeamInjuryEvidence, nflPlayerAvailability } from '../lib/ai-mechanics/nfl-injury-evidence.js';
 import { put, list, del } from '@vercel/blob';
@@ -18,7 +19,20 @@ async function projections(competitors,blockedIds=new Set()){
 }
 
 function normalizeName(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'')}
-function resolveRoleSignals(summary,rosterCandidates,blockedIds){const signals=[];const push=(name,team,status,source,kind='STRUCTURED')=>{if(name)signals.push({name,team:team||null,status,source,kind,checkedAt:new Date().toISOString()})};for(const t of summary.rosters||[]){const team=String(t.team?.abbreviation||'').toUpperCase();for(const r of t.roster||t.athletes||[]){const a=r.athlete||r,starter=r.starter===true||r.isStarter===true||String(r.role||r.status?.type?.name||'').toLowerCase().includes('starter');if(starter)push(a.displayName||a.fullName,team,'CONFIRMED_STARTER','ESPN game roster starter flag')}}for(const c of rosterCandidates){if(blockedIds.has(c.playerId))continue;const s=signals.find(x=>normalizeName(x.name)===normalizeName(c.name)&&(x.team==null||x.team===c.team));if(s)c._roleSignal=s}return signals}
+function resolveRoleSignals(summary,rosterCandidates,blockedIds,gameId,kickoff){
+  const signals=reconcileEspnGameStarters({
+    gameId,sourceGameId:summary?.header?.competitions?.[0]?.id,
+    competitors:summary?.header?.competitions?.[0]?.competitors||[],
+    rosters:summary?.rosters||[],rosterCandidates,blockedIds,
+    now:Date.now(),kickoff
+  });
+  const byId=new Map(signals.map(s=>[s.playerId,s]));
+  for(const candidate of rosterCandidates){
+    const s=byId.get(String(candidate.playerId||""));
+    if(s)candidate._roleSignal=s;
+  }
+  return signals;
+}
 function applyExpectedStarterEvidence(rosterCandidates,blockedIds,evidence=[]){const accepted=[];for(const e of evidence){if(!e||!['NFL_OFFICIAL','TEAM_OFFICIAL'].includes(String(e.authority||''))||!['EXPECTED_STARTER','CONFIRMED_STARTER'].includes(String(e.status||'')))continue;const p=rosterCandidates.find(x=>normalizeName(x.name)===normalizeName(e.name)&&(!e.team||String(x.team).toUpperCase()===String(e.team).toUpperCase()));if(!p||blockedIds.has(p.playerId))continue;p._roleSignal={name:p.name,team:p.team,status:e.status,source:e.source||e.authority,kind:'REPORTED_CURRENT_GAME',checkedAt:e.checkedAt||new Date().toISOString()};accepted.push(p._roleSignal)}return accepted}
 
 const VERIFIED_GAME_ROLE_EVIDENCE={
@@ -117,7 +131,7 @@ export default async function handler(req,res){
   const blockedNames=new Set([...injuryEvidence.blockedNames].map(normalizeName));
   for(const x of blockers)if(x.name)blockedNames.add(normalizeName(x.name));
   const rosterCandidates=(await projections(competitors,blockedIds)).filter(x=>
-    !blockedIds.has(String(x.playerId))&&!blockedNames.has(normalizeName(x.name)));const roleSignals=resolveRoleSignals(summary,rosterCandidates,blockedIds);for(const p of rosterCandidates){if(blockedIds.has(p.playerId)||p._roleSignal)continue;const pos=String(p.position||'').toUpperCase();if(!['QB','RB','WR','TE'].includes(pos))continue;const u=Number(p.usagePerGame?.targets||0)+Number(p.usagePerGame?.rushAttempts||0);if((pos==='QB'&&Number(p.gamesPlayed||0)>0)||u>=3)p._roleSignal={name:p.name,team:p.team,status:'HIGH_USAGE_ROLE',source:'ESPN current roster + completed-game usage',kind:'DATA_VERIFIED_ROLE',checkedAt:new Date().toISOString()}}const kickoff=Date.parse(comp.date||summary.header?.competitions?.[0]?.date||'');/* Only server-controlled role records may assert official starter authority. Do not elevate client-supplied roleEvidence. */const currentGameEvidence=filterCurrentRoleEvidence(verifiedGameEvidence(gameId),{now:Date.now(),kickoff});roleSignals.push(...applyExpectedStarterEvidence(rosterCandidates,blockedIds,currentGameEvidence));const injuryById=new Map(scopedInjuries.map(x=>[String(x.playerId||''),x]));
+    !blockedIds.has(String(x.playerId))&&!blockedNames.has(normalizeName(x.name)));const kickoff=Date.parse(comp.date||summary.header?.competitions?.[0]?.date||'');const roleSignals=resolveRoleSignals(summary,rosterCandidates,blockedIds,gameId,kickoff);for(const p of rosterCandidates){if(blockedIds.has(p.playerId)||p._roleSignal)continue;const pos=String(p.position||'').toUpperCase();if(!['QB','RB','WR','TE'].includes(pos))continue;const u=Number(p.usagePerGame?.targets||0)+Number(p.usagePerGame?.rushAttempts||0);if((pos==='QB'&&Number(p.gamesPlayed||0)>0)||u>=3)p._roleSignal={name:p.name,team:p.team,status:'HIGH_USAGE_ROLE',source:'ESPN current roster + completed-game usage',kind:'DATA_VERIFIED_ROLE',checkedAt:new Date().toISOString()}}/* Only server-controlled role records may assert official starter authority. Do not elevate client-supplied roleEvidence. */const currentGameEvidence=filterCurrentRoleEvidence(verifiedGameEvidence(gameId),{now:Date.now(),kickoff});roleSignals.push(...applyExpectedStarterEvidence(rosterCandidates,blockedIds,currentGameEvidence));const injuryById=new Map(scopedInjuries.map(x=>[String(x.playerId||''),x]));
   const questionableNames=new Set(scopedInjuries.filter(x=>x.status==="QUESTIONABLE").map(x=>normalizeName(x.name)));
   const roleRosterCovered=expectedTeams.length===2&&expectedTeams.every(team=>
     rosterCandidates.some(p=>p.team===team.abbr.toUpperCase()));
