@@ -31,6 +31,16 @@ test("existing ESPN and SGO objects produce verified *shadow* identity counts",(
  assert.equal(r.publishingDisabled,true);
  assert.equal(r.combinedSgpQuoteVerified,false);
  assert.equal(r.sourceEventId,"sgo-evt");
+ assert.equal(r.verifiedMarketRows.length,1);
+ const observed=r.verifiedMarketRows[0];
+ assert.equal(observed.playerID,"espn-player-1");
+ assert.equal(observed.eventID,"espn-evt");
+ assert.equal(observed.sourceEventID,"sgo-evt");
+ assert.equal(observed.team,"PHI");
+ assert.equal(observed.name,"Sample Runner");
+ assert.equal(observed.provenance,"verified_espn_sgo_crosswalk");
+ assert.equal(observed.books[0].lastUpdatedAt,new Date(now-60000).toISOString());
+ assert.equal(observed.books[0].line,84.5);
 });
 test("a wrong game kickoff or team side cannot inherit another game's book lines",()=>{
  const wrong={...event,startTime:"2026-10-11T20:40:00Z"};
@@ -70,4 +80,7 @@ test("NFL live handler wires only existing server-side ESPN/SGO snapshots",()=>{
  assert.match(src,/events:chosen/);
  assert.match(src,/capturedAt:Number\(CACHE\.get\(date\)\?\.at\)/);
  assert.match(src,/verifiedCombinedBookQuotes:0/);
+ assert.match(src,/approvedMarketRows=gameId&&eligibility.checked===true&&roles.checked===true&&inspectedSgo.ready===true/);
+ assert.match(src,/eligibilityFilter\(approvedMarketRows,eligibility\)/);
+ assert.doesNotMatch(src,/eligibilityFilter\(rawRows,eligibility\)/);
 });
