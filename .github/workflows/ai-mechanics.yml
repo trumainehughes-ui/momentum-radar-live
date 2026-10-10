@@ -16,5 +16,5 @@ jobs:
         with:
           node-version: '24'
       - run: npm install --no-package-lock
-      - run: node --test tests/ai-mechanics.test.js tests/ai-signals.test.js tests/ai-scenarios.test.js tests/ai-parlay-review.test.js tests/ai-matchups.test.js tests/ai-breakout.test.js tests/ai-postgame.test.js tests/ai-evidence.test.js tests/ai-nfl-adapter.test.js tests/ai-role-evidence.test.js
+      - run: node --test tests/ai-mechanics.test.js tests/ai-signals.test.js tests/ai-scenarios.test.js tests/ai-parlay-review.test.js tests/ai-matchups.test.js tests/ai-breakout.test.js tests/ai-postgame.test.js tests/ai-evidence.test.js tests/ai-nfl-adapter.test.js tests/ai-role-evidence.test.js tests/ai-availability-overrides.test.js
       - run: npm test
