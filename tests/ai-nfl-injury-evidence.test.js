@@ -63,6 +63,8 @@ test("NFL market route requires full injury coverage before upgrading source boo
  assert.ok(src.includes("eligibility.injuryFeedChecked===true&&roles.checked===true"));
  assert.ok(src.includes("injuryEligibilityChecked:eligibility.checked&&eligibility.injuryFeedChecked===true"));
  assert.ok(src.includes("analyticsSgpsPublishable:false"));
+ assert.ok(src.includes("injuryCoverageVerified:eligibility.injuryFeedChecked===true"));
+ assert.ok(src.includes("injuryCoveredTeams:eligibility.injuryCoverage||[]"));
  assert.ok(!src.includes("injuryFeedChecked=Array.isArray(d.injuries)&&d.injuries.length>0"));
 });
 
@@ -71,4 +73,11 @@ test("conflicting ESPN team IDs and abbreviations cannot clear both opponents",(
  const r=assessNflTeamInjuryEvidence({teams,groups:[den,spoof]});
  assert.equal(r.checked,false);
  assert.deepEqual(r.coveredTeams,["DEN"]);
+});
+
+test("NFL Game Analyzer makes missing injury coverage visible in both SGP modes",()=>{
+ const src=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ assert.ok(src.includes("d.bookMarketAudit?.injuryCoverageVerified"));
+ assert.ok(src.includes("Incomplete — live sportsbook picks blocked"));
+ assert.ok(src.includes("Both teams covered"));
 });
