@@ -25,3 +25,10 @@ test('NFL provider status never claims live bookmaker markets without source row
  assert.ok(src.includes('nukeCeilingVerification:false,modelNukeCeilingScreening:true'));
  assert.ok(!src.includes('publicSportsbookStatsUsed:true'));
 });
+
+test('October 5 hardcoded book references cannot enter live 2026-10-11 market rows',()=>{
+ assert.ok(src.includes('const mergedMarketRows=[...(rows||[])];'));
+ assert.ok(!src.includes('const publicSgpRows=['));
+ assert.ok(!src.includes('...publicBookRows,...publicDerivedRows,...publicSgpRows'));
+ assert.ok(src.includes('Historical October 5 public bookmaker reference lines stay in the historical context only.'));
+});

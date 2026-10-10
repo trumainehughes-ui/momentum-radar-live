@@ -23,6 +23,8 @@ assert.equal(d.validation?.combinedBookSgpQuoteAvailable,false,
 assert.equal(d.validation?.analyticsSgpsPublishable,false,
  'Unquoted model SGPs must not be marked book-publishable');
 if(d.marketRows===0){
+ assert.equal(d.validation?.sgpEligibleMarketRows,0,
+  'Never inject October 5 ATL-NO manually priced legs into tomorrow\'s live MIN-NO pool');
  assert.equal(d.validation?.publicSportsbookStatsUsed,false,
   'Zero market rows cannot be presented as observed sportsbook stats');
  assert.equal(d.validation?.sgpChecks?.liveSportsbookLine,false,
