@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {assessNflSgpTier,classifyNflSgpOdds} from "../lib/ai-mechanics/nfl-sgp-tiers.js";
+import {assessNflSgpTier,classifyNflSgpOdds,tenDollarSgpPayout} from "../lib/ai-mechanics/nfl-sgp-tiers.js";
 
 const screenshot=[
  {name:"Josh Cameron",playerID:"josh",cat:"td"},
@@ -41,10 +41,13 @@ test("observed combined quote trumps a different independent-leg estimate",()=>{
  assert.equal(m.status,"ACTUAL_BOOK_PRICE_OUTSIDE_TIER");
  assert.equal(m.observedOddsCategory,"Nuke");
 });
-test("Small $300 total boundary is +2900; Nuke minimum is +10000",()=>{
- assert.equal(classifyNflSgpOdds(1900),"Small");
- assert.equal(classifyNflSgpOdds(2900),"Small");
- assert.equal(classifyNflSgpOdds(2901),"Medium");
+test("Small and Medium target NET profit bands; Nuke minimum +10000",()=>{
+ assert.equal(classifyNflSgpOdds(1999),"OUTSIDE_TIER_BANDS");
+ assert.equal(classifyNflSgpOdds(2000),"Small");
+ assert.equal(classifyNflSgpOdds(3000),"Small");
+ assert.equal(classifyNflSgpOdds(3001),"Medium");
+ assert.equal(classifyNflSgpOdds(8000),"Medium");
+ assert.equal(classifyNflSgpOdds(8001),"OUTSIDE_TIER_BANDS");
  assert.equal(classifyNflSgpOdds(10000),"Nuke");
 });
 test("production hotfix rejects all-TD Small model and marks it unpublishable",()=>{
@@ -55,7 +58,7 @@ test("production hotfix rejects all-TD Small model and marks it unpublishable",(
  assert.ok(api.includes("modelOnly:true,candidateComplete:tierAssessment.compositionOk,publishable:false"));
  assert.ok(api.includes("sgps.Analytics=(sgps.Analytics||[]).map(s=>({...s,publishable:false"));
  assert.ok(!api.includes("sgps.Analytics=buildAnalyticsSgp(categories,ctx).map(s=>({...s,publishable:true"));
- assert.ok(api.includes("CACHE_SCHEMA='v74-sgp-tier-quote-guard'"));
+ assert.ok(api.includes("CACHE_SCHEMA='v75-net-profit-yardage-mix'"));
 });
 test("production view clearly disclaims unverified $10 payouts",()=>{
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
@@ -63,4 +66,27 @@ test("production view clearly disclaims unverified $10 payouts",()=>{
  assert.ok(html.includes("Illustrative $10 target (not verified): "));
  assert.ok(html.includes("NOT READY • "));
  assert.ok(html.includes("'MODEL_FIRST_BOOK_UNQUOTED'"));
+});
+
+test("positive American odds for a $10 stake are NET profit, not return",()=>{
+ const expectations=[
+  [2000,200,210],[2500,250,260],[3000,300,310],
+  [5000,500,510],[8000,800,810],[10000,1000,1010]
+ ];
+ for(const [odds,net,total] of expectations){
+  const result=tenDollarSgpPayout(odds);
+  assert.equal(result.stake,10);
+  assert.equal(result.netProfit,net);
+  assert.equal(result.totalReturn,total);
+ }
+ assert.equal(tenDollarSgpPayout(null),null);
+ assert.equal(tenDollarSgpPayout(-110),null);
+});
+test("NFL model text describes NET payout targets, never total return",()=>{
+ const api=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
+ assert.ok(api.includes("$200–$300 NET profit"));
+ assert.ok(api.includes("$300–$800 NET profit"));
+ assert.ok(api.includes("$1,000+ NET profit"));
+ assert.ok(api.includes("min:2000,max:3000"));
+ assert.ok(api.includes("min:3000,max:8000"));
 });
