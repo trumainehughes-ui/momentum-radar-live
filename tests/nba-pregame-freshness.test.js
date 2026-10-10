@@ -98,3 +98,27 @@ test('game API and UI never show old candidate legs as ready current NBA SGPs',(
  assert.ok(ui.includes('injuryReportStatus'));
  assert.ok(ui.includes('NOT sportsbook offers')||ui.includes('NOT VERIFIED'));
 });
+
+test('injury-driven invalidation clears old AI-reviewed status and never preserves old parlay legs',async()=>{
+ const now=tip-15*60*1000,persisted=[];
+ const previous={...sample('FINAL_T_MINUS_30',now-12*60*1000),
+  status:'MODEL_ONLY',aiReviewed:true,aiReview:{status:'REVIEWED',provider:'groq'},
+  checkedAt:new Date(now-12*60*1000).toISOString()};
+ const espn={header:{competitions:[{id:game.gameId,competitors:[
+  {team:{abbreviation:'BOS'}},{team:{abbreviation:'MIA'}}]}]},
+  injuries:[{team:{abbreviation:'BOS'},injuries:[{
+   athlete:{displayName:'Unavailable Player'},status:'Out'}]}]};
+ const outcome=await nbaCollectPregame(game,{now,prior:previous,
+  fetchJson:async()=>espn,
+  prepare:async()=>({status:'NOT_READY',sgps:[],playerProjections:[],
+   reason:'All model legs invalidated following player injury check'}),
+  write:async x=>persisted.push(x),
+  review:async()=>{throw Error('AI must not bless empty tiers')}
+ });
+ assert.equal(outcome.status,'NOT_READY');
+ assert.equal(persisted[0].priorCandidateInvalidated,true);
+ assert.equal(persisted[0].aiReviewed,false);
+ assert.equal(persisted[0].aiReview.status,'SKIPPED');
+ assert.deepEqual(persisted[0].sgps,[]);
+ assert.equal(nbaPregameStatus(persisted[0],{now}).status,'NOT_READY');
+});
