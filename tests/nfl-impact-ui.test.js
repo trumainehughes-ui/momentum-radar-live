@@ -27,7 +27,7 @@ test('watch button creates a durable device-local MODEL watch rather than bookma
  assert.equal(watches.length,1);assert.equal(watches[0].kind,'MODEL_WATCH');
  assert.equal(watches[0].date,'2026-10-11');
  assert.equal(watches[0].actualCombinedOdds,null);
- assert.equal(watches[0].bookSettlement,'AWAITING_AUTHENTICATED_BOOK_RULES');
+ assert.equal(watches[0].bookSettlement,'NOT_CONNECTED');
  assert.ok([...h.storage.values()][0].includes('MODEL_WATCH'));
 });
 test('injury report pushes model watch into rebuild then replaces unavailable player after safe new model',()=>{
