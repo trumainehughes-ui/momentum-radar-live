@@ -6,7 +6,7 @@ const source=readFileSync(new URL('../api/nfl-injuries.js',import.meta.url),'utf
 const markets=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
 const game=readFileSync(new URL('../api/nfl-game.js',import.meta.url),'utf8');
 test('injury UI renders separate team headings, clear statuses and dated official source',()=>{
- for(const fragment of ['nflInjuryTeam','nflInjurySection','nflInjuryStatus.OUT','nflInjuryStatus.DOUBTFUL','nflInjuryStatus.QUESTIONABLE','nflInjuryRefreshBtn','NFL published weekly report:','Official weekly game statuses have NOT been cross-checked','Reserve / long-term injuries','Additional ESPN tracker entries'])
+ for(const fragment of ['nflInjuryTeam','nflInjurySection','nflInjuryStatus.OUT','nflInjuryStatus.DOUBTFUL','nflInjuryStatus.QUESTIONABLE','nflInjuryRefreshBtn','NFL automatic weekly report','Official weekly game statuses have NOT been cross-checked','Reserve / long-term injuries','Additional ESPN tracker entries'])
   assert.ok(html.includes(fragment),fragment);
  assert.ok(html.includes('gameDesignationVerified'));
  assert.ok(html.includes('weeklySourceUrl'));
