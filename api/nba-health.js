@@ -51,16 +51,44 @@ export function nbaPregameStage(game,prior,{now=Date.now()}={}){
  return{due:!prior||!Number.isFinite(age)||age<0||age>=ttl||prior.stage!==stage,
   stage,minutesToTipoff:Math.ceil(before/MS),snapshotAgeMs:Number.isFinite(age)?age:null};
 }
-export function nbaPregameStatus(snapshot){
- if(!snapshot)return{status:'PENDING',reason:'No scheduled pregame build has completed.'};
+// A successful Blob read is not proof that its pregame data is still current.
+// We hold stale candidate legs until the scheduled collector has rechecked
+// the actual game and injury context for the appropriate pre-tipoff window.
+export function nbaPregameFreshness(snapshot,{now=Date.now(),gameStatus='SCHEDULED'}={}){
+ if(!snapshot)return {status:'PENDING',reason:'No scheduled pregame build has completed.'};
+ if(gameStatus!=='SCHEDULED')return{status:'CLOSED',reason:'Game has started or ended; historical model is not a live SGP.'};
+ if(snapshot.modelVersion!==NBA_PREGAME_MODEL_VERSION)
+  return{status:'STALE',reason:'Pregame model version changed; waiting for a new collection.'};
+ const checked=Date.parse(snapshot.checkedAt||''),
+   kickoff=Date.parse(snapshot.kickoff||''),
+   age=now-checked,remaining=kickoff-now;
+ if(!Number.isFinite(checked)||!Number.isFinite(kickoff)||age<0||
+   remaining<=0||!Number.isFinite(remaining))
+  return{status:'STALE',reason:'Game timestamp or pregame snapshot is invalid/outdated.'};
+ const stage=remaining<=30*MS?'FINAL_T_MINUS_30':
+  remaining<=90*MS?'PREGAME_VALIDATION':'DAY_AHEAD_BUILD';
+ const maxAge=stage==='FINAL_T_MINUS_30'?20*MS:
+  stage==='PREGAME_VALIDATION'?60*MS:8*60*MS;
+ if(snapshot.stage!==stage)
+  return{status:'STALE',reason:'New '+stage.replaceAll('_',' ')+' injury and model refresh is pending.'};
+ if(age>maxAge)
+  return{status:'STALE',reason:'Last NBA SGP/injury snapshot is older than the '+Math.round(maxAge/MS)+'-minute freshness limit.'};
+ return{status:'CURRENT',stage,ageMinutes:Math.round(age/MS)};
+}
+export function nbaPregameStatus(snapshot,{now=Date.now(),gameStatus='SCHEDULED'}={}){
+ const freshness=nbaPregameFreshness(snapshot,{now,gameStatus});
+ if(!snapshot)return {...freshness,tiers:[],sportsbookVerified:false,aiReviewed:false};
  const ready=(snapshot.sgps||[]).filter(x=>x.status==='MODEL_CANDIDATE');
- return{status:ready.length?'MODEL_ONLY':'NOT_READY',tiers:ready.map(x=>x.risk),
+ const current=freshness.status==='CURRENT';
+ return{status:current?(ready.length?'MODEL_ONLY':'NOT_READY'):freshness.status,
+  freshness:freshness.status,tiers:current?ready.map(x=>x.risk):[],
   checkedAt:snapshot.checkedAt,stage:snapshot.stage,revision:snapshot.revision,
-  injuryCheckedAt:snapshot.injuryCheckedAt,
-  sportsbookVerified:false,aiReviewed:snapshot.aiReviewed===true,
-  aiReviewStatus:snapshot.aiReview?.status||'PENDING',aiProvider:snapshot.aiReview?.provider||null,
+  injuryCheckedAt:snapshot.injuryCheckedAt,injuryReportStatus:snapshot.injuryReportStatus||'UNKNOWN',
+  sportsbookVerified:false,aiReviewed:current&&snapshot.aiReviewed===true,
+  aiReviewStatus:current?snapshot.aiReview?.status||'PENDING':'STALE',
+  aiProvider:current?snapshot.aiReview?.provider||null:null,
   historicalSeason:snapshot.historicalSeason||null,sampleSource:snapshot.sampleSource||'UNAVAILABLE',
-  reason:snapshot.reason||'No verified pregame player models available.'};
+  reason:current?snapshot.reason||'No verified pregame player models available.':freshness.reason};
 }
 export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=nbaPrepareEvidence,
  fetchJson=json,review=pregameAiAudit,write=async data=>put(path(game.gameId),JSON.stringify(data),{
@@ -80,6 +108,7 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   if(id!==String(game.gameId)||!teams.includes(game.home.abbr)||!teams.includes(game.away.abbr))
    throw Error('nba_current_game_identity_mismatch');
  }
+ const injurySectionPresent=Array.isArray(observed?.injuries);
  const injuries=[];
  for(const g of observed?.injuries||[]){
   const team=g?.team?.abbreviation;
@@ -97,16 +126,18 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   legs:(s.legs||[]).map(x=>[x.playerId,x.category,x.threshold])})));
  const result={...evidence,gameId:game.gameId,kickoff:game.kickoff,
   checkedAt:new Date(now).toISOString(),
-  injuryCheckedAt:observed?new Date(now).toISOString():null,
-  injuryReportStatus:observed?'ESPN_SUMMARY_RECHECKED':'ESPN_SUMMARY_UNAVAILABLE',
+  injuryCheckedAt:injurySectionPresent?new Date(now).toISOString():null,
+  injuryReportStatus:injurySectionPresent?'ESPN_REPORTED_INJURIES_RECHECKED':
+   observed?'ESPN_SUMMARY_WITHOUT_INJURY_SECTION':'ESPN_SUMMARY_UNAVAILABLE',
   stage:plan.stage,modelVersion:NBA_PREGAME_MODEL_VERSION,
   seasonYear:game.seasonYear||null,seasonType:game.seasonType||null,
   revision:(Number(prior?.revision)||0)+1,
   changedFromPrior:Boolean(prior)&&!same,
   aiReviewed:false,adjustmentPolicy:'Deterministic roster and injury revalidation; Groq/OpenRouter advisory cannot silently change picks',
   verifiedInjuries:injuries,completed:false,
-  injuryLimitations:observed?'ESPN reported statuses, official inactives not confirmed':
-   'Current ESPN game summary unavailable; injury status is UNVERIFIED. Do not treat absent names as healthy or starting.'};
+  injuryLimitations:injurySectionPresent?
+   'ESPN reported statuses checked; official inactives and starters not confirmed':
+   'ESPN injury-report section unavailable; status is UNVERIFIED. Do not assume no players are injured, healthy or starting.'};
  // A failed data source must never overwrite an earlier populated model
  // without explaining the degradation. In either case, store audit metadata.
  if(result.status==='NOT_READY'&&prior?.status==='MODEL_ONLY')
