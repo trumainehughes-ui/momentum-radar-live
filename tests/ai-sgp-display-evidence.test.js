@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { markBookSgpEstimate } from "../lib/ai-mechanics/sgp-display-evidence.js";
 
 test("passing estimated payout threshold never claims a combined book quote", () => {
@@ -14,6 +15,11 @@ test("passing estimated payout threshold never claims a combined book quote", ()
   assert.equal(reviewed.actualSgpOdds,null);
   assert.equal(reviewed.combinedPriceType,"independent_leg_estimate");
   assert.equal(reviewed.bookVerificationPending,true);
+  assert.equal(reviewed.verifiedLegs,0);
+  assert.equal(reviewed.eligibleBookLegs,3);
+  assert.equal(reviewed.publishableAsBookSgp,false);
+  assert.equal(reviewed.nukePayoutVerified,false);
+  assert.equal(reviewed.verifiedAt,null);
   assert.equal(original.payoutBandVerified,true,"pure labeler never mutates upstream build");
 });
 test("missing independent-leg quote leaves book price unavailable",()=>{
@@ -39,3 +45,38 @@ test("preexisting below-target book candidate stays unverified",()=>{
   assert.equal(reviewed.payoutBandVerified,false);
 });
 test("null passthrough is safe",()=>assert.equal(markBookSgpEstimate(null),null));
+
+test("bookmaker quote timestamps cannot be spoofed by model candidate metadata",()=>{
+  const candidate=markBookSgpEstimate({
+    book:"DraftKings",risk:"Nuke",estimatedOdds:12500,
+    payoutBandVerified:true,nukePayoutVerified:true,verifiedLegs:6,
+    verifiedAt:"2026-10-10T18:00:00.000Z",
+    modelDriven:false,actualSgpOdds:16000,publishableAsBookSgp:true
+  });
+  assert.equal(candidate.nukePayoutVerified,false);
+  assert.equal(candidate.verifiedLegs,0);
+  assert.equal(candidate.eligibleBookLegs,6);
+  assert.equal(candidate.actualSgpOdds,null);
+  assert.equal(candidate.verifiedAt,null);
+  assert.equal(candidate.modelGeneratedAt,"2026-10-10T18:00:00.000Z");
+  assert.equal(candidate.publishableAsBookSgp,false);
+});
+test("NFL AI payload disambiguates independently priced model legs and combined quotes",()=>{
+ const src=readFileSync(new URL("../public-ai.js",import.meta.url),"utf8");
+ assert.ok(src.includes("combinedBookQuoteVerified:s.combinedBookQuoteVerified===true"));
+ assert.ok(src.includes("eligibleBookLegs:Number(s.eligibleBookLegs||0)"));
+ assert.ok(src.includes("combinedPriceType:s.combinedPriceType||'not_available'"));
+ assert.ok(!src.includes("s.payoutBandVerified?' • book payout verified'"));
+});
+test("NFL UI uses actual model generation time, not falsely verified timestamp",()=>{
+ const src=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ assert.ok(src.includes("Model generated "));
+ assert.ok(src.includes("s.modelGeneratedAt"));
+ assert.ok(!src.includes("new Date(s.verifiedAt).toLocaleTimeString()"));
+});
+test("NFL model builds are never labeled combined-book SGP verified",()=>{
+ const src=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
+ assert.ok(src.includes("mode:'MODEL_FIRST_BOOK_UNQUOTED'"));
+ assert.ok(!src.includes("const hasVerifiedSgp="));
+ assert.ok(src.includes("Individual DraftKings/FanDuel player-market offers are not bookmaker-issued combined SGP quotes."));
+});
