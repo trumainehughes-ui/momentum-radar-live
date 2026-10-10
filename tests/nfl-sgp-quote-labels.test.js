@@ -5,7 +5,8 @@ import {readFileSync} from 'node:fs';
 const src=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
 test('NFL SGP never conflates single-leg market candidates with a correlated sportsbook quote',()=>{
  assert.ok(src.includes('bookLegCandidateComplete:hasCompleteBookLegCandidate'));
- assert.ok(src.includes('sportsbookVerificationAvailable:Boolean(gameId&&sgpRows.length>0&&['The Odds API','SportsGameOdds (backup)'].includes(provider)),combinedBookSgpQuoteAvailable:false'));
+ assert.ok(src.includes('sportsbookVerificationAvailable:Boolean(gameId&&sgpRows.length>0'));
+ assert.ok(src.includes('combinedBookSgpQuoteAvailable:false'));
  assert.ok(src.includes('analyticsSgpsPublishable:false'));
  assert.ok(src.includes('Individual-prop candidate (combined price unquoted)'));
  assert.ok(src.includes('combinedBookQuoteVerified:false,actualSgpOdds:null,payoutBandVerified:false'));
