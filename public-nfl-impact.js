@@ -26,7 +26,7 @@
   if(!w||w.kind!=='MODEL_WATCH'||!/^\d{7,12}$/.test(String(w.gameId||'')))return null;
   const legs=Array.isArray(w.legs)?w.legs.slice(0,12).map(modelLeg):[];
   if(!legs.length||!['Small','Medium','Nuke'].includes(w.risk))return null;
-  return {id:String(w.id||''),kind:'MODEL_WATCH',gameId:String(w.gameId),risk:w.risk,
+  return {id:String(w.id||''),kind:'MODEL_WATCH',gameId:String(w.gameId),risk:w.risk,date:/^\d{4}-\d{2}-\d{2}$/.test(String(w.date||''))?String(w.date):null,
     home:String(w.home||''),away:String(w.away||''),legs,
     activeLegs:Array.isArray(w.activeLegs)?w.activeLegs.slice(0,12).map(modelLeg):legs,
     removedLegs:Array.isArray(w.removedLegs)?w.removedLegs.slice(0,12):[],
@@ -64,7 +64,7 @@
      !candidate.legs.length)return null;
   const id=String(game.gameId||'');if(!/^\d{7,12}$/.test(id))return null;
   return normalizeWatch({kind:'MODEL_WATCH',id:id+':'+candidate.risk+':'+String(nonce||Date.now()),
-    gameId:id,home:game.home?.abbr||'',away:game.away?.abbr||'',
+    gameId:id,date:game.date||null,home:game.home?.abbr||'',away:game.away?.abbr||'',
     risk:candidate.risk,legs:candidate.legs,activeLegs:candidate.legs,
     updatedAt:new Date().toISOString(),status:'MODEL_TRACKED'});
  }
@@ -117,7 +117,7 @@
   }
  }
  function addWatch(game,candidate){
-  const watch=makeWatch(game,candidate);if(!watch)return;
+  const watch=makeWatch({...game,date:root.momentumSelectedNflDate?.()||game.date||null},candidate);if(!watch)return;
   watches=watches.filter(x=>!(x.gameId===watch.gameId&&x.risk===watch.risk)).concat(watch).slice(-36);
   const snapshot=reportCache.get(watch.gameId);
   if(snapshot)watches=watches.map(w=>w.id===watch.id?classifyWatch(w,snapshot):w);
@@ -139,19 +139,10 @@
   if(changed){persist();render();}
   return before!==undefined&&before!==after;
  }
- function decorate(game,data){
-  const panel=root.document.getElementById('nflSGP');
-  if(!panel||!game)return;
-  const tiers=data?.sgps?.Analytics||[];
-  for(const node of panel.querySelectorAll('.nflSgpMini[data-risk]')){
-   const risk=node.dataset.risk,candidate=tiers.find(x=>x.risk===risk),valid=candidate?.tierAssessment?.compositionOk!==false&&candidate?.legs?.length===candidate?.requiredLegs;
-   if(!valid||node.querySelector('[data-model-track]'))continue;
-   const btn=root.document.createElement('button');btn.type='button';btn.dataset.modelTrack=risk;btn.textContent='Track '+risk+' model parlay';btn.onclick=()=>addWatch(game,candidate);node.appendChild(btn);
-  }
-  const report=reportCache.get(String(game.gameId));
+ function updateWatchesWithCandidates(gameId,tiers,report){
   let revised=false;
   watches=watches.map(w=>{
-   if(w.gameId!==String(game.gameId)||!['MODEL_REBUILD_REQUIRED','MODEL_RECHECK_REQUIRED'].includes(w.status))return w;
+   if(w.gameId!==String(gameId)||!['MODEL_REBUILD_REQUIRED','MODEL_RECHECK_REQUIRED'].includes(w.status))return w;
    const candidate=tiers.find(x=>x.risk===w.risk);
    if(w.status==='MODEL_REBUILD_REQUIRED'){
     const replacement=rebuildWatch(w,candidate,report);
@@ -172,9 +163,35 @@
         priorLegs:clone(w.legs),removed:[]}].slice(-12)};
   });
   if(revised)persist();
+ }
+
+ function decorate(game,data){
+  const panel=root.document.getElementById('nflSGP');
+  if(!panel||!game)return;
+  const tiers=data?.sgps?.Analytics||[];
+  for(const node of panel.querySelectorAll('.nflSgpMini[data-risk]')){
+   const risk=node.dataset.risk,candidate=tiers.find(x=>x.risk===risk),valid=candidate?.tierAssessment?.compositionOk!==false&&candidate?.legs?.length===candidate?.requiredLegs;
+   if(!valid||node.querySelector('[data-model-track]'))continue;
+   const btn=root.document.createElement('button');btn.type='button';btn.dataset.modelTrack=risk;btn.textContent='Track '+risk+' model parlay';btn.onclick=()=>addWatch(game,candidate);node.appendChild(btn);
+  }
+  updateWatchesWithCandidates(String(game.gameId),tiers,reportCache.get(String(game.gameId)));
   render();
  }
- // Other tracked matchups get lightweight ESPN-only polling too; no paid odds calls.
+ // Only on material roster/injury changes, attempt a fresh model rebuild for
+ // other tracked matchups. This may be unavailable when model/data providers are degraded.
+ async function rebuildBackgroundGame(id,report){
+  const entry=watches.find(w=>w.gameId===id&&w.date);
+  if(!entry)return;
+  const query=new URLSearchParams({date:entry.date,gameId:id,finalCheck:'1'});
+  try{
+   const response=await root.fetch('/api/nfl-markets?'+query,{cache:'no-store'});
+   if(!response.ok)return;
+   const data=await response.json();
+   if(data.ok)updateWatchesWithCandidates(id,data.sgps?.Analytics||[],report);
+  }catch{}
+ }
+ // Other tracked matchups get lightweight ESPN-only polling, with one model
+ // recomputation on material change. Sportsbook quotes are never synthesized.
  const lastPoll=new Map(),inflight=new Set();
  async function pollTracked(){
   if(root.document.hidden)return;
@@ -186,7 +203,7 @@
    lastPoll.set(id,Date.now());inflight.add(id);
    try{
     const r=await root.fetch('/api/nfl-injuries?'+new URLSearchParams({gameId:id,ts:Date.now()}),{cache:'no-store'});
-    const report=await r.json();onSnapshot(id,{...report,ok:r.ok&&report.ok});
+    const report=await r.json(),usable={...report,ok:r.ok&&report.ok};const changed=onSnapshot(id,usable);if(changed&&usable.ok)await rebuildBackgroundGame(id,usable);
    }catch{onSnapshot(id,{ok:false,reportAvailable:false});}
    finally{inflight.delete(id);}
   }
