@@ -1,0 +1,10 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { detectUsageShift, compareShadowNeighbors } from "../lib/ai-mechanics/breakout.js";
+test("increasing usage detected",()=>assert.equal(detectUsageShift({recent:[16,18,20],baseline:[10,10,10,10,10]}).direction,"increasing"));
+test("decreasing usage detected",()=>assert.equal(detectUsageShift({recent:[3,4,5],baseline:[10,10,10,10,10]}).direction,"decreasing"));
+test("insufficient history blocks signal",()=>assert.equal(detectUsageShift({recent:[20],baseline:[10,10,10,10,10]}),null));
+test("zero baseline avoids infinite percentage",()=>assert.equal(detectUsageShift({recent:[1,2,3],baseline:[0,0,0,0,0]}).relativeChange,null));
+test("shadow neighborhood supports plus minus two lineup positions",()=>assert.equal(compareShadowNeighbors({candidateSlot:5,targetSlot:3,candidateScore:85,targetScore:80}).withinNeighborhood,true));
+test("shadow score differential is explicit",()=>assert.equal(compareShadowNeighbors({candidateSlot:5,targetSlot:3,candidateScore:85,targetScore:80}).scoreDifferential,5));
+test("invalid batting slots rejected",()=>assert.equal(compareShadowNeighbors({candidateSlot:10,targetSlot:3,candidateScore:85,targetScore:80}),null));
