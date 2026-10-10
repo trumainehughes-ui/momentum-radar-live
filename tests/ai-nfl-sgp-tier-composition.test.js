@@ -38,7 +38,7 @@ test("Small requires diverse model props with at most one TD and no duplicate pl
 });
 test("Medium is stricter than Nuke about TD concentration and requires 3 distinct markets",()=>{
  const medium=assessNflSgpTier({risk:"Medium",requiredLegs:5,
-  legs:[...picks,fourTd[0]]});
+  legs:[...picks,{playerID:"rb2",name:"Additional RB",cat:"rushing"}]});
  assert.equal(medium.compositionOk,true);
  const allTd=assessNflSgpTier({risk:"Medium",requiredLegs:4,legs:fourTd});
  assert.equal(allTd.compositionOk,false);
