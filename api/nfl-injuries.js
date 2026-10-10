@@ -1,0 +1,38 @@
+import {nflGameInjuryEvidence} from '../lib/nfl-injury-evidence.js';
+const ESPN='https://site.api.espn.com/apis/site/v2/sports/football/nfl';
+async function load(url){
+ const r=await fetch(url,{cache:'no-store',headers:{accept:'application/json'},signal:AbortSignal.timeout(12000)});
+ if(!r.ok)throw new Error('espn_http_'+r.status);
+ return r.json();
+}
+export default async function handler(req,res){
+ res.setHeader('Cache-Control','private, no-store, max-age=0');
+ res.setHeader('CDN-Cache-Control','private, no-store');
+ res.setHeader('Vercel-CDN-Cache-Control','private, no-store');
+ if(req.method!=='GET')return res.status(405).json({ok:false,error:'method_not_allowed'});
+ const gameId=String(req.query.gameId||'');
+ if(!/^\d{7,12}$/.test(gameId))return res.status(400).json({ok:false,error:'valid_game_id_required'});
+ const checkedAt=new Date().toISOString();
+ let summary=null,league=null,errors=[];
+ try{summary=await load(ESPN+'/summary?event='+encodeURIComponent(gameId));}
+ catch(e){errors.push('summary:'+String(e?.message||e))}
+ if(!summary?.header?.competitions?.[0]?.competitors?.length)
+  return res.status(503).json({ok:false,gameId,checkedAt,status:'REPORT_UNAVAILABLE',error:'game_summary_unavailable',errors,officialInactivesVerified:false});
+ try{league=await load(ESPN+'/injuries');}
+ catch(e){errors.push('league:'+String(e?.message||e))}
+ const comp=summary.header.competitions[0],competitors=comp.competitors||[];
+ const report=nflGameInjuryEvidence({summary,league,competitors,checkedAt});
+ const kickoff=comp.date||summary.header?.competitions?.[0]?.date||null;
+ const mins=kickoff&&Number.isFinite(Date.parse(kickoff))?Math.round((Date.parse(kickoff)-Date.now())/60000):null;
+ const pregame=mins!==null&&mins<=90&&mins>=-240;
+ const refreshMinutes=mins!==null&&mins<=120&&mins>=-240?5:15;
+ return res.status(report.reportAvailable?200:503).json({
+  ok:report.reportAvailable,gameId,
+  teams:competitors.map(x=>({id:String(x.team?.id||''),abbr:x.team?.abbreviation||'',homeAway:x.homeAway})),
+  ...report,kickoff,minutesToKickoff:mins,refreshMinutes,
+  officialInactivesRequired:pregame,
+  officialInactivesStatus:pregame?'AWAITING_INDEPENDENT_VERIFICATION':'NOT_YET_VERIFIED',
+  sourceHealth:errors.length?errors.join(';'):'ESPN responses received',
+  note:report.reportAvailable?'ESPN statuses checked at request time; source publication timestamp may be unknown.':'No verifiable ESPN injury report is available; do not treat zero entries as healthy.'
+ });
+}
