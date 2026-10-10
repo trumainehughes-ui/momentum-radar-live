@@ -80,5 +80,5 @@ test("NFL market code applies known exclusions before incomplete-roster fallback
  assert.ok(source.includes("const safeRows=filterKnownNflIneligibleRows(rows,elig)"));
  assert.ok(source.includes("if(!elig?.checked)return safeRows"));
  assert.ok(source.includes("const {blockedIds,blockedNames,questionableIds,questionableNames}=injuryEvidence"));
- assert.ok(source.includes("v81-game-specific-immutable-qb1"));
+ assert.ok(source.includes("v82-sgp-tier-composition"));
 });
