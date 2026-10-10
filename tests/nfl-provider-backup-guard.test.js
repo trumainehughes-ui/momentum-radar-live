@@ -36,7 +36,7 @@ test('production route guards expensive backup instead of using it as primary or
  const src=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
  assert.ok(src.includes('shouldUseSgoBackup({'));
  assert.ok(src.includes('if(backupAllowed){'));
- assert.ok(src.includes('const alt=await oddsApiFallback(date,home,away)'));
+ assert.ok(src.includes('const alt=await oddsApiFallback(date,home,away,gameId)'));
  assert.ok(src.includes("readMarketHold('sgo-request-'+date)"));
  assert.ok(src.includes("writeMarketHold('sgo-request-'+date,MIN_UPSTREAM_GAP"));
  assert.ok(src.includes("while(cursor&&pages<1)"));
