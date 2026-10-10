@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { markBookSgpEstimate } from "../lib/ai-mechanics/sgp-display-evidence.js";
+import { markBookSgpEstimate, markAnalyticsSgpCandidate } from "../lib/ai-mechanics/sgp-display-evidence.js";
 
 test("passing estimated payout threshold never claims a combined book quote", () => {
   const original={book:"FanDuel",risk:"Nuke",estimatedOdds:13400,
@@ -79,4 +79,56 @@ test("NFL model builds are never labeled combined-book SGP verified",()=>{
  assert.ok(src.includes("mode:'MODEL_FIRST_BOOK_UNQUOTED'"));
  assert.ok(!src.includes("const hasVerifiedSgp="));
  assert.ok(src.includes("Individual DraftKings/FanDuel player-market offers are not bookmaker-issued combined SGP quotes."));
+});
+
+test("model-only SGP legs cannot retain inferred book eligibility or quote timestamps",()=>{
+ const s=markAnalyticsSgpCandidate({
+   risk:"Small",book:"Combined",mode:"DATA_MODEL",requiredLegs:2,
+   estimatedOdds:2500,actualSgpOdds:2700,verifiedAt:"2026-10-10T18:00:00Z",
+   payoutBandVerified:true,nukePayoutVerified:true,publishable:true,
+   combinedBookQuoteVerified:true,verifiedLegs:2,
+   legs:[
+    {name:"Player A",analyticsThreshold:85,sportsbookVerified:true,
+     availableAt:["DraftKings"],bookThresholdCaps:{DraftKings:100},
+     bookOffer:{book:"DraftKings",line:85,odds:-110},verifiedAt:"2026-10-10T18:00:00Z"},
+    {name:"Player B",analyticsThreshold:65,sportsbookVerified:true}
+   ]
+ });
+ assert.equal(s.displayable,true);
+ assert.equal(s.publishable,false);
+ assert.equal(s.candidateComplete,true);
+ assert.equal(s.combinedBookQuoteVerified,false);
+ assert.equal(s.verifiedLegs,0);
+ assert.equal(s.eligibleBookLegs,0);
+ assert.equal(s.actualSgpOdds,null);
+ assert.equal(s.estimatedOdds,null);
+ assert.equal(s.verifiedAt,null);
+ assert.equal(s.modelGeneratedAt,"2026-10-10T18:00:00Z");
+ assert.equal(s.combinedPriceType,"model_projection_no_book_quote");
+ assert.equal(s.nukePayoutVerified,false);
+ for(const leg of s.legs){
+   assert.equal(leg.sportsbookVerified,false);
+   assert.equal(leg.marketVerificationPending,true);
+   assert.deepEqual(leg.availableAt,[]);
+   assert.deepEqual(leg.bookThresholdCaps,{});
+   assert.equal(leg.bookOffer,null);
+   assert.equal(leg.verifiedAt,null);
+ }
+});
+test("partial small/medium/nuke model candidates are visible, not published",()=>{
+ const result=markAnalyticsSgpCandidate({risk:"Nuke",requiredLegs:6,
+   legs:[{name:"Sample QB",analyticsThreshold:310}],publishable:true});
+ assert.equal(result.candidateComplete,false);
+ assert.equal(result.displayable,true);
+ assert.equal(result.publishable,false);
+ assert.equal(result.legs.length,1);
+});
+test("NFL analytics tiers no longer rely on assumed sportsbook line ladders",()=>{
+ const src=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
+ assert.ok(src.includes("const threshold=x.cat==='td'?'Anytime TD':Number(rawThreshold)"));
+ assert.ok(!src.includes("if(!playable&&risk!=='Nuke')return false"));
+ assert.ok(src.includes("sportsbookVerified:false,availableAt:[],bookThresholdCaps:{}"));
+ assert.ok(src.includes("const analyticsSgps=gameId?buildAnalyticsSgp(categories,ctx).map(markAnalyticsSgpCandidate):[]"));
+ assert.ok(src.includes("sgps.Analytics=analyticsSgps.map("));
+ assert.ok(!src.includes("publishable:true"));
 });
