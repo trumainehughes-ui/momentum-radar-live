@@ -1,5 +1,5 @@
 // Groq-powered explanation layer. Never treats generated text as verified game data.
-const ALLOWED = new Set(['matchup','injury','parlay','results']);
+const ALLOWED = new Set(['matchup','injury','parlay','research','results']);
 const MODEL = 'openai/gpt-oss-20b';
 const cache = new Map();
 const buckets = new Map();
@@ -64,6 +64,7 @@ const modeGuidance = {
   matchup:'Give the two strongest offense-versus-opponent-defense comparisons and two relevant player projections. State each defense\'s team sample size, not leaguewide game count; fewer than five games is limited. Include any ESPN-reported key offensive injury statuses from skillPositionAlerts and note possible workload implications without adjusting numerical picks. Briefly distinguish unverified starter roles and book prices from available model data; never repeat the same caveat twice.',
   injury:'Lead with reported specific injuries and skillPositionAlerts with names, teams, positions and ESPN source. Explain likely workload considerations qualitatively, without inventing changes to projections. Follow with relevant blocked candidates or role uncertainties and clarify that official inactive/starter confirmation remains pending. Never imply roster membership proves a start.',
   parlay:'Review Small, Medium and Nuke model tiers separately. Explicitly distinguish model tiers from DraftKings/FanDuel book offers and actual combined sportsbook pricing; never declare all model betting information missing just because verified sportsbook prices are absent. Check for ESPN-reported skill-position injury alerts and role/team mismatches in proposed legs.',
+  research:'Analyze the research.queue items as a prioritized fact-check checklist. Describe the specific player and exact prop category to search for at DraftKings and FanDuel. Separate ESPN roster or reported-injury observations from independent official confirmation. If the queue contains lookup queries, identify them as suggested search phrases only, never actual retrieved or verified results. Say which player IDs, game identities, offer timestamps, alternate thresholds and book-specific plus/minus odds are missing. Do not invent a betting line or price, do not claim the websites were automatically browsed, and do not classify an SGP as a verified sportsbook offer. Recommend a short evidence acquisition order.',
   results:'Prioritize supplied completed scores and graded picks. If no final result data exists, say results cannot yet be graded.'
 };
 function respond(res, status, body) {res.setHeader('Cache-Control','no-store');return res.status(status).json(body)}
