@@ -87,7 +87,7 @@ test("NFL builder does not overwrite already-pruned analytics candidates",()=>{
  assert.ok(source.includes("sgps=pruneSgpsForEligibility(sgps,eligibility)"));
  assert.ok(source.includes("sgps.Analytics=(sgps.Analytics||[]).map("));
  assert.ok(!source.includes("sgps.Analytics=analyticsSgps.map("));
- assert.ok(source.includes("v79-both-teams-injury-source-gate"));
+ assert.ok(source.includes("v80-partial-injury-exclusions"));
 });
 test("NFL view renders corrected model-first mode and changed-lineup warnings",()=>{
  const source=readFileSync(new URL("../index.html",import.meta.url),"utf8");
