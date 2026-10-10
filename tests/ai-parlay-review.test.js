@@ -5,7 +5,7 @@ import { reviewParlay } from "../lib/ai-mechanics/parlay-review.js";
 const player = { id: "p1", team: "A", status: "active", starterConfirmed: true };
 const market = { playerId: "p1", team: "A", market: "rushing_yards", line: 85, sportsbook: "FanDuel", available: true, source: "SportsGameOdds:FanDuel", timestamp: 1000 };
 const leg = { gameId: "g1", playerId: "p1", team: "A", market: "rushing_yards", line: 85, sportsbook: "FanDuel" };
-const quote = { sportsbook: "FanDuel", source: "verified_book_quote", americanOdds: 10000, timestamp: 1000 };
+const quote = { sportsbook: "FanDuel", source: "verified_book_quote", americanOdds: 10000, timestamp: 1000, legs: [leg] };
 const input = { legs: [leg], tier: "nuke", combinedAmericanOdds: 10000, sportsbook: "FanDuel", priceSource: "verified_book_quote", quote, now: 1100, context: { gameId: "g1", activePlayers: [player], markets: [market] } };
 
 test("current same-book SGP quote and confirmed starter pass advisory review", () => {
@@ -47,3 +47,15 @@ test("nuke requires at least +10000 verified price", () =>
   assert.ok(reviewParlay({ ...input, quote: { ...quote, americanOdds: 9999 }, combinedAmericanOdds: 9999 }).reasons.includes("tier_payout_below_target")));
 test("unsupported sportsbook fails closed", () =>
   assert.ok(reviewParlay({ ...input, sportsbook: "Other" }).reasons.includes("verified_combined_price_required")));
+
+
+test("combined quote for a different player is rejected", () =>
+  assert.ok(reviewParlay({ ...input, quote: { ...quote, legs: [{ ...leg, playerId: "someone-else" }] } }).reasons.includes("combined_quote_legs_mismatch")));
+test("combined quote for a different line is rejected", () =>
+  assert.ok(reviewParlay({ ...input, quote: { ...quote, legs: [{ ...leg, line: 90 }] } }).reasons.includes("combined_quote_legs_mismatch")));
+test("combined quote without leg identities is rejected", () =>
+  assert.ok(reviewParlay({ ...input, quote: { ...quote, legs: undefined } }).reasons.includes("combined_quote_legs_mismatch")));
+test("combined quote for a different game is rejected", () =>
+  assert.ok(reviewParlay({ ...input, quote: { ...quote, legs: [{ ...leg, gameId: "g2" }] } }).reasons.includes("combined_quote_legs_mismatch")));
+test("duplicate legs are rejected even with a matching combined quote", () =>
+  assert.ok(reviewParlay({ ...input, legs: [leg, leg], quote: { ...quote, legs: [leg, leg] } }).reasons.includes("duplicate_legs")));
