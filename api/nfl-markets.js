@@ -3,6 +3,7 @@ import { assessNflSgpTier, fillNflSgpMarketMix, guardFinalNflSgpCards, modelNflS
 import {validNflDvpRank,capNflTierYardTarget,isNflConfirmedGameQb} from '../lib/ai-mechanics/nfl-projection-safety.js';
 import {nflGameInjuryEvidence,nflInjuryBlocks} from '../lib/nfl-injury-evidence.js';
 import {nflWeeklyForGame} from '../lib/nfl-injury-weekly-loader.js';
+import {nflCanonTeam} from '../lib/nfl-official-injury-feed.js';
 const SGO='https://api.sportsgameodds.com/v2/events';
 const ESPN='https://site.api.espn.com/apis/site/v2/sports/football/nfl';
 const ODDS='https://api.the-odds-api.com/v4/sports/americanfootball_nfl';
@@ -340,7 +341,7 @@ async function gameEligibility(gameId){if(!gameId)return{blockedIds:new Set(),bl
  if(x.playerId)blockedIds.add(String(x.playerId));
  for(const name of [x.name,...(x.aliases||[])])if(name)blockedNames.add(norm(name))
 }const rosterById=new Map(),rosterByName=new Map();for(const abbr of abbrs){try{const rd=await json(ESPN+'/teams/'+encodeURIComponent(abbr)+'/roster',{},1),groups=Array.isArray(rd.athletes)?rd.athletes:[],athletes=groups.flatMap(g=>Array.isArray(g.items)?g.items:Array.isArray(g.athletes)?g.athletes:[]);for(const a of athletes){const id=String(a.id||a.athlete?.id||''),name=a.displayName||a.fullName||a.athlete?.displayName||a.athlete?.fullName||'',pos=a.position?.abbreviation||a.athlete?.position?.abbreviation||'';if(id)rosterById.set(id,{team:abbr,name,pos});if(name)rosterByName.set(norm(name),{team:abbr,id,pos})}}catch(e){console.error('current_roster_fetch_failed',abbr,String(e?.message||e))}}return{blockedIds,blockedNames,rosterById,rosterByName,checked:injury.reportAvailable&&rosterById.size>0,injuryChecked:injury.reportAvailable,injuryCheckedAt:injury.checkedAt,officialInactivesVerified:false,source:injury.source+' + current team rosters'}}catch(e){console.error('game_eligibility_failed',String(e?.message||e));return{blockedIds:new Set(),blockedNames:new Set(),rosterById:new Map(),rosterByName:new Map(),checked:false}}}
-function eligibilityFilter(rows,elig){if(!elig?.checked)return [];return(rows||[]).filter(x=>{const id=String(x.playerID||x.playerId||''),name=norm(x.name);if(elig.blockedIds.has(id)||elig.blockedNames.has(name))return false;const rr=elig.rosterById?.get(id)||elig.rosterByName?.get(name);if(!rr)return false;return !x.team||norm(rr.team)===norm(x.team)})}
+function eligibilityFilter(rows,elig){if(!elig?.checked)return [];return(rows||[]).filter(x=>{const id=String(x.playerID||x.playerId||''),name=norm(x.name);if(elig.blockedIds.has(id)||elig.blockedNames.has(name))return false;const rr=elig.rosterById?.get(id)||elig.rosterByName?.get(name);if(!rr)return false;return !x.team||norm(nflCanonTeam(rr.team))===norm(nflCanonTeam(x.team))})}
 function pruneSgpsForEligibility(sgps,elig,{gameId,home,away}={}){
  return guardFinalNflSgpCards(sgps,{
    blockedIds:elig?.blockedIds,blockedNames:elig?.blockedNames,
