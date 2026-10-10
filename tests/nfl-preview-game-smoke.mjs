@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 
-const endpoint=new URL('/api/nfl-markets','https://momentum-radar-live-1pv1vcqdk-trumainehughes-6743.vercel.app');
+const endpoint=new URL('/api/nfl-markets','https://momentum-radar-live-le9zqy8h5-trumainehughes-6743.vercel.app');
 endpoint.searchParams.set('date','2026-10-11');
 endpoint.searchParams.set('gameId','401872987');
 const rsp=await fetch(endpoint,{signal:AbortSignal.timeout(180000),headers:{accept:'application/json'}});
@@ -15,6 +15,22 @@ assert.equal(String(d.gameId),'401872987');
 assert.equal(d.date,'2026-10-11');
 assert.equal(d.sgps?.mode,'MODEL_FIRST_BOOK_UNQUOTED');
 const norm=x=>String(x||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+assert.equal(d.validation?.sportsbookVerificationAvailable,false,
+ 'No authenticated combined bookmaker quote is present');
+assert.equal(d.validation?.combinedBookSgpQuoteAvailable,false,
+ 'No combined bookmaker SGP quote provider is connected');
+assert.equal(d.validation?.analyticsSgpsPublishable,false,
+ 'Unquoted model SGPs must not be marked book-publishable');
+if(d.marketRows===0){
+ for(const book of ['DraftKings','FanDuel']){
+  for(const card of d.sgps?.[book]||[]){
+   assert.equal(card.bookVerificationPending,true,
+    book+' with zero book market rows must remain pending');
+   assert.notEqual(card.combinedBookQuoteVerified,true);
+  }
+ }
+}
+
 let complete=0,notReady=0;
 for(const book of ['Analytics','DraftKings','FanDuel']){
  for(const card of d.sgps?.[book]||[]){
@@ -46,5 +62,5 @@ for(const book of ['Analytics','DraftKings','FanDuel']){
   complete++;
  }
 }
-console.log(JSON.stringify({game:'MIN at NO',date:d.date,gameId:d.gameId,provider:d.provider,degraded:d.degraded,marketRows:d.marketRows,completeCards:complete,notReadyCards:notReady,combinedPriceVerified:false},null,2));
+console.log(JSON.stringify({game:'MIN at NO',date:d.date,gameId:d.gameId,provider:d.provider,degraded:d.degraded,marketRows:d.marketRows,modelTiers:(d.sgps?.Analytics||[]).filter(x=>(x.legs||[]).length===x.requiredLegs).length,cardsAcrossViews:complete,bookViewsUnquoted:d.validation?.combinedBookSgpQuoteAvailable===false,notReadyCards:notReady,combinedPriceVerified:false},null,2));
 assert.ok(complete>0,'NO_COMPLETE_SGP_CARDS: game remains model NOT READY; inspect provider and identity evidence');
