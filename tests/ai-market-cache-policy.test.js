@@ -44,7 +44,7 @@ test("stale quote is not eligible to extend server cache",()=>{
 });
 test("actual NFL endpoint uses a new cache schema and no-store for sportsbook prices",()=>{
   const src=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
-  assert.match(src,/v80-partial-injury-exclusions/);
+  assert.match(src,/v81-game-specific-immutable-qb1/);
   assert.match(src,/cachedMarketResponseValid\(saved,Date\.now\(\)\)/);
   assert.match(src,/writeResponseSnapshot\(responseKey,body,responseCache\.expiresAt\)/);
   assert.match(src,/responseCache\.hasBookQuotes/);
