@@ -259,7 +259,7 @@ document.querySelectorAll('[data-nflday]').forEach(b=>b.onclick=()=>{
  nflClose();loadNFL();
 });
 const nflDateSelect=$('#nflDate');
-if(nflDateSelect)nflDateSelect.addEventListener('change',()=>{nflClose();loadNFL()});
+if(nflDateSelect&&typeof nflDateSelect.addEventListener==='function')nflDateSelect.addEventListener('change',()=>{nflClose();loadNFL()});
 const nflRefreshAll=$('#nflRefreshAll');
 if(nflRefreshAll)nflRefreshAll.onclick=()=>{const saved=nflSelected?.gameId;
  if(saved&&nflData?.date)nflMarketCache.delete(nflData.date+'|'+saved);
