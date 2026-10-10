@@ -1,0 +1,13 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { reviewGameScopedPicks } from "../lib/ai-mechanics/game-scope.js";
+const pick={gameId:"g1",playerId:"123",team:"PHI",market:"rushing_yards",line:85,sportsbook:"FanDuel"};
+const market={...pick,available:true,source:"FanDuel",timestamp:1000};
+const player={playerId:"123",team:"PHI",availability:"ACTIVE_ROTATION",starterStatus:"CONFIRMED_STARTER",verification:{role:{verified:true}}};
+const game={gameId:"g1",teams:[{abbr:"PHI"},{abbr:"CHI"}],playerProjections:[player]};
+test("matched game and current market can pass",()=>assert.equal(reviewGameScopedPicks({game,picks:[pick],markets:[market],now:1100}).ready,true));
+test("different game pick fails",()=>assert.equal(reviewGameScopedPicks({game,picks:[{...pick,gameId:"g2"}],markets:[market],now:1100}).ready,false));
+test("different game quote fails",()=>assert.equal(reviewGameScopedPicks({game,picks:[pick],markets:[{...market,gameId:"g2"}],now:1100}).ready,false));
+test("team outside matchup fails",()=>assert.equal(reviewGameScopedPicks({game,picks:[{...pick,team:"NYG"}],markets:[market],now:1100}).ready,false));
+test("missing game id fails closed",()=>assert.equal(reviewGameScopedPicks({game:{...game,gameId:null},picks:[pick],markets:[market],now:1100}).ready,false));
+test("unavailable quote blocks recommendation",()=>assert.equal(reviewGameScopedPicks({game,picks:[pick],markets:[{...market,available:false}],now:1100}).ready,false));
