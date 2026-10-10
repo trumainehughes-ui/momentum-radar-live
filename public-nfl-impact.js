@@ -162,7 +162,7 @@
   if(root.document.hidden)return;
   const ids=[...new Set(watches.map(w=>w.gameId))].slice(0,8);
   for(const id of ids){
-   if(inflight.has(id)||String(root.nflSelected?.gameId||'')===id)continue;
+   if(inflight.has(id)||String(root.momentumSelectedNflGame?.()||'')===id)continue;
    const last=lastPoll.get(id)||0;
    if(Date.now()-last<60*1000)continue;
    lastPoll.set(id,Date.now());inflight.add(id);
