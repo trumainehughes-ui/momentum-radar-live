@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {assessNflSgpTier,classifyNflSgpOdds,NFL_SGP_TIERS} from "../lib/ai-mechanics/nfl-sgp-tiers.js";
+import {assessNflSgpTier,classifyNflSgpOdds,tenDollarSgpPayout,NFL_SGP_TIERS} from "../lib/ai-mechanics/nfl-sgp-tiers.js";
 import {markAnalyticsSgpCandidate} from "../lib/ai-mechanics/sgp-display-evidence.js";
 const picks=[
  {playerID:"qb",name:"Starting Quarterback",cat:"passing"},
@@ -22,7 +22,7 @@ test("real four-anytime-TD bet slip at +25362 is Nuke-level, never Small",()=>{
  assert.equal(check.tierVerified,false);
  assert.equal(check.observedOddsCategory,"Nuke");
  assert.equal(check.tdLegs,4);
- assert.match(check.reason,/at most 1 anytime-TD/);
+ assert.match(check.reason,/at most 1 anytime TD/);
 });
 test("Small requires diverse model props with at most one TD and no duplicate players",()=>{
  const good=assessNflSgpTier({risk:"Small",legs:picks,requiredLegs:4});
@@ -42,7 +42,7 @@ test("Medium is stricter than Nuke about TD concentration and requires 3 distinc
  assert.equal(medium.compositionOk,true);
  const allTd=assessNflSgpTier({risk:"Medium",requiredLegs:4,legs:fourTd});
  assert.equal(allTd.compositionOk,false);
- assert.equal(NFL_SGP_TIERS.Medium.maxTdLegs,2);
+ assert.equal(NFL_SGP_TIERS.Medium.maxTdLegs,1);
 });
 test("bookmaker combined odds take precedence over independent multiplied leg estimates",()=>{
  const observed=assessNflSgpTier({risk:"Small",requiredLegs:4,
@@ -52,12 +52,14 @@ test("bookmaker combined odds take precedence over independent multiplied leg es
  assert.equal(observed.estimatedOddsCategory,"Small");
  assert.equal(observed.tierVerified,false); // screenshot number is not a live quote feed
 });
-test("American odds tier targets preserve $10 gross return bands",()=>{
- assert.equal(classifyNflSgpOdds(1900),"Small");
- assert.equal(classifyNflSgpOdds(2899),"Small");
- assert.equal(classifyNflSgpOdds(2900),"Small");
- assert.equal(classifyNflSgpOdds(2901),"Medium");
- assert.equal(classifyNflSgpOdds(3000),"Medium");
+test("American odds tiers map $10 NET profit targets",()=>{
+ assert.equal(classifyNflSgpOdds(1999),"OUTSIDE_TIER_BANDS");
+ assert.equal(classifyNflSgpOdds(2000),"Small");
+ assert.equal(classifyNflSgpOdds(2500),"Small");
+ assert.equal(classifyNflSgpOdds(3000),"Small");
+ assert.equal(classifyNflSgpOdds(3001),"Medium");
+ assert.equal(classifyNflSgpOdds(8000),"Medium");
+ assert.equal(classifyNflSgpOdds(8001),"OUTSIDE_TIER_BANDS");
  assert.equal(classifyNflSgpOdds(6000),"Medium");
  assert.equal(classifyNflSgpOdds(10000),"Nuke");
  assert.equal(classifyNflSgpOdds(null),"UNKNOWN");
@@ -69,14 +71,14 @@ test("an incomplete model build is not a completed Small SGP candidate",()=>{
  assert.equal(invalid.candidateComplete,false);
  assert.equal(invalid.publishable,false);
  assert.equal(invalid.actualSgpOdds,null);
- assert.match(invalid.pricingNote,/at most 1 anytime-TD/);
+ assert.match(invalid.pricingNote,/at most 1 anytime TD/);
 });
 test("NFL builder enforces tier diversity even in its fallback pass",()=>{
  const api=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
  assert.match(api,/if\(x\.cat==='td'&&legs\.filter\(v=>v\.cat==='td'\)\.length>=\(risk==='Small'\?1:2\)\)return false/);
  assert.ok(api.includes("const tierAssessment=assessNflSgpTier({risk,legs,requiredLegs:count})"));
  assert.ok(api.includes("if(!tierAssessment.compositionOk)return{book,risk,legs:[]"));
- assert.ok(api.includes("v82-sgp-tier-composition"));
+ assert.ok(api.includes("v83-net-profit-yardage-first"));
  assert.ok(api.includes("Number.isInteger(or)&&or>=1&&or<=32"));
  assert.ok(api.includes("Number.isInteger(dr)&&dr>=1&&dr<=32"));
 });
@@ -85,4 +87,19 @@ test("NFL UI labels payout targets as illustrative and does not imply combined o
  assert.ok(ui.includes("Illustrative target (not verified): "));
  assert.ok(ui.includes("MODEL COMPOSITION ONLY • Combined sportsbook odds unverified"));
  assert.ok(ui.includes("Needs rebuild: "));
+});
+
+test("the model builds passing/rushing/receiving yards before optional touchdowns",()=>{
+ const api=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
+ assert.ok(api.includes("const mix=fillNflSgpMarketMix({risk,count,pool:riskPool,legs,add})"));
+ assert.ok(api.includes("const mix=fillNflSgpMarketMix({risk,count,pool:rotated,legs,add})"));
+ assert.ok(api.includes("if(!tierAssessment.compositionOk)return{book:'Combined'"));
+});
+test("Small/Medium/Nuke $10 payout labels refer to PROFIT rather than total return",()=>{
+ const api=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
+ assert.ok(api.includes("$200–$300 NET profit"));
+ assert.ok(api.includes("$300–$800 NET profit"));
+ assert.ok(api.includes("$1,000+ NET profit"));
+ for(const [odds,net] of [[2000,200],[3000,300],[8000,800],[10000,1000]])
+   assert.equal(tenDollarSgpPayout(odds).netProfit,net);
 });
