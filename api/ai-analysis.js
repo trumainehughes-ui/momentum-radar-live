@@ -189,10 +189,13 @@ export default async function handler(req,res) {
     primaryError=e;
     const reason=providerErrorReason(e);
     console.warn('ai_primary_unavailable',{provider:'groq',status:e?.status||null,error:reason});
-    if(e?.status===429||(e?.status===413&&e?.code==='rate_limit_exceeded'))
+    if((e?.status===413&&e?.code==='rate_limit_exceeded')||
+       (process.env.OPENROUTER_API_KEY&&e?.status===429))
      providerCooldownUntil=Date.now()+90000;
-    else if([401,403,404].includes(e?.status))providerCooldownUntil=Date.now()+300000;
-    else if(e?.kind==='transport')providerCooldownUntil=Date.now()+30000;
+    else if(process.env.OPENROUTER_API_KEY&&[401,403,404].includes(e?.status))
+     providerCooldownUntil=Date.now()+300000;
+    else if(process.env.OPENROUTER_API_KEY&&e?.kind==='transport')
+     providerCooldownUntil=Date.now()+30000;
     // Malformed client payload: don't pay to send it to another AI service.
     if(primaryCannotRecoverWithBackup(e))return respond(res,502,{ok:false,error:reason,mechanics,verified:false});
    }
