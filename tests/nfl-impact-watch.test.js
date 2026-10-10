@@ -62,3 +62,10 @@ test('model candidate refuses incomplete or unqualified same-game parlays',()=>{
  assert.equal(m.makeWatch(game,{...candidate,requiredLegs:4},'x'),null);
  assert.equal(m.makeWatch(game,{...candidate,tierAssessment:{compositionOk:false}},'x'),null);
 });
+
+test('roster-only evidence fingerprint can change without incorrectly declaring an injury void',()=>{
+ const watch=m.makeWatch(game,candidate,'roster');
+ const a=report(),b={...a,rosterSignals:[{playerId:'100',name:'Starting QB',team:'MIN',position:'QB',starterReported:false}]};
+ assert.notEqual(m.signature(a),m.signature(b));
+ assert.equal(m.classifyWatch(watch,b).status,'MODEL_TRACKED');
+});

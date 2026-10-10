@@ -104,6 +104,7 @@
     MODEL_TRACKED:'Model monitored • book price unverified',
     MODEL_AUTO_REBUILT:'Model automatically rebuilt • review new legs before betting',
     MODEL_REBUILD_REQUIRED:'Injury impacted model • valid replacement unavailable',
+    MODEL_RECHECK_REQUIRED:'Roster or depth change • refreshing this model',
     PLAYER_REVIEW_REQUIRED:'Questionable/uncertain player • hold for review',
     INJURY_SOURCE_UNAVAILABLE:'Injury feed unavailable • model status unverified'
    };
@@ -120,7 +121,7 @@
   watches=watches.filter(x=>!(x.gameId===watch.gameId&&x.risk===watch.risk)).concat(watch).slice(-36);
   const snapshot=reportCache.get(watch.gameId);
   if(snapshot)watches=watches.map(w=>w.id===watch.id?classifyWatch(w,snapshot):w);
-  persist();render();
+  persist();render();pollTracked();
  }
  function onSnapshot(gameId,report){
   const id=String(gameId),before=lastSignatures.get(id),after=signature(report);
@@ -130,6 +131,8 @@
    if(w.gameId!==id)return w;
    const next=classifyWatch(w,report);
    if(!next)return w;
+   const evidenceChanged=before!==undefined&&before!==after;
+   if(evidenceChanged&&next.status==='MODEL_TRACKED')next.status='MODEL_RECHECK_REQUIRED';
    if(next.status!==w.status||next.activeLegs.length!==w.activeLegs.length||JSON.stringify(next.removedLegs)!==JSON.stringify(w.removedLegs))changed=true;
    return {...next,updatedAt:changed?new Date().toISOString():w.updatedAt};
   });
@@ -148,10 +151,25 @@
   const report=reportCache.get(String(game.gameId));
   let revised=false;
   watches=watches.map(w=>{
-   if(w.gameId!==String(game.gameId)||w.status!=='MODEL_REBUILD_REQUIRED')return w;
+   if(w.gameId!==String(game.gameId)||!['MODEL_REBUILD_REQUIRED','MODEL_RECHECK_REQUIRED'].includes(w.status))return w;
    const candidate=tiers.find(x=>x.risk===w.risk);
-   const replacement=rebuildWatch(w,candidate,report);
-   if(replacement?.status==='MODEL_AUTO_REBUILT'){revised=true;return replacement;}return w;
+   if(w.status==='MODEL_REBUILD_REQUIRED'){
+    const replacement=rebuildWatch(w,candidate,report);
+    if(replacement?.status==='MODEL_AUTO_REBUILT'){revised=true;return replacement;}
+    return w;
+   }
+   const qualified=candidate?.tierAssessment?.compositionOk!==false&&
+       candidate?.legs?.length===candidate?.requiredLegs;
+   if(!qualified)return w;
+   const fresh=candidate.legs.map(modelLeg);
+   if(fresh.some(x=>(report?.injuries||[]).some(i=>BLOCK.has(i.status)&&samePlayer(x,i))))return w;
+   const priorKeys=w.legs.map(legKey).join(';'),nextKeys=fresh.map(legKey).join(';');
+   revised=true;
+   if(priorKeys===nextKeys)return {...w,status:'MODEL_TRACKED',updatedAt:new Date().toISOString()};
+   return {...w,legs:fresh,activeLegs:fresh,status:'MODEL_AUTO_REBUILT',updatedAt:new Date().toISOString(),
+     actualCombinedOdds:null,bookSettlement:'NOT_CONNECTED',
+     revisions:[...(w.revisions||[]),{at:new Date().toISOString(),reason:'reported_roster_or_lineup_change',
+        priorLegs:clone(w.legs),removed:[]}].slice(-12)};
   });
   if(revised)persist();
   render();
