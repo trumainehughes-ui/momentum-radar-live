@@ -58,7 +58,9 @@
    readiness?.sampleSource==='NO_COMPLETED_GAMES'?' • No eligible completed game samples':'';
   const stale=readiness?.status==='STALE'?
    '<div class="note"><b>STALE NBA MODEL — new pregame injury/roster check required.</b> '+safe(readiness.reason||'')+'</div>':'';
-  const source=stale+'<div class="refresh">Pregame model: '+safe(stage)+basis+' • AI review: '+safe(readiness?.aiReviewStatus||'PENDING')+' • Last model/injury check: '+safe(freshness)+
+  const summaryPending=d?.pregameSourceMode==='SCOREBOARD_VERIFIED_FALLBACK'?
+   '<div class="note">ESPN detailed game preview is not yet available. This matchup was rechecked against the ESPN scoreboard; reported injuries and starters may still be unverified.</div>':'';
+  const source=summaryPending+stale+'<div class="refresh">Pregame model: '+safe(stage)+basis+' • AI review: '+safe(readiness?.aiReviewStatus||'PENDING')+' • Last model/injury check: '+safe(freshness)+
    ' • Injury evidence: '+safe(injury)+' ('+safe(readiness?.injuryReportStatus||'UNVERIFIED')+')</div>';
   return source+rows.map(s=>{
    const ready=s.status==='MODEL_CANDIDATE'&&Array.isArray(s.legs)&&s.legs.length>0;
