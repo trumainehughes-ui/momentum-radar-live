@@ -145,11 +145,18 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
  // Rebuilds are deterministic (injury/roster changes are authoritative).
  // Groq/OpenRouter is automatically asked to REVIEW only when T-30 begins or
  // qualified model legs materially change, never to manufacture replacement legs.
- if(plan.stage==='FINAL_T_MINUS_30'&&(result.changedFromPrior||
-   prior?.stage!=='FINAL_T_MINUS_30')&&result.sgps?.some(x=>x.status==='MODEL_CANDIDATE')){
+ const eligible=result.sgps?.some(x=>x.status==='MODEL_CANDIDATE');
+ if(!eligible){
+  result.aiReview={status:'SKIPPED',reason:'No eligible NBA SGP remains to review'};
+ }else if(plan.stage==='FINAL_T_MINUS_30'&&(result.changedFromPrior||
+   prior?.stage!=='FINAL_T_MINUS_30'||prior?.modelVersion!==NBA_PREGAME_MODEL_VERSION)){
    result.aiReview=await review('nba',game,result);
    result.aiReviewed=result.aiReview?.status==='REVIEWED';
- }else result.aiReview=prior?.aiReview||{status:'PENDING',reason:'T-30 review not yet eligible'};
+ }else if(prior&&!result.changedFromPrior&&prior.stage===plan.stage&&
+   prior.modelVersion===NBA_PREGAME_MODEL_VERSION&&prior.aiReview?.status==='REVIEWED'){
+   result.aiReview=prior.aiReview;
+   result.aiReviewed=true;
+ }else result.aiReview={status:'PENDING',reason:'Awaiting eligible T-30 evidence review'};
  await write(result);
  return{gameId:game.gameId,status:result.status,stage:plan.stage,revision:result.revision,
   changed:result.changedFromPrior,modelTiers:(result.sgps||[]).filter(x=>x.status==='MODEL_CANDIDATE').map(x=>x.risk),
