@@ -9,3 +9,11 @@ test("future-dated reports are excluded",()=>assert.equal(filterCurrentRoleEvide
 test("untrusted report authority excluded",()=>assert.equal(filterCurrentRoleEvidence([{...record,authority:"UNKNOWN"}],{now,kickoff}).length,0));
 test("missing kickoff fails closed",()=>assert.deepEqual(filterCurrentRoleEvidence([record],{now,kickoff:NaN}),[]));
 test("post-kickoff role evidence excluded",()=>assert.equal(filterCurrentRoleEvidence([{...record,checkedAt:"2026-10-09T12:00:00Z"}],{now:Date.parse("2026-10-11T00:00:00Z"),kickoff}).length,1));
+
+
+test("NFL endpoint ignores caller-supplied starter authority claims", async () => {
+  const { readFileSync } = await import("node:fs");
+  const source = readFileSync(new URL("../api/nfl-game.js", import.meta.url), "utf8");
+  assert.ok(!source.includes("req.body?.roleEvidence"), "client-provided roleEvidence must never become trusted");
+  assert.ok(source.includes("filterCurrentRoleEvidence(verifiedGameEvidence(gameId)"), "only server-controlled game evidence can enter official role filter");
+});
