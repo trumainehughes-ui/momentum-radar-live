@@ -1,6 +1,7 @@
 import { gradeHistory, parlayStatus } from '../lib/nfl-results.js';
 import {nflGameInjuryEvidence,nflInjuryBlocks} from '../lib/nfl-injury-evidence.js';
-import {nflPublishedWeeklyGameReport} from '../lib/nfl-weekly-source.js';
+import {nflWeeklyForGame} from '../lib/nfl-injury-weekly-loader.js';
+import {nflCanonTeam} from '../lib/nfl-official-injury-feed.js';
 import { put, list, del } from '@vercel/blob';
 const ESPN="https://site.api.espn.com/apis/site/v2/sports/football/nfl";
 const ESPN_STATS="https://site.web.api.espn.com/apis/common/v3/sports/football/nfl/statistics/byathlete";
@@ -54,16 +55,16 @@ export default async function handler(req,res){
  try{
   const summary=await json(`${ESPN}/summary?event=${encodeURIComponent(gameId)}`);
   const comp=summary.header?.competitions?.[0]||{}; const competitors=comp.competitors||[];
-  const allowedIds=new Set(competitors.map(c=>String(c.team?.id||"")).filter(Boolean)); const allowedAbbr=new Set(competitors.map(c=>String(c.team?.abbreviation||"").toUpperCase()).filter(Boolean));
+  const allowedIds=new Set(competitors.map(c=>String(c.team?.id||"")).filter(Boolean)); const allowedAbbr=new Set(competitors.map(c=>nflCanonTeam(c.team?.abbreviation)).filter(Boolean));
   let leagueInj=null;
   try{leagueInj=await json(ESPN_INJ)}catch(e){console.warn('league_injury_unavailable',String(e?.message||e))}
-  const weekly=nflPublishedWeeklyGameReport({gameId,date:comp.date,teams:competitors});
+  const weekly=await nflWeeklyForGame({gameId,summary,competitors});
   const injuryReport=nflGameInjuryEvidence({summary,league:leagueInj,weekly,competitors,checkedAt:new Date().toISOString()});
   const injuries=injuryReport.injuries;
-  const athleteTeam=new Map(); for(const t of (summary.rosters||[])){const ta=String(t.team?.abbreviation||"").toUpperCase();for(const a of (t.roster||t.athletes||[])){const id=String(a.athlete?.id||a.id||"");if(id)athleteTeam.set(id,ta)}}
+  const athleteTeam=new Map(); for(const t of (summary.rosters||[])){const ta=nflCanonTeam(t.team?.abbreviation);for(const a of (t.roster||t.athletes||[])){const id=String(a.athlete?.id||a.id||"");if(id)athleteTeam.set(id,ta)}}
   const scopedInjuries=injuries.filter(x=>allowedAbbr.has(String(x.team||"").toUpperCase())||allowedAbbr.has(athleteTeam.get(x.playerId)||""));
   const blockers=scopedInjuries.filter(x=>nflInjuryBlocks(x.status));const gameRoleBlockers=[];if(String(gameId)==='401872966'){gameRoleBlockers.push({team:'NYG',playerId:'4689114',name:'Jaxson Dart',position:'QB',injury:'Knee',status:'IR',rawStatus:'Season-ending regular-season injury',source:'New York Giants official starter update'});}for(const x of gameRoleBlockers)if(!blockers.some(b=>String(b.playerId)===String(x.playerId)))blockers.push(x);const questionableIds=new Set(scopedInjuries.filter(x=>x.status==="QUESTIONABLE").map(x=>x.playerId));
-  const teams=competitors.map(c=>({id:String(c.team?.id||""),abbr:c.team?.abbreviation,name:c.team?.displayName,homeAway:c.homeAway}));
+  const teams=competitors.map(c=>({id:String(c.team?.id||""),abbr:nflCanonTeam(c.team?.abbreviation),name:c.team?.displayName,homeAway:c.homeAway}));
   if(String(req.query.mode||'')==='history-grade'){const locked=await readHistory(gameId),stats=finalStats(summary),final=String(comp.status?.type?.state||'').toLowerCase()==='post'||/final/i.test(String(comp.status?.type?.description||'')),score=competitors.map(c=>({team:c.team?.abbreviation||'',homeAway:c.homeAway,score:hnum(c.score)})),picks=(locked?.picks||[]).map(p=>({...p,grade:gradeHistory(p,stats)})),sgps=(locked?.sgps||[]).map(s=>{const legs=(s.legs||[]).map(p=>({...p,grade:gradeHistory(p,stats)}));return{...s,legs,legsHit:legs.filter(x=>x.grade.status==='HIT').length,legsTotal:legs.length,status:parlayStatus(legs),hit:parlayStatus(legs)==='HIT'}});return res.status(200).json({ok:true,gameId,final,teams:score,picks,sgps,lockedAt:locked?.lockedAt||null,gradedAt:new Date().toISOString()})}
   // Hard game-day availability overrides for authoritative official/NFL transaction states that can lag ESPN summary injury payloads.
   // These are scoped to the exact game and should be removed once upstream reliably exposes reserve status.

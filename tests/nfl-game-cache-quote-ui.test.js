@@ -8,7 +8,7 @@ test('game-specific market responses never use public stale CDN price caches',()
  assert.ok(api.includes("const EDGE_GAME='private, no-store'"));
  assert.ok(api.includes("const clientCachePolicy=gameId?EDGE_GAME:EDGE_GOOD"));
  assert.equal((api.match(/res\.setHeader\('Cache-Control',clientCachePolicy\)/g)||[]).length,2);
- assert.ok(api.includes("CACHE_SCHEMA='v85-official-weekly-reconcile'"));
+ assert.ok(api.includes("CACHE_SCHEMA='v86-dynamic-official-all-games'"));
  assert.ok(!api.includes('stale-while-revalidate=21600'));
 });
 test('NLF game screen never calls individual prop candidates verified SGP tickets',()=>{

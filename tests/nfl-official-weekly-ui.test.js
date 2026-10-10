@@ -6,17 +6,17 @@ const source=readFileSync(new URL('../api/nfl-injuries.js',import.meta.url),'utf
 const markets=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
 const game=readFileSync(new URL('../api/nfl-game.js',import.meta.url),'utf8');
 test('injury UI renders separate team headings, clear statuses and dated official source',()=>{
- for(const fragment of ['nflInjuryTeam','nflInjurySection','nflInjuryStatus.OUT','nflInjuryStatus.DOUBTFUL','nflInjuryStatus.QUESTIONABLE','nflInjuryRefreshBtn','NFL published weekly report:','Official weekly game statuses have NOT been cross-checked','Reserve / long-term injuries','Additional ESPN tracker entries'])
+ for(const fragment of ['nflInjuryTeam','nflInjurySection','nflInjuryStatus.OUT','nflInjuryStatus.DOUBTFUL','nflInjuryStatus.QUESTIONABLE','nflInjuryRefreshBtn','NFL automatic weekly report','Official weekly game statuses have NOT been cross-checked','Reserve / long-term injuries','Additional ESPN tracker entries'])
   assert.ok(html.includes(fragment),fragment);
  assert.ok(html.includes('gameDesignationVerified'));
  assert.ok(html.includes('weeklySourceUrl'));
  assert.ok(!html.includes('ESPN checked '+"'+safe(time)+' • Source publication time not supplied"));
 });
 test('official published cross-check is shared by injury API, game roster, and final SGP eligibility',()=>{
- assert.ok(source.includes('nflPublishedWeeklyGameReport({gameId,date:comp.date,teams:competitors})'));
- assert.ok(game.includes('nflPublishedWeeklyGameReport({gameId,date:comp.date,teams:competitors})'));
- assert.ok(markets.includes('nflPublishedWeeklyGameReport({gameId,date:comp.date,teams})'));
+ assert.ok(source.includes('nflWeeklyForGame({gameId,summary,competitors})'));
+ assert.ok(game.includes('nflWeeklyForGame({gameId,summary,competitors})'));
+ assert.ok(markets.includes('nflWeeklyForGame({gameId,summary:d,competitors:teams})'));
  assert.ok(game.includes('blockedNames=new Set(blockers.flatMap'));
  assert.ok(markets.includes('...(x.aliases||[])'));
- assert.ok(markets.includes("CACHE_SCHEMA='v85-official-weekly-reconcile'"));
+ assert.ok(markets.includes("CACHE_SCHEMA='v86-dynamic-official-all-games'"));
 });
