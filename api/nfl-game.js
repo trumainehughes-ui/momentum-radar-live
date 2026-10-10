@@ -33,7 +33,7 @@ function resolveRoleSignals(summary,rosterCandidates,blockedIds,gameId,kickoff){
   }
   return signals;
 }
-function applyExpectedStarterEvidence(rosterCandidates,blockedIds,evidence=[]){const accepted=[];for(const e of evidence){if(!e||!['NFL_OFFICIAL','TEAM_OFFICIAL'].includes(String(e.authority||''))||!['EXPECTED_STARTER','CONFIRMED_STARTER'].includes(String(e.status||'')))continue;const p=rosterCandidates.find(x=>normalizeName(x.name)===normalizeName(e.name)&&(!e.team||String(x.team).toUpperCase()===String(e.team).toUpperCase()));if(!p||blockedIds.has(p.playerId))continue;p._roleSignal={name:p.name,team:p.team,status:e.status,source:e.source||e.authority,kind:'REPORTED_CURRENT_GAME',checkedAt:e.checkedAt||new Date().toISOString()};accepted.push(p._roleSignal)}return accepted}
+function applyExpectedStarterEvidence(rosterCandidates,blockedIds,evidence=[]){const accepted=[];for(const e of evidence){if(!e||!['NFL_OFFICIAL','TEAM_OFFICIAL'].includes(String(e.authority||''))||!['EXPECTED_STARTER','CONFIRMED_STARTER'].includes(String(e.status||'')))continue;const p=rosterCandidates.find(x=>normalizeName(x.name)===normalizeName(e.name)&&(!e.team||String(x.team).toUpperCase()===String(e.team).toUpperCase()));if(!p||blockedIds.has(p.playerId))continue;if(p._roleSignal?.kind==='STRUCTURED'&&p._roleSignal.status==='CONFIRMED_STARTER')continue;if(e.status==='CONFIRMED_STARTER'&&(!e.playerId||String(e.playerId)!==String(p.playerId)))continue;if(!e.checkedAt)continue;p._roleSignal={name:p.name,team:p.team,status:e.status,source:e.source||e.authority,kind:'REPORTED_CURRENT_GAME',checkedAt:e.checkedAt};accepted.push(p._roleSignal)}return accepted}
 
 const VERIFIED_GAME_ROLE_EVIDENCE={
  '401872963':[
