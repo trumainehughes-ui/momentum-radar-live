@@ -1,0 +1,12 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { assessNflPropEvidence } from "../lib/ai-mechanics/nfl-adapter.js";
+const pick={playerId:"123",team:"PHI",market:"rushing_yards",line:85,sportsbook:"FanDuel"};
+const roster=[{id:"123",team:"PHI",status:"active",starterConfirmed:true}];
+const markets=[{playerId:"123",team:"PHI",market:"rushing_yards",line:85,sportsbook:"FanDuel",available:true,source:"FanDuel",timestamp:1000}];
+test("matching verified evidence is eligible for analysis",()=>assert.equal(assessNflPropEvidence({pick,roster,markets,now:1100}).verified,true));
+test("different team blocks analysis",()=>assert.equal(assessNflPropEvidence({pick:{...pick,team:"CHI"},roster,markets,now:1100}).verified,false));
+test("book mismatch blocks analysis",()=>assert.equal(assessNflPropEvidence({pick:{...pick,sportsbook:"DraftKings"},roster,markets,now:1100}).verified,false));
+test("line mismatch blocks analysis",()=>assert.equal(assessNflPropEvidence({pick:{...pick,line:90},roster,markets,now:1100}).verified,false));
+test("roster-only player does not establish starter",()=>assert.equal(assessNflPropEvidence({pick,roster:[{...roster[0],starterConfirmed:false}],markets,now:1100}).verified,false));
+test("stale quote blocks analysis",()=>assert.equal(assessNflPropEvidence({pick,roster,markets,now:1000000}).verified,false));

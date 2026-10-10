@@ -1,0 +1,11 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { comparePositionMatchup, reviewLegRelationships } from "../lib/ai-mechanics/matchups.js";
+const matchup={offensePerGame:115,defenseAllowedPerGame:130,offenseSampleGames:6,defenseSampleGames:6,position:"RB",metric:"rushingYards"};
+test("positional comparison retains both source statistics",()=>{const r=comparePositionMatchup(matchup);assert.equal(r.difference,-15);assert.equal(r.limitedSample,false)});
+test("early-season matchup is labeled limited",()=>assert.equal(comparePositionMatchup({...matchup,defenseSampleGames:3}).limitedSample,true));
+test("missing defense sample blocks comparison",()=>assert.equal(comparePositionMatchup({...matchup,defenseSampleGames:0}),null));
+test("unsupported position blocks comparison",()=>assert.equal(comparePositionMatchup({...matchup,position:"TEAM"}),null));
+test("different games blocked in same-game review",()=>assert.ok(reviewLegRelationships([{playerId:"a",gameId:"g1",market:"rushingYards",line:80},{playerId:"b",gameId:"g2",market:"receivingYards",line:60}]).reasons.includes("different_games_in_sgp")));
+test("overlapping player thresholds flagged",()=>assert.ok(reviewLegRelationships([{playerId:"a",gameId:"g1",market:"rushingYards",line:80},{playerId:"a",gameId:"g1",market:"rushingYards",line:85}]).reasons.includes("overlapping_player_market_thresholds")));
+test("correlation is never falsely marked verified",()=>assert.equal(reviewLegRelationships([]).correlationVerified,false));

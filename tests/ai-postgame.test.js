@@ -1,0 +1,10 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { calibrationByBucket, projectionError } from "../lib/ai-mechanics/postgame.js";
+test("calibration bins compare forecast with outcomes",()=>{const x=calibrationByBucket([{probability:0.65,hit:true,wasPregame:true,final:true},{probability:0.68,hit:false,wasPregame:true,final:true}]);assert.equal(x[6].count,2);assert.equal(x[6].observedHitRate,0.5)});
+test("postgame probabilities excluded to prevent leakage",()=>assert.equal(calibrationByBucket([{probability:0.9,hit:true,wasPregame:false,final:true}]).reduce((a,b)=>a+b.count,0),0));
+test("invalid probability excluded",()=>assert.equal(calibrationByBucket([{probability:1.4,hit:true,wasPregame:true,final:true}]).reduce((a,b)=>a+b.count,0),0));
+test("probability one falls into last bin",()=>assert.equal(calibrationByBucket([{probability:1,hit:true,wasPregame:true,final:true}])[9].count,1));
+test("projection bias and absolute error computed",()=>{const x=projectionError([{projection:100,actual:90,wasPregame:true,final:true},{projection:80,actual:90,wasPregame:true,final:true}]);assert.equal(x.meanError,0);assert.equal(x.meanAbsoluteError,10)});
+test("unfinalized results are not graded",()=>assert.equal(projectionError([{projection:100,actual:90,wasPregame:true,final:false}]).count,0));
+test("empty history returns no fake precision",()=>assert.equal(projectionError([]).meanError,null));

@@ -1,0 +1,13 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { normalizeSgoMarket } from "../lib/ai-mechanics/sgo-adapter.js";
+const row={eventID:"e1",playerID:"p1",team:"PHI",line:84.5,books:[{book:"FanDuel",line:84.5,odds:-110,available:true}]};
+const input={row,eventId:"e1",gameId:"g1",team:"PHI",market:"rushing_yards",book:"FanDuel",capturedAt:1000};
+test("real half-yard sportsbook line retained",()=>assert.equal(normalizeSgoMarket(input).line,84.5));
+test("market source and capture timestamp retained",()=>assert.deepEqual([normalizeSgoMarket(input).source,normalizeSgoMarket(input).timestamp],["SportsGameOdds:FanDuel",1000]));
+test("event mismatch fails closed",()=>assert.equal(normalizeSgoMarket({...input,eventId:"e2"}),null));
+test("team mismatch fails closed",()=>assert.equal(normalizeSgoMarket({...input,team:"CHI"}),null));
+test("unavailable bookmaker quote fails closed",()=>assert.equal(normalizeSgoMarket({...input,row:{...row,books:[{...row.books[0],available:false}]}}),null));
+test("missing odds fails closed",()=>assert.equal(normalizeSgoMarket({...input,row:{...row,books:[{...row.books[0],odds:null}]}}),null));
+test("missing source capture time fails closed",()=>assert.equal(normalizeSgoMarket({...input,capturedAt:undefined}),null));
+test("unsupported book fails closed",()=>assert.equal(normalizeSgoMarket({...input,book:"Other"}),null));

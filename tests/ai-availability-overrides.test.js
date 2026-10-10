@@ -1,0 +1,11 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { currentAvailabilityOverrides } from "../lib/ai-mechanics/availability-overrides.js";
+const r={playerId:"123",team:"NO",status:"IR",source:"Official roster",checkedAt:"2026-10-09T12:00:00Z"};
+const now=Date.parse("2026-10-09T14:00:00Z"),kickoff=Date.parse("2026-10-10T00:00:00Z");
+test("fresh official injury override accepted",()=>assert.equal(currentAvailabilityOverrides([r],{now,kickoff}).length,1));
+test("outdated override rejected",()=>assert.equal(currentAvailabilityOverrides([{...r,checkedAt:"2026-09-20T12:00:00Z"}],{now,kickoff}).length,0));
+test("undated override rejected",()=>assert.equal(currentAvailabilityOverrides([{...r,checkedAt:undefined}],{now,kickoff}).length,0));
+test("future report rejected",()=>assert.equal(currentAvailabilityOverrides([{...r,checkedAt:"2026-10-10T12:00:00Z"}],{now,kickoff}).length,0));
+test("missing game kickoff fails closed",()=>assert.deepEqual(currentAvailabilityOverrides([r],{now,kickoff:NaN}),[]));
+test("unsupported status excluded",()=>assert.equal(currentAvailabilityOverrides([{...r,status:"ACTIVE"}],{now,kickoff}).length,0));

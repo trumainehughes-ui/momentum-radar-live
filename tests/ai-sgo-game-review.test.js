@@ -1,0 +1,15 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { reviewSgoGameSnapshot } from "../lib/ai-mechanics/sgo-game-review.js";
+const pick={gameId:"g1",playerId:"p1",team:"PHI",market:"rushing_yards",line:84.5,sportsbook:"FanDuel"};
+const game={gameId:"g1",teams:[{abbr:"PHI"},{abbr:"CHI"}],playerProjections:[{playerId:"p1",team:"PHI",availability:"ACTIVE_ROTATION",starterStatus:"CONFIRMED_STARTER",verification:{role:{verified:true}}}]};
+const event={eventID:"e1",markets:[{eventID:"e1",playerID:"p1",team:"PHI",marketName:"player_rush_yds",periodID:"game",betTypeID:"ou",sideID:"over",books:[{book:"FanDuel",line:84.5,odds:-110,available:true}]}]};
+const args={game,event,eventMapping:{gameId:"g1",eventId:"e1"},picks:[pick],capturedAt:1000,now:1100};
+test("mapped SGO snapshot can validate an exact player quote",()=>assert.equal(reviewSgoGameSnapshot(args).ready,true));
+test("missing event mapping blocks analysis",()=>assert.equal(reviewSgoGameSnapshot({...args,eventMapping:null}).ready,false));
+test("incorrect SGO event mapping blocks analysis",()=>assert.equal(reviewSgoGameSnapshot({...args,eventMapping:{gameId:"g1",eventId:"e2"}}).ready,false));
+test("incorrect ESPN game mapping blocks analysis",()=>assert.equal(reviewSgoGameSnapshot({...args,eventMapping:{gameId:"g2",eventId:"e1"}}).ready,false));
+test("wrong market category blocks analysis",()=>assert.equal(reviewSgoGameSnapshot({...args,event:{...event,markets:[{...event.markets[0],marketName:"player_reception_yds"}]}}).ready,false));
+test("wrong half-yard line blocks analysis",()=>assert.equal(reviewSgoGameSnapshot({...args,picks:[{...pick,line:85.5}]}).ready,false));
+test("expired snapshot blocks analysis",()=>assert.equal(reviewSgoGameSnapshot({...args,now:1000000}).ready,false));
+test("missing snapshot markets blocks analysis",()=>assert.equal(reviewSgoGameSnapshot({...args,event:{eventID:"e1"}}).ready,false));

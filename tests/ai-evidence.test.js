@@ -1,0 +1,14 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { verifyPlayerMarket, verifyCombinedQuote } from "../lib/ai-mechanics/evidence.js";
+const player={id:"p1",team:"A",status:"active",starterConfirmed:true};
+const market={playerId:"p1",team:"A",sportsbook:"FanDuel",market:"rushing_yards",line:85,available:true,source:"FanDuel",timestamp:1000};
+test("fresh matching player market passes",()=>assert.equal(verifyPlayerMarket({player,market,now:1100}).verified,true));
+test("team mismatch blocks market",()=>assert.ok(verifyPlayerMarket({player,market:{...market,team:"B"},now:1100}).reasons.includes("player_team_market_mismatch")));
+test("unconfirmed starter blocked",()=>assert.ok(verifyPlayerMarket({player:{...player,starterConfirmed:false},market,now:1100}).reasons.includes("starter_or_active_status_unconfirmed")));
+test("stale market blocked",()=>assert.ok(verifyPlayerMarket({player,market,now:1000000,maxAgeMs:100}).reasons.includes("stale_or_unattributed_market")));
+test("unsupported sportsbook blocked",()=>assert.ok(verifyPlayerMarket({player,market:{...market,sportsbook:"Other"},now:1100}).reasons.includes("market_not_available_at_supported_book")));
+const quote={sportsbook:"FanDuel",source:"verified_book_quote",americanOdds:10000,timestamp:1000};
+test("fresh verified combined quote passes",()=>assert.equal(verifyCombinedQuote({quote,sportsbook:"FanDuel",now:1100}).verified,true));
+test("unattributed quote blocked",()=>assert.ok(verifyCombinedQuote({quote:{...quote,source:"model"},sportsbook:"FanDuel",now:1100}).reasons.includes("quote_provenance_missing")));
+test("expired combined quote blocked",()=>assert.ok(verifyCombinedQuote({quote,sportsbook:"FanDuel",now:500000,maxAgeMs:100}).reasons.includes("stale_combined_price")));

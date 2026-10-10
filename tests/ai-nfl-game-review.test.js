@@ -1,0 +1,12 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { assessNflGameSelections } from "../lib/ai-mechanics/nfl-game-review.js";
+const pick={playerId:"123",team:"PHI",market:"rushing_yards",line:85,sportsbook:"FanDuel"};
+const market={playerId:"123",team:"PHI",market:"rushing_yards",line:85,sportsbook:"FanDuel",available:true,source:"FanDuel",timestamp:1000};
+const p={playerId:"123",team:"PHI",availability:"ACTIVE_ROTATION",starterStatus:"CONFIRMED_STARTER",verification:{role:{verified:true}}};
+test("current game starter and book market can be reviewed",()=>assert.equal(assessNflGameSelections({game:{playerProjections:[p]},picks:[pick],markets:[market],now:1100}).ready,true));
+test("unconfirmed game role blocks pick",()=>assert.equal(assessNflGameSelections({game:{playerProjections:[{...p,starterStatus:"HIGH_USAGE_ROLE"}]},picks:[pick],markets:[market],now:1100}).ready,false));
+test("questionable player is not treated as active",()=>assert.equal(assessNflGameSelections({game:{playerProjections:[{...p,availability:"QUESTIONABLE"}]},picks:[pick],markets:[market],now:1100}).ready,false));
+test("missing sportsbook markets blocks pick",()=>assert.equal(assessNflGameSelections({game:{playerProjections:[p]},picks:[pick],markets:[],now:1100}).ready,false));
+test("empty pick list is not called ready",()=>assert.equal(assessNflGameSelections({game:{playerProjections:[p]},picks:[],markets:[market],now:1100}).ready,false));
+test("malformed game payload fails closed",()=>assert.equal(assessNflGameSelections({game:{},picks:[pick],markets:[market],now:1100}).ready,false));

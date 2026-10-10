@@ -1,0 +1,14 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { enabled, validateCandidate, noVigTwoWay } from "../lib/ai-mechanics/guardrails.js";
+const player = { id: "p1", team: "A", status: "active" };
+const market = { playerId: "p1", market: "rushing_yards", line: 85, available: true };
+const base = { playerId: "p1", team: "A", market: "rushing_yards", line: 85, probability: 0.6 };
+const context = { activePlayers: [player], markets: [market] };
+test("all new mechanics are disabled by default", () => assert.equal(enabled("dataQuality"), false));
+test("valid sourced prop passes", () => assert.equal(validateCandidate(base, context).valid, true));
+test("injured player blocked", () => assert.ok(validateCandidate(base, { ...context, activePlayers: [{ ...player, status: "out" }] }).reasons.includes("unverified_active_player_or_team")));
+test("missing market blocked", () => assert.ok(validateCandidate(base, { ...context, markets: [] }).reasons.includes("unavailable_or_unverified_market")));
+test("non-five yard line blocked", () => assert.ok(validateCandidate({ ...base, line: 84 }, context).reasons.includes("yardage_not_multiple_of_five")));
+test("unverified nuke odds blocked", () => assert.ok(validateCandidate({ ...base, tier: "nuke" }, context).reasons.includes("nuke_payout_not_verified")));
+test("no-vig probabilities sum to one", () => { const p = noVigTwoWay(-110, -110); assert.ok(Math.abs(p.over + p.under - 1) < 1e-12); });
