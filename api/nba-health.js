@@ -125,6 +125,7 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   JSON.stringify((evidence.sgps||[]).map(s=>({risk:s.risk,status:s.status,
   legs:(s.legs||[]).map(x=>[x.playerId,x.category,x.threshold])})));
  const result={...evidence,gameId:game.gameId,kickoff:game.kickoff,
+  home:game.home,away:game.away,
   checkedAt:new Date(now).toISOString(),
   injuryCheckedAt:injurySectionPresent?new Date(now).toISOString():null,
   injuryReportStatus:injurySectionPresent?'ESPN_REPORTED_INJURIES_RECHECKED':
