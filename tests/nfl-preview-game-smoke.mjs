@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 
-const endpoint=new URL('/api/nfl-markets','https://momentum-radar-live-k4j46h24f-trumainehughes-6743.vercel.app');
+const endpoint=new URL('/api/nfl-markets','https://momentum-radar-live-3mhqmuhm8-trumainehughes-6743.vercel.app');
 endpoint.searchParams.set('date','2026-10-11');
 endpoint.searchParams.set('gameId','401872987');
 const rsp=await fetch(endpoint,{signal:AbortSignal.timeout(180000),headers:{accept:'application/json'}});
@@ -23,6 +23,12 @@ assert.equal(d.validation?.combinedBookSgpQuoteAvailable,false,
 assert.equal(d.validation?.analyticsSgpsPublishable,false,
  'Unquoted model SGPs must not be marked book-publishable');
 if(d.marketRows===0){
+ assert.equal(d.validation?.publicSportsbookStatsUsed,false,
+  'Zero market rows cannot be presented as observed sportsbook stats');
+ assert.equal(d.validation?.sgpChecks?.liveSportsbookLine,false,
+  'No live player lines were observed for these candidates');
+ assert.equal(d.validation?.sgpChecks?.nukeCeilingVerification,false,
+  'Model ceiling screening cannot imply actual book Nuke verification');
  for(const book of ['DraftKings','FanDuel']){
   for(const card of d.sgps?.[book]||[]){
    assert.equal(card.bookVerificationPending,true,
