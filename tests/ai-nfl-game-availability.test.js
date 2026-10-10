@@ -95,6 +95,13 @@ test("NFL game endpoint accepts two-team structured injury report, but no sports
  assert.equal(p.availability,"ACTIVE_ROTATION");
  assert.equal(p.verification.availability.verified,true);
  assert.equal(p.verification.sportsbook.verified,false);
+ assert.equal(r.body.starterEvidence.gameId,"test-game-2026");
+ assert.equal(r.body.starterEvidence.source,
+   "ESPN selected-game roster: explicit starter booleans with matching athlete IDs");
+ assert.equal(r.body.starterEvidence.sportsbookPriceConfirmed,false);
+ assert.ok(Array.isArray(r.body.starterEvidence.confirmedQbTeams));
+ assert.equal(r.body.starterEvidence.missingQbTeams.length+
+   r.body.starterEvidence.confirmedQbTeams.length,2);
 });
 test("NFL game endpoint fails closed when only one team's injury report is available",async()=>{
  const r=await runGame([groups[0]]);
@@ -123,4 +130,14 @@ test("NFL game source wiring shares exact two-team match with sportsbook source"
  assert.ok(src.includes("starterEligible=officialStarter&&av.eligible"));
  assert.ok(src.includes("ready:injuryEvidence.checked&&roleRosterCovered"));
  assert.ok(!src.includes("availability:{verified:true,status:availability"));
+});
+
+test("market and UI expose the actual number of independent confirmed QBs",()=>{
+ const market=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
+ const ui=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ assert.ok(market.includes("starterEvidence:d.starterEvidence||null"));
+ assert.ok(market.includes('starterSourceState:roles.starterEvidence?.state||"UNAVAILABLE"'));
+ assert.ok(market.includes("confirmedQuarterbackTeams:roles.starterEvidence?.confirmedQbTeams||[]"));
+ assert.ok(ui.includes("Confirmed starting QBs: "));
+ assert.ok(ui.includes("d.bookMarketAudit?.starterSourceState"));
 });
