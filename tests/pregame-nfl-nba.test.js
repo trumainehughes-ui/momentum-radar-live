@@ -163,3 +163,19 @@ test('both protected cron routes, separate T-30 schedules, and NBA game readout 
  assert.ok(nfl.includes("pregameAiAudit('nfl'"));
  assert.ok(nfl.includes('snap.priorCandidateInvalidated'));
 });
+
+test('NBA day-before continues from verified roster/history when game summary not published, but injuries remain UNVERIFIED',async()=>{
+ const now=Date.parse(game.kickoff)-25*3600000,saved=[];
+ const outcome=await nbaCollectPregame(game,{now,prior:null,
+  fetchJson:async()=>{throw Error('ESPN upcoming summary not published')},
+  prepare:async()=>build(),
+  review:async()=>{throw Error('T-30 AI must not run day before')},
+  write:async x=>saved.push(x)
+ });
+ assert.equal(outcome.stage,'DAY_AHEAD_BUILD');
+ assert.equal(saved[0].injuryCheckedAt,null);
+ assert.equal(saved[0].injuryReportStatus,'ESPN_SUMMARY_UNAVAILABLE');
+ assert.match(saved[0].injuryLimitations,/UNVERIFIED/);
+ assert.equal(saved[0].aiReviewed,false);
+ assert.ok(saved[0].sgps.every(x=>x.combinedBookOddsVerified===false));
+});
