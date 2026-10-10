@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 
-const endpoint=new URL('/api/nfl-markets','https://momentum-radar-live-le9zqy8h5-trumainehughes-6743.vercel.app');
+const endpoint=new URL('/api/nfl-markets','https://momentum-radar-live-k4j46h24f-trumainehughes-6743.vercel.app');
 endpoint.searchParams.set('date','2026-10-11');
 endpoint.searchParams.set('gameId','401872987');
 const rsp=await fetch(endpoint,{signal:AbortSignal.timeout(180000),headers:{accept:'application/json'}});
 if(rsp.status===401||rsp.status===403)throw Error('PREVIEW_AUTH_REQUIRED: GitHub runner cannot access this Vercel preview');
 assert.equal(rsp.status,200,'preview game API returned HTTP '+rsp.status);
+assert.match(rsp.headers.get('cache-control')||'',/private.*no-store/,'game markets response must not be cached by the browser/CDN');
 const contentType=rsp.headers.get('content-type')||'';
 assert.match(contentType,/application\/json/,'preview did not return JSON');
 const d=await rsp.json();
