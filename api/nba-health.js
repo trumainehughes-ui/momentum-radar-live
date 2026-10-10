@@ -6,7 +6,7 @@ import {pregameAiAudit} from '../lib/pregame-ai-review.js';
 import {nflRunCollectorBatch} from '../lib/nfl-collector-readiness.js';
 const PREFIX='momentum-pregame/v1/nba-';
 const MS=60_000,LOOKAHEAD=36*60*MS;
-export const NBA_PREGAME_MODEL_VERSION='v2-season-aware-freshness';
+export const NBA_PREGAME_MODEL_VERSION='v3-preseason-and-prior-season-baseline';
 const path=id=>PREFIX+id+'.json';
 const DAY='America/New_York';
 const dateET=(when=new Date())=>{
