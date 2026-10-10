@@ -66,3 +66,17 @@ test("NFL market builder requires both roster and verified starter checks",()=>{
  assert.ok(code.includes("const rows=selectConfirmedNflBookMarkets({marketRows:rosterMatchedRows,rolePlayers:roles.players||[],now:Date.now()})"));
  assert.ok(code.includes("buildBookSgp(sgpRows,'DraftKings'"));
 });
+
+test("NFL response shows only anonymous verification counts, not player information",()=>{
+ const code=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
+ const m=code.match(/const bookMarketAudit=\{([^}]+)\}/);
+ assert.ok(m,"NFL market gate counts must be returned");
+ assert.match(m[1],/upstreamRows:rawRows\.length/);
+ assert.match(m[1],/identityMatched:approvedMarketRows\.length/);
+ assert.match(m[1],/rosterMatched:rosterMatchedRows\.length/);
+ assert.match(m[1],/confirmedStarterRows:rows\.length/);
+ assert.doesNotMatch(m[1],/name:|playerId:|playerID:/);
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ assert.ok(html.includes("NFL player-market checks:"));
+ assert.ok(html.includes("d.bookMarketAudit?.confirmedStarterRows"));
+});
