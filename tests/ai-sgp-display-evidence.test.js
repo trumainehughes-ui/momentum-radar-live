@@ -129,6 +129,7 @@ test("NFL analytics tiers no longer rely on assumed sportsbook line ladders",()=
  assert.ok(!src.includes("if(!playable&&risk!=='Nuke')return false"));
  assert.ok(src.includes("sportsbookVerified:false,availableAt:[],bookThresholdCaps:{}"));
  assert.ok(src.includes("const analyticsSgps=gameId?buildAnalyticsSgp(categories,ctx).map(markAnalyticsSgpCandidate):[]"));
- assert.ok(src.includes("sgps.Analytics=analyticsSgps.map("));
+ assert.ok(src.includes("sgps.Analytics=(sgps.Analytics||[]).map("));
+ assert.ok(!src.includes("sgps.Analytics=analyticsSgps.map("));
  assert.ok(!src.includes("publishable:true"));
 });
