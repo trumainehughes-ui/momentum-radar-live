@@ -96,3 +96,24 @@ test("NFL API uses source checks and separates refresh requested from verified",
  assert.ok(src.includes("rosterFetchedTeams.size===2"));
  assert.ok(src.includes("d?.eligibility?.ready!==true"));
 });
+
+test("an actual final pregame check is never stored for replay by the regular response cache",()=>{
+ const src=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
+ assert.ok(src.includes("if(rows.length>0&&!finalCheckRequested)await writeResponseSnapshot"));
+ assert.ok(src.includes("if(cachedMarketResponseValid(saved,Date.now())&&!String(req.query.finalCheck"));
+});
+test("expired historical sportsbook prices cannot replace current analytical projections",()=>{
+ const src=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
+ assert.ok(src.includes("body.staleMarketQuoteDiscarded=true"));
+ assert.ok(src.includes('historicalSnapshot:"archived_not_eligible_for_live_book_lines"'));
+ assert.doesNotMatch(src,/const fallback=\{\.\.\.saved\.body,stale:true/);
+});
+test("browser issues throttled, cache-bypassing requests inside the final 30-minute window",()=>{
+ const src=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ assert.ok(src.includes("const dueForFinalCheck=Boolean(gameId&&Number.isFinite(kickoffMs)"));
+ assert.ok(src.includes("kickoffMs-now<=30*60*1000"));
+ assert.ok(src.includes("nflFinalCheckLastAttempt"));
+ assert.ok(src.includes("if(isFinalCheck)q.finalCheck='true'"));
+ assert.ok(src.includes("isFinalCheck?{cache:'no-store'}:{}"));
+ assert.ok(src.includes("T-minus-30 verification:"));
+});
