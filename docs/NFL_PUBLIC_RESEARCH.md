@@ -12,18 +12,21 @@ Both values are required **server-side**:
 
 - `NFL_PUBLIC_WEB_SEARCH_ENABLED=true`
 - `BRAVE_SEARCH_API_KEY=<your Brave Web Search API subscription token>`
+- `UPSTASH_REDIS_REST_URL=<HTTPS REST endpoint from Upstash Redis>`
+- `UPSTASH_REDIS_REST_TOKEN=<write-enabled Upstash Redis REST token>`
 
 Leave the flag off in Production until an authenticated, budgeted workflow has been reviewed. Never put the subscription token in `public-ai.js`, URLs, commits, logs, or response bodies. Set the key in Vercel's **Preview** environment for the target branch, then redeploy that preview after changing environment variables.
 
 Obtain the key from the Brave Search API dashboard and ensure the Web Search product is active. Brave documents `GET https://api.search.brave.com/res/v1/web/search` and the `X-Subscription-Token` header:
 https://api-dashboard.search.brave.com/app/documentation/web-search
 
-When either flag or key is absent the search endpoint reports `search_disabled` or `search_not_configured`; the Groq research queue still works without any Brave API call. The read-only `GET /api/nfl-public-market-status` endpoint exposes only `DISABLED`, `MISSING_KEY`, or `READY_RESEARCH_ONLY` status, never credentials. The research panel disables its search button when disconnected.
+When the Preview flag, Brave key or shared Redis credentials are missing, the endpoint returns `search_disabled`, `search_not_configured` or `search_budget_unconfigured`. The Groq research queue still works without any Brave API call. `GET /api/nfl-public-market-status` reports `DISABLED`, `MISSING_KEY`, `MISSING_SHARED_BUDGET`, or `READY_RESEARCH_ONLY`, never credentials. The research panel disables the search button until all settings are configured. A configured state is not proof that Redis/Brave will be reachable; the actual search fails closed on a connection error.
 
 ## Budget and safety
 
 - Each user click requests **one** player, one bookmaker and one prop market (not an entire slate).
-- The endpoint allows at most 20 searches per hour **per warm server instance** and caches identical discovery results for ten minutes per instance. Simultaneous identical player/market/book lookups on the same warm instance share one upstream request; cached responses preserve the associated exact player, book, game and stat labels. Failed searches are not cached, and duplicate requests do not spend additional search credits on that instance. These are still **not a globally durable quota** across Vercel instances, and must NOT be treated as production-ready rate enforcement.
+- A **shared Upstash Redis atomic EVAL reservation** must succeed before any uncached upstream Brave call. The shared fixed-window ceiling is **40 searches per hour globally** and **10 per hour per hashed client** across Vercel instances. Hour keys expire automatically; raw client IPs and API credentials are not stored as Redis keys. If Redis is missing, unreachable, malformed, or has an authorization failure, no paid Brave search is attempted. These are hard caps on **attempts**, not guarantees of a successful indexed result.
+- The existing second-level warm-instance cap remains 20/hour; simultaneous identical player/market/book lookups on the same warm instance share one upstream request; cached results can be reused for ten minutes with the correct book/player/game/market. Failures are not cached. Duplicate requests on **different** Vercel instances can still consume more than one shared-budget unit; they cannot breach the atomic global cap. Only enable Preview after reviewing the Redis instance’s own spending/usage plan.
 - Queries are server-built from bounded player/team/market values. No arbitrary URL is fetched.
 - Only indexed links with **HTTPS and an exact** `sportsbook.draftkings.com` or `sportsbook.fanduel.com` hostname are returned; untrusted links and redirect hosts are rejected.
 - The output has no verified line, sportsbook price, source-quote timestamp, or correlated SGP odds. Indexed snippets can be outdated, regionalized or unavailable when opened.
@@ -31,7 +34,7 @@ When either flag or key is absent the search endpoint reports `search_disabled` 
 
 ## Verification
 
-Run `npm test`, including `tests/ai-nfl-public-market-search.test.js`, `tests/ai-nfl-search-broker.test.js` and `tests/ai-nfl-public-market-status.test.js`, then test the preview with:
+Run `npm test`, including `tests/ai-nfl-public-market-search.test.js`, `tests/ai-nfl-search-broker.test.js`, `tests/ai-nfl-public-market-status.test.js` and `tests/ai-nfl-shared-search-budget.test.js`, then test the preview with:
 
 1. Select an NFL game, open AI Analysis and choose **Player & market research**.
 2. Generate the research queue and choose a player and DraftKings or FanDuel.
@@ -39,4 +42,4 @@ Run `npm test`, including `tests/ai-nfl-public-market-search.test.js`, `tests/ai
 4. Confirm a missing search configuration yields a clear message, not made-up odds.
 5. Check independent injury/starter gates and Small/Medium/Nuke tier rules remain unchanged.
 
-**Next release steps:** implement durable shared budgeting, capture approved live player quotes with original source timestamps and exact player/game/market IDs, and independently verify actual combined SGP odds. Groq summaries and Brave search snippets can flag leads and contradictions; neither can turn a missing sportsbook quote into an executable selection.
+**Next release steps:** provide the Preview-only Brave and Upstash connections, test a real single-player lookup without disclosing credentials, capture approved live player quotes with original source timestamps and exact player/game/market IDs, and independently verify actual combined SGP odds. Groq summaries and Brave search snippets can flag leads and contradictions; neither can turn a missing sportsbook quote into an executable selection.
