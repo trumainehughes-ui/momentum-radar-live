@@ -15,10 +15,11 @@ const bookResult={ok:true,results:[{
 test("simultaneous same-market clicks require only one upstream Brave query",async()=>{
  let calls=0,release;
  const wait=new Promise(done=>release=done);
- const broker=makeNflSearchBroker({clock:()=>10000000,
+ const broker=makeNflSearchBroker({authorize:async()=>({allowed:true}),clock:()=>10000000,
   search:async()=>{calls++;await wait;return bookResult;}});
  const first=broker({request,apiKey:"secret",clientId:"1.1.1.1"});
  const second=broker({request,apiKey:"secret",clientId:"1.1.1.1"});
+ await Promise.resolve();
  assert.equal(calls,1);
  release();
  const [a,b]=await Promise.all([first,second]);
@@ -40,7 +41,7 @@ test("simultaneous same-market clicks require only one upstream Brave query",asy
 });
 test("another player or a different sportsbook is a different search",async()=>{
  let calls=0;
- const broker=makeNflSearchBroker({
+ const broker=makeNflSearchBroker({authorize:async()=>({allowed:true}),
   search:async()=>{calls++;return bookResult}
  });
  await broker({request,apiKey:"key"});
@@ -50,7 +51,7 @@ test("another player or a different sportsbook is a different search",async()=>{
 });
 test("per-instance quota blocks further unique searches but not cached repeats",async()=>{
  let calls=0,now=10000000;
- const broker=makeNflSearchBroker({clock:()=>now,limitPerHour:2,
+ const broker=makeNflSearchBroker({authorize:async()=>({allowed:true}),clock:()=>now,limitPerHour:2,
   search:async()=>{calls++;return bookResult}});
  const one=await broker({request,apiKey:"key",clientId:"client"});
  const two=await broker({request:{...request,market:"rushing"},apiKey:"key",clientId:"client"});
@@ -69,7 +70,7 @@ test("per-instance quota blocks further unique searches but not cached repeats",
 });
 test("failed lookups are not cached; authorization and rate-limit metadata stay safe",async()=>{
  let calls=0;
- const broker=makeNflSearchBroker({search:async()=>{
+ const broker=makeNflSearchBroker({authorize:async()=>({allowed:true}),search:async()=>{
   calls++;return calls===1?{ok:false,error:"search_rate_limited"}:bookResult;
  }});
  const a=await broker({request,apiKey:"secret"});
@@ -82,7 +83,7 @@ test("failed lookups are not cached; authorization and rate-limit metadata stay 
 });
 test("cache expires and a new user search refreshes discovered pages",async()=>{
  let now=10000000,calls=0;
- const broker=makeNflSearchBroker({clock:()=>now,cacheMs:1000,
+ const broker=makeNflSearchBroker({authorize:async()=>({allowed:true}),clock:()=>now,cacheMs:1000,
   search:async()=>{calls++;return {...bookResult,revision:calls}}});
  await broker({request,apiKey:"key"});
  now+=1001;
@@ -92,10 +93,34 @@ test("cache expires and a new user search refreshes discovered pages",async()=>{
  assert.equal(newer.body.cached,false);
 });
 test("unexpected upstream exception is contained, with no stored sensitive message",async()=>{
- const broker=makeNflSearchBroker({search:async()=>{throw Error("API token: 12345")}});
+ const broker=makeNflSearchBroker({authorize:async()=>({allowed:true}),search:async()=>{throw Error("API token: 12345")}});
  const out=await broker({request,apiKey:"secret"});
  assert.equal(out.code,502);
  assert.equal(out.body.error,"search_provider_unavailable");
  assert.equal(JSON.stringify(out).includes("12345"),false);
  assert.equal(JSON.stringify(out).includes("secret"),false);
+});
+
+test("without shared budget authorization even valid queries spend zero Brave credits",async()=>{
+ let calls=0;
+ const broker=makeNflSearchBroker({search:async()=>{calls++;return bookResult}});
+ const r=await broker({request,apiKey:"key"});
+ assert.equal(r.code,503);
+ assert.equal(r.body.error,"search_budget_unconfigured");
+ assert.equal(calls,0);
+});
+test("shared budget denial and connection errors stop all upstream web searches",async()=>{
+ let calls=0;
+ const search=async()=>{calls++;return bookResult};
+ const denied=makeNflSearchBroker({search,authorize:async()=>({
+  allowed:false,reason:"search_global_budget_reached"})});
+ const first=await denied({request,apiKey:"key"});
+ assert.equal(first.code,429);
+ assert.equal(first.body.error,"search_global_budget_reached");
+ const failed=makeNflSearchBroker({search,authorize:async()=>{throw Error("Sensitive Redis message")}});
+ const second=await failed({request,apiKey:"key"});
+ assert.equal(second.code,503);
+ assert.equal(second.body.error,"search_budget_unavailable");
+ assert.equal(JSON.stringify(second).includes("Sensitive"),false);
+ assert.equal(calls,0);
 });
