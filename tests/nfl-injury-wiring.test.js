@@ -10,8 +10,8 @@ test('game and markets use shared injury source gate and do not turn missing rep
  assert.ok(game.includes("needsReview=availability==='QUESTIONABLE'"));
  assert.ok(game.includes("officialInactivesVerified:false"));
  assert.ok(market.includes("nflGameInjuryEvidence({summary:d,league,competitors:teams"));
- assert.ok(market.includes('checked:injury.reportAvailable&&rosterById.size>0'));
+ assert.ok(market.includes('checked:injury.reportAvailable&&abbrs.size===2&&[...abbrs].every'));
  assert.ok(market.includes("function eligibilityFilter(rows,elig){if(!elig?.checked)return [];"));
  assert.ok(market.includes("const rows=gameId?eligibilityFilter(rawRows,eligibility):rawRows;"));
- assert.ok(market.includes("CACHE_SCHEMA='v84-injury-freshness-gate'"));
+ assert.ok(market.includes("CACHE_SCHEMA='v85-injury-pick-reconcile'"));
 });
