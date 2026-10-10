@@ -1,5 +1,6 @@
 import {nflGameInjuryEvidence} from '../lib/nfl-injury-evidence.js';
 import {nflWeeklyForGame} from '../lib/nfl-injury-weekly-loader.js';
+import {nflCanonTeam} from '../lib/nfl-official-injury-feed.js';
 const ESPN='https://site.api.espn.com/apis/site/v2/sports/football/nfl';
 async function load(url){
  const r=await fetch(url,{cache:'no-store',headers:{accept:'application/json'},signal:AbortSignal.timeout(12000)});
@@ -31,9 +32,9 @@ export default async function handler(req,res){
  const refreshMinutes=refreshSeconds/60;
  const rosterSignals=[];
  const rosterGroups=Array.isArray(summary.rosters)?summary.rosters:[];
- const abbrs=new Set(competitors.map(c=>String(c.team?.abbreviation||'').toUpperCase()));
+ const abbrs=new Set(competitors.map(c=>nflCanonTeam(c.team?.abbreviation)));
  for(const group of rosterGroups){
-  const team=String(group.team?.abbreviation||'').toUpperCase();if(!abbrs.has(team))continue;
+  const team=nflCanonTeam(group.team?.abbreviation);if(!abbrs.has(team))continue;
   for(const r of group.roster||group.athletes||[]){
    const a=r.athlete||r,id=String(a.id||''),name=a.displayName||a.fullName||'',pos=String(a.position?.abbreviation||'').toUpperCase();
    if(!id&&!name)continue;
@@ -43,7 +44,7 @@ export default async function handler(req,res){
  rosterSignals.sort((a,b)=>a.team.localeCompare(b.team)||a.playerId.localeCompare(b.playerId));
  return res.status(report.reportAvailable?200:503).json({
   ok:report.reportAvailable,gameId,
-  teams:competitors.map(x=>({id:String(x.team?.id||''),abbr:x.team?.abbreviation||'',homeAway:x.homeAway})),
+  teams:competitors.map(x=>({id:String(x.team?.id||''),abbr:nflCanonTeam(x.team?.abbreviation),homeAway:x.homeAway})),
   ...report,kickoff,minutesToKickoff:mins,refreshMinutes,refreshSeconds,
   rosterSignals,rosterSignalsAvailable:rosterGroups.length>0,
   defensiveInjurySignals:(report.injuries||[]).filter(x=>/^(CB|S|SS|FS|DB|LB|ILB|OLB|DE|DT|DL|NT|EDGE)$/.test(x.position||'')),
