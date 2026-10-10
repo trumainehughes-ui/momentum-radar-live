@@ -58,7 +58,7 @@ test("production hotfix rejects all-TD Small model and marks it unpublishable",(
  assert.ok(api.includes("modelOnly:true,candidateComplete:tierAssessment.compositionOk,publishable:false"));
  assert.ok(api.includes("sgps.Analytics=(sgps.Analytics||[]).map(s=>({...s,publishable:false"));
  assert.ok(!api.includes("sgps.Analytics=buildAnalyticsSgp(categories,ctx).map(s=>({...s,publishable:true"));
- assert.ok(api.includes("CACHE_SCHEMA='v77-evidence-bound-model-targets'"));
+ assert.ok(api.includes("CACHE_SCHEMA='v78-all-nfl-game-identity-gate'"));
 });
 test("production view clearly disclaims unverified $10 payouts",()=>{
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
