@@ -2,6 +2,11 @@
 
 Status: active development policy as of October 10, 2026.
 
+## Execution priority — October 10, 2026
+
+**Finish and validate the NFL module first. Pause additional NBA feature development.** The NBA foundation, existing tests and shared-safety contract stay in the branch unchanged. Once the NFL data pipeline, SGP verification, injury/starter review, game analyzer, postgame grading and deployment tests meet their release gates, resume NBA development and apply the finalized designs with basketball-specific metrics. Parity is a release goal, **not** a requirement to develop both leagues simultaneously.
+
+
 **Every NFL feature or safety rule added from this point forward needs an NBA equivalent** when the underlying concept applies to both sports. Do not ship a new parity-dependent AI feature for one sport while claiming the other is complete. Sport-specific stats, roles and market ladders **must not** be forced into an inappropriate NFL convention.
 
 ## One product, two leagues
