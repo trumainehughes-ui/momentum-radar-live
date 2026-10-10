@@ -1,4 +1,4 @@
-import {parseNbaGame} from '../lib/nba-data-model.js';
+import {parseNbaGame,nbaNotReadyTiers} from '../lib/nba-data-model.js';
 import {nbaReadPregame,nbaPregameStatus} from './nba-health.js';
 const ESPN='https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary';
 export default async function handler(req,res){
@@ -14,15 +14,19 @@ export default async function handler(req,res){
   if(!data.ok)return res.status(409).json(data);
   const snapshot=await nbaReadPregame(gameId);
   if(snapshot){
-   data.pregameReadiness=nbaPregameStatus(snapshot);
+   data.pregameReadiness=nbaPregameStatus(snapshot,{gameStatus:data.status});
    data.pregameCheckedAt=snapshot.checkedAt;
    data.injuryRecheckedAt=snapshot.injuryCheckedAt;
    data.sgpModelVersion=snapshot.modelVersion||'legacy-unversioned';
    // Matchups on the day-before slate display supported model-only legs.
    // Once live, preserve pregame snapshot as historical reference, not a live
    // available sportsbook SGP.
-   if(data.status==='SCHEDULED')data.sgps=snapshot.sgps;
-   else data.pregameHistoricalSgps=snapshot.sgps;
+   if(data.status==='SCHEDULED'){
+    // Old cached data must not be represented as an active playable/model
+    // selection, especially between T-30 injury verification and tipoff.
+    data.sgps=data.pregameReadiness.freshness==='CURRENT'?
+     snapshot.sgps:nbaNotReadyTiers(data.pregameReadiness.reason);
+   }else data.pregameHistoricalSgps=snapshot.sgps;
   }else data.pregameReadiness=nbaPregameStatus(null);
   return res.status(200).json(data);
  }catch(e){
