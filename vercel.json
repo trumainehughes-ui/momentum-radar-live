@@ -46,7 +46,12 @@
     },
     "api/sports-data.js": {
       "maxDuration": 300
+    },
+    "api/nba-slate.js": {
+      "maxDuration": 60
+    },
+    "api/nba-game.js": {
+      "maxDuration": 60
     }
   }
 }
-
