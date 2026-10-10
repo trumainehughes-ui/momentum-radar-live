@@ -1,0 +1,22 @@
+name: NFL Preview One-Game Smoke
+on:
+  push:
+    branches:
+      - fix/nfl-sgp-integrated-identity-20261010
+    paths:
+      - .github/workflows/nfl-preview-game-smoke.yml
+      - tests/nfl-preview-game-smoke.mjs
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  min-no-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: One read-only 2026-10-11 MIN-NO preview request
+        run: node tests/nfl-preview-game-smoke.mjs
