@@ -28,7 +28,7 @@ test('watch button creates a durable device-local MODEL watch rather than bookma
  assert.equal(watches[0].date,'2026-10-11');
  assert.equal(watches[0].actualCombinedOdds,null);
  assert.equal(watches[0].bookSettlement,'NOT_CONNECTED');
- assert.ok([...h.storage.values()][0].includes('MODEL_WATCH'));
+ assert.ok(h.storage.getItem('momentum-nfl-model-watchlist/v1').includes('MODEL_WATCH'));
 });
 test('injury report pushes model watch into rebuild then replaces unavailable player after safe new model',()=>{
  const h=harness(),api=h.window.momentumParlayWatch;
