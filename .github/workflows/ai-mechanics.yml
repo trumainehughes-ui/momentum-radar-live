@@ -16,5 +16,5 @@ jobs:
         with:
           node-version: '24'
       - run: npm install --no-package-lock
-      - run: node --test tests/ai-mechanics.test.js tests/ai-signals.test.js
+      - run: node --test tests/ai-mechanics.test.js tests/ai-signals.test.js tests/ai-scenarios.test.js
       - run: npm test
