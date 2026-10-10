@@ -1,0 +1,19 @@
+name: NFL All Matchups Preview Live Smoke
+on:
+  push:
+    branches: [feat/nfl-all-matchup-weekly-injury-auto-20261010]
+    paths:
+      - .github/workflows/nfl-all-matchups-preview-smoke.yml
+      - tests/nfl-all-matchups-preview-smoke.mjs
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sunday-and-monday:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - run: node tests/nfl-all-matchups-preview-smoke.mjs
