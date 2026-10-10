@@ -351,7 +351,7 @@ async function requireOddsApiBudget(){
  const now=Date.now();
  if(now<ODDS_QUOTA_BLOCKED_UNTIL)throw Error('odds_api_quota_cooldown|'+ODDS_QUOTA_DETAIL);
  const active=await getProviderCircuit('the-odds-api',now);
- if(active)throw Error('odds_api_quota_cooldown|'+active.reason);
+ if(active)throw Error('odds_api_'+active.reason+'_cooldown');
 }
 async function oddsApiHttpError(response,stage){
  let code='';
