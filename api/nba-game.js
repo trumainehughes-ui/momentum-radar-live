@@ -17,7 +17,7 @@ export default async function handler(req,res){
    data.pregameReadiness=nbaPregameStatus(snapshot);
    data.pregameCheckedAt=snapshot.checkedAt;
    data.injuryRecheckedAt=snapshot.injuryCheckedAt;
-   data.sgpModelVersion='es-dependent-roster-boxscore-v1';
+   data.sgpModelVersion=snapshot.modelVersion||'legacy-unversioned';
    // Matchups on the day-before slate display supported model-only legs.
    // Once live, preserve pregame snapshot as historical reference, not a live
    // available sportsbook SGP.
