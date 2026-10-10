@@ -54,6 +54,7 @@ export function nbaPregameStatus(snapshot){
   checkedAt:snapshot.checkedAt,stage:snapshot.stage,revision:snapshot.revision,
   injuryCheckedAt:snapshot.injuryCheckedAt,
   sportsbookVerified:false,aiReviewed:snapshot.aiReviewed===true,
+  aiReviewStatus:snapshot.aiReview?.status||'PENDING',aiProvider:snapshot.aiReview?.provider||null,
   reason:snapshot.reason||'No verified pregame player models available.'};
 }
 export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=nbaPrepareEvidence,
