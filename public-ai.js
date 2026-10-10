@@ -171,7 +171,7 @@
       researchButton.disabled=!status?.ready;
       researchResults.textContent=status?.ready
         ?'Official-page search connected. Indexed links are not verified odds.'
-        :'Search not connected yet. Set the Brave Search API key and Preview enablement flag in Vercel. The player research checklist still works.';
+        :'Search not connected yet. Set the Brave key, Preview flag, and shared Upstash rate-limit credentials in Vercel. The player research checklist still works.';
     }catch{
       if(epoch!==analysisEpoch||researchGameId!==gameId)return;
       researchButton.disabled=true;
@@ -195,9 +195,9 @@
       researchResults.replaceChildren();
       if(!result.ok){
         researchResults.textContent=result.error==='search_disabled'||
-          result.error==='search_not_configured'
+          result.error==='search_not_configured'||result.error==='search_budget_unconfigured'
           ?'Automatic web discovery is not enabled yet. Use the suggested official-book lookup phrases above until a server-side search key is connected.'
-          :'Search temporarily unavailable ('+(result.error||'source_error')+'). No sportsbook odds were verified.';
+          :'Search temporarily unavailable ('+(result.error||'source_error')+'). Shared rate limits can block searches; no sportsbook odds were verified.';
         return;
       }
       const p=document.createElement('p');
@@ -223,7 +223,7 @@
     }catch{
       if(epoch===analysisEpoch)researchResults.textContent=
        'Search connection failed. No sportsbook odds were verified.';
-    }finally{researchButton.disabled=false}
+    }finally{if(epoch===analysisEpoch&&requestedGame===researchGameId)void refreshSearchConnection(epoch,requestedGame)}
   };
   document.getElementById('momentumAiRun').onclick=async()=>{
    const out=document.getElementById('momentumAiOutput'),button=document.getElementById('momentumAiRun');
