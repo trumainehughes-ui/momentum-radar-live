@@ -14,7 +14,7 @@ async function priorSnapshot(id){
   return r.ok?r.json():null;
  }catch{return null}
 }
-function historySnap(g,m,prior=null){
+export function historySnap(g,m,prior=null){
  const picks=[];
  for(const cat of ['td','passing','rushing','receiving','receptions'])
   for(const x of m.categories?.[cat]||[]){
