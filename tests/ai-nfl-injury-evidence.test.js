@@ -65,3 +65,10 @@ test("NFL market route requires full injury coverage before upgrading source boo
  assert.ok(src.includes("analyticsSgpsPublishable:false"));
  assert.ok(!src.includes("injuryFeedChecked=Array.isArray(d.injuries)&&d.injuries.length>0"));
 });
+
+test("conflicting ESPN team IDs and abbreviations cannot clear both opponents",()=>{
+ const spoof={team:{id:"4",abbreviation:"KC"},injuries:[]};
+ const r=assessNflTeamInjuryEvidence({teams,groups:[den,spoof]});
+ assert.equal(r.checked,false);
+ assert.deepEqual(r.coveredTeams,["DEN"]);
+});
