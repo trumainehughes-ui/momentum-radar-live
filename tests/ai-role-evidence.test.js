@@ -8,7 +8,7 @@ test("old starter report is excluded",()=>assert.equal(filterCurrentRoleEvidence
 test("future-dated reports are excluded",()=>assert.equal(filterCurrentRoleEvidence([{...record,checkedAt:"2026-10-10T12:00:00Z"}],{now,kickoff}).length,0));
 test("untrusted report authority excluded",()=>assert.equal(filterCurrentRoleEvidence([{...record,authority:"UNKNOWN"}],{now,kickoff}).length,0));
 test("missing kickoff fails closed",()=>assert.deepEqual(filterCurrentRoleEvidence([record],{now,kickoff:NaN}),[]));
-test("post-kickoff role evidence excluded",()=>assert.equal(filterCurrentRoleEvidence([{...record,checkedAt:"2026-10-09T12:00:00Z"}],{now:Date.parse("2026-10-11T00:00:00Z"),kickoff}).length,1));
+test("post-kickoff role evidence excluded",()=>assert.equal(filterCurrentRoleEvidence([{...record,checkedAt:"2026-10-09T12:00:00Z"}],{now:Date.parse("2026-10-11T00:00:00Z"),kickoff}).length,0));
 
 
 test("NFL endpoint ignores caller-supplied starter authority claims", async () => {
@@ -58,4 +58,12 @@ test("NFL game endpoint preserves official timestamps and fails closed for usage
  assert.ok(source.includes("role:{verified:officialStarter"));
  assert.ok(source.includes("checkedAt:x._roleSignal?.checkedAt||null"));
  assert.ok(!source.includes("role:{verified:!!x._roleSignal"));
+});
+
+test("NFL report must match the exact player ID, not only the player's name",async()=>{
+ const {readFileSync}=await import("node:fs");
+ const src=readFileSync(new URL("../api/nfl-game.js",import.meta.url),"utf8");
+ assert.ok(src.includes("if(e.status==='CONFIRMED_STARTER'&&(!e.playerId||String(e.playerId)!==String(p.playerId)))continue"));
+ assert.ok(src.includes("if(p._roleSignal?.kind==='STRUCTURED'&&p._roleSignal.status==='CONFIRMED_STARTER')continue"));
+ assert.ok(!src.includes("checkedAt:e.checkedAt||new Date().toISOString()"));
 });
