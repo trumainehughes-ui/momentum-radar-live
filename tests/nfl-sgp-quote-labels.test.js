@@ -18,3 +18,10 @@ test('NFL SGP payout guidance uses NET profit, not estimated correlated odds',()
  assert.ok(src.includes('Nuke targets +10000 or higher ($1,000+ net profit)'));
  assert.ok(src.includes('target bands are not verified sportsbook payouts'));
 });
+
+test('NFL provider status never claims live bookmaker markets without source rows',()=>{
+ assert.ok(src.includes('publicSportsbookStatsUsed:sgpRows.length>0'));
+ assert.ok(src.includes('sgpChecks:{liveSportsbookLine:sgpRows.length>0'));
+ assert.ok(src.includes('nukeCeilingVerification:false,modelNukeCeilingScreening:true'));
+ assert.ok(!src.includes('publicSportsbookStatsUsed:true'));
+});
