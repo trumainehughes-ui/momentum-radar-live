@@ -1,6 +1,7 @@
 import {list,put} from '@vercel/blob';
 import {timingSafeEqual} from 'node:crypto';
 import {nbaPrepareEvidence} from '../lib/nba-pregame-model.js';
+import {pregameAiAudit} from '../lib/pregame-ai-review.js';
 import {nflRunCollectorBatch} from '../lib/nfl-collector-readiness.js';
 const PREFIX='momentum-pregame/v1/nba-';
 const MS=60_000,LOOKAHEAD=36*60*MS;
@@ -56,7 +57,7 @@ export function nbaPregameStatus(snapshot){
   reason:snapshot.reason||'No verified pregame player models available.'};
 }
 export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=nbaPrepareEvidence,
- fetchJson=json,write=async data=>put(path(game.gameId),JSON.stringify(data),{
+ fetchJson=json,review=pregameAiAudit,write=async data=>put(path(game.gameId),JSON.stringify(data),{
   access:'public',addRandomSuffix:false,allowOverwrite:true})}={}){
  const plan=nbaPregameStage(game,prior,{now});
  if(!plan.due)return {gameId:game.gameId,status:'held',stage:plan.stage};
@@ -92,6 +93,14 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
  // without explaining the degradation. In either case, store audit metadata.
  if(result.status==='NOT_READY'&&prior?.status==='MODEL_ONLY')
   result.priorCandidateInvalidated=true;
+ // Rebuilds are deterministic (injury/roster changes are authoritative).
+ // Groq/OpenRouter is automatically asked to REVIEW only when T-30 begins or
+ // qualified model legs materially change, never to manufacture replacement legs.
+ if(plan.stage==='FINAL_T_MINUS_30'&&(result.changedFromPrior||
+   prior?.stage!=='FINAL_T_MINUS_30')&&result.sgps?.some(x=>x.status==='MODEL_CANDIDATE')){
+   result.aiReview=await review('nba',game,result);
+   result.aiReviewed=result.aiReview?.status==='REVIEWED';
+ }else result.aiReview=prior?.aiReview||{status:'PENDING',reason:'T-30 review not yet eligible'};
  await write(result);
  return{gameId:game.gameId,status:result.status,stage:plan.stage,revision:result.revision,
   changed:result.changedFromPrior,modelTiers:(result.sgps||[]).filter(x=>x.status==='MODEL_CANDIDATE').map(x=>x.risk),
