@@ -122,3 +122,14 @@ test("both API paths and the UI share strict status/coverage and revalidate ever
  assert.ok(ui.includes("INCOMPLETE INJURY REPORT"));
  assert.ok(ui.includes("Rebuilding Small, Medium and Nuke"));
 });
+
+
+test("forced injury refresh makes older market requests lose the UI race",()=>{
+ const src=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ assert.ok(src.includes("nflMarketRequestVersion=new Map(),nflRenderEpoch=new Map()"));
+ assert.ok(src.includes("if(!forceFresh&&nflMarketInflight.has(key))"));
+ assert.ok(src.includes("if(nflMarketRequestVersion.get(key)===requestVersion)"));
+ assert.ok(src.includes("if(nflMarketInflight.get(key)===p)nflMarketInflight.delete(key)"));
+ assert.ok(src.includes("if(nflRenderEpoch.get(id)!==renderEpoch"));
+ assert.ok(src.includes("nflOpen(gameId,true)"));
+});
