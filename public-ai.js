@@ -1,4 +1,5 @@
 // Evidence-bound Momentum Radar AI. Read-only: never edits projections or bet slips.
+// Six additional on-demand advisors use the existing Groq endpoint, not sportsbook credits.
 (() => {
  const CATS=['td','passing','rushing','receiving','receptions'];
  const POS={QB:['passYards','rushYards','passTD'],RB:['rushYards','recYards','receptions'],WR:['recYards','receptions','targets'],TE:['recYards','receptions','targets']};
@@ -96,15 +97,35 @@
   return{source:compact(d.source),fetchedAt:compact(d.fetchedAt),injuries:(d.injuries||[]).slice(0,20).map(x=>({name:x.name,team:x.team,position:x.position,status:x.status,injury:x.injury,source:x.source})),blocked:(d.blockers||[]).slice(0,20).map(x=>({name:x.name,team:x.team,status:x.status,source:x.source})),roles:(d.roleSignals||[]).slice(0,20).map(x=>({name:x.name,team:x.team,status:x.status,source:x.source,checkedAt:x.checkedAt})),players:players.map(p=>({name:p.name,team:p.team,position:p.position,availability:p.availability,starterStatus:p.starterStatus,starterVerified:!!p.starterVerified,roleEvidence:p.verification?.role?.source||null})),playerChecks:[...watched.values()],roleVerificationRequired:true,note:'Not found in the current roster snapshot does not prove ineligible; independent official starter and injury verification is still required.'};
  }
  function player(x){
-  return{name:x.name,team:x.team,position:x.position,projection:number(x.edgeAnalytics?.modelProjection??x.predictiveProjection??x.projection),perGame:number(x.perGame),modelScore:number(x.momentumScore),confidence:number(x.confidence),estimatedRushingPercent:number(x.rushingChance?.estimatedPercent),gamesPlayed:number(x.gamesPlayed),matchup:x.matchup?{opponent:x.matchup.opponent,position:x.matchup.position,metric:x.matchup.metric,rankMost:number(x.matchup.rankMost),allowedPerGame:number(x.matchup.allowedPerGame),label:x.matchup.label}:null,book:x.bestBook?.book||null,marketLine:number(x.edgeAnalytics?.sportsbookLine??x.bestBook?.line),bookOdds:number(x.bestBook?.odds),recentHitRates:x.recentHitRates||null};
+  return{name:x.name,team:x.team,playerID:x.playerID||x.playerId||null,eventID:x.eventID||null,position:x.position,projection:number(x.edgeAnalytics?.modelProjection??x.predictiveProjection??x.projection),perGame:number(x.perGame),modelScore:number(x.momentumScore),confidence:number(x.confidence),estimatedRushingPercent:number(x.rushingChance?.estimatedPercent),gamesPlayed:number(x.gamesPlayed),matchup:x.matchup?{opponent:x.matchup.opponent,position:x.matchup.position,metric:x.matchup.metric,rankMost:number(x.matchup.rankMost),allowedPerGame:number(x.matchup.allowedPerGame),label:x.matchup.label}:null,book:x.bestBook?.book||null,marketLine:number(x.edgeAnalytics?.sportsbookLine??x.bestBook?.line),bookOdds:number(x.bestBook?.odds),recentHitRates:x.recentHitRates||null};
  }
- function leg(x){return{name:x.name,team:x.team,category:x.cat||x.category,projection:number(x.projection),modelThreshold:x.analyticsThreshold??x.threshold??null,bookLine:number(x.bookOffer?.line),bookOdds:number(x.bookOffer?.odds),sportsbookVerified:x.sportsbookVerified===true};}
+ function leg(x){return{name:x.name,team:x.team,playerID:x.playerID||x.playerId||null,
+    eventID:x.eventID||x.gameId||null,position:x.position||null,
+    category:x.cat||x.category,projection:number(x.predictiveProjection??x.projection),
+    modelThreshold:x.analyticsThreshold??x.threshold??null,
+    bookLine:number(x.bookOffer?.line),bookOdds:number(x.bookOffer?.odds),
+    sportsbookVerified:x.sportsbookVerified===true};}
  function packSgps(m){
   const result=[];for(const source of ['Analytics','DraftKings','FanDuel'])for(const risk of RISKS){
    const s=(m?.sgps?.[source]||[]).find(x=>x.risk===risk);
    if(!s)continue;
    result.push({source,risk,book:s.book||null,payoutTarget:s.payoutTarget||null,estimatedOdds:number(s.estimatedOdds),actualSgpOdds:number(s.actualSgpOdds),payoutBandVerified:s.payoutBandVerified===true,bookVerificationPending:s.bookVerificationPending===true,sourcePolicy:s.sourcePolicy?.rule||null,legs:(s.legs||[]).slice(0,10).map(leg)});
   }return result;
+ }
+ function summarizeAdvisory(report){
+  if(!report)return '';
+  const details=['Evidence checks: '+report.status+' (read-only; inputs not independently authenticated)'];
+  for(const flag of (report.flags||[]).slice(0,7))details.push('Check: '+flag.detail);
+  for(const item of (report.items||[]).slice(0,5)){
+   if(report.mode==='learning')details.push(item.name+' • locked '+item.projectionAtLock+' vs actual '+item.actual+' • error '+item.signedError);
+   if(report.mode==='nuke')details.push(item.label+' • '+item.legs+' legs, '+item.yardageLegs+' yardage • '+item.reviewStatus);
+   if(report.mode==='value')details.push(item.name+' • '+item.book+' '+item.line+' vs model '+item.projection+' • gap '+item.difference);
+   if(report.mode==='opportunity')details.push(item.name+' '+item.reportedStatus+' • possible teammates to review: '+item.possibleAlternates.map(x=>x.name).join(', '));
+   if(report.mode==='guardian')details.push('Source candidates reviewed: '+item.count);
+   if(report.mode==='simulation')details.push(item.offense+' vs '+item.defense+' • '+item.questions.join('; '));
+  }
+  for(const note of (report.notes||[]).slice(0,3))details.push(note);
+  return details.join('\n')+'\n\n';
  }
  function displayAnalysis(out,value){
   const clean=String(value||'').replace(/\*\*/g,'').replace(/^#{1,6}\s*/gm,'');
@@ -121,7 +142,7 @@
  const ready=()=>{
   const root=document.getElementById('nflAiMount');if(!root||document.getElementById('momentumAiPanel'))return;
   const panel=document.createElement('section');panel.id='momentumAiPanel';panel.className='momentumAiPanel';
-  panel.innerHTML='<h3>Momentum Radar AI <small style="font-size:11px;color:#b3edff">Beta</small></h3><p class="momentumAiNote">The analysis follows the game you opened. NFL model data and ESPN injury reports are described separately from sportsbook-verified odds.</p><div id="momentumAiGameName" class="momentumAiGameName" aria-live="polite">Open a matchup to view analysis</div><div class="momentumAiActions"><select id="momentumAiMode" aria-label="Analysis type"><option value="matchup">Matchup analysis</option><option value="injury">Injury / lineup impact</option><option value="parlay">SGP review</option><option value="results">Results review</option></select><button id="momentumAiRun" type="button">Refresh analysis</button></div><div id="momentumAiOutput" role="status" aria-live="polite">Tap AI Analysis above to analyze this matchup.</div>';
+  panel.innerHTML='<h3>Momentum Radar AI <small style="font-size:11px;color:#b3edff">Beta</small></h3><p class="momentumAiNote">The analysis follows the game you opened. NFL model data and ESPN injury reports are described separately from sportsbook-verified odds.</p><div id="momentumAiGameName" class="momentumAiGameName" aria-live="polite">Open a matchup to view analysis</div><div class="momentumAiActions"><select id="momentumAiMode" aria-label="Analysis type"><option value="matchup">Matchup analysis</option><option value="injury">Injury / lineup impact</option><option value="parlay">SGP review</option><option value="results">Results review</option><option value="guardian">Data Quality Guardian</option><option value="nuke">Nuke Parlay Architect</option><option value="opportunity">Injury & Opportunity Radar</option><option value="value">Prop Value Detector</option><option value="simulation">Game Script Simulator</option><option value="learning">Postgame Learning Lab</option></select><button id="momentumAiRun" type="button">Refresh analysis</button></div><div id="momentumAiOutput" role="status" aria-live="polite">Tap AI Analysis above to analyze this matchup.</div>';
   root.prepend(panel);
   document.getElementById('momentumAiRun').onclick=async()=>{
    const out=document.getElementById('momentumAiOutput'),button=document.getElementById('momentumAiRun');
@@ -150,8 +171,15 @@
     const defensive=matchups(d,game),availability=roster(g,gameId,candidates);
     if(!m?.categories&&!defensive&&!availability){out.textContent='Matchup, player, and market sources are currently unavailable. Existing picks remain unchanged.';return}
     const mode=document.getElementById('momentumAiMode').value;
-    const categories={};for(const cat of CATS)categories[cat]=(m?.categories?.[cat]||[]).slice(0,mode==='injury'?2:3).map(player);
-    const selectedSgps=mode==='parlay'?packSgps(m).map(s=>({...s,legs:s.legs.slice(0,7)})):[];
+    const categories={};for(const cat of CATS)categories[cat]=(m?.categories?.[cat]||[]).slice(0,['guardian','nuke','opportunity','value'].includes(mode)?10:mode==='injury'?2:3).map(player);
+    const selectedSgps=['parlay','guardian','nuke','learning'].includes(mode)?packSgps(m).map(s=>({...s,legs:s.legs.slice(0,7)})):[];
+    // Postgame learning uses locked historical picks, not re-created lines.
+    const graded=mode==='learning'?await getJson('/api/nfl-game?mode=history-grade&gameId='+encodeURIComponent(gameId)+'&ts='+Date.now()).catch(()=>null):null;
+    if(requestEpoch!==analysisEpoch)return;
+    const results=graded?{final:graded.final===true,lockedAt:graded.lockedAt,
+      picks:(graded.picks||[]).slice(0,25).map(x=>({name:x.name,category:x.category||x.cat,
+        grade:x.grade?{status:x.grade.status,actual:number(x.grade.actual),
+          projectionAtLock:number(x.grade.projectionAtLock),target:number(x.grade.target)}:null}))}:null;
     const sources={model:m?.categories?'available':'unavailable',sportsbook:m?.validation?.sportsbookVerificationAvailable===true&&!m.stale?'market evidence present; independently verify book prices':'not verified or currently unavailable',roster:availability?'ESPN current-game cross-check':'unavailable',defense:defensive?'ESPN completed-game box-score splits':'unavailable'};
     const modelTierCount=(m?.sgps?.Analytics||[]).filter(x=>['Small','Medium','Nuke'].includes(x.risk)).length;
     const canonicalPlayers=new Map();
@@ -164,7 +192,7 @@
     const data={
      gameId,game:{home:game.home?.name,homeAbbr:game.home?.abbr,away:game.away?.name,awayAbbr:game.away?.abbr,kickoff:game.kickoff,status:game.status,week:game.week},
      sources,model:{fetchedAt:compact(m?.fetchedAt),stale:m?.stale===true,degraded:m?.degraded===true,analyticsAvailable:m?.analyticsAvailable===true,modelSgpTierCount:modelTierCount,sportsbookMarketRows:number(m?.marketRows)??0,modelAvailabilityNote:modelTierCount?'Model-generated SGPs exist but are not verified sportsbook offers or actual payout odds.':'Model SGP tiers unavailable for this game.',validation:m?.validation?{injuryEligibilityChecked:m.validation.injuryEligibilityChecked,starterRoleRequired:m.validation.sgpChecks?.starterRoleRequired,sportsbookVerificationAvailable:m.validation.sportsbookVerificationAvailable}:null},
-     categories,playerRoleFacts,identityConflicts,matchup:mode==='injury'?null:conciseMatchup(defensive),playerAvailability:conciseRoster(availability,mode),sgps:selectedSgps,
+     categories,playerRoleFacts,identityConflicts,matchup:mode==='injury'?null:conciseMatchup(defensive),playerAvailability:conciseRoster(availability,mode),sgps:selectedSgps,results,
      instruction:'Explain only evidence actually available. Report opponent-specific sample games, never leaguewide count as individual sample; under five games is limited. IMPORTANT: before generic role warnings, mention any playerAvailability.skillPositionAlerts such as ESPN-reported OUT/IR/Q statuses and potential impact without inventing revised projections; these are NOT confirmed official game-day inactives. Do not imply an unreported injury status means confirmed healthy. Use playerChecks for wrong-team flags. Model SGP tiers exist separately from unverified sportsbook offers and prices. Do not say ALL betting information is unavailable if model tiers and projections are present. Critically, defenseRankMost and offenseRankMost must come from exactly the SAME position and metric as their yards value; for example, RB rushYards 47.5 rank 32 is different from QB rushYards 17.5 rank 13. The offenseProducedPerGame was achieved against earlier opponents, NOT the upcoming defense. Keep missing-verification cautions short. Each playerRoleFacts position is the player actual position; QB rushing yards are compared to QB defense rushYards, not RB defense rushYards. Position-group team averages are not individual player averages. Never identify Jalen Hurts or any QB as an RB, or Chris Rodriguez Jr. or any RB as a QB. Never attach a team-group metric to an individual player. RankMost 1 means most allowed, not strongest defense. Roster membership does not prove starting.'
     };
     if(Date.now()<aiCooldownUntil){displayAnalysis(out,dataOnlySummary(mode,data,'provider capacity limit; retry later'));if(requestEpoch===analysisEpoch)lastCompletedKey=selectionKey;return}
@@ -173,10 +201,10 @@
     const result=await response.json();
     if(requestEpoch!==analysisEpoch)return;
     if(result.ok){
-     displayAnalysis(out,result.analysis||'No explanation returned.');
+     displayAnalysis(out,summarizeAdvisory(result.mechanics)+(result.analysis||'No explanation returned.'));
     }else{
      if(result.error==='ai_capacity_limited'||result.error==='provider_rate_limited')aiCooldownUntil=Date.now()+Math.max(60,Number(result.retryAfterSeconds)||90)*1000;
-     displayAnalysis(out,dataOnlySummary(mode,data,result.error||'unknown_error'));
+     displayAnalysis(out,summarizeAdvisory(result.mechanics)+dataOnlySummary(mode,data,result.error||'unknown_error'));
     }
     lastCompletedKey=selectionKey;
    }catch{if(requestEpoch===analysisEpoch)out.textContent='AI connection failed. Existing projections are unchanged. Retry shortly.'}
