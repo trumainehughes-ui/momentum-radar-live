@@ -23,7 +23,7 @@ const input = { game,event,eventMapping:{gameId:"g1",eventId:"e1"},
 test("real SGO v2 event.odds and byBookmaker review exact FanDuel half-yard", () => {
   const r=reviewRawSgoGameSnapshot(input);
   assert.equal(r.ready,true,JSON.stringify(r));
-  assert.equal(r.acceptedMarkets,1);
+  assert.equal(r.acceptedMarkets,2);
   assert.equal(r.advisoryOnly,true);
 });
 test("does not conflate FanDuel and DraftKings thresholds", () =>
@@ -91,4 +91,25 @@ test("documented event.players teamID mismatch blocks quote", () => {
 test("SGO market stats ID supports human-readable marketName", () => {
   const odds={...raw,marketName:"Rushing Yards Over/Under",statID:"rushing_yards"};
   assert.equal(reviewRawSgoGameSnapshot({...input,event:{...event,odds:{prop1:odds}}}).ready,true);
+});
+
+test("book-specific alternate line is allowed only at its exact line and book", () => {
+  const offer={...raw.byBookmaker.fanduel,altLines:[
+    {odds:+150,overUnder:"105.5",available:true,lastUpdatedAt:new Date(1000).toISOString()},
+    {odds:+180,overUnder:"110.5",available:false,lastUpdatedAt:new Date(1000).toISOString()}
+  ]};
+  const ev={...event,odds:{prop1:{...raw,byBookmaker:{fanduel:offer}}}};
+  const pickAlt={...pick,line:105.5};
+  const result=reviewRawSgoGameSnapshot({...input,event:ev,picks:[pickAlt]});
+  assert.equal(result.ready,true,JSON.stringify(result));
+  assert.equal(result.acceptedMarkets,2);
+  assert.equal(reviewRawSgoGameSnapshot({...input,event:ev,picks:[{...pickAlt,sportsbook:"DraftKings"}]}).ready,false);
+  assert.equal(reviewRawSgoGameSnapshot({...input,event:ev,picks:[{...pickAlt,line:110.5}]}).ready,false);
+});
+test("stale alternate price does not inherit freshness of main line", () => {
+  const offer={...raw.byBookmaker.fanduel,altLines:[
+    {odds:+150,overUnder:"105.5",available:true,lastUpdatedAt:new Date(-1000000).toISOString()}
+  ]};
+  const ev={...event,odds:{prop1:{...raw,byBookmaker:{fanduel:offer}}}};
+  assert.equal(reviewRawSgoGameSnapshot({...input,event:ev,picks:[{...pick,line:105.5}]}).ready,false);
 });
