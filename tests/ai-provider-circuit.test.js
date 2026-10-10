@@ -64,5 +64,12 @@ test("persistent circuit storage uses a fixed sanitized path and no secrets",()=
  const src=readFileSync(new URL("../lib/ai-mechanics/provider-circuit-blob.js",import.meta.url),"utf8");
  assert.match(src,/momentum-nfl-provider-circuits\/v1\//);
  assert.match(src,/allowOverwrite:true/);
+ assert.match(src,/if\(!file\)\{local\.delete\(provider\);return null\}/);
  assert.doesNotMatch(src,/API_KEY|x-api-key|req\.body/);
+});
+
+test("NFL cooldown messages preserve quota-vs-rate-limit distinctions",()=>{
+ const src=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
+ assert.ok(src.includes("'odds_api_'+active.reason+'_cooldown'"));
+ assert.match(src,/await requireOddsApiBudget\(\)/);
 });
