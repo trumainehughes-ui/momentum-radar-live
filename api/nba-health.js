@@ -1,4 +1,5 @@
 import {list,put} from '@vercel/blob';
+import {blobCredentialMode} from '../lib/blob-storage-config.js';
 import {timingSafeEqual} from 'node:crypto';
 import {nbaPrepareEvidence} from '../lib/nba-pregame-model.js';
 import {pregameAiAudit} from '../lib/pregame-ai-review.js';
@@ -128,7 +129,7 @@ export default async function handler(req,res){
  // Vercel Cron includes Authorization: Bearer CRON_SECRET if configured.
  if(!authorized(req,process.env.CRON_SECRET))
   return res.status(401).json({ok:false,error:'cron_auth_required'});
- if(!process.env.BLOB_READ_WRITE_TOKEN)
+ if(blobCredentialMode(process.env)==='NOT_CONFIGURED')
   return res.status(503).json({ok:false,error:'pregame_storage_not_configured',
    action:'Connect an existing Vercel Blob store to this project before running the snapshot collector.'});
  const date=dateET(),tomorrow=addDay(date,1),dates=[date,tomorrow];
