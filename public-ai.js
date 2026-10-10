@@ -201,7 +201,7 @@
         return;
       }
       const p=document.createElement('p');
-      p.textContent='Indexed '+result.book+' links only. No live line, plus/minus odds or SGP combined price verified.';
+      p.textContent='Found '+Number(result.playerMatchedResults||0)+' indexed player-page leads; '+Number(result.marketMentionedResults||0)+' mention the requested stat. Game identity and live line, plus/minus odds or SGP combined price are NOT verified.';
       researchResults.appendChild(p);
       if(!result.results?.length){
         const empty=document.createElement('p');
@@ -213,6 +213,11 @@
         link.href=row.url;link.target='_blank';link.rel='noopener noreferrer';
         link.textContent=row.title||'Official sportsbook page';
         wrapper.appendChild(link);
+        const reason=document.createElement('p');
+        reason.textContent=row.matchLevel==='PLAYER_AND_MARKET_INDEX_MENTION'
+          ?'Indexed player + prop mention only; exact matchup, offered line and current price still unverified.'
+          :'Indexed player mention only; the requested prop market, game and current price are unverified.';
+        wrapper.appendChild(reason);
         if(row.description){
           const snippet=document.createElement('p');
           snippet.textContent=row.description;
