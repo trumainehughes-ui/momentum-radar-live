@@ -180,7 +180,7 @@ export default async function handler(req,res) {
   const messages=[
    {role:'system',content:system},
    {role:'user',content:modeGuidance[mode]+
-    ' Describe available evidence as reported by the named sources, not independently verified by this AI. List essential missing verification briefly.\\n'+serialized}
+    ' Describe available evidence as reported by the named sources, not independently verified by this AI. List essential missing verification briefly.\n'+serialized}
   ];
   let selected=null,primaryError=null,backupError=null;
   if(process.env.GROQ_API_KEY&&Date.now()>=providerCooldownUntil){
@@ -235,7 +235,7 @@ export default async function handler(req,res) {
   const correctionCount=reconciled.corrections.length;
   const clarifiedText=neutralizeUnverifiedStyleClaims(reconciled.text);
   const finalText=correctionCount?'Source check: '+correctionCount+' matchup ranking'+
-   (correctionCount===1?' was':'s were')+' corrected against the game\\'s defensive statistics.\\n\\n'+
+   (correctionCount===1?' was':'s were')+' corrected against the game\'s defensive statistics.\n\n'+
    clarifiedText:clarifiedText;
   if(correctionCount)console.info('ai_rank_reconciled',{gameId:String(data.gameId||'').slice(0,40),count:correctionCount,provider:selected.provider});
   cache.set(key,{text:finalText,corrections:correctionCount,provider:selected.provider,model:selected.model,expires:now+ttl});
