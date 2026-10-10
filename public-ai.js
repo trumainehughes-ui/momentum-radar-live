@@ -36,7 +36,7 @@
   }
   if(mode==='parlay'){
    for(const s of (d.sgps||[]).filter(x=>x.source==='Analytics').slice(0,3)){
-    out.push(s.risk+' model: '+s.legs.map(x=>x.name+' '+(x.modelThreshold??'threshold pending')).join('; ')+(s.payoutBandVerified?' • book payout verified':' • sportsbook payout not verified'));
+    out.push(s.risk+' model: '+s.legs.map(x=>x.name+' '+(x.modelThreshold??'threshold pending')).join('; ')+(s.combinedBookQuoteVerified===true?' • bookmaker-issued combined quote verified':' • model candidate; combined sportsbook quote unverified'));
    }
   }else{
    const selected=['passing','rushing','receiving'].flatMap(cat=>(d.categories?.[cat]||[]).slice(0,1).map(p=>p.name+' '+p.projection+' projected '+cat+' yards'));
@@ -103,7 +103,7 @@
   const result=[];for(const source of ['Analytics','DraftKings','FanDuel'])for(const risk of RISKS){
    const s=(m?.sgps?.[source]||[]).find(x=>x.risk===risk);
    if(!s)continue;
-   result.push({source,risk,book:s.book||null,payoutTarget:s.payoutTarget||null,estimatedOdds:number(s.estimatedOdds),actualSgpOdds:number(s.actualSgpOdds),payoutBandVerified:s.payoutBandVerified===true,bookVerificationPending:s.bookVerificationPending===true,sourcePolicy:s.sourcePolicy?.rule||null,legs:(s.legs||[]).slice(0,10).map(leg)});
+   result.push({source,risk,book:s.book||null,payoutTarget:s.payoutTarget||null,estimatedOdds:number(s.estimatedOdds),actualSgpOdds:number(s.actualSgpOdds),payoutBandVerified:s.payoutBandVerified===true,combinedBookQuoteVerified:s.combinedBookQuoteVerified===true,combinedPriceType:s.combinedPriceType||'not_available',eligibleBookLegs:Number(s.eligibleBookLegs||0),verifiedLegs:Number(s.verifiedLegs||0),bookVerificationPending:s.bookVerificationPending===true,sourcePolicy:s.sourcePolicy?.rule||null,legs:(s.legs||[]).slice(0,10).map(leg)});
   }return result;
  }
  function displayAnalysis(out,value){
