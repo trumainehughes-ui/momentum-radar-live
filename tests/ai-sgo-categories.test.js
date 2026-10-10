@@ -10,3 +10,7 @@ test("SGO anytime TD yes market",()=>assert.equal(nflSgoCategory({...row,marketN
 test("first half excluded",()=>assert.equal(nflSgoCategory({...row,marketName:"player_rush_yds",periodID:"1h"}),null));
 test("under side excluded",()=>assert.equal(nflSgoCategory({...row,marketName:"player_rush_yds",sideID:"under"}),null));
 test("unknown market excluded",()=>assert.equal(nflSgoCategory({...row,marketName:"team_spread"}),null));
+
+test("wrong betType cannot disguise itself as passing yards",()=>assert.equal(nflSgoCategory({...row,marketName:"player_pass_yds",betTypeID:"yn",sideID:"yes"}),null));
+test("wrong betType cannot disguise itself as receiving yards",()=>assert.equal(nflSgoCategory({...row,marketName:"player_reception_yds",betTypeID:"spread"}),null));
+test("anytime TD NO market is not a TD yes",()=>assert.equal(nflSgoCategory({...row,statID:"touchdowns",betTypeID:"yn",sideID:"no"}),null));
