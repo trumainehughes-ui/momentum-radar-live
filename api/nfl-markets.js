@@ -556,7 +556,6 @@ const enrichedMarketRows=attachAnalyticsToMarkets(mergedMarketRows,statBoards).m
  const p=Math.max(.08,Math.min(.92,1/(1+Math.exp(-delta/6.5)))),hp=Math.round(p*100),ap=100-hp;
  const hBest=teamPlayers(home).sort((x,y)=>Number(y.momentumScore??y.confidence??0)-Number(x.momentumScore??x.confidence??0))[0],aBest=teamPlayers(away).sort((x,y)=>Number(y.momentumScore??y.confidence??0)-Number(x.momentumScore??x.confidence??0))[0];
  return{teamA:away,teamB:home,projectedFinalScore:{[away]:as,[home]:hs},winProbability:{[away]:ap,[home]:hp},analyticalEdge:(hBest?home+' has a '+(hBest.category||'player')+' edge led by '+hBest.name+' against '+away+' based on current production, usage and matchup data. ':home+' receives the home-field adjustment. ')+(aBest?away+' counters through '+aBest.name+', but the final weighting also incorporates current roster eligibility, DVP, recent form and available public sportsbook evidence.':'The final weighting also incorporates current roster eligibility, DVP, recent form and available public sportsbook evidence.'),inputs:{teamAggregates:true,individualPerformance:true,homeAway:true,injuryEligibility:true,recentForm:true,dvp:true,publicSportsbookEvidence:true},generatedAt:new Date().toISOString()};
-}
 const outcomePrediction=gameOutcomeProfile();
 const hasAnalytics=Object.values(categories).some(v=>Array.isArray(v)&&v.length>0);const sportsbookCoverage=gameId?sportsbookCoverageAudit({sport:'nfl',gameId,
  offers:rows.flatMap(row=>(row.books||[]).filter(b=>b.available===true).map(b=>({
