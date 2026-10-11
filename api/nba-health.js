@@ -8,6 +8,7 @@ import {pregamePhase,pregameEvidenceAudit,pregameNeedsAiReview}
  from '../lib/pregame-revalidation.js';
 import {auditLeagueSgpEvent} from '../lib/sgp-league-wide-verification.js';
 import {sportsbookAiAuditFromSnapshot} from '../lib/sportsbook-ai-audit.js';
+import {sgpAiRecheckPlan} from '../lib/sgp-ai-recheck-plan.js';
 import {selectedShardGames,collectorAuditReport,writeCollectorAudit}
  from '../lib/pregame-collector-shards.js';
 const PREFIX='momentum-pregame/v1/nba-';
@@ -155,6 +156,12 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
  result.evidenceDigests=audit.evidenceDigests;
  result.changedFromPrior=audit.changedFromPrior;
  result.changedFields=audit.changedFields;
+ result.sgpAiPlan=sgpAiRecheckPlan({
+  league:'nba',gameId:game.gameId,sgps:result.sgps,
+  sgpVerification:result.sgpVerification,
+  sourceCheckedAt:result.checkedAt,sourceAvailable:false,
+  changedFields:audit.changedFields,now
+ });
  result.revalidatedAt=new Date(now).toISOString();
  result.refreshPolicy='DAY_AHEAD_60M_PREGAME_15M_FINAL_10M_WITH_15M_CRON';
  result.propCategories=['points','rebounds','assists','threes','pra'];
@@ -185,6 +192,7 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   changed:result.changedFromPrior,modelTiers:(result.sgps||[]).filter(x=>x.status==='MODEL_CANDIDATE').map(x=>x.risk),
    sgpVerification:result.sgpVerification,
    sportsbookAiGuard:result.sportsbookAiGuard,
+   sgpAiPlan:result.sgpAiPlan,
   injuryCount:injuries.length,changedFields:result.changedFields,
   offenseDefenseStatus:result.offenseDefenseStatus,reason:result.reason||null};
 }
