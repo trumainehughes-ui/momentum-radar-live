@@ -165,6 +165,35 @@
    })
   };
  }
+ // The parlay AI receives the deterministic SGP decisions as INPUT,
+ // never instructions to make price/line changes. No new sportsbook call.
+ function parlayRecheckEvidence(m,gameId){
+  const p=m?.sgpAiPlan,t=Date.parse(m?.fetchedAt||'');
+  const valid=String(m?.gameId||'')===String(gameId)&&
+   String(p?.gameId||'')===String(gameId)&&p?.league==='nfl'&&
+   Number.isFinite(t)&&t<=Date.now()&&Date.now()-t<=15*60000&&
+   !m?.stale&&!m?.degraded;
+  if(!valid)return{status:'FRESH_BOOKMARKET_RECHECK_REQUIRED',
+   gameId,allCombinedOddsVerified:false,tiers:[]};
+  return{status:p.status,gameId,allCombinedOddsVerified:false,
+   needsMarketRecheck:p.needsMarketRecheck,
+   needsModelRebuild:p.needsModelRebuild,
+   needsCombinedQuotes:p.needsCombinedQuotes,
+   evidenceChanges:(p.evidenceChanges||[]).slice(0,5),
+   tiers:(p.tiers||[]).slice(0,3).map(t=>({
+    risk:t.risk,modelStatus:t.modelStatus,
+    books:(t.bookActions||[]).slice(0,2).map(a=>({
+     book:a.book,action:a.action,reason:a.reason,
+     individuallyMatched:a.individuallyMatched,
+     requestedLegs:a.requestedLegs,
+     suggestedLineRechecks:(a.suggestedLineRechecks||[]).slice(0,3)
+      .map(l=>({player:l.player,category:l.category,requested:l.requested,
+       observedOffers:(l.observedOffers||[]).slice(0,3)})),
+     bookableWagerConfirmed:false
+    }))
+   }))
+  };
+ }
  function summarizeAdvisory(report){
   if(!report)return '';
   const details=['Evidence checks: '+report.status+' (read-only; inputs not independently authenticated)'];
@@ -248,6 +277,8 @@
      sources,model:{fetchedAt:compact(m?.fetchedAt),stale:m?.stale===true,degraded:m?.degraded===true,analyticsAvailable:m?.analyticsAvailable===true,modelSgpTierCount:modelTierCount,sportsbookMarketRows:number(m?.marketRows)??0,modelAvailabilityNote:modelTierCount?'Model-generated SGPs exist but are not verified sportsbook offers or actual payout odds.':'Model SGP tiers unavailable for this game.',validation:m?.validation?{injuryEligibilityChecked:m.validation.injuryEligibilityChecked,starterRoleRequired:m.validation.sgpChecks?.starterRoleRequired,sportsbookVerificationAvailable:m.validation.sportsbookVerificationAvailable}:null},
      categories,playerRoleFacts,identityConflicts,matchup:mode==='injury'?null:conciseMatchup(defensive),playerAvailability:conciseRoster(availability,mode),sgps:selectedSgps,results,
      sportsbooks:mode==='sportsbook'?sportsbookEvidence(m,gameId):null,
+     parlayRecheck:['parlay','nuke','sportsbook'].includes(mode)?
+      parlayRecheckEvidence(m,gameId):null,
      instruction:'Explain only evidence actually available. Report opponent-specific sample games, never leaguewide count as individual sample; under five games is limited. IMPORTANT: before generic role warnings, mention any playerAvailability.skillPositionAlerts such as ESPN-reported OUT/IR/Q statuses and potential impact without inventing revised projections; these are NOT confirmed official game-day inactives. Do not imply an unreported injury status means confirmed healthy. Use playerChecks for wrong-team flags. Model SGP tiers exist separately from unverified sportsbook offers and prices. Do not say ALL betting information is unavailable if model tiers and projections are present. Critically, defenseRankMost and offenseRankMost must come from exactly the SAME position and metric as their yards value; for example, RB rushYards 47.5 rank 32 is different from QB rushYards 17.5 rank 13. The offenseProducedPerGame was achieved against earlier opponents, NOT the upcoming defense. Keep missing-verification cautions short. Each playerRoleFacts position is the player actual position; QB rushing yards are compared to QB defense rushYards, not RB defense rushYards. Position-group team averages are not individual player averages. Never identify Jalen Hurts or any QB as an RB, or Chris Rodriguez Jr. or any RB as a QB. Never attach a team-group metric to an individual player. RankMost 1 means most allowed, not strongest defense. Roster membership does not prove starting.'
     };
     if(Date.now()<aiCooldownUntil){displayAnalysis(out,dataOnlySummary(mode,data,'provider capacity limit; retry later'));if(requestEpoch===analysisEpoch)lastCompletedKey=selectionKey;return}
