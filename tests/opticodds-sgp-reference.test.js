@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {prepareOpticOddsSgpRequest,interpretOpticOddsSgpPrice,
  requestOpticOddsSgpReference} from '../lib/opticodds-sgp-reference.js';
+import {pregameReadiness} from '../api/pregame-readiness.js';
 
 const time=Date.parse('2026-10-11T12:00:00Z'),gameId='401872981',fixtureId='nfl:OPTIC_VERIFIED_FIXTURE';
 const legs=[
@@ -136,4 +137,22 @@ test('NBA optional DraftKings adapter supports mapped points/assists/rebounds bu
  assert.equal(p.requestBody.entries.length,3);
  assert.equal(interpretOpticOddsSgpPrice(p,{data:{DraftKings:{price:2200,error:null,
    missing_entries:null,legs:p.entries}}},{now:time}).bookQuoteVerified,false);
+});
+
+test('operational readiness discloses opt-in requirement without leaking API credential',()=>{
+ const none=pregameReadiness({}).correlatedSgpPricing;
+ assert.equal(none.status,'CREDENTIAL_NOT_CONFIGURED');
+ assert.equal(none.enabled,false);
+ assert.deepEqual(none.supportedReferenceBooks,['DraftKings']);
+ assert.deepEqual(none.unsupportedReferenceBooks,['FanDuel']);
+ const disabled=pregameReadiness({OPTICODDS_API_KEY:'test-private'}).correlatedSgpPricing;
+ assert.equal(disabled.status,'DISABLED');
+ const enabled=pregameReadiness({
+  OPTICODDS_API_KEY:'test-private',OPTICODDS_SGP_ENABLED:'true'
+ }).correlatedSgpPricing;
+ assert.equal(enabled.status,'CONFIGURED_MAPPING_STILL_REQUIRED');
+ assert.equal(enabled.crosswalkReady,false);
+ assert.equal(enabled.providerCallsOnPublicPageLoad,false);
+ assert.equal(enabled.bookIssuedSgpQuoteVerified,false);
+ assert.ok(!JSON.stringify(enabled).includes('test-private'));
 });
