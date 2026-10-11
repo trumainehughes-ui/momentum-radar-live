@@ -9,9 +9,13 @@ export default async function handler(req,res){
  if(!/^\\d{6,12}$/.test(gameId))return res.status(400).json({ok:false,error:'invalid_game_id'});
  const book=String(req.body?.book||'').toLowerCase();
  if(!BOOKS[book])return res.status(400).json({ok:false,error:'unsupported_book'});
+ // The paid request must target the same game as the verified change.
  const target=String(req.body?.url||'');
  let parsed;try{parsed=new URL(target)}catch{return res.status(400).json({ok:false,error:'invalid_url'})}
  const allowed=new URL(BOOKS[book]);
+ // Explicit match identifiers prevent a verified event from funding unrelated browsing.
+ const expectedEvent=String(req.body?.eventId||'');
+ if(expectedEvent!==gameId)return res.status(400).json({ok:false,error:'event_id_mismatch'});
  if(parsed.protocol!=='https:'||parsed.hostname!==allowed.hostname||parsed.username||parsed.password||parsed.port)return res.status(400).json({ok:false,error:'book_url_not_allowed'});
  const eventToken=String(req.headers['x-momentum-change-token']||'');
  if(!/^[a-f0-9]{64}$/.test(eventToken))return res.status(403).json({ok:false,error:'verified_change_token_required'});
