@@ -133,3 +133,33 @@ test('actual markets API and health report include scoped role counts, cache ver
  assert.ok(ui.includes('depth-chart QB1 models'));
  assert.ok(!api.includes('combinedBookSgpQuoteAvailable:true'));
 });
+
+test('missing ESPN numeric team IDs fail closed; no guessed QB1 and no extra requests',async()=>{
+ let fetched=0;
+ const rows=await nflCurrentGameDepthChartQbs({home,away,
+  teamIdsByAbbr:new Map([['JAX','JAX'],['PHI','undefined']]),
+  fetchJson:async()=>{fetched++;throw Error('should not request invalid team ID')}});
+ assert.deepEqual(rows,[]);
+ assert.equal(fetched,0);
+});
+test('numeric ESPN site depthchart retains only one rank-one QB per current team',async()=>{
+ const requested=[];
+ const rows=await nflCurrentGameDepthChartQbs({home,away,
+  teamIdsByAbbr:new Map([['JAX','30'],['PHI','21']]),
+  fetchJson:async url=>{
+   requested.push(url);
+   const jax=url.includes('/30/'),
+    id=jax?'1001':'2001',
+    name=jax?'JAX QB1':'PHI QB1';
+   return{depthCharts:[{name:'Offense',positions:{quarterback:{
+    position:{abbreviation:'QB'},athletes:[
+      {rank:1,athlete:{id,displayName:name}},
+      {rank:2,athlete:{id:'9991',displayName:'Backup QB'}}
+    ]}}}]};
+  }});
+ assert.equal(rows.length,2);
+ assert.deepEqual(rows.map(x=>x.playerId).sort(),['1001','2001']);
+ assert.ok(requested.some(x=>x.includes('/teams/30/depthcharts')));
+ assert.ok(requested.some(x=>x.includes('/teams/21/depthcharts')));
+ assert.ok(requested.every(x=>!x.includes('/teams/JAX/')&&!x.includes('/teams/PHI/')));
+});
