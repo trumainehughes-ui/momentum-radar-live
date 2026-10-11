@@ -23,13 +23,14 @@ export default async function handler(req,res){
  // One atomic claim per verified change, sportsbook, and URL. A retry fails closed.
  const {createHash}=await import('node:crypto');
  const digest=createHash('sha256').update(target).digest('hex');
- const claimPath='momentum-scrapingbee-claims/v1/'+eventToken+'/'+book+'-'+digest+'.json';
+ // One paid fetch per sportsbook per verified event, regardless of requested page URL.
+ const claimPath='momentum-scrapingbee-claims/v1/'+eventToken+'/'+book+'.json';
  try{await put(claimPath,JSON.stringify({gameId,book,claimedAt:new Date().toISOString()}),{access:'public',addRandomSuffix:false,allowOverwrite:false})}catch{return res.status(409).json({ok:false,error:'change_already_claimed_or_claim_store_unavailable'})}
  try{
   const endpoint=new URL('https://app.scrapingbee.com/api/v1/');
   endpoint.searchParams.set('api_key',process.env.SCRAPINGBEE_API_KEY);
   endpoint.searchParams.set('url',target);
-  endpoint.searchParams.set('render_js','false');
+  endpoint.searchParams.set('render_js','false'); // Minimum-cost mode; never enable premium proxy or JS rendering automatically.
   endpoint.searchParams.set('block_resources','true');
   const response=await fetch(endpoint,{redirect:'manual',signal:AbortSignal.timeout(12000)});
   if(!response.ok)return res.status(502).json({ok:false,error:'provider_request_failed',providerStatus:response.status});
