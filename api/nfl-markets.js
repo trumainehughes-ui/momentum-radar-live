@@ -7,6 +7,7 @@ import {auditLeagueSgpEvent} from '../lib/sgp-league-wide-verification.js';
 import {sportsbookAiAuditFromSnapshot} from '../lib/sportsbook-ai-audit.js';
 import {sgpAiRecheckPlan} from '../lib/sgp-ai-recheck-plan.js';
 import {rebuildNflBookTierPools} from '../lib/sgp-book-tier-targets.js';
+import {sgpBookRebuildReport} from '../lib/sgp-book-rebuild-report.js';
 import {nflCurrentGameDepthChartQbs,nflProjectedDepthChartQbEligible} from '../lib/nfl-depthchart-qb1.js';
 import {nflCurrentRosterAthletes} from '../lib/nfl-roster-evidence.js';
 import {nflGameInjuryEvidence,nflInjuryBlocks} from '../lib/nfl-injury-evidence.js';
@@ -624,6 +625,7 @@ const enrichedMarketRows=attachAnalyticsToMarkets(mergedMarketRows,statBoards).m
 }
 const outcomePrediction=gameOutcomeProfile();
 const hasAnalytics=Object.values(categories).some(v=>Array.isArray(v)&&v.length>0);const verifiedSgp=gameId?auditLeagueSgpEvent({league:'nfl',gameId,sgps}):null;
+const sgpRebuildReport=gameId?sgpBookRebuildReport({league:'nfl',gameId,sgps}):null;
 const marketSourceAvailable=Boolean(gameId&&sgpRows.length>0&&
  ['The Odds API','SportsGameOdds (backup)'].includes(provider));
 const marketCheckedAt=new Date().toISOString();
@@ -635,7 +637,7 @@ const sgpAiPlan=gameId?sgpAiRecheckPlan({
  league:'nfl',gameId,sgps,sgpVerification:verifiedSgp,
  sourceCheckedAt:marketCheckedAt,sourceAvailable:marketSourceAvailable
 }):null;
-const body={ok:true,scope:gameId?'game':'slate',gameId:gameId||null,date,categories,sgps,sgpVerification:verifiedSgp,sportsbookAiGuard,sgpAiPlan,outcomePrediction,provider,degraded:rows.length===0,analyticsAvailable:hasAnalytics ,validation:{dayAheadRoleChecks:dayAheadRoles?.counters||null,
+const body={ok:true,scope:gameId?'game':'slate',gameId:gameId||null,date,categories,sgps,sgpVerification:verifiedSgp,sgpRebuildReport,sportsbookAiGuard,sgpAiPlan,outcomePrediction,provider,degraded:rows.length===0,analyticsAvailable:hasAnalytics ,validation:{dayAheadRoleChecks:dayAheadRoles?.counters||null,
  dayAheadRoleSource:dayAheadRoles?.source||'NOT_APPLICABLE',
  conditionalRoleCount:(dayAheadRoles?.counters?.projectedHighUsageRoles||0)+
  (dayAheadRoles?.counters?.projectedDepthChartQb1||0),
