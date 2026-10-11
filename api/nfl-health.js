@@ -62,7 +62,7 @@ export function historySnap(g,m,prior=null){
  return {league:'nfl',gameId:g.gameId,lockedAt:new Date().toISOString(),
   firstLockedAt:prior?.firstLockedAt||prior?.lockedAt||new Date().toISOString(),
   revision:Number(prior?.revision||0)+1,lockStage:stage,lockSource:'SERVER_COLLECTOR',
-  modelTierReadiness:tiers,modelDataStatus:nflCollectorSnapshotReady({picks,sgps})?'MODEL_ONLY':'NOT_READY',
+  modelTierReadiness:tiers,sgpVerification:m.sgpVerification||null,modelDataStatus:nflCollectorSnapshotReady({picks,sgps})?'MODEL_ONLY':'NOT_READY',
   injuryChecks:{rosterAndInjuryEligibilityChecked:m.validation?.injuryEligibilityChecked===true,
     blockedPlayerCount:Number(m.validation?.blockedPlayerCount)||0,
     officialInactivesVerified:false},
@@ -116,7 +116,7 @@ async function autoLock(base,games){
    changed,changedFields:snap.changedFields,
    propCategoriesUpdated:changed?snap.propCategories:[],
    matchupReviewed:true,
-   modelTierReadiness:snap.modelTierReadiness};
+   modelTierReadiness:snap.modelTierReadiness,sgpVerification:snap.sgpVerification};
  },{concurrency:MAX_NFL_COLLECTOR_CONCURRENCY});
 }
 export default async function handler(req,res){
