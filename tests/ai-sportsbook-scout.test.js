@@ -48,6 +48,8 @@ test('missing/wrong-game/stale individual markets never give AI candidate advice
   d=>d.sportsbooks.gameId='401872982',
   d=>d.sportsbooks.marketFeedAvailable=false,
   d=>d.model.validation.sportsbookVerificationAvailable=false,
+  d=>d.model.stale=true,
+  d=>d.model.degraded=true,
   d=>d.sportsbooks.sourceCheckedAt=new Date(now-16*60000).toISOString(),
   d=>d.sportsbooks.sourceCheckedAt=new Date(now+30000).toISOString()
  ]){
