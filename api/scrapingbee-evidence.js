@@ -6,7 +6,7 @@ export default async function handler(req,res){
  if(req.method!=='POST')return res.status(405).json({ok:false,error:'method_not_allowed'});
  if(!process.env.CRON_SECRET||req.headers.authorization!=='Bearer '+process.env.CRON_SECRET)return res.status(403).json({ok:false,error:'authorized_change_refresh_required'});
  const gameId=String(req.body?.gameId||'');
- if(!/^\\d{6,12}$/.test(gameId))return res.status(400).json({ok:false,error:'invalid_game_id'});
+ if(!new RegExp('^[0-9]{6,12}$').test(gameId))return res.status(400).json({ok:false,error:'invalid_game_id'});
  const book=String(req.body?.book||'').toLowerCase();
  if(!BOOKS[book])return res.status(400).json({ok:false,error:'unsupported_book'});
  // The paid request must target the same game as the verified change.
