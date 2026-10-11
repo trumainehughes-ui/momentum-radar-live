@@ -56,7 +56,7 @@ export function historySnap(g,m,prior=null){
      !Array.isArray(s.legs)||s.legs.length!==s.requiredLegs)continue;
   sgps.push({...s,book,combinedBookQuoteVerified:false,actualSgpOdds:null,
    legs:s.legs.map(x=>({...x,category:x.cat,
-    threshold:x.cat==='td'?1:(x.bookOffer?.line??x.analyticsThreshold??x.threshold??null)}))});
+    threshold:x.cat==='td'?1:(x.analyticsThreshold??x.bookTierTarget??x.threshold??null)}))});
  }
  const now=Date.now(),ms=Date.parse(g.kickoff)-now,
   stage=ms<=30*60000?'FINAL_T_MINUS_30':ms<=90*60000?'PREGAME_VALIDATION':'DAY_AHEAD_BUILD';
