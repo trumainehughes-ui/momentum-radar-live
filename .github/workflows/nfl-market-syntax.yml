@@ -14,4 +14,18 @@ jobs:
       - name: Parse NFL markets module
         run: node --check api/nfl-markets.js
       - name: Parse frontend JavaScript
-        run: node --check api/nfl-game.js
+        run: |
+          node --check api/nfl-game.js
+          node -e 'const fs=require("node:fs");const html=fs.readFileSync("index.html","utf8");const scripts=[...html.matchAll(/<script\\b[^>]*>([\\s\\S]*?)<\\/script>/gi)];for(const [i,s] of scripts.entries()){new Function(s[1]);console.log("inline script",i,"syntax OK")}'
+      - name: Verify market API responds
+        run: |
+          node - <<'NODE'
+          const url='https://momentum-radar-live.vercel.app/api/nfl-markets?date='+new Date().toISOString().slice(0,10);
+          const r=await fetch(url,{signal:AbortSignal.timeout(30000)});
+          const body=await r.text();
+          console.log('HTTP',r.status,'response bytes',body.length);
+          if(!r.ok)throw Error('NFL markets HTTP '+r.status+': '+body.slice(0,400));
+          const data=JSON.parse(body);
+          if(data.ok!==true||!data.categories)throw Error('NFL markets returned unexpected payload: '+body.slice(0,400));
+          console.log('market API response shape verified');
+          NODE
