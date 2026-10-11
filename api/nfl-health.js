@@ -57,6 +57,23 @@ export function historySnap(g,m,prior=null){
    legs:s.legs.map(x=>({...x,category:x.cat,
     threshold:x.cat==='td'?1:(x.bookOffer?.line??x.analyticsThreshold??x.threshold??null)}))});
  }
+ // Carry only source-backed, fresh individual offers to the AI guardian.
+ // The review is advisory; it must never convert them to a combined SGP quote.
+ const verifiedIndividualOffers=[];
+ for(const cat of ['td','passing','rushing','receiving','receptions'])
+  for(const row of m.categories?.[cat]||[]){
+   for(const book of ['DraftKings','FanDuel']){
+    const offer=row.sportsbooks?.[book]||row.books?.find?.(x=>x.book===book);
+    if(!offer?.sourceUrl||!offer?.checkedAt||!offer?.available)continue;
+    const n=Number(offer.odds);
+    if(!Number.isFinite(n)||n===0)continue;
+    verifiedIndividualOffers.push({book,sport:'NFL',gameId:g.gameId,
+     playerId:String(row.playerID||row.playerId||''),market:cat,
+     line:String(offer.line??row.threshold??(cat==='td'?'yes':'')),
+     americanOdds:(n>0?'+':'')+String(n),checkedAt:offer.checkedAt,
+     sourceUrl:offer.sourceUrl,available:true});
+   }
+  }
  const now=Date.now(),ms=Date.parse(g.kickoff)-now,
   stage=ms<=30*60000?'FINAL_T_MINUS_30':ms<=90*60000?'PREGAME_VALIDATION':'DAY_AHEAD_BUILD';
  return {league:'nfl',gameId:g.gameId,lockedAt:new Date().toISOString(),
@@ -66,7 +83,7 @@ export function historySnap(g,m,prior=null){
   injuryChecks:{rosterAndInjuryEligibilityChecked:m.validation?.injuryEligibilityChecked===true,
     blockedPlayerCount:Number(m.validation?.blockedPlayerCount)||0,
     officialInactivesVerified:false},
-  checkedAt:new Date().toISOString(),game:g,picks,sgps,
+  checkedAt:new Date().toISOString(),game:g,picks,sgps,verifiedIndividualOffers,
   injuryEvidence:m.validation?.injuryEvidence||[],
   matchupEvidence:m.outcomePrediction||null,
   offenseDefense:m.outcomePrediction||null,
