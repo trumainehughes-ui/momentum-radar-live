@@ -133,7 +133,7 @@ test('game SGP code imports conditional evidence, but keeps strict verified-QB a
  assert.ok(api.includes('roles.roles=dayAheadRoles.roles'));
  assert.ok(api.includes('conditionalRolesNotConfirmedStarters:true'));
  assert.ok(api.includes("isNflConfirmedGameQb({position:pos,role})"));
- assert.ok(api.includes("-day-ahead-roles-v5-teamid-depthchart"));
+ assert.ok(api.includes("const CACHE_SCHEMA=NFL_SGP_SNAPSHOT_SCHEMA;"));
  assert.ok(html.includes('Day-before conditional model'));
  assert.ok(html.includes('NOT officially confirmed starters'));
  assert.ok(!/priceVerified:true|combinedBookSgpQuoteAvailable:true/.test(api));
