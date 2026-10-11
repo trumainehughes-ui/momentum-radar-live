@@ -396,7 +396,7 @@ function propLineRows(payload,eventID){
   if(!Number.isFinite(odds)||!checkedAt||Math.abs(Date.now()-Date.parse(checkedAt))>15*60*1000)continue;
   const k=[norm(o.player),cat,line??'td'].join('|');
   if(!groups.has(k))groups.set(k,{eventID,playerID:norm(o.player),name:o.player,team:'',marketName:o.market,statID:cat==='td'?'touchdowns':o.market,periodID:'game',betTypeID:cat==='td'?'yn':'ou',sideID:cat==='td'?'yes':'over',line,books:[],provider:'PropLine',checkedAt});
-  groups.get(k).books.push({book,odds,line,available:true,checkedAt,sourceProvider:'PropLine',sourceUrl:'https://prop-line.com'});
+  groups.get(k).books.push({book,odds,line,available:true,checkedAt,sourceProvider:'PropLine',sourceUrl:'https://prop-line.com',bookOutcomeId:o.bookOutcomeId||null,marketKey:o.market});
  }
  return [...groups.values()];
 }
