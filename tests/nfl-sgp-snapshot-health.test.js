@@ -165,4 +165,23 @@ test('stale combined bookmaker quote is never counted as verified even if model 
  assert.equal(fresh.tiers[0].bookMarkets.FanDuel.tierVerified,true);
  assert.equal(fresh.tiers[0].bookMarkets.FanDuel.actualCombinedOdds,2400);
  assert.equal(fresh.sportsbookCombinedOddsVerified,true);
+ assert.equal(fresh.status,'BOOK_TIER_VERIFIED');
+ assert.match(fresh.tiers[0].reason,/fresh sportsbook-issued combined quote/i);
+});
+
+test('per-game NFL saved SGP health distinguishes a fresh outside-target quote from an achieved tier',()=>{
+ const snap=sample();
+ snap.body.sgps.Analytics[1]={risk:'Medium',requiredLegs:5,legs:
+  Array.from({length:5},(_,i)=>({playerID:String(200+i)})),
+  tierAssessment:{compositionOk:true}};
+ snap.body.sgpVerification={league:'nfl',gameId,tiers:[{risk:'Medium',
+  books:{DraftKings:{status:'BOOK_COMBINED_PRICE_OUTSIDE_TIER',
+   combinedOddsVerified:true,tierVerified:false,actualCombinedOdds:975,
+   quoteCheckedAt:new Date(now-30_000).toISOString(),
+   matchedLegs:5,requiredLegs:5}}}]};
+ const out=nflSgpSnapshotReadiness(snap,{now,gameId});
+ assert.equal(out.status,'MODEL_ONLY');
+ assert.equal(out.tiers[1].bookMarkets.DraftKings.combinedOddsVerified,true);
+ assert.equal(out.tiers[1].bookMarkets.DraftKings.tierVerified,false);
+ assert.match(out.tiers[1].reason,/outside the requested tier/);
 });
