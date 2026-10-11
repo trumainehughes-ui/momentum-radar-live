@@ -62,6 +62,56 @@ test('complete composition reports model-only, never verified sportsbook quote',
  assert.ok(!JSON.stringify(status).includes('"playerID"'),
   'health report never exposes actual players or accepts client-side writes');
 });
+test('only fresh, source-verified exact-tier bookmaker quotes appear in SGP health',()=>{
+ const fresh=sample(),book='FanDuel',risk='Nuke';
+ const q={book,risk,legs:Array.from({length:5},(_,i)=>({playerID:'private-'+i})),
+  requiredLegs:5,actualSgpOdds:10001,combinedBookQuoteVerified:true,
+  publishable:true,bookVerificationPending:false,
+  quotedAt:new Date(now-90_000).toISOString()};
+ fresh.body.sgps.FanDuel=[q];
+ const status=nflSgpSnapshotReadiness(fresh,{now,gameId});
+ assert.equal(status.status,'BOOK_QUOTED_PARTIAL');
+ assert.equal(status.sportsbookCombinedOddsVerified,true);
+ assert.equal(status.bookQuotes.length,1);
+ assert.equal(status.bookQuotes[0].book,'FanDuel');
+ assert.equal(status.bookQuotes[0].risk,'Nuke');
+ assert.equal(status.bookQuotes[0].americanOdds,10001);
+ assert.equal(status.bookQuotes[0].netProfitOnTen,1000.1);
+ assert.equal(status.tiers.find(x=>x.risk==='Nuke').sportsbookCombinedOddsVerified,true);
+ assert.ok(!JSON.stringify(status).includes('private-0'));
+ assert.ok(!JSON.stringify(status).includes('"legs"'));
+});
+test('stale, fake-tier, unsigned and mismatched quote metadata never become verified',()=>{
+ const base=sample();
+ const quote={
+  book:'DraftKings',risk:'Small',requiredLegs:4,
+  legs:[{playerID:'a'},{playerID:'b'},{playerID:'c'},{playerID:'d'}],
+  combinedBookQuoteVerified:true,publishable:true,bookVerificationPending:false,
+  actualSgpOdds:2500,quotedAt:new Date(now-90_000).toISOString()
+ };
+ for(const variant of [
+  {...quote,book:'FanDuel'}, {...quote,risk:'Nuke'},
+  {...quote,actualSgpOdds:10000}, {...quote,actualSgpOdds:2500.5},
+  {...quote,actualSgpOdds:'2500'}, {...quote,publishable:false},
+  {...quote,combinedBookQuoteVerified:false},
+  {...quote,bookVerificationPending:true},
+  {...quote,requiredLegs:3},
+  {...quote,quotedAt:new Date(now+1000).toISOString()},
+  {...quote,quotedAt:new Date(now-16*60_000).toISOString()},
+  {...quote,legs:quote.legs.slice(0,3)}
+ ]){
+  const bad=structuredClone(base);
+  bad.body.sgps.DraftKings=[variant];
+  const out=nflSgpSnapshotReadiness(bad,{now,gameId});
+  assert.equal(out.sportsbookCombinedOddsVerified,false,JSON.stringify(variant).slice(0,200));
+  assert.deepEqual(out.bookQuotes,[]);
+ }
+ const good=structuredClone(base);
+ good.body.sgps.DraftKings=[quote];
+ const stale=nflSgpSnapshotReadiness({...good,at:now-16*60_000},{now,gameId});
+ assert.equal(stale.sportsbookCombinedOddsVerified,false);
+ assert.deepEqual(stale.bookQuotes,[]);
+});
 test('stale or wrong-game snapshots cannot surface saved SGP candidates as ready',()=>{
  const old=sample(now-16*60_000);
  old.body.sgps.Analytics[0]={risk:'Small',requiredLegs:4,legs:[{playerId:'1'},{playerId:'2'},{playerId:'3'},{playerId:'4'}],tierAssessment:{compositionOk:true}};
