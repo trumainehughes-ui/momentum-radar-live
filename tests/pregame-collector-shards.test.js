@@ -336,3 +336,25 @@ test('legacy reports lacking original book quote timestamps never attest current
  assert.equal(overview.Small.DraftKings.tierPriceVerified,0);
  assert.equal(overview.Small.DraftKings.missingBookData,1);
 });
+
+test('fresh combined +975 Medium quote remains a genuine out-of-tier price, never target-verified',()=>{
+ const tier={risk:'Medium',modelStatus:'MODEL_CANDIDATE',
+  sportsbookStatus:'BOOK_COMBINED_PRICE_OUTSIDE_TIER',books:{
+   FanDuel:{status:'BOOK_COMBINED_PRICE_OUTSIDE_TIER',
+    quoteCheckedAt:new Date(now-60_000).toISOString(),
+    combinedOddsVerified:true,tierVerified:false,matchedLegs:5,requiredLegs:5}
+  }};
+ const live=recheckCollectorSportsbooks([tier],{now});
+ assert.equal(live[0].books.FanDuel.status,'BOOK_COMBINED_PRICE_OUTSIDE_TIER');
+ assert.equal(live[0].books.FanDuel.combinedOddsVerified,true);
+ assert.equal(live[0].books.FanDuel.tierVerified,false);
+ assert.equal(live[0].sportsbookStatus,'BOOK_COMBINED_PRICE_OUTSIDE_TIER');
+ const overall=collectorBookCoverage([{status:'COMPLETE',
+  results:[{sportsbookTierAudit:live}]}]);
+ assert.equal(overall.Medium.FanDuel.combinedPriceVerified,1);
+ assert.equal(overall.Medium.FanDuel.tierPriceVerified,0);
+ assert.equal(overall.Medium.FanDuel.outsideTarget,1);
+ const old=recheckCollectorSportsbooks([tier],{now:now+16*60000});
+ assert.equal(old[0].books.FanDuel.status,'BOOK_QUOTE_STALE');
+ assert.equal(old[0].books.FanDuel.combinedOddsVerified,false);
+});
