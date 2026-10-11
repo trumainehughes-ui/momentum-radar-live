@@ -58,7 +58,7 @@ export default async function handler(req,res){
   let modelRefresh={attempted:false,status:'not_needed'};
   if(invalidations.length){
    // Refresh DVP/SGP only; no sportsbook changeType flag is passed, so PropLine credits remain protected.
-   const date=new Date().toISOString().slice(0,10);
+   const date=String(data?.header?.competitions?.[0]?.date||data?.header?.competitions?.[0]?.competitors?.[0]?.date||new Date().toISOString()).slice(0,10);
    const trustedOrigin=process.env.VERCEL_PROJECT_PRODUCTION_URL?'https://'+process.env.VERCEL_PROJECT_PRODUCTION_URL:'https://momentum-radar-live.vercel.app';
    const url=trustedOrigin+'/api/nfl-markets?date='+date+'&gameId='+encodeURIComponent(gameId)+'&verifiedChange=1';
    try{
