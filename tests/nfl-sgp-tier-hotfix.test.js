@@ -109,10 +109,21 @@ test('core SGP composition permits a QB in different passing and rushing markets
 
 test('all NFL games use 4 Small, 5 Medium and 5-7 Nuke for book-specific SGP candidates too',()=>{
  const source=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
- assert.ok(source.includes("findTier('Small',4,4,0)"));
- assert.ok(source.includes("findTier('Medium',5,5,1)"));
+ assert.ok(source.includes("findTier('Small',4,0)"));
+ assert.ok(source.includes("findTier('Medium',5,1)"));
  assert.ok(source.includes("for(let n=5;n<=Math.min(7,nukePool.length);n++)"));
  assert.ok(!source.includes("findTier('Small',2,6,0)"));
  assert.ok(!source.includes("findTier('Medium',3,7,1)"));
  assert.ok(!source.includes("for(let n=3;n<=Math.min(8,nukePool.length);n++"));
+});
+
+test('all-game book-specific builder never gates model cards on multiplied SGP price estimates',()=>{
+ const src=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),'utf8');
+ assert.ok(src.includes('const est=null;'));
+ assert.ok(src.includes('bookVerificationPending:true,actualSgpOdds:null'));
+ assert.ok(!src.includes('const est=parlayPrice(legs,book)'));
+ assert.ok(!src.includes('s.estimatedPayoutTargetInBand===true'));
+ assert.ok(!src.includes("if(risk==='Nuke'&&(!Number.isFinite(est)||est<10000))"));
+ assert.ok(src.includes("s.nukeCeilingVerified!==true"));
+ assert.ok(src.includes("s.legs?.length!==count"));
 });
