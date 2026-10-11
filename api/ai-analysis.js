@@ -171,6 +171,14 @@ export default async function handler(req,res) {
   const mechanics=generateAdvisory(mode,data);
   const serialized=JSON.stringify({mode,data,advisory:mechanics});
   if(serialized.length>MAX_BODY)return respond(res,413,{ok:false,error:'payload_too_large'});
+  // A sportsbook scout cannot help without a fresh, game-scoped,
+  // officially sourced *individual-market* audit. Do not spend Groq or
+  // OpenRouter credits merely to have the LLM invent unavailable offers.
+  if(mode==='sportsbook'&&!(mechanics?.items?.length))return respond(res,200,{
+    ok:true,analysis:'Current sportsbook market evidence is missing, stale or for a different game. Refresh existing provider markets, roster and injury inputs before requesting AI analysis. No player lines or combined SGP odds were inferred.',
+    mechanics,aiAvailable:Boolean(process.env.GROQ_API_KEY||process.env.OPENROUTER_API_KEY),
+    sourceGated:true,verified:false,cached:false,provider:null
+  });
   if(!process.env.GROQ_API_KEY&&!process.env.OPENROUTER_API_KEY&&mechanics)return respond(res,200,{
     ok:true,analysis:'AI providers are not configured; deterministic evidence review is available below.',
     mechanics,aiAvailable:false,verified:false,model:null,cached:false
