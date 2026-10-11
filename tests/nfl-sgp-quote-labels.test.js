@@ -33,3 +33,10 @@ test('October 5 hardcoded book references cannot enter live 2026-10-11 market ro
  assert.ok(!src.includes('...publicBookRows,...publicDerivedRows,...publicSgpRows'));
  assert.ok(src.includes('Historical October 5 public bookmaker reference lines stay in the historical context only.'));
 });
+
+test('book-mode cards do not display independently multiplied estimates as an actual SGP price',()=>{
+ const ui=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.ok(ui.includes('Combined sportsbook SGP odds: NOT VERIFIED'));
+ assert.ok(!ui.includes('Estimated: ${s.estimatedOdds'));
+ assert.ok(ui.includes('Individual prop candidate • Combined price unverified'));
+});
