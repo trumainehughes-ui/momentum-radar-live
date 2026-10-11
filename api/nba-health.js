@@ -6,6 +6,8 @@ import {pregameAiAudit} from '../lib/pregame-ai-review.js';
 import {nflRunCollectorBatch} from '../lib/nfl-collector-readiness.js';
 import {pregamePhase,pregameEvidenceAudit,pregameNeedsAiReview}
  from '../lib/pregame-revalidation.js';
+import {selectedShardGames,collectorAuditReport,writeCollectorAudit}
+ from '../lib/pregame-collector-shards.js';
 const PREFIX='momentum-pregame/v1/nba-';
 const MS=60_000,LOOKAHEAD=36*60*MS;
 export const NBA_PREGAME_MODEL_VERSION='v5-league-wide-matchup-baseline-revalidation';
@@ -183,6 +185,9 @@ export default async function handler(req,res){
  if(blobCredentialMode(process.env)==='NOT_CONFIGURED')
   return res.status(503).json({ok:false,error:'pregame_storage_not_configured',
    action:'Connect an existing Vercel Blob store to this project before running the snapshot collector.'});
+ const shard=Number(req.query?.shard??0);
+ if(!Number.isInteger(shard)||shard<0||shard>1)
+  return res.status(400).json({ok:false,error:'invalid_collector_shard'});
  const date=dateET(),tomorrow=addDay(date,1),dates=[date,tomorrow];
  const schedules=await Promise.all(dates.map(async day=>{
   try{return await json('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates='+day.replaceAll('-','')+'&limit=100',12_000)}
@@ -198,12 +203,21 @@ export default async function handler(req,res){
    home:{id:String(home?.team?.id||''),abbr:home?.team?.abbreviation},
    away:{id:String(away?.team?.id||''),abbr:away?.team?.abbreviation}}]
  })).values()].filter(g=>g.status==='SCHEDULED'&&nbaPregameStage(g,null).stage!=='OUTSIDE_WINDOW');
- const histories=await Promise.all(games.map(g=>nbaReadPregame(g.gameId)));
- const pending=games.map((g,i)=>({gameId:g.gameId,g,prior:histories[i],plan:nbaPregameStage(g,histories[i])}))
+ const assigned=selectedShardGames(games,shard);
+ const histories=await Promise.all(assigned.map(g=>nbaReadPregame(g.gameId)));
+ const pending=assigned.map((g,i)=>({gameId:g.gameId,g,prior:histories[i],plan:nbaPregameStage(g,histories[i])}))
    .filter(x=>x.plan.due);
+ // If the batch times out before completion the last persisted marker shows
+ // RUNNING rather than silently presenting stale successful coverage.
+ const startedAt=new Date().toISOString();
+ await writeCollectorAudit(collectorAuditReport('nba',shard,[],{
+  due:pending.length,startedAt,state:'RUNNING'}));
  const reports=await nflRunCollectorBatch(pending,async({g,prior})=>
   nbaCollectPregame(g,{prior}),{concurrency:3});
+ await writeCollectorAudit(collectorAuditReport('nba',shard,reports,{
+  due:pending.length,startedAt,state:'COMPLETE'}));
  return res.status(200).json({ok:true,datesChecked:dates,games:games.length,
+  shard,shardsTotal:2,assignedGames:assigned.length,
   due:pending.length,checked:reports.length,results:reports,
   failed:reports.filter(r=>r?.status==='collector_error').length,
   changed:reports.filter(r=>r?.changed).length,
