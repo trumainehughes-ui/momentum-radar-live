@@ -24,7 +24,9 @@ export default async function handler(req,res){
  const tokenPath='momentum-nfl-change-tokens/v1/'+eventToken+'.json';
  let tokenRecord=null;
  try{const records=await list({prefix:tokenPath,limit:5});const item=records.blobs?.find(x=>x.pathname===tokenPath);if(item){const response=await fetch(item.url,{signal:AbortSignal.timeout(2500)});if(response.ok)tokenRecord=await response.json()}}catch{return res.status(503).json({ok:false,error:'change_token_store_unavailable'})}
- if(!tokenRecord||tokenRecord.usedAt||Date.now()-Date.parse(tokenRecord.createdAt)>15*60*1000||tokenRecord.gameId!==gameId)return res.status(403).json({ok:false,error:'change_token_invalid_or_used'});
+ const tokenAge=Date.now()-Date.parse(tokenRecord?.createdAt||'');
+ if(!tokenRecord||tokenRecord.usedAt||!Number.isFinite(tokenAge)||tokenAge<0||tokenAge>15*60*1000||String(tokenRecord.gameId)!==gameId||tokenRecord.changeCount<1)
+  return res.status(403).json({ok:false,error:'change_token_invalid_or_used'});
  if(!process.env.SCRAPINGBEE_API_KEY)return res.status(503).json({ok:false,error:'scrapingbee_not_configured'});
  // One atomic claim per verified change, sportsbook, and URL. A retry fails closed.
  const {createHash}=await import('node:crypto');
@@ -51,6 +53,9 @@ export default async function handler(req,res){
   if(resolvedHost&&resolvedHost!==allowed.hostname)
    return res.status(422).json({ok:false,error:'provider_redirected_outside_expected_sportsbook',creditsCharged});
   if(!response.ok)return res.status(502).json({ok:false,error:'provider_request_failed',providerStatus:response.status,creditsCharged,providerRequestId});
+  const initialStatus=Number(response.headers.get('spb-initial-status-code')||0);
+  if(initialStatus===401||initialStatus===403||initialStatus===429)
+   return res.status(422).json({ok:false,error:'sportsbook_page_blocked',initialStatus,creditsCharged,providerRequestId});
   const contentType=String(response.headers.get('spb-content-type')||response.headers.get('content-type')||'').toLowerCase();
   if(!contentType.includes('text/html')&&!contentType.includes('application/xhtml+xml'))
    return res.status(422).json({ok:false,error:'non_html_sportsbook_response'});
