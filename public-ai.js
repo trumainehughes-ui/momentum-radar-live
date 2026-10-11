@@ -134,6 +134,43 @@
  // This payload is derived only from the CURRENT selected game's existing
  // sportsbook audits. It causes zero additional sportsbook requests.
  // A sportsbook's individual lines are never an executable combined SGP.
+ // On-demand AI gets REAL per-player odds from the already-fetched
+ // DraftKings/FanDuel market catalog; no extra API fetch or web scraping.
+ // Never pass stale/wrong-game lines or let the AI issue correlated quotes.
+ function bookmakerPriceContext(m,gameId){
+  const observed=Date.parse(m?.fetchedAt||'');
+  const valid=String(m?.gameId||'')===String(gameId)&&
+   m?.stale!==true&&m?.degraded!==true&&
+   m?.validation?.sportsbookVerificationAvailable===true&&
+   Number.isFinite(observed)&&observed<=Date.now()&&
+   Date.now()-observed<=15*60000;
+  if(!valid)return{status:'NO_VERIFIED_CURRENT_PLAYER_PRICES',
+   gameId,books:['DraftKings','FanDuel'],players:[],
+   combinedQuoteVerified:false};
+  const players=[];
+  for(const cat of ['td','passing','rushing','receiving','receptions']){
+   for(const x of (m?.categories?.[cat]||[]).slice(0,10)){
+    if(players.length>=20)break;
+    const key=x?.bookLineCatalog||{};
+    const prices=Object.fromEntries(['DraftKings','FanDuel'].map(book=>[
+     book,(Array.isArray(key[book])?key[book]:[]).slice(0,3)
+      .filter(o=>o?.odds!==null&&o?.odds!==undefined&&
+       Number.isFinite(Number(o.odds))&&Number(o.odds)!==0)
+      .map(o=>({line:String(o.line),americanOdds:Number(o.odds),
+       source:'PROVIDER_BOOK_OFFER',combinedQuoteVerified:false}))
+    ]));
+    if(prices.DraftKings.length||prices.FanDuel.length)
+     players.push({name:String(x.name||'').slice(0,80),
+      team:String(x.team||'').slice(0,10),category:cat,
+      books:prices,allBooksListed:Boolean(prices.DraftKings.length&&prices.FanDuel.length)});
+   }
+  }
+  return{status:'CURRENT_INDIVIDUAL_PROVIDER_PRICES',
+   gameId,checkedAt:m.fetchedAt,
+   books:['DraftKings','FanDuel'],
+   players,priceSamplesOnly:true,combinedQuoteVerified:false,
+   note:'Official per-book individual lines only; absence means unavailable or unobserved, not zero. AI must never manufacture sportsbook odds or a correlated SGP payout.'};
+ }
  function sportsbookEvidence(m,gameId){
   const cards=(m?.sgps?.Analytics||[]),verification=m?.sgpVerification;
   const verifiedScope=String(m?.gameId||'')===String(gameId);
@@ -298,6 +335,7 @@
      sources,model:{fetchedAt:compact(m?.fetchedAt),stale:m?.stale===true,degraded:m?.degraded===true,analyticsAvailable:m?.analyticsAvailable===true,modelSgpTierCount:modelTierCount,sportsbookMarketRows:number(m?.marketRows)??0,modelAvailabilityNote:modelTierCount?'Model-generated SGPs exist but are not verified sportsbook offers or actual payout odds.':'Model SGP tiers unavailable for this game.',validation:m?.validation?{injuryEligibilityChecked:m.validation.injuryEligibilityChecked,starterRoleRequired:m.validation.sgpChecks?.starterRoleRequired,sportsbookVerificationAvailable:m.validation.sportsbookVerificationAvailable}:null},
      categories,playerRoleFacts,identityConflicts,matchup:mode==='injury'?null:conciseMatchup(defensive),playerAvailability:conciseRoster(availability,mode),sgps:selectedSgps,results,
      sportsbooks:mode==='sportsbook'?sportsbookEvidence(m,gameId):null,
+     bookmakerPrices:['sportsbook','parlay','nuke','value'].includes(mode)?bookmakerPriceContext(m,gameId):null,
      parlayRecheck:['parlay','nuke','sportsbook'].includes(mode)?
       parlayRecheckEvidence(m,gameId):null,
      instruction:'Explain only evidence actually available. Report opponent-specific sample games, never leaguewide count as individual sample; under five games is limited. IMPORTANT: before generic role warnings, mention any playerAvailability.skillPositionAlerts such as ESPN-reported OUT/IR/Q statuses and potential impact without inventing revised projections; these are NOT confirmed official game-day inactives. Do not imply an unreported injury status means confirmed healthy. Use playerChecks for wrong-team flags. Model SGP tiers exist separately from unverified sportsbook offers and prices. Do not say ALL betting information is unavailable if model tiers and projections are present. Critically, defenseRankMost and offenseRankMost must come from exactly the SAME position and metric as their yards value; for example, RB rushYards 47.5 rank 32 is different from QB rushYards 17.5 rank 13. The offenseProducedPerGame was achieved against earlier opponents, NOT the upcoming defense. Keep missing-verification cautions short. Each playerRoleFacts position is the player actual position; QB rushing yards are compared to QB defense rushYards, not RB defense rushYards. Position-group team averages are not individual player averages. Never identify Jalen Hurts or any QB as an RB, or Chris Rodriguez Jr. or any RB as a QB. Never attach a team-group metric to an individual player. RankMost 1 means most allowed, not strongest defense. Roster membership does not prove starting.'
