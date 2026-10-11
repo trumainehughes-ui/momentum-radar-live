@@ -486,7 +486,7 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
   const changeType=String(req.query.changeType||'').toLowerCase();
   const allowedChange=new Set(['player_injury','player_inactive','qb_change','offense_change','defense_change','depth_chart_change']);
   const auth=String(req.headers.authorization||'');
-  const authorizedChange=Boolean(process.env.CRON_SECRET)&&auth==='Bearer '+process.env.CRON_SECRET&&allowedChange.has(changeType);
+  const authorizedChange=false; // Change-triggered model refresh must not itself authorize paid sportsbook requests.
   oddsDebug.propLineCreditPolicy='verified_change_only';
   oddsDebug.propLineChangeType=authorizedChange?changeType:null;
   if(!directRows?.length&&process.env.PLAYER_PROPS_API_KEY&&authorizedChange){
