@@ -4,6 +4,7 @@ import { sportsbookCoverageAudit } from '../lib/sportsbook-source-policy.js';
 import { assessNflSgpTier, fillNflSgpMarketMix, guardFinalNflSgpCards, modelNflSgpStatThreshold, nflLegMatchesGameRoster, selectNflAdaptiveNuke } from '../lib/ai-mechanics/nfl-sgp-tiers.js';
 import {validNflDvpRank,capNflTierYardTarget,isNflConfirmedGameQb} from '../lib/ai-mechanics/nfl-projection-safety.js';
 import {nflDayAheadRoleEvidence} from '../lib/nfl-day-ahead-roles.js';
+import {summarizeNflNukeEvidence} from '../lib/nfl-nuke-evidence-diagnostics.js';
 import {nflCurrentGameDepthChartQbs,nflProjectedDepthChartQbEligible} from '../lib/nfl-depthchart-qb1.js';
 import {nflCurrentRosterAthletes} from '../lib/nfl-roster-evidence.js';
 import {nflGameInjuryEvidence,nflInjuryBlocks} from '../lib/nfl-injury-evidence.js';
@@ -361,7 +362,22 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
   const corr=sgpCorrelation(legs),avg=legs.length?Math.round(legs.reduce((s,x)=>s+(Number(x.momentumScore)||50),0)/legs.length):null;
   return{book:'Combined',mode:'DATA_MODEL',risk,legs,tierAssessment,modelOnly:true,candidateComplete:tierAssessment.compositionOk,publishable:false,combinedBookQuoteVerified:false,estimatedOdds:null,momentumScore:avg,sgpScore:avg==null?null:Math.max(1,Math.min(99,Math.round(avg*.8+corr.score*.2))),correlation:corr,explanation:sgpExplanation(risk,legs,corr),marketMix:[...cats],verifiedAt:new Date().toISOString(),requiredLegs:count,verifiedLegs:0,reason:legs.length===count?'Analytics Build — starter/high-usage production is matchup-adjusted using offense production and opponent defense-vs-position. Small targets the floor, Medium the adjusted expectation, and Nuke the supported ceiling; every market competes on model evidence. Verify availability at your sportsbook before placing.':'Not enough starter/high-usage analytics data to complete this build yet.'};
  };
- const nukeEligible=pool.filter(x=>x.cat==='td'||modelNflSgpStatThreshold(x,x.cat,'Nuke',analyticsLine(x,x.cat,'Nuke',ctx))!==null);const nuke=selectNflAdaptiveNuke(make);const nukeHasStat=Boolean(nuke?.legs?.some(x=>x.cat!=='td'));return[{...make('Small',4),payoutTarget:sgpPayoutLabel('Small'),targetOddsBand:SGP_ODDS_BANDS.Small},{...make('Medium',5),payoutTarget:sgpPayoutLabel('Medium'),targetOddsBand:SGP_ODDS_BANDS.Medium},{...(nukeHasStat?nuke:{...nuke,legs:[],marketMix:[],reason:nuke.reason||'No eligible five-to-seven-leg Nuke with supported above-projection yardage targets is currently available.'}),payoutTarget:sgpPayoutLabel('Nuke'),targetOddsBand:SGP_ODDS_BANDS.Nuke}];
+ const nukeEvidence=summarizeNflNukeEvidence(pool.map(x=>{
+  const pos=String(x?.position||'').toUpperCase(),role=roleFor(roles,x);
+  const confirmed=['CONFIRMED_STARTER','EXPECTED_STARTER'].includes(String(role?.starterStatus||''))&&
+   isNflConfirmedGameQb({position:pos,role});
+  const roleEligible=['QB','RB','WR','TE'].includes(pos)&&(pos!=='QB'||confirmed||nflProjectedDepthChartQbEligible(role));
+  return {athleteId:String(x.playerID||x.playerId||norm(x.name)),
+   category:x.cat,roleEligible,ceilingSupported:x.cat==='td'||
+   modelNflSgpStatThreshold(x,x.cat,'Nuke',analyticsLine(x,x.cat,'Nuke',ctx))!==null};
+ }));
+ const nuke=selectNflAdaptiveNuke(make);
+ const nukeWithEvidence={...nuke,nukeEvidence,
+  reason:nuke?.legs?.length?nuke.reason:
+   (nuke?.reason||'Nuke not ready')+' Blocker: '+nukeEvidence.blocker+'. '+nukeEvidence.uniqueEligibleAthletes+
+    ' eligible athletes; '+nukeEvidence.supportedYardageRows+' ceiling-backed yardage rows across '+
+    nukeEvidence.distinctYardageMarkets+' yardage markets.'};
+ const nukeHasStat=Boolean(nukeWithEvidence?.legs?.some(x=>x.cat!=='td'));return[{...make('Small',4),payoutTarget:sgpPayoutLabel('Small'),targetOddsBand:SGP_ODDS_BANDS.Small},{...make('Medium',5),payoutTarget:sgpPayoutLabel('Medium'),targetOddsBand:SGP_ODDS_BANDS.Medium},{...(nukeHasStat?nukeWithEvidence:{...nukeWithEvidence,legs:[],marketMix:[],reason:nukeWithEvidence.reason}),payoutTarget:sgpPayoutLabel('Nuke'),targetOddsBand:SGP_ODDS_BANDS.Nuke}];
 }
 async function gameRoleGate(gameId,base){if(!gameId)return{checked:false,roles:new Map()};try{const r=await timedFetch(base+'/api/nfl-game?gameId='+encodeURIComponent(gameId)+'&ts='+Date.now(),{cache:'no-store'});if(!r.ok)return{checked:false,roles:new Map()};const d=await r.json(),m=new Map();for(const x of d.playerProjections||[]){if(x.playerId)m.set(String(x.playerId),x);if(x.name)m.set('name:'+norm(x.name),x)}return{checked:true,roles:m,players:d.playerProjections||[],source:d.source||null}}catch{return{checked:false,roles:new Map()}}}
 function roleFor(gate,x){const roles=gate?.roles||new Map();return roles.get(String(x.playerID||x.playerId||''))||roles.get('name:'+norm(x.name))||null}
