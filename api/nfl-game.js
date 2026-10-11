@@ -3,6 +3,7 @@ import {nflGameInjuryEvidence,nflInjuryBlocks} from '../lib/nfl-injury-evidence.
 import {nflWeeklyForGame} from '../lib/nfl-injury-weekly-loader.js';
 import {nflCanonTeam} from '../lib/nfl-official-injury-feed.js';
 import { put, list, del } from '@vercel/blob';
+import {timingSafeEqual} from 'node:crypto';
 const ESPN="https://site.api.espn.com/apis/site/v2/sports/football/nfl";
 const ESPN_STATS="https://site.web.api.espn.com/apis/common/v3/sports/football/nfl/statistics/byathlete";
 const ESPN_INJ="https://site.api.espn.com/apis/site/v2/sports/football/nfl/injuries";
@@ -10,6 +11,12 @@ const HISTORY_PREFIX='momentum-history/v1/nfl-';
 const ARCHIVE_PREFIX='momentum-history/v1/archive/nfl-';
 const HISTORY_VISIBLE_MS=24*60*60*1000;
 const noStore={"Cache-Control":"no-store, max-age=0","Pragma":"no-cache"};
+export function nflHistoryWriteAuthorized(req,secret){
+ if(!secret)return false;
+ const provided=Buffer.from(String(req?.headers?.authorization||'')),
+ expected=Buffer.from('Bearer '+secret);
+ return provided.length===expected.length&&timingSafeEqual(provided,expected);
+}
 async function json(url){const r=await fetch(url,{headers:{"accept":"application/json"}});if(!r.ok)throw new Error("upstream_"+r.status);return r.json()}
 async function projections(competitors,blockedIds=new Set()){
  const out=[];
@@ -51,7 +58,42 @@ function finalStats(summary){const out=new Map();for(const team of summary.boxsc
 
 export default async function handler(req,res){
  Object.entries(noStore).forEach(([k,v])=>res.setHeader(k,v));
- if(!['GET','POST'].includes(req.method))return res.status(405).json({ok:false,error:'method_not_allowed'});if(req.method==='GET'&&String(req.query.mode||'')==='history-list'){const all=await listHistory();await archiveOldHistory(all);const history=(await listHistory()).filter(x=>Date.now()-Date.parse(x.lockedAt||x.game?.kickoff||0)<=HISTORY_VISIBLE_MS).map(({_blobUrl,...x})=>x);return res.status(200).json({ok:true,history,archive:await listArchive(),retentionHours:24})} const gameId=String(req.query.gameId||req.body?.gameId||""); if(!gameId)return res.status(400).json({ok:false,error:"gameId_required"});if(req.method==='POST'&&req.body?.action==='lock-history'){try{return res.status(200).json({ok:true,locked:await lockHistory(gameId,req.body)})}catch(e){return res.status(502).json({ok:false,error:'history_lock_failed'})}}
+ if(!['GET','POST'].includes(req.method))
+  return res.status(405).json({ok:false,error:'method_not_allowed'});
+ const mode=String(req.query?.mode||'');
+ // Read endpoints are genuinely read-only. The old public history listing
+ // used to archive/delete server data as a side effect on a visitor GET.
+ if(req.method==='GET'&&mode==='history-list'){
+  const history=(await listHistory()).filter(x=>Date.now()-Date.parse(x.lockedAt||x.game?.kickoff||0)<=HISTORY_VISIBLE_MS)
+   .map(({_blobUrl,...x})=>x);
+  return res.status(200).json({ok:true,history,archive:await listArchive(),retentionHours:24});
+ }
+ // Archiving/grading history is now a maintenance action for the platform
+ // cron, never a side effect of a public game page.
+ if(req.method==='GET'&&mode==='archive-history'){
+  if(!nflHistoryWriteAuthorized(req,process.env.CRON_SECRET))
+   return res.status(401).json({ok:false,error:'history_admin_auth_required'});
+  try{
+   const history=await listHistory();
+   await archiveOldHistory(history);
+   return res.status(200).json({ok:true,archivedAt:new Date().toISOString()});
+  }catch{return res.status(503).json({ok:false,error:'history_archive_unavailable'})}
+ }
+ // Visitors may request live information, but may not POST arbitrary parlay
+ // legs and overwrite the shared history record in Vercel Blob.
+ if(req.method==='POST'&&!nflHistoryWriteAuthorized(req,process.env.CRON_SECRET))
+  return res.status(401).json({ok:false,error:'history_write_auth_required'});
+ const gameId=String(req.query?.gameId||req.body?.gameId||"");
+ if(!/^\d{7,12}$/.test(gameId))return res.status(400).json({ok:false,error:'invalid_game_id'});
+ if(req.method==='POST'){
+  if(req.body?.action!=='lock-history')
+   return res.status(400).json({ok:false,error:'unsupported_history_action'});
+  if(String(req.body?.game?.gameId||'')!==gameId)
+   return res.status(409).json({ok:false,error:'history_game_id_mismatch'});
+  try{
+   return res.status(200).json({ok:true,locked:await lockHistory(gameId,req.body)});
+  }catch(e){return res.status(502).json({ok:false,error:'history_lock_failed'})}
+ }
  try{
   const summary=await json(`${ESPN}/summary?event=${encodeURIComponent(gameId)}`);
   const comp=summary.header?.competitions?.[0]||{}; const competitors=comp.competitors||[];
