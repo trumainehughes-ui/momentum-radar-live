@@ -81,5 +81,6 @@ test('production calls strict quote validator and preserves unquoted status on w
  assert.ok(markets.includes('return {...s,estimatedOdds:null,bookVerificationPending:true'));
  assert.ok(markets.includes('quote?.bookmaker===bookmaker'));
  assert.ok(markets.includes('quote?.pricedAt'));
- assert.ok(markets.includes('sgpOddsInBand(candidate.risk,quote.americanOdds)'));
+ assert.ok(markets.includes('sgpOddsInBand(risk,quote.americanOdds)'));
+ assert.ok(markets.includes("for(const risk of ['Small','Medium','Nuke'])"));
 });
