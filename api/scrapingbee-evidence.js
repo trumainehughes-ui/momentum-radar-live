@@ -35,9 +35,25 @@ export default async function handler(req,res){
   const response=await fetch(endpoint,{redirect:'manual',signal:AbortSignal.timeout(12000)});
   if(!response.ok)return res.status(502).json({ok:false,error:'provider_request_failed',providerStatus:response.status});
   const html=(await response.text()).slice(0,500000);
-  // Never label extracted text as a verified player offer until a separate parser checks identity, market, line, and price.
+  // Extract only structured JSON-LD sportsbook offers; never infer odds from free-form HTML or AI.
+  const extracted=[];
+  for(const match of html.matchAll(/<script\\b[^>]*type=[\"']application\\/ld\\+json[\"'][^>]*>([\\s\\S]*?)<\\/script>/gi)){
+   try{
+    const parsed=JSON.parse(match[1]);
+    const queue=Array.isArray(parsed)?[...parsed]:[parsed];
+    while(queue.length&&extracted.length<100){
+     const node=queue.shift();if(!node||typeof node!=='object')continue;
+     if(Array.isArray(node)){queue.push(...node.slice(0,50));continue;}
+     if(node['@graph'])queue.push(node['@graph']);
+     const name=String(node.name||'').slice(0,160);
+     const price=node.offers?.price??node.price;
+     if(name&&price!=null&&Number.isFinite(Number(price)))extracted.push({name,price:Number(price),source:'json_ld_unverified'});
+    }
+   }catch{}
+  }
+  // Structured page metadata is evidence only; bookmaker player, line, market and price must all be cross-checked.
   const cachePath='momentum-scrapingbee-evidence/v1/'+eventToken+'/'+book+'-'+digest+'.json';
-  await put(cachePath,JSON.stringify({gameId,book,url:target,html,fetchedAt:new Date().toISOString(),verifiedOffers:[]}),{access:'public',addRandomSuffix:false,allowOverwrite:true});
-  return res.status(200).json({ok:true,book,evidenceCached:true,verifiedOffers:0,creditsPolicy:'verified_change_only'});
+  await put(cachePath,JSON.stringify({gameId,book,url:target,html,extracted,fetchedAt:new Date().toISOString(),verifiedOffers:[]}),{access:'public',addRandomSuffix:false,allowOverwrite:true});
+  return res.status(200).json({ok:true,book,evidenceCached:true,structuredCandidates:extracted.length,verifiedOffers:0,creditsPolicy:'verified_change_only'});
  }catch{return res.status(502).json({ok:false,error:'provider_or_evidence_store_unavailable'})}
 }
