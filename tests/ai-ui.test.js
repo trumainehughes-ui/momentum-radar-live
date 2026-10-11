@@ -244,3 +244,28 @@ test('AI Parlay Architect Groq receives current per-book SGP recheck decisions, 
  assert.equal(stale.payloads[0].data.parlayRecheck.status,'FRESH_BOOKMARKET_RECHECK_REQUIRED');
  assert.equal(stale.payloads[0].data.parlayRecheck.tiers.length,0);
 });
+
+test('Groq Parlay Architect receives real fresh per-player DraftKings/FanDuel +/- lines and NO invented combined ticket',async()=>{
+ const market={ok:true,gameId:'game-123',fetchedAt:new Date().toISOString(),
+  stale:false,degraded:false,validation:{sportsbookVerificationAvailable:true},
+  categories:{rushing:[{name:'Runner A',playerID:'11',team:'AWY',
+   bookLineCatalog:{
+    DraftKings:[{line:'49.5',odds:-110},{line:'69.5',odds:+170}],
+    FanDuel:[{line:'49.5',odds:-105},{line:'79.5',odds:+220}]
+   }}]},sgps:{Analytics:[]}};
+ const run=harness({mode:'parlay',market});
+ await run.button.onclick();
+ const d=run.payloads[0].data.bookmakerPrices;
+ assert.equal(d.status,'CURRENT_INDIVIDUAL_PROVIDER_PRICES');
+ assert.deepEqual([...d.books],['DraftKings','FanDuel']);
+ assert.equal(d.players.length,1);
+ assert.equal(d.players[0].books.DraftKings[1].americanOdds,170);
+ assert.equal(d.players[0].books.FanDuel[1].americanOdds,220);
+ assert.equal(d.combinedQuoteVerified,false);
+ assert.equal(run.calls.length,3,'AI uses existing market snapshot; never calls sportsbook again');
+ const stale=harness({mode:'parlay',market:{...market,
+  fetchedAt:new Date(Date.now()-16*60000).toISOString()}});
+ await stale.button.onclick();
+ assert.equal(stale.payloads[0].data.bookmakerPrices.status,'NO_VERIFIED_CURRENT_PLAYER_PRICES');
+ assert.equal(stale.payloads[0].data.bookmakerPrices.players.length,0);
+});
