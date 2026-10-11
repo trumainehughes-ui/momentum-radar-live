@@ -261,8 +261,21 @@ function nflSgpAiPlanUi(data,id){
  if(!fresh)return '<div class="note"><b>AI Parlay Architect:</b> Fresh matchup/book lines are needed to rebuild and price SGPs.</div>';
  const actions=(p.tiers||[]).slice(0,3).map(t=>{
   const books=(t.bookActions||[]).filter(a=>['DraftKings','FanDuel'].includes(a.book))
-   .slice(0,2).map(a=>nflEscape(a.book)+': '+
-    nflEscape(String(a.action||'CHECK_DATA').replaceAll('_',' ').toLowerCase()));
+   .slice(0,2).map(a=>{
+    const label=nflEscape(a.book)+': '+
+     nflEscape(String(a.action||'CHECK_DATA').replaceAll('_',' ').toLowerCase());
+    // One selected book's observed and model-screened line is NOT a
+    // placed SGP leg. Never claim a price, ticket or auto-replacement.
+    const proposals=a.rescueStatus==='PROVISIONAL_BOOK_LINE_REBUILD'&&
+      a.provisionalRebuild?.readyToPublish===false?
+      (a.suggestedLineRechecks||[]).slice(0,2).map(l=>{
+       const x=(l.modelCompatibleOptions||[])[0];
+       return x?'<div class="refresh">Provisional only: '+
+        nflEscape(l.player)+' '+nflEscape(l.category)+' '+
+        nflEscape(x.sourceLabel)+' • recheck projection, injury and this book before rebuilding</div>':'';
+      }).filter(Boolean).join(''):'';
+    return label+proposals;
+   });
   return '<div class="note"><b>'+nflEscape(t.risk)+' SGP:</b> '+
    books.join(' • ')+'</div>';
  }).join('');
