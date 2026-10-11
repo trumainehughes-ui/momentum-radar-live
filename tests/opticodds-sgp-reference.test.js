@@ -150,7 +150,18 @@ test('operational readiness discloses opt-in requirement without leaking API cre
  const enabled=pregameReadiness({
   OPTICODDS_API_KEY:'test-private',OPTICODDS_SGP_ENABLED:'true'
  }).correlatedSgpPricing;
- assert.equal(enabled.status,'CONFIGURED_MAPPING_STILL_REQUIRED');
+ assert.equal(enabled.status,'DISCOVERY_DISABLED');
+ const discovery=pregameReadiness({
+  OPTICODDS_API_KEY:'test-private',OPTICODDS_SGP_ENABLED:'true',
+  OPTICODDS_DISCOVERY_ENABLED:'true'
+ }).correlatedSgpPricing;
+ assert.equal(discovery.status,'EXPLICIT_CALL_BUDGET_REQUIRED');
+ const allowed=pregameReadiness({
+  OPTICODDS_API_KEY:'test-private',OPTICODDS_SGP_ENABLED:'true',
+  OPTICODDS_DISCOVERY_ENABLED:'true',OPTICODDS_MAX_CALLS_PER_RUN:'10'
+ }).correlatedSgpPricing;
+ assert.equal(allowed.status,'CONFIGURED_MAPPING_STILL_REQUIRED');
+ assert.equal(allowed.budgetConfigured,true);
  assert.equal(enabled.crosswalkReady,false);
  assert.equal(enabled.providerCallsOnPublicPageLoad,false);
  assert.equal(enabled.bookIssuedSgpQuoteVerified,false);
