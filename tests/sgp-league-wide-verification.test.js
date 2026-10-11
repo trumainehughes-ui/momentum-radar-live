@@ -102,7 +102,7 @@ test('both sharded collectors expose per-matchup bookmaker audit without claimin
 });
 test('production schedulers, NFL view and NBA game expose shared audit on every game',()=>{
  for(const [path,piece] of [
-  ['api/nfl-markets.js','sgpVerification:gameId?auditLeagueSgpEvent'],
+  ['api/nfl-markets.js',"const verifiedSgp=gameId?auditLeagueSgpEvent({league:'nfl'"],
   ['api/nfl-health.js','sgpVerification:m.sgpVerification||null'],
   ['api/nba-health.js',"result.sgpVerification=auditLeagueSgpEvent({league:'nba'"],
   ['api/nba-game.js','data.sgpVerification=snapshot.sgpVerification||null'],
