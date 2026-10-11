@@ -602,7 +602,31 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
    displayLabel:book+' individual-prop candidate (unquoted)'};
  });
  const sgpResponse={DraftKings:quoteReady(bookSgps.DraftKings,'DraftKings'),FanDuel:quoteReady(bookSgps.FanDuel,'FanDuel'),Analytics:(analyticsSgps||[]).map(s=>({...s,publishable:false})),mode:'UNQUOTED_CANDIDATES',combinedBookQuoteVerified:false};
- const response={ok:true,gameId,date,scope:'game',home,away,provider,categories,sgps:sgpResponse,marketRows:(directRows||[]).length,degraded:!hasCompleteBookLegCandidate,validation:{sgpEligibleMarketRows:sgpGateDiagnostics.eligible,sgpGateDiagnostics,combinedBookSgpQuoteAvailable:false},oddsDebug,fetchedAt:new Date().toISOString()};
+ // Quote at most one complete candidate per bookmaker on a verified-change refresh.
+ // An accepted bookmaker price is required; analytics estimates never become book quotes.
+ if(authorizedChange&&gameId){
+  for(const [book,bookmaker] of [['DraftKings','draftkings'],['FanDuel','fanduel']]){
+   const candidate=(sgpResponse[book]||[]).find(s=>s.quoteEligibility==='READY_FOR_AUTHORIZED_QUOTE'&&s.quoteRequest);
+   if(!candidate)continue;
+   try{
+    const origin=process.env.VERCEL_PROJECT_PRODUCTION_URL?'https://'+process.env.VERCEL_PROJECT_PRODUCTION_URL:'https://momentum-radar-live.vercel.app';
+    const quoteRes=await timedFetch(origin+'/api/prop-line-sgp-quote',{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json',Authorization:'Bearer '+process.env.CRON_SECRET,'x-momentum-change-token':verifiedToken},body:JSON.stringify(candidate.quoteRequest),signal:AbortSignal.timeout(12000)});
+    const quote=await quoteRes.json().catch(()=>null);
+    oddsDebug[bookmaker+'QuoteStatus']=quote?.status||quote?.error||'invalid_provider_response';
+    if(quoteRes.ok&&quote?.quoted===true&&Number.isFinite(Number(quote.americanOdds))){
+     candidate.actualSgpOdds=Number(quote.americanOdds);
+     candidate.combinedBookQuoteVerified=true;
+     candidate.bookVerificationPending=false;
+     candidate.publishable=true;
+     candidate.displayLabel=book+' bookmaker-priced SGP';
+     candidate.quotedAt=quote.pricedAt||new Date().toISOString();
+    }
+   }catch(e){oddsDebug[bookmaker+'QuoteStatus']='quote_unavailable'}
+  }
+  sgpResponse.combinedBookQuoteVerified=['DraftKings','FanDuel'].some(book=>sgpResponse[book].some(s=>s.combinedBookQuoteVerified));
+  if(sgpResponse.combinedBookQuoteVerified)sgpResponse.mode='BOOK_QUOTED_PARTIAL';
+ }
+ const response={ok:true,gameId,date,scope:'game',home,away,provider,categories,sgps:sgpResponse,marketRows:(directRows||[]).length,degraded:!hasCompleteBookLegCandidate,validation:{sgpEligibleMarketRows:sgpGateDiagnostics.eligible,sgpGateDiagnostics,combinedBookSgpQuoteAvailable:sgpResponse.combinedBookQuoteVerified},oddsDebug,fetchedAt:new Date().toISOString()};
  res.setHeader('Cache-Control','private, no-store');
  await Promise.race([writeResponseSnapshot(responseKey,response),new Promise(resolve=>setTimeout(resolve,1200))]);
  return res.status(200).json(response);
