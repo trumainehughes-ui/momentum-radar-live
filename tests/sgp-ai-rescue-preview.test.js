@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {nflSgpRescuePreview} from '../lib/sgp-ai-rescue-preview.js';
 import {auditNflBookSgpMarkets} from '../lib/nfl-sgp-book-market-audit.js';
+import {sgpAiRecheckPlan} from '../lib/sgp-ai-recheck-plan.js';
+import {auditLeagueSgpEvent} from '../lib/sgp-league-wide-verification.js';
 const gameId='401872981',book='FanDuel';
 const legs=[
  {name:'Quarterback A',team:'JAX',eventID:gameId,playerID:'11',
@@ -94,4 +96,35 @@ test('a quoted individual alternate is not automatically allowed when it exceeds
  const p=nflSgpRescuePreview({gameId,risk:'Small',book,legs,missingLegs:observed});
  assert.equal(p.reason,'AT_LEAST_ONE_LEG_HAS_NO_SUPPORTED_OFFER');
  assert.equal(p.proposals[0].status,'NO_MODEL_SUPPORTED_ALTERNATE');
+});
+
+test('complete SGP AI action pipeline exposes one book-only provisional preview, NEVER modifies live SGP or odds',()=>{
+ const card={risk:'Small',requiredLegs:4,
+  tierAssessment:{compositionOk:true},legs,
+  bookMarketAudits:{
+   FanDuel:audited('55+'),
+   DraftKings:auditNflBookSgpMarkets({gameId,book:'DraftKings',
+    sgp:{risk:'Small',legs},markets:legs.map(l=>({
+     name:l.name,team:l.team,playerID:l.playerID,eventID:gameId,
+     cat:l.cat,sideID:'over',books:[{book:'DraftKings',line:l.analyticsThreshold+'+',
+      odds:-110,available:true}]
+    }))})
+  }};
+ const sgps={Analytics:[card]},sgpVerification=auditLeagueSgpEvent({
+  league:'nfl',gameId,sgps
+ });
+ const p=sgpAiRecheckPlan({league:'nfl',gameId,sgps,sgpVerification,
+  sourceCheckedAt:new Date().toISOString(),sourceAvailable:true});
+ const fd=p.tiers[0].bookActions.find(x=>x.book==='FanDuel');
+ const dk=p.tiers[0].bookActions.find(x=>x.book==='DraftKings');
+ assert.equal(fd.action,'REVALIDATE_MISSING_LEGS');
+ assert.equal(fd.rescueStatus,'PROVISIONAL_BOOK_LINE_REBUILD');
+ assert.equal(fd.suggestedLineRechecks[0].modelCompatibleOptions[0].threshold,55);
+ assert.equal(fd.provisionalRebuild.legs[1].threshold,55);
+ assert.equal(fd.provisionalRebuild.readyToPublish,false);
+ assert.equal(fd.bookableWagerConfirmed,false);
+ assert.equal(dk.action,'REQUEST_CORRELATED_BOOK_QUOTE');
+ assert.equal(dk.observedQuoteVerified,false);
+ assert.equal(p.observedQuoteTiers,0);
+ assert.equal(legs[1].analyticsThreshold,50,'official model candidate is immutable');
 });
