@@ -491,7 +491,8 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
   oddsDebug.propLineChangeType=authorizedChange?changeType:null;
   if(!directRows?.length&&process.env.PLAYER_PROPS_API_KEY&&authorizedChange){
    try{
-    const propUrl=(req.headers['x-forwarded-proto']||'https')+'://'+req.headers.host+'/api/prop-line-markets?league=nfl&date='+date+'&gameId='+encodeURIComponent(gameId);
+    const trustedPropOrigin=process.env.VERCEL_PROJECT_PRODUCTION_URL?'https://'+process.env.VERCEL_PROJECT_PRODUCTION_URL:'https://momentum-radar-live.vercel.app';
+    const propUrl=trustedPropOrigin+'/api/prop-line-markets?league=nfl&date='+date+'&gameId='+encodeURIComponent(gameId);
     const propResult=await Promise.race([(async()=>{const r=await timedFetch(propUrl,{cache:'no-store',headers:{Authorization:'Bearer '+process.env.CRON_SECRET}});return r.ok?await r.json():null})(),new Promise(resolve=>setTimeout(()=>resolve(null),6000))]);
     const offers=propLineRows(propResult,gameId);
     if(offers.length){directRows=offers;provider='PropLine';oddsDebug.stage='prop_line_market_ready';oddsDebug.propLineRows=offers.length}
