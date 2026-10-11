@@ -38,6 +38,9 @@ export default async function handler(req,res){
   endpoint.searchParams.set('block_resources','true');
   const response=await fetch(endpoint,{redirect:'manual',signal:AbortSignal.timeout(12000)});
   if(!response.ok)return res.status(502).json({ok:false,error:'provider_request_failed',providerStatus:response.status});
+  const contentType=String(response.headers.get('content-type')||'').toLowerCase();
+  if(!contentType.includes('text/html')&&!contentType.includes('application/xhtml+xml'))
+   return res.status(422).json({ok:false,error:'non_html_sportsbook_response'});
   const html=(await response.text()).slice(0,500000);
   // Extract only structured JSON-LD sportsbook offers; never infer odds from free-form HTML or AI.
   const extracted=[];
@@ -58,7 +61,7 @@ export default async function handler(req,res){
   }
   // Structured page metadata is evidence only; bookmaker player, line, market and price must all be cross-checked.
   const cachePath='momentum-scrapingbee-evidence/v1/'+eventToken+'/'+book+'-'+digest+'.json';
-  await put(cachePath,JSON.stringify({gameId,book,url:target,html,extracted,fetchedAt:new Date().toISOString(),verifiedOffers:[]}),{access:'public',addRandomSuffix:false,allowOverwrite:true});
+  await put(cachePath,JSON.stringify({gameId,book,url:target,extracted,htmlLength:html.length,fetchedAt:new Date().toISOString(),verifiedOffers:[]}),{access:'public',addRandomSuffix:false,allowOverwrite:true});
   return res.status(200).json({ok:true,book,evidenceCached:true,structuredCandidates:extracted.length,verifiedOffers:0,creditsPolicy:'verified_change_only'});
  }catch{return res.status(502).json({ok:false,error:'provider_or_evidence_store_unavailable'})}
 }
