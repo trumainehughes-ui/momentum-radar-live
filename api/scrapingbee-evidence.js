@@ -3,6 +3,8 @@ import {list,put} from '@vercel/blob';
 const BOOKS={draftkings:'https://sportsbook.draftkings.com/',fanduel:'https://sportsbook.fanduel.com/'};
 export default async function handler(req,res){
  res.setHeader('Cache-Control','private, no-store');
+ if(req.method==='GET'&&req.query?.health==='1')
+  return res.status(200).json({ok:true,mode:'no_credit_health',providerConfigured:Boolean(process.env.SCRAPINGBEE_API_KEY),changeTokenRequired:true,paidRequestExecuted:false,creditCapEnforced:false});
  if(req.method!=='POST')return res.status(405).json({ok:false,error:'method_not_allowed'});
  if(!process.env.CRON_SECRET||req.headers.authorization!=='Bearer '+process.env.CRON_SECRET)return res.status(403).json({ok:false,error:'authorized_change_refresh_required'});
  const gameId=String(req.body?.gameId||'');
