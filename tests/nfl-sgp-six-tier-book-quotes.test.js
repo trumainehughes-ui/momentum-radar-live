@@ -38,7 +38,11 @@ test('one signed roster-change may price each tier once for each bookmaker, neve
  assert.ok(apiSource.includes('candidates.slice(0,6).map(async'));
  assert.ok(apiSource.includes('await Promise.all('));
  assert.ok(apiSource.includes('if(authorizedChange&&gameId)'));
- assert.ok(apiSource.includes("risk:s.risk,legs:selections"));
+ assert.ok(apiSource.includes('evaluateNflBookQuoteReadiness(s,{book,gameId})'));
+ assert.ok(apiSource.includes('quoteRequest:preflight.quoteRequest'));
+ const gate=readFileSync(new URL('../lib/nfl-book-quote-readiness.js',import.meta.url),'utf8');
+ assert.ok(gate.includes('bookmaker,risk,legs:selections'));
+ assert.ok(gate.includes("offer.sourceProvider!=='PropLine'"));
  assert.ok(quoteSource.includes("const claimPath='momentum-propline-sgp-claims/v1/'+token+'/'+bookmaker+(league==='nfl'?'/'+risk:'')+'.json'"));
  assert.ok(quoteSource.includes('allowOverwrite:false'));
  assert.ok(quoteSource.includes('const NFL_TIER_LEGS={Small:[4,4],Medium:[5,5],Nuke:[5,7]}'));
