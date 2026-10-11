@@ -39,8 +39,28 @@ test('two-way yardage props require an Over side, verified player description an
   {name:'Over',description:'',point:79.5,price:-115},
   {name:'Over',description:'Over',point:79.5,price:-115},
   {name:'Over',description:'Josh Jacobs',point:79.5,price:null},
-  {name:'Over',description:'Josh Jacobs',point:79.5,price:0}
+  {name:'Over',description:'Josh Jacobs',point:79.5,price:0},
+  {name:'Over',description:'Josh Jacobs',point:null,price:-115},
+  {name:'Over',description:'Josh Jacobs',point:undefined,price:-115},
+  {name:'Over',description:'Josh Jacobs',point:'',price:-115},
+  {name:'Over',description:'Josh Jacobs',point:' ',price:-115},
+  {name:'Over',description:'Josh Jacobs',point:0,price:-115},
+  {name:'Over',description:'Josh Jacobs',point:-5,price:-115},
+  {name:'Over',description:'Josh Jacobs',point:'not-a-line',price:-115}
  ])assert.equal(normalizePropLinePlayerOffer(book,rush,invalid),null);
+});
+test('valid decimal sportsbook yard lines remain intact; normalized app model uses five-yard targets separately',()=>{
+ const line=normalizePropLinePlayerOffer(book,rush,{
+  name:'Over',description:'Josh Jacobs',point:79.5,
+  price:-110,book_outcome_id:'fd-79-5'});
+ assert.equal(line.point,79.5);
+ assert.equal(line.americanOdds,-110);
+});
+test('backend adapter also independently rejects missing zero and blank PropLine yard thresholds',()=>{
+ const src=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
+ assert.ok(src.includes('o.point===null||o.point===undefined'));
+ assert.ok(src.includes("String(o.point).trim()===''||!Number.isFinite(line)||line<=0"));
+ assert.ok(src.includes("const line=cat==='td'?null:Number(o.point)"));
 });
 test('one-way anytime touchdowns retain player-named outcomes without inventing side or odds',()=>{
  const direct=normalizePropLinePlayerOffer(book,touchdown,{
