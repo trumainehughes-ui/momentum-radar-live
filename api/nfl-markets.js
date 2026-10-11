@@ -561,7 +561,9 @@ const outcomePrediction=gameOutcomeProfile();
 const hasAnalytics=Object.values(categories).some(v=>Array.isArray(v)&&v.length>0);const sportsbookCoverage=gameId?sportsbookCoverageAudit({sport:'nfl',gameId,
  offers:rows.flatMap(row=>(row.books||[]).filter(b=>b.available===true).map(b=>({
   book:b.book,gameId,market:category(row)||'unknown'}))),
- attempts:[] // Aggregated feed offers are not direct sportsbook-site checks.}):null;
+ // Aggregated feed offers are not direct sportsbook-site checks.
+ attempts:[]
+}):null;
 const body={ok:true,scope:gameId?'game':'slate',gameId:gameId||null,date,categories,sgps,outcomePrediction,provider,sportsbookCoverage,degraded:rows.length===0,analyticsAvailable:hasAnalytics ,validation:{dayAheadRoleChecks:dayAheadRoles?.counters||null,
  dayAheadRoleSource:dayAheadRoles?.source||'NOT_APPLICABLE',
  conditionalRoleCount:(dayAheadRoles?.counters?.projectedHighUsageRoles||0)+
