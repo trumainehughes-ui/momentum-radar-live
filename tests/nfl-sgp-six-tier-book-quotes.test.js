@@ -35,7 +35,9 @@ test('bad or undersized tier requests are rejected before any paid provider or t
 });
 test('one signed roster-change may price each tier once for each bookmaker, never more than six',()=>{
  assert.ok(apiSource.includes("for(const risk of ['Small','Medium','Nuke'])"));
- assert.ok(apiSource.includes('candidates.slice(0,6).map(async'));
+ assert.ok(apiSource.includes('quoteCandidates.map(async'));
+ assert.ok(apiSource.includes('candidates.slice(0,6)'));
+ assert.ok(apiSource.includes('chooseNflCheckpointQuotes(candidates,'));
  assert.ok(apiSource.includes('await Promise.all('));
  assert.ok(apiSource.includes('if(authorizedChange&&gameId)'));
  assert.ok(apiSource.includes('evaluateNflBookQuoteReadiness(s,{book,gameId})'));
