@@ -389,7 +389,7 @@ function propLineRows(payload,eventID){
   const book=o.book==='draftkings'?'DraftKings':o.book==='fanduel'?'FanDuel':null;
   const cat=oddsApiCategory(o.market);
   if(!book||!cat||!o.player||(!['Over','over'].includes(o.side)&&cat!=='td'))continue;
-  if(/\\bD\\/ST\\b|\\bdefense\\b/i.test(o.player))continue;
+  if(String(o.player).includes('D/ST')||String(o.player).toLowerCase().includes('defense'))continue;
   const line=cat==='td'?null:Number(o.point);
   if(cat!=='td'&&!Number.isFinite(line))continue;
   const odds=Number(o.americanOdds),checkedAt=o.updatedAt;
