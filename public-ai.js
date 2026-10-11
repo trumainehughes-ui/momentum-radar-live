@@ -36,7 +36,14 @@
    }
   }
   if(mode==='sportsbook'){
-   for(const tier of (d.sportsbooks?.tiers||[])){
+   const t=Date.parse(d.sportsbooks?.sourceCheckedAt||'');
+   const valid=String(d.sportsbooks?.gameId||'')===String(d.gameId||'')&&
+    d.sportsbooks?.marketFeedAvailable===true&&
+    d.model?.validation?.sportsbookVerificationAvailable===true&&
+    d.model?.stale!==true&&d.model?.degraded!==true&&
+    Number.isFinite(t)&&t<=Date.now()&&Date.now()-t<=15*60000;
+   if(!valid)out.push('Book-specific player prop offers are not source-verified and fresh for this selected game; cannot assess listed selections.');
+   else for(const tier of (d.sportsbooks?.tiers||[])){
     for(const book of ['FanDuel','DraftKings']){
      const a=tier.books?.[book];
      out.push(tier.risk+' '+book+': '+(a?.matchedLegs??'?')+'/'+(a?.requiredLegs??'?')+
@@ -134,7 +141,8 @@
    verification?.league==='nfl';
   return {gameId:verifiedScope?gameId:null,
    sourceCheckedAt:compact(m?.fetchedAt||m?.checkedAt),
-   marketFeedAvailable:verifiedScope&&m?.validation?.sportsbookVerificationAvailable===true,
+   marketFeedAvailable:verifiedScope&&m?.validation?.sportsbookVerificationAvailable===true&&
+    m?.stale!==true&&m?.degraded!==true,
    league:'nfl',combinedSgpQuoteAuthorized:false,
    tiers:RISKS.map(risk=>{
     const model=cards.find(x=>x?.risk===risk),
