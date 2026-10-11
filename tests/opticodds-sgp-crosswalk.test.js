@@ -202,3 +202,28 @@ test('missing or ambiguous provider player rosters stop mapping before any prici
   entries:playerCrosswalk().entries.map((x,i)=>i===1?{...x,opticPlayerId:'wrong'}:x)}});
  assert.equal(wrongId.reason,'EXACT_PROVIDER_PLAYER_MARKET_UNAVAILABLE');
 });
+
+test('same verified quarterback can provide two DISTINCT stats within one SGP',()=>{
+ const second={...legs[0],cat:'rushing',analyticsThreshold:20};
+ const withTwo=[...legs,second];
+ const verified=verifyOpticOddsPlayerRosters({
+  league:'nfl',fixture:match(),legs:withTwo,teamPages,now
+ });
+ assert.equal(verified.ready,true);
+ assert.equal(verified.entries.length,5,'one identity mapping per player, not per prop');
+ const withTwoOdds=[...odds,{...odds[0],id:'BOOK-QB-RUSHING',
+  market:'Player Rushing Yards',name:'Trevor Lawrence Over 19.5'}];
+ const built=buildOpticOddsMarketCrosswalk({
+  fixture:match(),game,league:'nfl',legs:withTwo,
+  oddsSnapshot:{data:[{...fixture,odds:withTwoOdds}]},
+  marketCatalog:catalog,playerCrosswalk:verified,now
+ });
+ assert.equal(built.ready,true);
+ assert.equal(built.entries.length,6);
+ const plan=prepareOpticOddsSgpRequest({
+  league:'nfl',gameId,risk:'Nuke',book:'DraftKings',legs:withTwo,
+  mapping:{...built,espnGameId:gameId},now
+ });
+ assert.equal(plan.ready,true);
+ assert.equal(plan.requestBody.entries.length,6);
+});
