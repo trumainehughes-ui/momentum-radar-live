@@ -98,6 +98,44 @@
   return '<div class="note"><b>AI Parlay Architect • next checks:</b>'+
    rows+'<div class="refresh">Model candidates only. Actual bookmaker player markets and combined payout remain unverified.</div></div>';
  }
+ function nbaPublicSportsbookPanel(){
+  return '<div class="note" style="margin-top:10px"><b>Read public DraftKings / FanDuel player odds</b>'+
+   '<div class="refresh">Published sportsbook page inspection only. Observations cannot be matched to this NBA game without verified roster, event and market evidence.</div>'+
+   '<input id="nbaBookPageUrl" type="url" placeholder="Official NBA bookmaker public props URL" style="width:75%;min-width:170px">'+
+   '<button type="button" id="nbaPublicOddsRead">Read public odds</button>'+
+   '<div class="refresh"><a href="https://sportsbook.draftkings.com/page/nba-player-props" target="_blank" rel="noopener noreferrer">DraftKings NBA props page</a></div>'+
+   '<div id="nbaPublicOddsReadout">Publicly visible odds may be partial. No combined SGP price verified.</div></div>';
+ }
+ function bindNbaPublicOdds(gameId){
+  const button=qs('#nbaPublicOddsRead'),input=qs('#nbaBookPageUrl');
+  if(!button||!input)return;
+  button.onclick=async()=>{
+   const out=qs('#nbaPublicOddsReadout'),entered=String(input.value||'').trim();
+   if(!entered||!out)return;
+   out.textContent='Checking the official public sportsbook page…';
+   button.disabled=true;
+   try{
+    const r=await fetch('/api/sportsbook-public-odds?url='+encodeURIComponent(entered),
+     {cache:'no-store',credentials:'omit'});
+    const report=await r.json();
+    if(selected!==gameId)return;
+    if(!r.ok||!report.ok){
+     out.textContent='Cannot reliably read this public page: '+
+      String(report.status||report.error||'UNAVAILABLE');
+     return;
+    }
+    const rows=(report.quotes||[]).slice(0,20).map(x=>
+     '<div>'+safe(x.player)+' • '+safe(x.market)+' '+
+      safe(x.rawLine)+' • '+safe(x.americanOdds)+'</div>').join('');
+    out.innerHTML='<b>'+safe(report.book)+' research:</b> '+
+     safe((report.quotes||[]).length)+' publicly observed selections.'+
+     (rows||' No reliably paired player prices in this page.')+
+     '<div class="refresh">UNMATCHED SOURCE ONLY — never inserted into an NBA SGP or counted as combined odds.</div>';
+   }catch{
+    if(selected===gameId)out.textContent='Page check unavailable; no odds inferred.';
+   }finally{if(selected===gameId)button.disabled=false}
+  };
+ }
  function sgps(d){
   const rows=d?.sgps||[],readiness=d?.pregameReadiness;
   const stage=readiness?.stage?String(readiness.stage).replaceAll('_',' '):'AWAITING FIRST PREGAME BUILD';
@@ -140,7 +178,8 @@
   const request=++token;
   try{
    const d=await detail(id);if(request!==token||selected!==id)return;
-   qs('#nbaSgps').innerHTML=sgps(d);
+   qs('#nbaSgps').innerHTML=sgps(d)+nbaPublicSportsbookPanel();
+   bindNbaPublicOdds(id);
    renderInjuries(d);
    if(!d.players?.length){
     qs('#nbaPlayers').innerHTML='<div class="msg">'+
