@@ -40,3 +40,16 @@ test('book-mode cards do not display independently multiplied estimates as an ac
  assert.ok(!ui.includes('Estimated: ${s.estimatedOdds'));
  assert.ok(ui.includes('Individual prop candidate • Combined price unverified'));
 });
+
+test('every NFL matchup shows exact available alternatives for BOTH DraftKings and FanDuel',()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const start=html.indexOf('function nflSgpBookAuditUi(s)');
+ const end=html.indexOf('async function nflOpen(',start);
+ assert.ok(start>=0&&end>start);
+ const fn=html.slice(start,end);
+ assert.ok(fn.includes("['FanDuel','DraftKings'].map(book=>{"));
+ assert.ok(fn.includes("a.missingLegs.slice(0,6)"));
+ assert.ok(fn.includes("book+' lines not confirmed:"));
+ assert.ok(fn.includes("x.listedOffers.map(y=>y.display)"));
+ assert.ok(!fn.includes('const fd=audits.FanDuel'));
+});
