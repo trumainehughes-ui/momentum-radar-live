@@ -6,6 +6,7 @@ import {validNflDvpRank,capNflTierYardTarget,isNflConfirmedGameQb} from '../lib/
 import {nflDayAheadRoleEvidence} from '../lib/nfl-day-ahead-roles.js';
 import {summarizeNflNukeEvidence} from '../lib/nfl-nuke-evidence-diagnostics.js';
 import {filterCompleteNflBookSgps} from '../lib/nfl-book-sgp-candidates.js';
+import {evaluateNflBookQuoteReadiness} from '../lib/nfl-book-quote-readiness.js';
 import {nflCurrentGameDepthChartQbs,nflProjectedDepthChartQbEligible} from '../lib/nfl-depthchart-qb1.js';
 import {nflCurrentRosterAthletes} from '../lib/nfl-roster-evidence.js';
 import {nflGameInjuryEvidence,nflInjuryBlocks} from '../lib/nfl-injury-evidence.js';
@@ -637,15 +638,14 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
  // Respond before legacy malformed/commented response tail; all candidates are unquoted.
  const unquoted=(rows,book)=>(rows||[]).map(s=>({...s,bookVerificationPending:true,combinedBookQuoteVerified:false,actualSgpOdds:null,publishable:false,displayLabel:book+' individual-prop candidate (unquoted)'}));
  const quoteReady=(rows,book)=>(rows||[]).map(s=>{
-  const selections=(s.legs||[]).map(l=>({market:l.bookOffer?.marketKey||null,book_outcome_id:l.bookOffer?.bookOutcomeId||null}));
-  const providerEventIds=[...new Set((s.legs||[]).map(l=>String(l.providerEventId||'').trim()))];
-  const eligible=s.legs?.length===s.requiredLegs&&selections.length>=2&&providerEventIds.length===1&&/^[0-9]{1,14}$/.test(providerEventIds[0])&&selections.every(x=>typeof x.book_outcome_id==='string'&&x.book_outcome_id.length>=3&&typeof x.market==='string'&&x.market.length>0);
-  return {...s,estimatedOdds:null,bookVerificationPending:true,combinedBookQuoteVerified:false,actualSgpOdds:null,publishable:false,
-   quoteEligibility:eligible?'READY_FOR_AUTHORIZED_QUOTE':'MISSING_VERIFIED_BOOK_SELECTIONS',
-   quoteSelectionCount:eligible?selections.length:0,
-   // These IDs are provider-issued and not secrets; only complete selections are exposed.
-   quoteRequest:eligible?{league:'nfl',gameId:String(gameId),eventId:providerEventIds[0],bookmaker:book==='DraftKings'?'draftkings':'fanduel',risk:s.risk,legs:selections}:null,
-   // Never expose quote credentials or mark an individual-leg parlay as priced.
+  const preflight=evaluateNflBookQuoteReadiness(s,{book,gameId});
+  return {...s,estimatedOdds:null,bookVerificationPending:true,
+   combinedBookQuoteVerified:false,actualSgpOdds:null,publishable:false,
+   quoteEligibility:preflight.reason,
+   quoteSelectionCount:preflight.selectionCount,
+   // Server preflight authenticates every same-game, same-book, fresh PropLine
+   // selection before signed change authorization can spend a quote credit.
+   quoteRequest:preflight.quoteRequest,
    displayLabel:book+' individual-prop candidate (unquoted)'};
  });
  const sgpResponse={DraftKings:quoteReady(bookSgps.DraftKings,'DraftKings'),FanDuel:quoteReady(bookSgps.FanDuel,'FanDuel'),Analytics:(analyticsSgps||[]).map(s=>({...s,publishable:false})),mode:'UNQUOTED_CANDIDATES',combinedBookQuoteVerified:false};
