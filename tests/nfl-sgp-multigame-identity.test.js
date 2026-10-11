@@ -76,5 +76,5 @@ test("production NFL market handler applies game identity gate across all games"
  const api=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
  assert.ok(api.includes("sgps=pruneSgpsForEligibility(sgps,eligibility,{gameId,home,away})"));
  assert.ok(api.includes("rosterChecked:elig?.checked===true"));
- assert.ok(api.includes("CACHE_SCHEMA='v87-sgo-backup-only'"));
+ assert.ok(api.includes("const CACHE_SCHEMA=NFL_SGP_SNAPSHOT_SCHEMA;"));
 });
