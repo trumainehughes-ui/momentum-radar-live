@@ -42,13 +42,15 @@ export default async function handler(req,res){
   endpoint.searchParams.set('premium_proxy','false');
   endpoint.searchParams.set('stealth_proxy','false');
   const response=await fetch(endpoint,{redirect:'manual',signal:AbortSignal.timeout(12000)});
-  const creditsCharged=Number(response.headers.get('spb-cost')||0);
+  const reportedCost=response.headers.get('spb-cost');
+  const creditsCharged=reportedCost===null?null:Number(reportedCost);
+  const providerRequestId=String(response.headers.get('spb-request-id')||'').slice(0,100);
   const resolvedUrl=String(response.headers.get('spb-resolved-url')||'');
   let resolvedHost='';
   try{resolvedHost=new URL(resolvedUrl).hostname}catch{}
   if(resolvedHost&&resolvedHost!==allowed.hostname)
    return res.status(422).json({ok:false,error:'provider_redirected_outside_expected_sportsbook',creditsCharged});
-  if(!response.ok)return res.status(502).json({ok:false,error:'provider_request_failed',providerStatus:response.status,creditsCharged});
+  if(!response.ok)return res.status(502).json({ok:false,error:'provider_request_failed',providerStatus:response.status,creditsCharged,providerRequestId});
   const contentType=String(response.headers.get('spb-content-type')||response.headers.get('content-type')||'').toLowerCase();
   if(!contentType.includes('text/html')&&!contentType.includes('application/xhtml+xml'))
    return res.status(422).json({ok:false,error:'non_html_sportsbook_response'});
@@ -73,6 +75,6 @@ export default async function handler(req,res){
   // Structured page metadata is evidence only; bookmaker player, line, market and price must all be cross-checked.
   const cachePath='momentum-scrapingbee-evidence/v1/'+eventToken+'/'+book+'-'+digest+'.json';
   await put(cachePath,JSON.stringify({gameId,book,url:target,extracted,htmlLength:html.length,fetchedAt:new Date().toISOString(),verifiedOffers:[]}),{access:'public',addRandomSuffix:false,allowOverwrite:true});
-  return res.status(200).json({ok:true,book,evidenceCached:true,structuredCandidates:extracted.length,verifiedOffers:0,creditsCharged,creditsPolicy:'verified_change_only'});
+  return res.status(200).json({ok:true,book,evidenceCached:true,structuredCandidates:extracted.length,verifiedOffers:0,creditsCharged,providerRequestId,creditsPolicy:'verified_change_only'});
  }catch{return res.status(502).json({ok:false,error:'provider_or_evidence_store_unavailable'})}
 }
