@@ -39,6 +39,8 @@ test('photo: 5-leg Medium +975 with 3 mismatches never attests a Medium +3000 ti
  const a=auditLeagueSgpEvent({league:'nfl',gameId:id,sgps:{Analytics:[s]}});
  const m=a.tiers.find(x=>x.risk==='Medium');
  assert.equal(s.bookMarketAudits.FanDuel.matchedLegs,2);
+ assert.deepEqual(s.bookMarketAudits.FanDuel.missingLegs.map(x=>x.listedOffers[0]?.display),
+  ['Over 65.5','175+','Over 33.5']);
  assert.deepEqual(s.bookMarketAudits.FanDuel.missingLegs.map(x=>x.name),
   ['Bhayshul Tuten','Trevor Lawrence','Brenton Strange']);
  assert.equal(m.books.FanDuel.status,'BOOK_LEG_MISMATCH');
