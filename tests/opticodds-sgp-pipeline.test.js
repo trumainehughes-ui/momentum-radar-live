@@ -19,6 +19,8 @@ const legs=[
 const namesByCat={passing:['Player Passing Yards'],rushing:['Player Rushing Yards'],
  receiving:['Player Receiving Yards']};
 const sourceMarkets=Object.values(namesByCat).flat().map(name=>({
+ id:name==='Player Passing Yards'?'player_passing_yards':
+  name==='Player Rushing Yards'?'player_rushing_yards':'player_receiving_yards',
  name,sports:[{id:'football',leagues:[{id:'nfl',
   sportsbooks:[{id:'draftkings',name:'DraftKings'}]}]}]
 }));
