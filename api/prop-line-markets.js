@@ -29,6 +29,11 @@ export default async function handler(req,res){
  }catch{return res.status(503).json({ok:false,error:'change_token_store_unavailable'})}
  if(!tokenRecord||tokenRecord.usedAt||Date.now()-Date.parse(tokenRecord.createdAt)>15*60*1000||tokenRecord.gameId!==String(req.query.gameId||''))return res.status(403).json({ok:false,error:'change_token_invalid_or_used'});
  // Atomic create-only claim: the Blob store rejects a second writer to this exact path.
+ if(!process.env.PLAYER_PROPS_API_KEY)return res.status(503).json({ok:false,error:'prop_line_not_configured'});
+ if(!SPORTS[String(req.query.league||'nfl').toLowerCase()])return res.status(400).json({ok:false,error:'unsupported_league'});
+ if(!safeDate(String(req.query.date||new Date().toISOString().slice(0,10))))return res.status(400).json({ok:false,error:'invalid_date'});
+ if(!/^[0-9]{6,12}$/.test(String(req.query.gameId||'')))return res.status(400).json({ok:false,error:'invalid_game_id'});
+ if(req.query.eventId&&!/^[0-9]{1,14}$/.test(String(req.query.eventId)))return res.status(400).json({ok:false,error:'invalid_event_id'});
  const claimPath='momentum-nfl-change-claims/v1/'+eventToken+'.json';
  try{
   await put(claimPath,JSON.stringify({gameId:tokenRecord.gameId,claimedAt:new Date().toISOString()}),{access:'public',addRandomSuffix:false,allowOverwrite:false});
