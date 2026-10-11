@@ -487,7 +487,9 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
   const allowedChange=new Set(['player_injury','player_inactive','qb_change','offense_change','defense_change','depth_chart_change']);
   const auth=String(req.headers.authorization||'');
   const verifiedToken=String(req.headers['x-momentum-change-token']||'');
-  const authorizedChange=false; // Paid API access requires a durable, one-use server-verified token; fail closed until implemented.
+  const authorizedChange=false; // No paid refresh without atomic server-side authorization.
+  oddsDebug.aiInWorkflow=Boolean(process.env.GROQ_API_KEY);
+  oddsDebug.sportsbookStatus='verified_market_data_pending';
   oddsDebug.propLineCreditPolicy='verified_change_only';
   oddsDebug.propLineChangeType=authorizedChange?changeType:null;
   if(!directRows?.length&&process.env.PLAYER_PROPS_API_KEY&&authorizedChange){
