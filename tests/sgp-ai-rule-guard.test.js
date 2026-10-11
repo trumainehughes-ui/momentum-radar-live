@@ -26,7 +26,9 @@ test('NFL Small/Medium/Nuke AI candidates inherit exact counts, categories, TD c
 });
 test('AI cannot change Small/Medium/Nuke leg counts or hide an all-touchdown SGP in any tier',()=>{
  for(const [risk,legCount] of [['Small',3],['Medium',4],['Nuke',8]]){
-  const outcome=review(risk,make('Nuke',Math.min(legCount,7)));
+  const candidate=make('Nuke',Math.min(legCount,7));
+  if(legCount===8)candidate.push({...candidate[0],playerID:'999',name:'Extra Athlete'});
+  const outcome=review(risk,candidate);
   assert.equal(outcome.valid,false);
   assert.ok(outcome.rules.includes('TIER_LEG_COUNT'));
  }
