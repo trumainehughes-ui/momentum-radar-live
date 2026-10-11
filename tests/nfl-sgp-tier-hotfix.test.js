@@ -48,7 +48,8 @@ test("Small and Medium target NET profit bands; Nuke minimum +10000",()=>{
  assert.equal(classifyNflSgpOdds(3001),"Medium");
  assert.equal(classifyNflSgpOdds(8000),"Medium");
  assert.equal(classifyNflSgpOdds(8001),"OUTSIDE_TIER_BANDS");
- assert.equal(classifyNflSgpOdds(10000),"Nuke");
+ assert.equal(classifyNflSgpOdds(10000),"OUTSIDE_TIER_BANDS");
+ assert.equal(classifyNflSgpOdds(10001),"Nuke");
 });
 test("production hotfix rejects all-TD Small model and marks it unpublishable",()=>{
  const api=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
@@ -58,14 +59,14 @@ test("production hotfix rejects all-TD Small model and marks it unpublishable",(
  assert.ok(api.includes("modelOnly:true,candidateComplete:tierAssessment.compositionOk,publishable:false"));
  assert.ok(api.includes("sgps.Analytics=(sgps.Analytics||[]).map(s=>({...s,publishable:false"));
  assert.ok(!api.includes("sgps.Analytics=buildAnalyticsSgp(categories,ctx).map(s=>({...s,publishable:true"));
- assert.ok(api.includes("CACHE_SCHEMA='v87-sgo-backup-only'"));
+ assert.ok(api.includes("CACHE_SCHEMA='v92-strict-nuke-profit-20261011'"));
 });
 test("production view clearly disclaims unverified $10 payouts",()=>{
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  assert.ok(html.includes("MODEL CANDIDATE • Combined sportsbook odds not verified"));
  assert.ok(html.includes("Illustrative $10 target (not verified): "));
  assert.ok(html.includes("NOT READY • "));
- assert.ok(html.includes("'MODEL_FIRST_BOOK_UNQUOTED'"));
+ assert.ok(html.includes("Individual prop candidate • Combined price unverified"));
 });
 
 test("positive American odds for a $10 stake are NET profit, not return",()=>{
@@ -86,7 +87,7 @@ test("NFL model text describes NET payout targets, never total return",()=>{
  const api=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
  assert.ok(api.includes("$200–$300 NET profit"));
  assert.ok(api.includes("$300–$800 NET profit"));
- assert.ok(api.includes("$1,000+ NET profit"));
+ assert.ok(api.includes("OVER $1,000 NET profit"));
  assert.ok(api.includes("min:2000,max:3000"));
  assert.ok(api.includes("min:3000,max:8000"));
 });
