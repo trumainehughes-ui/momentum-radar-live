@@ -496,10 +496,12 @@ function publicOfferFor(name,cat){const a=publicRefByPlayerCat.get(norm(name)+'|
 const statBoards=await analyticsStatBoards(date);
  // Day-ahead verified-roster usage enables *provisional* non-QB model-only
  // SGP legs for games absent from old hardcoded starter evidence.
+ const depthChartDiagnostics=[];
  const depthChartQbs=gameId&&eligibility.checked?
     await nflCurrentGameDepthChartQbs({
      home,away,teamIdsByAbbr:eligibility.teamIdsByAbbr,
-     fetchJson:url=>json(url,{},1)
+     fetchJson:url=>json(url,{},1),
+     onDiagnostic:x=>depthChartDiagnostics.push(x)
     }):[];
  const dayAheadRoles=gameId?nflDayAheadRoleEvidence({
    gameId,home,away,eligibility,gate:roles,statBoards,depthChartQbs
@@ -554,6 +556,7 @@ const hasAnalytics=Object.values(categories).some(v=>Array.isArray(v)&&v.length>
  conditionalRoleCount:(dayAheadRoles?.counters?.projectedHighUsageRoles||0)+
  (dayAheadRoles?.counters?.projectedDepthChartQb1||0),
  depthChartQb1Count:dayAheadRoles?.counters?.projectedDepthChartQb1||0,
+ depthChartDiagnostics:depthChartDiagnostics.slice(0,2),
  teamScopedStatsOnly:true,
  conditionalRolesNotConfirmedStarters:true,
  books:['DraftKings','FanDuel'],providers:['NFL.com / ESPN analytics','DraftKings public','FanDuel public','The Odds API'].concat(sgoEnabled?['SportsGameOdds']:[]),marketSpecific:true,dataModelPrimary:true,projectionIndependentOfSportsbook:true,sportsbookVerificationAvailable:Boolean(gameId&&sgpRows.length>0&&['The Odds API','SportsGameOdds (backup)'].includes(provider)),combinedBookSgpQuoteAvailable:false,bookLegCandidateComplete:hasCompleteBookLegCandidate,publicSportsbookResearchRequired:true,publicSportsbookSources:['DraftKings','FanDuel'],publicSportsbookStatsUsed:sgpRows.length>0,apiRequired:false,injuryEligibilityChecked:eligibility.checked,blockedPlayerCount:Math.max(eligibility.blockedIds.size,eligibility.blockedNames.size),currentRosterRequired:true,wrongTeamRowsBlocked:true,zeroBlankStatLinesRequired:true,refreshMinutes:15,finalPregameCheckMinutes:30,finalPregameReconcile:String(req.query.finalCheck||'').match(/^(1|true)$/i)?true:false,sgpChecks:{liveSportsbookLine:sgpRows.length>0,starterRoleRequired:true,officialRoleEvidenceSupported:true,injuryInactiveGate:true,modelProjection:true,recentHitRate:true,recentFormTrend:true,defenseVsPosition:true,correlation:true,earlySampleDampener:true,nukeCeilingVerification:false,modelNukeCeilingScreening:true},sgpEligibleMarketRows:sgpRows.length,bookSpecificSgpsRequired:true,crossBookThresholdMixingBlocked:true,analyticsSgpsPublishable:false,rule:'Momentum Radar selects players and thresholds from current offensive role, injury eligibility, production, usage, recent form, offense strength, opponent defense and defense-vs-position data. Sportsbook markets and prices are downstream verification only. Small targets +2000 to +3000 ($200-$300 net profit on $10), Medium targets above +3000 to +8000 ($300-$800 net profit), and Nuke targets +10000 or higher ($1,000+ net profit); target bands are not verified sportsbook payouts. Even with individual alternate lines observed, a sportsbook-issued correlated combined SGP quote is still required for actual payout verification. At T-minus-30, bypass the response cache and rebuild from the latest eligible player pool. Popularity is never a scoring input.'},marketRows:rows.length,oddsDebug,fetchedAt:new Date().toISOString()};// Cache both healthy markets and explicitly degraded analytics-only responses for <=15 minutes.
