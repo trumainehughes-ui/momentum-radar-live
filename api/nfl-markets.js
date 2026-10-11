@@ -592,7 +592,7 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
  const unquoted=(rows,book)=>(rows||[]).map(s=>({...s,bookVerificationPending:true,combinedBookQuoteVerified:false,actualSgpOdds:null,publishable:false,displayLabel:book+' individual-prop candidate (unquoted)'}));
  const quoteReady=(rows,book)=>(rows||[]).map(s=>{
   const selections=(s.legs||[]).map(l=>({market:l.bookOffer?.marketKey||null,book_outcome_id:l.bookOffer?.bookOutcomeId||null}));
-  const providerEventIds=[...new Set((s.legs||[]).map(l=>String(l.providerEventId||'')).filter(Boolean))];
+  const providerEventIds=[...new Set((s.legs||[]).map(l=>String(l.providerEventId||'').trim()))];
   const eligible=s.legs?.length===s.requiredLegs&&selections.length>=2&&providerEventIds.length===1&&/^[0-9]{1,14}$/.test(providerEventIds[0])&&selections.every(x=>typeof x.book_outcome_id==='string'&&x.book_outcome_id.length>=3&&typeof x.market==='string'&&x.market.length>0);
   return {...s,bookVerificationPending:true,combinedBookQuoteVerified:false,actualSgpOdds:null,publishable:false,
    quoteEligibility:eligible?'READY_FOR_AUTHORIZED_QUOTE':'MISSING_VERIFIED_BOOK_SELECTIONS',
