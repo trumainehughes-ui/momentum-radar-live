@@ -40,7 +40,7 @@ test('production route guards expensive backup instead of using it as primary or
  assert.ok(src.includes("readMarketHold('sgo-request-'+date)"));
  assert.ok(src.includes("writeMarketHold('sgo-request-'+date,MIN_UPSTREAM_GAP"));
  assert.ok(src.includes("while(cursor&&pages<1)"));
- assert.ok(src.includes("CACHE_SCHEMA='v87-sgo-backup-only'"));
+ assert.ok(src.includes("const CACHE_SCHEMA=NFL_SGP_SNAPSHOT_SCHEMA;"));
  assert.ok(!src.includes('if(sgoEnabled){try{events=await allEvents(date)'));
  assert.ok(!src.includes('providerBackup'));
 });
