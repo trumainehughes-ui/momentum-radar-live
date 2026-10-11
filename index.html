@@ -585,7 +585,7 @@ async function nflRefreshAllSgpCandidates(){
   const summary=()=>{
    const valid=report.filter(x=>x?.state==='MODEL_AND_BOOK_LINES').length,
     model=report.filter(x=>x?.state==='MODEL_ONLY').length,
-    pending=report.filter(x=>x?.state==='SOURCE_PENDING').length,
+    pending=report.filter(x=>x?.state==='SOURCE_PENDING'||x?.state==='MODEL_NOT_READY').length,
     failed=report.filter(x=>x?.state==='ERROR').length;
    say('<b>All NFL game refreshes: '+done+'/'+games.length+'</b> • '+valid+
     ' model + book lines • '+model+' model only • '+pending+
@@ -595,7 +595,10 @@ async function nflRefreshAllSgpCandidates(){
      nflEscape(row.teams)+' • '+nflEscape(row.state)+
      ' • '+nflEscape(row.tiers)+' model tiers'+
      ' • DK '+nflEscape(row.DraftKings)+' individual prices'+
-     ' • FD '+nflEscape(row.FanDuel)+' individual prices</div>').join(''));
+     ' • FD '+nflEscape(row.FanDuel)+' individual prices'+
+     ' • Public pages '+nflEscape(row.publicPagesChecked||0)+
+     ', unmatched observations '+nflEscape(row.publicVisiblePrices||0)+
+     '</div>').join(''));
   };
   summary();
   const worker=async()=>{
@@ -603,11 +606,16 @@ async function nflRefreshAllSgpCandidates(){
     const i=cursor++;if(i>=games.length)return;
     const g=games[i],entry={teams:g.away.abbr+' @ '+g.home.abbr,
      state:'SOURCE_PENDING',tiers:0,DraftKings:0,FanDuel:0};
-    try{
-     const d=await getNFLMarkets(g.gameId,false);
-     const t=Date.parse(d?.fetchedAt||''),fresh=d?.ok===true&&
-      String(d.gameId)===String(g.gameId)&&!d.stale&&!d.degraded&&
-      Number.isFinite(t)&&t<=Date.now()&&Date.now()-t<=15*60*1000;
+    const outcomes=await Promise.allSettled([
+     getNFLMarkets(g.gameId,false),
+     nflCurrentPublicMatchupResearch(g.gameId)
+    ]);
+    const market=outcomes[0],research=outcomes[1];
+    if(market.status==='fulfilled'){
+     const d=market.value,t=Date.parse(d?.fetchedAt||''),
+      fresh=d?.ok===true&&String(d.gameId)===String(g.gameId)&&
+      !d.stale&&!d.degraded&&Number.isFinite(t)&&
+      t<=Date.now()&&Date.now()-t<=15*60*1000;
      if(fresh){
       entry.tiers=(d.sgps?.Analytics||[]).filter(x=>
        ['Small','Medium','Nuke'].includes(x.risk)&&
@@ -615,10 +623,20 @@ async function nflRefreshAllSgpCandidates(){
        (x.legs||[]).length>=Number(x.requiredLegs||1)).length;
       for(const book of ['DraftKings','FanDuel'])
        entry[book]=Math.max(0,Number(d.sportsbookCoverage?.books?.[book]?.pricedSelections)||0);
-      entry.state=entry.DraftKings+entry.FanDuel>0?
+      entry.state=!entry.tiers?'MODEL_NOT_READY':
+       entry.DraftKings+entry.FanDuel>0?
        'MODEL_AND_BOOK_LINES':'MODEL_ONLY';
      }
-    }catch(e){entry.state='ERROR';entry.error=String(e?.message||'unavailable').slice(0,90)}
+    }else{
+     entry.state='ERROR';
+     entry.error=String(market.reason?.message||'market_unavailable').slice(0,90);
+    }
+    entry.publicPagesChecked=research.status==='fulfilled'?
+     (research.value.pages||[]).length:0;
+    entry.publicVisiblePrices=research.status==='fulfilled'?
+     (research.value.quotes||[]).length:0;
+    entry.publicPageStatus=research.status==='fulfilled'?
+     'UNMATCHED_PUBLIC_RESEARCH':'PUBLIC_PAGE_UNREADABLE';
     report[i]=entry;done++;summary();
    }
   };
