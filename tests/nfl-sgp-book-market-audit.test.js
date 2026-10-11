@@ -81,6 +81,9 @@ test('production attaches both exact book selection audits and displays missing 
  assert.match(api,/auditNflBookSgpMarkets/);
  assert.match(api,/bookMarketAudits:Object\.fromEntries/);
  assert.match(html,/Sportsbook selection audit \(NOT an SGP quote\)/);
- assert.match(html,/FanDuel lines not confirmed/);
+ // Both books use the same dynamic template rather than hard-coding a
+ // FanDuel-only label. The UI must show missed alternatives for each book.
+ assert.match(html,/book\+' lines not confirmed:/);
+ assert.match(html,/\['FanDuel','DraftKings'\]\.map\(book=>\{/);
  assert.match(html,/Combined odds still unverified/);
 });
