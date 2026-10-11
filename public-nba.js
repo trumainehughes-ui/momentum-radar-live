@@ -59,6 +59,20 @@
    ).join('')+'<div class="refresh">ESPN-reported injuries; confirmed game-day inactives not verified.</div>':
    '<div class="note">No usable injury entries were returned for this matchup. This does NOT confirm a healthy or active roster.</div>';
  }
+ function sportsbookGuard(d){
+  const g=d?.sportsbookAiGuard,
+   current=d?.status==='SCHEDULED'&&
+    d?.pregameReadiness?.freshness==='CURRENT'&&
+    String(g?.gameId||'')===String(d?.gameId||'')&&
+    g?.league==='nba';
+  if(!current)return '<div class="note"><b>Sportsbook Scout:</b> No fresh NBA bookmaker market audit available. Individual props and combined SGP odds are unverified.</div>';
+  const failures=(g.flags||[]).slice(0,2)
+   .map(f=>safe(f.detail||f.code)).join('; ');
+  return '<div class="note"><b>AI Sportsbook Scout • NBA:</b> '+safe(g.status||'PENDING')+
+   ' • DraftKings / FanDuel market check pending.'+
+   (failures?' '+failures:'')+
+   ' No AI-generated bookmaker prices or replacement legs. Combined SGP payout NOT VERIFIED.</div>';
+ }
  function sgps(d){
   const rows=d?.sgps||[],readiness=d?.pregameReadiness;
   const stage=readiness?.stage?String(readiness.stage).replaceAll('_',' '):'AWAITING FIRST PREGAME BUILD';
@@ -73,7 +87,7 @@
    '<div class="note">ESPN detailed game preview is not yet available. This matchup was rechecked against the ESPN scoreboard; reported injuries and starters may still be unverified.</div>':'';
   const source=summaryPending+stale+'<div class="refresh">Pregame model: '+safe(stage)+basis+' • AI review: '+safe(readiness?.aiReviewStatus||'PENDING')+' • Last model/injury check: '+safe(freshness)+
    ' • Injury evidence: '+safe(injury)+' ('+safe(readiness?.injuryReportStatus||'UNVERIFIED')+')</div>';
-  return source+rows.map(s=>{
+  return source+sportsbookGuard(d)+rows.map(s=>{
    const ready=s.status==='MODEL_CANDIDATE'&&Array.isArray(s.legs)&&s.legs.length>0;
    const list=ready?s.legs.map((l,i)=>
     '<div class="nflMarketLine"><b>'+(i+1)+'. '+safe(l.name)+' • '+safe(l.team)+'</b>'+
