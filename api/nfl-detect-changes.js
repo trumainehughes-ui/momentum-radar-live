@@ -1,6 +1,7 @@
 import {createHash} from 'node:crypto';
 import {put,list} from '@vercel/blob';
 import {aiChangeImpact} from '../lib/ai-mechanics/nfl-change-impact.js';
+import {nflEasternDate} from '../lib/nfl-collector-readiness.js';
 const ESPN='https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=';
 const PREFIX='momentum-nfl-change-snapshots/v1/';
 const status=s=>String(s||'').trim().toLowerCase();
@@ -71,7 +72,11 @@ export default async function handler(req,res){
   let modelRefresh={attempted:false,status:'not_needed'};
   if(invalidations.length){
    // Refresh DVP/SGP only; no sportsbook changeType flag is passed, so PropLine credits remain protected.
-   const date=String(data?.header?.competitions?.[0]?.date||new Date().toISOString()).slice(0,10);
+   // Sunday/Monday evening games can cross UTC midnight. Use the actual
+   // NFL-local date expected by /api/nfl-markets and the per-game collector.
+   const rawKickoff=data?.header?.competitions?.[0]?.date;
+   const kickoff=new Date(rawKickoff||'');
+   const date=nflEasternDate(Number.isFinite(kickoff.getTime())?kickoff:new Date());
    const trustedOrigin=process.env.VERCEL_PROJECT_PRODUCTION_URL?'https://'+process.env.VERCEL_PROJECT_PRODUCTION_URL:'https://momentum-radar-live.vercel.app';
    const url=trustedOrigin+'/api/nfl-markets?date='+date+'&gameId='+encodeURIComponent(gameId)+'&verifiedChange=1'+(changeToken?'&changeType='+encodeURIComponent(changes[0].type):'');
    try{

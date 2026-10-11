@@ -6,6 +6,7 @@ import {pregameEvidenceAudit,pregameNeedsAiReview,pregamePhase}
  from '../lib/pregame-revalidation.js';
 import {selectedShardGames,collectorAuditReport,writeCollectorAudit}
  from '../lib/pregame-collector-shards.js';
+import {checkNflScheduledInjuryChanges} from '../lib/nfl-scheduled-injury-watch.js';
 import {
  nflEasternDate,nflAddDate,nflCollectorDueGames,nflTierReadiness,
  nflCollectorSnapshotReady,nflRunCollectorBatch,nflMarketFailureDetails,MAX_NFL_COLLECTOR_CONCURRENCY
@@ -93,6 +94,12 @@ export function historySnap(g,m,prior=null){
 async function autoLock(base,games){
  const due=nflCollectorDueGames(games);
  return nflRunCollectorBatch(due,async g=>{
+  // Every due game gets a free ESPN injury-status comparison, including the
+  // day-ahead and T-minus-30 checks. Only material verified changes can mint
+  // the single-use PropLine token and trigger an authorized market rebuild.
+  const injuryWatch=await checkNflScheduledInjuryChanges(g,{
+   base,cronSecret:process.env.CRON_SECRET
+  });
   const date=day(new Date(g.kickoff)),
    mins=(Date.parse(g.kickoff)-Date.now())/60000,
    finalCheck=mins<=30?'&finalCheck=1':'',
@@ -102,11 +109,11 @@ async function autoLock(base,games){
   const r=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout(65000)});
   if(!r.ok){
    const failure=await r.json().catch(()=>null);
-   return{gameId:g.gameId,status:'markets_unavailable',
+   return{gameId:g.gameId,status:'markets_unavailable',injuryWatch,
     ...nflMarketFailureDetails(r.status,failure)};
   }
   const m=await r.json();
-  if(!m?.ok)return{gameId:g.gameId,status:'markets_unavailable',
+  if(!m?.ok)return{gameId:g.gameId,status:'markets_unavailable',injuryWatch,
    ...nflMarketFailureDetails(r.status,m)};
   const prior=await priorSnapshot(g.gameId);
   const snap=historySnap(g,m,prior);
@@ -132,7 +139,7 @@ async function autoLock(base,games){
   const changed=audit.changedFromPrior;
   await put(P+g.gameId+'.json',JSON.stringify(snap),
    {access:'public',addRandomSuffix:false,allowOverwrite:true});
-  return {gameId:g.gameId,status:snap.modelDataStatus==='NOT_READY'?'no_qualified_model_data':prior?'updated':'locked',
+  return {gameId:g.gameId,injuryWatch,status:snap.modelDataStatus==='NOT_READY'?'no_qualified_model_data':prior?'updated':'locked',
    stage:snap.lockStage,revision:snap.revision,picks:snap.picks.length,
    sgps:snap.sgps.length,aiReview:snap.aiReview?.status||'PENDING',
    changed,changedFields:snap.changedFields,
@@ -155,7 +162,10 @@ export default async function handler(req,res){
  const shard=cron?Number(req.query?.shard??0):null;
  if(cron&&(!Number.isInteger(shard)||shard<0||shard>1))
   return res.status(400).json({ok:false,error:'invalid_collector_shard'});
- const base='https://'+String(req.headers?.host||'momentum-radar-live.vercel.app');
+ // Signed cron-to-function traffic must never use an untrusted Host header.
+ // This also ensures injury detector and game collector use the same release.
+ const base='https://'+String(process.env.VERCEL_PROJECT_PRODUCTION_URL||
+  'momentum-radar-live.vercel.app');
  try{
   const today=date&&/^\d{4}-\d{2}-\d{2}$/.test(date)?date:day(new Date());
   // Sunday and Monday are separate ESPN date scopes; on Sunday the cron must
@@ -197,6 +207,13 @@ export default async function handler(req,res){
     attempted:historyLocks.length,completed:historyLocks.filter(x=>['locked','updated'].includes(x.status)).length,
     failed:historyLocks.filter(x=>!['locked','updated'].includes(x.status)).length,
     changed:historyLocks.filter(x=>x.changed===true).length,
+   injuryWatch:{
+    checked:historyLocks.filter(x=>['compared','baseline_created',
+     'insufficient_injury_evidence'].includes(x.injuryWatch?.status)).length,
+    detected:historyLocks.filter(x=>x.injuryWatch?.changesDetected>0).length,
+    tokenIssued:historyLocks.filter(x=>x.injuryWatch?.tokenIssued===true).length,
+    unavailable:historyLocks.filter(x=>x.injuryWatch?.status==='DETECTOR_UNAVAILABLE').length
+   },
     changedByCause:Object.fromEntries(['PLAYER_PROPS','SGP_TIERS','INJURIES','MATCHUP','MODEL_INPUTS']
       .map(k=>[k,historyLocks.filter(x=>x.changedFields?.includes(k)).length])),
     concurrency:MAX_NFL_COLLECTOR_CONCURRENCY},
