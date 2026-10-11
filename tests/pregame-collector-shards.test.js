@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {selectedShardGames,shardForGame,COLLECTOR_SHARDS,
- collectorAuditPath,collectorAuditReport,collectorTierCoverage,readCollectorAudits,writeCollectorAudit}
+ collectorAuditPath,collectorAuditReport,collectorTierCoverage,readCollectorAudits,
+ recheckCollectorSportsbooks,collectorBookCoverage,writeCollectorAudit}
  from '../lib/pregame-collector-shards.js';
 import {nflCollectorDueGames} from '../lib/nfl-collector-readiness.js';
 import nflCron from '../api/nfl-health.js';
@@ -280,4 +281,58 @@ test('collector count is zero without authentic matching tier quotes and does no
  assert.equal(stale.shards[0].status,'STALE');
  assert.equal(stale.shards[0].results[0].bookmakerVerifiedCount,0);
  assert.equal(stale.shards[0].results[0].sportsbookTierAudit[0].books.DraftKings.status,'STALE_COLLECTOR');
+});
+
+test('book quote expires at 15 minutes although collector remains current for 30',async()=>{
+ const issuedAt=now-30_000;
+ const saved=collectorAuditReport('nfl',0,[{
+  gameId:'401872981',status:'updated',
+  modelTiers:['Small','Medium','Nuke'],
+  sgpVerification:{tiers:[{
+   risk:'Small',modelStatus:'MODEL_CANDIDATE',
+   sportsbookStatus:'TIER_COMBINED_QUOTE_VERIFIED',
+   books:{
+    DraftKings:{status:'TIER_COMBINED_QUOTE_VERIFIED',
+     combinedOddsVerified:true,tierVerified:true,
+     quoteCheckedAt:new Date(issuedAt).toISOString(),
+     matchedLegs:4,requiredLegs:4},
+    FanDuel:{status:'BOOK_LEG_MISMATCH',
+     combinedOddsVerified:false,tierVerified:false,matchedLegs:2,requiredLegs:4}
+   }
+  }]}
+ }],{now,due:1});
+ const other=collectorAuditReport('nfl',1,[],{now,due:0});
+ const storage={
+  listBlobs:async({prefix})=>({blobs:[{pathname:prefix,url:prefix}]}),
+  fetchBlob:async url=>({ok:true,json:async()=>url.endsWith('shard-0.json')?saved:other})
+ };
+ const current=await readCollectorAudits('nfl',{...storage,now:now+10*60000});
+ assert.equal(current.shards[0].status,'COMPLETE');
+ assert.equal(current.shards[0].results[0].bookmakerVerifiedCount,1);
+ assert.equal(current.summary.sportsbookTierCoverage.Small.DraftKings.tierPriceVerified,1);
+ assert.equal(current.summary.sportsbookTierCoverage.Small.FanDuel.tierPriceVerified,0);
+ assert.equal(current.summary.sportsbookTierCoverage.Small.FanDuel.missingBookData,1);
+ assert.equal(current.summary.sportsbookTierCoverage.Medium.DraftKings.tierPriceVerified,0);
+ const expired=await readCollectorAudits('nfl',{...storage,now:now+16*60000});
+ assert.equal(expired.shards[0].status,'COMPLETE','collector interval still fresh');
+ assert.equal(expired.shards[0].results[0].bookmakerVerifiedCount,0);
+ const book=expired.shards[0].results[0].sportsbookTierAudit[0].books.DraftKings;
+ assert.equal(book.status,'BOOK_QUOTE_STALE');
+ assert.equal(book.tierVerified,false);
+ assert.equal(book.combinedOddsVerified,false);
+ assert.equal(book.quoteCheckedAt,null);
+ assert.equal(expired.summary.sportsbookTierCoverage.Small.DraftKings.tierPriceVerified,0);
+});
+test('legacy reports lacking original book quote timestamps never attest current book prices',()=>{
+ const oldSchema={risk:'Small',modelStatus:'MODEL_CANDIDATE',
+  sportsbookStatus:'TIER_COMBINED_QUOTE_VERIFIED',
+  books:{DraftKings:{status:'TIER_COMBINED_QUOTE_VERIFIED',
+   combinedOddsVerified:true,tierVerified:true,matchedLegs:4,requiredLegs:4}}};
+ const checked=recheckCollectorSportsbooks([oldSchema],{now});
+ assert.equal(checked[0].books.DraftKings.status,'BOOK_QUOTE_STALE');
+ assert.equal(checked[0].books.DraftKings.tierVerified,false);
+ const overview=collectorBookCoverage([{status:'COMPLETE',
+  results:[{sportsbookTierAudit:checked}]}]);
+ assert.equal(overview.Small.DraftKings.tierPriceVerified,0);
+ assert.equal(overview.Small.DraftKings.missingBookData,1);
 });
