@@ -32,10 +32,18 @@ export function pregameReadiness(env={}){
    unsupportedReferenceBooks:['FanDuel'],
    verifiedFixtureAndSelectionCrosswalkRequired:true,
    crosswalkReady:false,
+   discoveryEnabled:env.OPTICODDS_DISCOVERY_ENABLED==='true',
+   budgetConfigured:Number.isSafeInteger(Number(env.OPTICODDS_MAX_CALLS_PER_RUN))&&
+    Number(env.OPTICODDS_MAX_CALLS_PER_RUN)>=1&&
+    Number(env.OPTICODDS_MAX_CALLS_PER_RUN)<=30,
    providerCallsOnPublicPageLoad:false,
    status:!env.OPTICODDS_API_KEY?'CREDENTIAL_NOT_CONFIGURED':
     env.OPTICODDS_SGP_ENABLED!=='true'?'DISABLED':
-    'CONFIGURED_MAPPING_STILL_REQUIRED',
+    env.OPTICODDS_DISCOVERY_ENABLED!=='true'?'DISCOVERY_DISABLED':
+    !Number.isSafeInteger(Number(env.OPTICODDS_MAX_CALLS_PER_RUN))||
+     Number(env.OPTICODDS_MAX_CALLS_PER_RUN)<1||
+     Number(env.OPTICODDS_MAX_CALLS_PER_RUN)>30?
+     'EXPLICIT_CALL_BUDGET_REQUIRED':'CONFIGURED_MAPPING_STILL_REQUIRED',
    note:'OpticOdds correlation-priced sportsbook reference is not a bookmaker-issued accepted SGP ticket. No quote calls without explicit opt-in AND verified fixture/leg crosswalk.'
   },
   ballDontLieFree:{dailyCacheReady:available,paidStatsOrPropEndpointsUsed:false},
