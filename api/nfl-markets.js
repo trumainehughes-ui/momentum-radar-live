@@ -487,7 +487,7 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
   const allowedChange=new Set(['player_injury','player_inactive','qb_change','offense_change','defense_change','depth_chart_change']);
   const auth=String(req.headers.authorization||'');
   const verifiedToken=String(req.headers['x-momentum-change-token']||'');
-  const authorizedChange=false; // No paid refresh without atomic server-side authorization.
+  const authorizedChange=Boolean(process.env.CRON_SECRET)&&auth==='Bearer '+process.env.CRON_SECRET&&allowedChange.has(changeType)&&/^[a-f0-9]{64}$/.test(verifiedToken); // PropLine validates stored evidence and atomically claims it.
   oddsDebug.aiInWorkflow=Boolean(process.env.GROQ_API_KEY);
   oddsDebug.sportsbookStatus='verified_market_data_pending';
   oddsDebug.propLineCreditPolicy='verified_change_only';
@@ -496,7 +496,7 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
    try{
     const trustedPropOrigin=process.env.VERCEL_PROJECT_PRODUCTION_URL?'https://'+process.env.VERCEL_PROJECT_PRODUCTION_URL:'https://momentum-radar-live.vercel.app';
     const propUrl=trustedPropOrigin+'/api/prop-line-markets?league=nfl&date='+date+'&gameId='+encodeURIComponent(gameId);
-    const propResult=await Promise.race([(async()=>{const r=await timedFetch(propUrl,{cache:'no-store',headers:{Authorization:'Bearer '+process.env.CRON_SECRET}});return r.ok?await r.json():null})(),new Promise(resolve=>setTimeout(()=>resolve(null),6000))]);
+    const propResult=await Promise.race([(async()=>{const r=await timedFetch(propUrl,{cache:'no-store',headers:{Authorization:'Bearer '+process.env.CRON_SECRET,'x-momentum-change-token':verifiedToken}});return r.ok?await r.json():null})(),new Promise(resolve=>setTimeout(()=>resolve(null),6000))]);
     const offers=propLineRows(propResult,gameId);
     if(offers.length){directRows=offers;provider='PropLine';oddsDebug.stage='prop_line_market_ready';oddsDebug.propLineRows=offers.length}
     else oddsDebug.propLineStage='no_current_verified_offers';
