@@ -41,7 +41,7 @@ export default async function handler(req,res){
   const html=(await response.text()).slice(0,500000);
   // Extract only structured JSON-LD sportsbook offers; never infer odds from free-form HTML or AI.
   const extracted=[];
-  const ldJsonPattern=new RegExp('<script[^>]*type=[\\"\\\']application/ld\\+json[\\"\\\'][^>]*>([\\s\\S]*?)</script>','gi');
+  const ldJsonPattern=/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
   for(const match of html.matchAll(ldJsonPattern)){
    try{
     const parsed=JSON.parse(match[1]);
