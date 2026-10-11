@@ -59,7 +59,7 @@ test('ESPN depth-chart QB1 rank=1 is parsed; backups, ambiguity and malformed ID
 });
 test('free ESPN QB1 lookup checks only current matchup teams and isolates failed team fetch',async()=>{
  const calls=[];
- const result=nflCurrentGameDepthChartQbs({{home,away,
+ const result=await nflCurrentGameDepthChartQbs({home,away,
  teamIdsByAbbr:new Map([['JAX','30'],['PHI','21']]),fetchJson:async url=>{
   calls.push(url);
   if(url.includes('/21/'))throw Error('unavailable');
@@ -123,7 +123,7 @@ test('actual markets API and health report include scoped role counts, cache ver
  const api=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
  const status=readFileSync(new URL('../lib/nfl-sgp-snapshot-status.js',import.meta.url),'utf8');
  const ui=readFileSync(new URL('../index.html',import.meta.url),'utf8');
- assert.ok(api.includes('await nflCurrentGameDepthChartQbs('));
+ assert.ok(api.includes('nflCurrentGameDepthChartQbs({'));
  assert.ok(api.includes('teamIdsByAbbr:eligibility.teamIdsByAbbr'));
  assert.ok(api.includes('nflProjectedDepthChartQbEligible(role)'));
  assert.ok(api.includes('day-ahead-roles-v5-teamid-depthchart'));
