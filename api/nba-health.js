@@ -3,6 +3,7 @@ import {blobCredentialMode} from '../lib/blob-storage-config.js';
 import {timingSafeEqual} from 'node:crypto';
 import {nbaPrepareEvidence} from '../lib/nba-pregame-model.js';
 import {pregameAiAudit} from '../lib/pregame-ai-review.js';
+import {sportsbookCoverageAudit} from '../lib/sportsbook-source-policy.js';
 import {nflRunCollectorBatch} from '../lib/nfl-collector-readiness.js';
 import {pregamePhase,pregameEvidenceAudit,pregameNeedsAiReview}
  from '../lib/pregame-revalidation.js';
@@ -148,6 +149,11 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
  result.revalidatedAt=new Date(now).toISOString();
  result.refreshPolicy='DAY_AHEAD_60M_PREGAME_15M_FINAL_10M_WITH_15M_CRON';
  result.propCategories=['points','rebounds','assists','threes','pra'];
+ // Report missing sportsbook sourcing explicitly; ESPN player models are not
+ // evidence that either sportsbook's public page was checked.
+ result.sportsbookCoverage=sportsbookCoverageAudit({sport:'nba',gameId:game.gameId,
+  offers:[],attempts:[]});
+ result.verifiedIndividualOffers=[];
  result.offenseDefenseStatus=result.offenseDefense?.status||'INSUFFICIENT_SAMPLES';
  // A failed data source must never overwrite an earlier populated model
  // without explaining the degradation. In either case, store audit metadata.
