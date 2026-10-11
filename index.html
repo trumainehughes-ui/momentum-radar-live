@@ -51,7 +51,7 @@ const nflMarketCache=new Map(),nflMarketInflight=new Map(),nflMarketBlocked=new 
 async function getNFLMarkets(gameId='',forceFresh=false){
   if(!nflData?.date)throw Error('nfl_date_unavailable');
   const key=nflData.date+'|'+gameId,now=Date.now(),blocked=nflMarketBlocked.get(key)||0;
-  if(now<blocked){const previous=nflMarketCache.get(key);if(previous?.data?.ok)return previous.data;throw Error('sportsbook_cooldown');}
+  if(now<blocked){const previous=nflMarketCache.get(key);if(previous?.data?.ok)return previous.data; /* allow read-only API request for server-side cached analytics */ }
   const hit=nflMarketCache.get(key);
   if(!forceFresh&&hit&&now-hit.at<15*60*1000)return hit.data;
   if(nflMarketInflight.has(key))return nflMarketInflight.get(key);
