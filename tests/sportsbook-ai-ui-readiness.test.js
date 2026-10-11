@@ -17,6 +17,10 @@ const nflFn=vm.runInNewContext(
  '('+bodyBetween(nflHtml,'function nflSportsbookAiGuardUi','function nflSgpAiPlanUi').trim()+')',
  {nflEscape:escape,Date,Number,String,Array,JSON}
 );
+const parlayFn=vm.runInNewContext(
+ '('+bodyBetween(nflHtml,'function nflSgpAiPlanUi','async function nflOpen').trim()+')',
+ {nflEscape:escape,Date,Number,String,Array,JSON}
+);
 const nbaFn=vm.runInNewContext(
  '('+bodyBetween(nbaJs,'function sportsbookGuard','function sgpAiNextSteps').trim()+')',
  {safe:escape,Date,String,Array}
@@ -82,4 +86,29 @@ test('NFL and NBA game routes safely render their own verified sportsbook guard 
  assert.ok(nba.includes("snapshot.sportsbookAiGuard?.gameId===gameId"));
  assert.ok(nba.includes("status:'PENDING_OR_STALE'"));
  assert.ok(nbaJs.includes('return source+sportsbookGuard(d)+sgpAiNextSteps(d)+rows.map(s=>{'));
+});
+
+test('SGP preview only shows modeled book-listed alternates as provisional rechecks, escaped and never bookable',()=>{
+ const d={...nfl(),sgpAiPlan:{gameId,league:'nfl',
+  marketEvidenceFresh:true,tiers:[{risk:'Small',bookActions:[{
+   book:'FanDuel',action:'REVALIDATE_MISSING_LEGS',
+   rescueStatus:'PROVISIONAL_BOOK_LINE_REBUILD',
+   provisionalRebuild:{readyToPublish:false},
+   suggestedLineRechecks:[{player:'Player <alert>',category:'rushing',requested:50,
+    modelCompatibleOptions:[{threshold:55,sourceLabel:'55+'}]}]
+  }]}]}};
+ const out=parlayFn(d,gameId);
+ assert.match(out,/Provisional only/);
+ assert.match(out,/Player &lt;alert&gt;/);
+ assert.match(out,/55\+/);
+ assert.doesNotMatch(out,/Player <alert>/);
+ assert.match(out,/No leg replaced/);
+ d.sgpAiPlan.tiers[0].bookActions[0].provisionalRebuild.readyToPublish=true;
+ assert.doesNotMatch(parlayFn(d,gameId),/Provisional only/);
+ d.sgpAiPlan.tiers[0].bookActions[0].provisionalRebuild.readyToPublish=false;
+ d.fetchedAt=new Date(Date.now()-16*60000).toISOString();
+ assert.doesNotMatch(parlayFn(d,gameId),/55\+/);
+ d.fetchedAt=currentTime;
+ d.sgpAiPlan.gameId='401872982';
+ assert.equal(parlayFn(d,gameId),'');
 });
