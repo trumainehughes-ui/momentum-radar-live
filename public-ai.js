@@ -180,6 +180,17 @@
    needsModelRebuild:p.needsModelRebuild,
    needsCombinedQuotes:p.needsCombinedQuotes,
    evidenceChanges:(p.evidenceChanges||[]).slice(0,5),
+   sportsbookRebuild:(m?.sgpRebuildReport?.league==='nfl'&&
+    String(m.sgpRebuildReport.gameId||'')===String(gameId)?
+    (m.sgpRebuildReport.tiers||[]).slice(0,3).map(t=>({
+     risk:t.risk,targetMinimumAmerican:t.targets?.minimum??null,
+     targetMaximumAmerican:t.targets?.maximum??null,
+     books:(t.books||[]).slice(0,2).map(b=>({
+      book:b.book,marketSourceStatus:b.marketSourceStatus,
+      nextAction:b.nextAction,individuallyListed:b.bookListedLegsVerified===true,
+      combinedBookQuoteVerified:false
+     }))
+    })):[]),
    tiers:(p.tiers||[]).slice(0,3).map(t=>({
     risk:t.risk,modelStatus:t.modelStatus,
     aiRuleValidation:{
