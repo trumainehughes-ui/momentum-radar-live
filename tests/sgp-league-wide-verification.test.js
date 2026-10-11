@@ -112,3 +112,16 @@ test('production schedulers, NFL view and NBA game expose shared audit on every 
   assert.ok(src.includes(piece),path);
  }
 });
+
+test('the shared NFL verifier permits two distinct stats for the same QB, not the same duplicated selection',()=>{
+ const id='401800008';
+ const all=nflCard('Medium',id),passing=all.legs[0];
+ const rushing={...passing,cat:'rushing',analyticsThreshold:30};
+ all.legs=[passing,rushing,...all.legs.slice(2)];
+ const valid=auditLeagueSgpEvent({league:'nfl',gameId:id,sgps:{Analytics:[all]}});
+ assert.equal(valid.tiers[1].modelStatus,'MODEL_CANDIDATE');
+ assert.equal(valid.sportsbookVerifiedCount,0);
+ all.legs[1]={...passing};
+ const bad=auditLeagueSgpEvent({league:'nfl',gameId:id,sgps:{Analytics:[all]}});
+ assert.equal(bad.tiers[1].modelStatus,'NOT_READY');
+});
