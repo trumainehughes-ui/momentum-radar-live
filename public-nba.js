@@ -59,6 +59,107 @@
    ).join('')+'<div class="refresh">ESPN-reported injuries; confirmed game-day inactives not verified.</div>':
    '<div class="note">No usable injury entries were returned for this matchup. This does NOT confirm a healthy or active roster.</div>';
  }
+ function sportsbookGuard(d){
+  const g=d?.sportsbookAiGuard,
+   current=d?.status==='SCHEDULED'&&
+    d?.pregameReadiness?.freshness==='CURRENT'&&
+    String(g?.gameId||'')===String(d?.gameId||'')&&
+    g?.league==='nba';
+  if(!current)return '<div class="note"><b>Sportsbook Scout:</b> No fresh NBA bookmaker market audit available. Individual props and combined SGP odds are unverified.</div>';
+  const failures=(g.flags||[]).slice(0,2)
+   .map(f=>safe(f.detail||f.code)).join('; ');
+  return '<div class="note"><b>AI Sportsbook Scout • NBA:</b> '+safe(g.status||'PENDING')+
+   ' • DraftKings / FanDuel market check pending.'+
+   (failures?' '+failures:'')+
+   ' No AI-generated bookmaker prices or replacement legs. Combined SGP payout NOT VERIFIED.</div>';
+ }
+ function sgpRebuildStatus(d){
+  const r=d?.sgpRebuildReport,valid=d?.status==='SCHEDULED'&&
+   d?.pregameReadiness?.freshness==='CURRENT'&&r?.league==='nba'&&
+   String(r.gameId||'')===String(d.gameId||'');
+  if(!valid)return '<div class="note">NBA SGP rebuild • awaiting current game snapshot and sportsbook markets.</div>';
+  const summary=(r.tiers||[]).slice(0,3).map(t=>
+   safe(t.risk)+': '+(t.books||[]).slice(0,2)
+    .map(b=>safe(b.book)+' '+(b.bookListedLegsVerified?'individual markets listed':'lines pending'))
+    .join(' • ')).join(' | ');
+  return '<div class="note"><b>NBA SGP rebuild:</b> '+summary+
+   '<div class="refresh">Sportsbook prop lines and correlated combined odds remain unverified. The current NBA model alone cannot confirm target payouts.</div></div>';
+ }
+ function sgpAiNextSteps(d){
+  const plan=d?.sgpAiPlan,match=d?.status==='SCHEDULED'&&
+   d?.pregameReadiness?.freshness==='CURRENT'&&
+   plan?.league==='nba'&&String(plan?.gameId||'')===String(d?.gameId||'');
+  if(!match)return '<div class="note">AI Parlay Architect: NBA bookmaker market data pending. No priced or bookable Same Game Parlay is confirmed.</div>';
+  const rows=(plan.tiers||[]).slice(0,3).map(t=>{
+   const books=(t.bookActions||[]).filter(a=>['DraftKings','FanDuel'].includes(a.book))
+    .slice(0,2).map(a=>safe(a.book)+': '+safe(String(a.action||'CHECK_DATA').replaceAll('_',' ').toLowerCase()));
+   return '<div class="note"><b>'+safe(t.risk)+' SGP:</b> '+books.join(' • ')+'</div>';
+  }).join('');
+  return '<div class="note"><b>AI Parlay Architect • next checks:</b>'+
+   rows+'<div class="refresh">Model candidates only. Actual bookmaker player markets and combined payout remain unverified.</div></div>';
+ }
+ function nbaPublicSportsbookPanel(){
+  return '<div class="note" style="margin-top:10px"><b>Read public DraftKings / FanDuel player odds</b>'+
+   '<div class="refresh">Published sportsbook page inspection only. Observations cannot be matched to this NBA game without verified roster, event and market evidence.</div>'+
+   '<input id="nbaBookPageUrl" type="url" placeholder="Official NBA bookmaker public props URL" style="width:75%;min-width:170px">'+
+   '<button type="button" id="nbaPublicOddsRead">Read public odds</button>'+
+   '<div class="refresh"><a href="https://sportsbook.draftkings.com/page/nba-player-props" target="_blank" rel="noopener noreferrer">DraftKings NBA props page</a></div>'+
+   '<div id="nbaPublicOddsReadout">Publicly visible odds may be partial. No combined SGP price verified.</div></div>';
+ }
+ async function nbaAutomaticBookResearch(gameId){
+  const output=qs('#nbaPublicOddsReadout');
+  if(!output)return;
+  output.textContent='Automatically checking both official sportsbooks for this verified ESPN matchup…';
+  try{
+   const resp=await fetch('/api/sportsbook-public-game?league=nba&gameId='+
+    encodeURIComponent(gameId),{cache:'no-store',credentials:'omit'});
+   const report=await resp.json();
+   if(selected!==gameId||!output.isConnected)return;
+   if(!resp.ok||!report.ok){
+    output.textContent='Automatic public-page check not available: '+
+     String(report.status||report.error||'UNAVAILABLE')+
+     '. No NBA sportsbook price was inferred.';
+    return;
+   }
+   const rows=(report.pages||[]).map(p=>'<div>'+
+    safe(p.book)+' • '+safe(p.label)+' • '+safe(p.status)+
+    ' • '+safe(p.quotedSelectionCount||0)+' publicly observed player prices</div>').join('');
+   output.innerHTML='<b>Both-book automatic research:</b> '+rows+
+    '<div class="refresh">These publicly observed team-page prices might belong to another matchup and have no authenticated event/timestamp. NBA parlays stay model-only until current sportsbook market and combined price are separately verified.</div>';
+  }catch{
+   if(selected===gameId)output.textContent='Automatic sportsbook page check blocked or unavailable. No NBA price inferred.';
+  }
+ }
+ function bindNbaPublicOdds(gameId){
+  const button=qs('#nbaPublicOddsRead'),input=qs('#nbaBookPageUrl');
+  if(!button||!input)return;
+  button.onclick=async()=>{
+   const out=qs('#nbaPublicOddsReadout'),entered=String(input.value||'').trim();
+   if(!entered||!out)return;
+   out.textContent='Checking the official public sportsbook page…';
+   button.disabled=true;
+   try{
+    const r=await fetch('/api/sportsbook-public-odds?url='+encodeURIComponent(entered),
+     {cache:'no-store',credentials:'omit'});
+    const report=await r.json();
+    if(selected!==gameId)return;
+    if(!r.ok||!report.ok){
+     out.textContent='Cannot reliably read this public page: '+
+      String(report.status||report.error||'UNAVAILABLE');
+     return;
+    }
+    const rows=(report.quotes||[]).slice(0,20).map(x=>
+     '<div>'+safe(x.player)+' • '+safe(x.market)+' '+
+      safe(x.rawLine)+' • '+safe(x.americanOdds)+'</div>').join('');
+    out.innerHTML='<b>'+safe(report.book)+' research:</b> '+
+     safe((report.quotes||[]).length)+' publicly observed selections.'+
+     (rows||' No reliably paired player prices in this page.')+
+     '<div class="refresh">UNMATCHED SOURCE ONLY — never inserted into an NBA SGP or counted as combined odds.</div>';
+   }catch{
+    if(selected===gameId)out.textContent='Page check unavailable; no odds inferred.';
+   }finally{if(selected===gameId)button.disabled=false}
+  };
+ }
  function sgps(d){
   const rows=d?.sgps||[],readiness=d?.pregameReadiness;
   const stage=readiness?.stage?String(readiness.stage).replaceAll('_',' '):'AWAITING FIRST PREGAME BUILD';
@@ -73,7 +174,7 @@
    '<div class="note">ESPN detailed game preview is not yet available. This matchup was rechecked against the ESPN scoreboard; reported injuries and starters may still be unverified.</div>':'';
   const source=summaryPending+stale+'<div class="refresh">Pregame model: '+safe(stage)+basis+' • AI review: '+safe(readiness?.aiReviewStatus||'PENDING')+' • Last model/injury check: '+safe(freshness)+
    ' • Injury evidence: '+safe(injury)+' ('+safe(readiness?.injuryReportStatus||'UNVERIFIED')+')</div>';
-  return source+rows.map(s=>{
+  return source+sportsbookGuard(d)+sgpAiNextSteps(d)+sgpRebuildStatus(d)+rows.map(s=>{
    const ready=s.status==='MODEL_CANDIDATE'&&Array.isArray(s.legs)&&s.legs.length>0;
    const list=ready?s.legs.map((l,i)=>
     '<div class="nflMarketLine"><b>'+(i+1)+'. '+safe(l.name)+' • '+safe(l.team)+'</b>'+
@@ -101,7 +202,9 @@
   const request=++token;
   try{
    const d=await detail(id);if(request!==token||selected!==id)return;
-   qs('#nbaSgps').innerHTML=sgps(d);
+   qs('#nbaSgps').innerHTML=sgps(d)+nbaPublicSportsbookPanel();
+   bindNbaPublicOdds(id);
+   void nbaAutomaticBookResearch(id);
    renderInjuries(d);
    if(!d.players?.length){
     qs('#nbaPlayers').innerHTML='<div class="msg">'+

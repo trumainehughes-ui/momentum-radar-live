@@ -24,7 +24,7 @@
 #nflInjuries .nflInjuryRefreshBtn{background:#183749;color:#f5fbff;border:1px solid #6ca7c7;padding:9px 12px;border-radius:8px;font-weight:800;margin-top:11px;cursor:pointer}
 #nflInjuries .nflInjurySourceLink{color:#9ee7ff;text-decoration:underline;font-weight:800}
 </style></head><body><div class="wrap"><div class="top"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><div class="brand">Momentum Radar <span class="live">LIVE</span></div><span class="rockingChairMark" role="img" aria-label="Rocking chair" title="Sit back. Let the data work.">🪑</span><button id="nflHelp" class="helpBtn">❓ How to Use</button></div><div id="status" class="status">Connecting…</div></div><div id="nflGuide" class="guide"><h3>How to Use Momentum Radar</h3><div class="note" style="margin-bottom:10px">Simple guide: choose what you want to see, then click a game when you want a full matchup breakdown.</div><div class="guideSteps"><div class="guideStep"><b>1. Choose a Sport</b>Use the sport tabs to open the section you want to explore.</div><div class="guideStep"><b>2. Game Day</b>See every game on the day's slate. <strong>Click a game name</strong> to open all available analytics for that matchup.</div><div class="guideStep"><b>3. Inside a Game</b>Find player analytics, injuries/inactives, and three Same Game Parlay ideas: <strong>Small, Medium, and Nuke</strong>. Use ← Back to Games when you're finished.</div><div class="guideStep"><b>4. Top 10 Player Lists</b>Use the player-category tabs to see the top players across the day's games.</div><div class="guideStep"><b>5. Same Game Parlay</b>Want an SGP for one matchup? Go to <strong>Game Day → click that game → Same Game Parlay</strong>.</div><div class="guideStep"><b>6. Live Trackers</b>During games, use the live tracker to follow results as they happen. A ⭐ is used only when a result matches a locked, verified pregame selection.</div><div class="guideStep"><b>When NFL Data Updates</b>Momentum Radar does not refresh NFL sportsbook data continuously. NFL data is collected <strong>the day before games</strong>, refreshed again on <strong>game day</strong>, and receives a <strong>final validation 30 minutes before kickoff</strong> for injuries, inactives and market changes. If nothing meaningful changes, existing selections stay the same. Picks lock at kickoff.</div><div class="guideStep"><b>Reading the Data</b>Sportsbook lines and odds are supporting market information. They help you understand available bets; they are not guarantees. Always check the sportsbook before placing a wager.</div></div></div><div class="panel"><div class="tabs"><button class="tab active" data-league="mlb">⚾ MLB</button><button class="tab" data-league="nfl">🏈 NFL</button><button class="tab" data-league="nba">🏀 NBA</button></div></div><div id="mlb"><div class="panel"><h2>⚡ Quick Bets — Probability Board</h2><div class="note">All visible numbers are estimated event probabilities, never 99/98 ranking scores. HR probability uses current season + recent 20/10/5 form, pitcher vulnerability, Baseball Savant park factor when available, MLB game weather and confirmed game status. HR Shadow Radar is a separate validation layer and does not alter the Top-10 ranking.</div><div id="qt" class="qtabs" style="margin-top:10px"></div><div id="quick" class="grid"><div class="msg">Loading current slate…</div></div><div id="fresh" class="refresh"></div></div><div class="panel"><h2>💎 Hidden Gems — Hit Probability</h2><div id="hidden" class="secondary"><div class="msg">Loading…</div></div></div><div class="panel"><h2>🔥 Top Home Run Probabilities</h2><div class="note">One hitter per game and one hitter per team. Ordered by estimated chance of 1+ home run.</div><div id="hrboard" class="secondary"><div class="msg">Loading…</div></div></div></div><div id="nba" style="display:none"><div class="panel"><div class="trackerTop"><h2>🏀 NBA — Momentum Radar</h2><span class="badge">ESPN DATA</span></div><div class="note">Game-day schedule, verified game results and injury observations. Player box scores are actual results, never pregame projections or sportsbook offers.</div><div class="qtabs" id="nbaNav" style="margin-top:12px"><button class="qtab active" data-nbatab="gameday">📅 Game Day</button><button class="qtab" data-nbatab="points">Points</button><button class="qtab" data-nbatab="rebounds">Rebounds</button><button class="qtab" data-nbatab="assists">Assists</button><button class="qtab" data-nbatab="threes">3-Pointers</button><button class="qtab" data-nbatab="pra">PRA</button><button class="qtab" data-nbatab="sgp">🏀 SGP Builder</button></div><div class="row" style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center"><label style="font-weight:800">Game date <input id="nbaDate" type="date" aria-label="NBA game date" style="background:#102330;color:#f2f6f8;border:1px solid #31586d;border-radius:8px;padding:8px;margin-left:8px"></label><button type="button" class="tinyBtn" id="nbaReload">Refresh NBA</button><span id="nbaFresh" class="refresh" aria-live="polite">Loading official NBA schedule…</span></div></div><div class="panel" id="nbaHome"><div class="nflDashGrid"><div class="nflDashBox"><h2>NBA Game Day</h2><div id="nbaBoard" class="secondary">Loading NBA games…</div></div><div class="nflDashBox"><h2 id="nbaTopTitle">Selected NBA Matchup</h2><div id="nbaTopBoard" class="secondary">Select a game to view its available data.</div></div></div><div class="note" style="margin-top:14px">Players and Top 10 boards use verified game box-score results only. Pregame analytical prop recommendations will be added after player projections, availability and market verification pass.</div></div><div class="panel" id="nbaDetail" style="display:none"><button id="nbaBack" type="button" class="tinyBtn">← Back to NBA Games</button><div id="nbaGameHead" style="margin-top:12px"></div><div class="nflDashGrid" style="margin-top:12px"><div class="nflDashBox"><h3>Player Statistics</h3><div id="nbaPlayers" class="secondary">Loading verified game details…</div></div><div class="nflDashBox"><h3>Injuries / Availability</h3><div id="nbaInjuries" class="secondary">Loading available injury evidence…</div><h3 style="margin-top:18px">Small / Medium / Nuke SGPs</h3><div id="nbaSgps" class="secondary">Checking eligible NBA prop inputs…</div></div></div></div></div><div id="nfl" style="display:none">
-<div class="panel"><div class="nflHero"><div><h1>🏈 NFL</h1><div class="note">Data. Matchups. Trends. Opportunities.</div><div class="refresh">Updates: day before • game day • final validation 30 min before kickoff • locks final pregame selections</div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px"><label class="note" for="nflDate">NFL game date</label><input type="date" id="nflDate" aria-label="Select NFL game date" style="background:#102330;color:#f2f6f8;border:1px solid #31586d;border-radius:8px;padding:8px"/><button type="button" class="tinyBtn" data-nflday="0">Sunday</button><button type="button" class="tinyBtn" data-nflday="1">Monday</button><button type="button" class="tinyBtn" data-nflday="4">Thursday</button><button type="button" class="tinyBtn" id="nflRefreshAll">Refresh selected slate</button></div><div id="nflSlateFresh" class="refresh">Choose Sunday, Monday or Thursday for that day’s complete NFL slate.</div></div><span class="badge">WEEK <span id="nflWeekHero">—</span></span></div><div class="qtabs" id="nflNav"><button class="qtab active" data-nfltab="gameday">📅 Game Day</button><button class="qtab" data-nfltab="td">⭐ Anytime TD</button><button class="qtab" data-nfltab="passing">Passing</button><button class="qtab" data-nfltab="rushing">Rushing</button><button class="qtab" data-nfltab="receiving">Receiving</button><button class="qtab" data-nfltab="receptions">Receptions</button><button class="qtab" data-nfltab="sgp">🔗 Same Game Parlays</button><button class="qtab" data-nfltab="multigame">🏆 Best of Slate</button><button class="qtab" data-nfltab="tracker">📊 Live TD Tracker</button><button class="qtab" data-nfltab="history">🗂️ History</button></div></div>
+<div class="panel"><div class="nflHero"><div><h1>🏈 NFL</h1><div class="note">Data. Matchups. Trends. Opportunities.</div><div class="refresh">Updates: day before • game day • final validation 30 min before kickoff • locks final pregame selections</div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px"><label class="note" for="nflDate">NFL game date</label><input type="date" id="nflDate" aria-label="Select NFL game date" style="background:#102330;color:#f2f6f8;border:1px solid #31586d;border-radius:8px;padding:8px"/><button type="button" class="tinyBtn" data-nflday="0">Sunday</button><button type="button" class="tinyBtn" data-nflday="1">Monday</button><button type="button" class="tinyBtn" data-nflday="4">Thursday</button><button type="button" class="tinyBtn" id="nflRefreshAll">Refresh schedule / selected matchup</button><button type="button" class="tinyBtn" id="nflRefreshAllSgps">Rebuild all upcoming SGPs</button></div><div id="nflSlateSgpRefreshStatus" class="refresh" role="status">SGP refresh not started. Rebuild checks all upcoming games using existing provider quotas.</div><div id="nflSlateFresh" class="refresh">Choose Sunday, Monday or Thursday for that day’s complete NFL slate.</div></div><span class="badge">WEEK <span id="nflWeekHero">—</span></span></div><div class="qtabs" id="nflNav"><button class="qtab active" data-nfltab="gameday">📅 Game Day</button><button class="qtab" data-nfltab="td">⭐ Anytime TD</button><button class="qtab" data-nfltab="passing">Passing</button><button class="qtab" data-nfltab="rushing">Rushing</button><button class="qtab" data-nfltab="receiving">Receiving</button><button class="qtab" data-nfltab="receptions">Receptions</button><button class="qtab" data-nfltab="sgp">🔗 Same Game Parlays</button><button class="qtab" data-nfltab="multigame">🏆 Best of Slate</button><button class="qtab" data-nfltab="tracker">📊 Live TD Tracker</button><button class="qtab" data-nfltab="history">🗂️ History</button></div></div>
 <div class="panel" id="nflRankPanel" style="display:none"><div class="trackerTop"><h2 id="nflRankTitle">NFL Top 10</h2><span class="badge">TOP 10</span></div><div id="nflRankBoard" class="secondary"><div class="msg">Loading slate analytics…</div></div></div>
 <div class="panel" id="nflMultiPanel" style="display:none"><div class="trackerTop"><h2>🏆 Best of the Slate — Multi-Game Parlay</h2><span class="badge">ONE BEST LEG / GAME</span></div><div class="note">Momentum Radar compares every qualified offensive player and supported stat inside each matchup, then takes only the strongest data-supported leg from that game. Games without a qualified leg are skipped.</div><div id="nflMultiBoard" class="secondary" style="margin-top:10px"><div class="msg">Choose Best of Slate to build the parlay.</div></div></div>
 <div class="panel" id="nflHistoryPanel" style="display:none"><div class="trackerTop"><h2>🗂️ NFL Results History</h2><span class="badge">GRADED</span></div><div class="note">Locked pregame picks are preserved and compared with final scores and official box-score results.</div><div id="nflHistoryBoard" class="secondary" style="margin-top:10px"><div class="msg">Loading completed results…</div></div></div><div class="panel" id="nflLivePanel"><div class="trackerTop"><h2>🎯 Live Touchdown Tracker</h2><span class="badge">LIVE</span></div><div class="note">Auto-refreshes with NFL data. ⭐ is reserved for a locked verified pregame Anytime TD selection.</div><div id="nflLiveOverview" class="msg" style="margin-top:10px">No touchdowns recorded yet in today's games.</div><div class="refresh">NFL data refreshes automatically while this tab is open.</div></div>
@@ -200,7 +200,285 @@ if(typeof setInterval==='function')setInterval(()=>{
  const intervalMs=Number.isFinite(minutes)&&minutes<=120&&minutes>=-240?30*1000:180*1000;
  if(!prev.running&&Date.now()-(prev.at||0)>=intervalMs)nflRefreshInjuryPanel(g.gameId);
 },15*1000);
-async function nflOpen(id,forceMarkets=false){let independentPropsHtml='';let verifiedMarketsLoaded=false;const g=nflData?.games?.find(x=>x.gameId===id);if(!g)return;nflSelected=g;if(typeof window.momentumAiGameChanged==='function')window.momentumAiGameChanged(g);const aiMount=document.getElementById('nflAiMount');if(aiMount)aiMount.style.display='none';document.querySelectorAll('[data-matchtab]').forEach(b=>b.classList.toggle('active',b.dataset.matchtab==='props'));$('#nflHome').style.display='none';nflBindMatchTabs();$('#nflGame').style.display='block';$('#nflGameHead').innerHTML=`<div class="card"><div class="rank">WEEK ${g.week} • ${g.status} • ${g.readiness}</div><div class="name">${g.away.name} @ ${g.home.name}</div><div class="meta">🕒 ${nflTime(g.kickoff)} • ${g.venue||''}</div><div class="refresh">Last updated ${new Date(g.lastUpdated).toLocaleTimeString()} • Markets: ${g.marketFeed}</div></div>`;$('#nflDvp').innerHTML='<div class="msg">Loading matchup rankings…</div>';nflRefreshInjuryPanel(id);loadNFLDvp(g);$('#nflProps').innerHTML='<div class="msg">Loading touchdown and yardage leaders for this matchup…</div>';getNFLMarkets(id,forceMarkets).then(d=>{verifiedMarketsLoaded=true;const o=d.outcomePrediction,ob=$('#nflOutcome');if(ob&&o){const a=o.teamA,b=o.teamB;ob.innerHTML='<div class="nflMarketLine"><b>Projected Final Score: '+a+' '+o.projectedFinalScore[a]+' - '+b+' '+o.projectedFinalScore[b]+'</b><div class="meta">Win Probability: '+a+' '+o.winProbability[a]+'% | '+b+' '+o.winProbability[b]+'%</div><div class="note"><b>Analytical Edge:</b> '+o.analyticalEdge+'</div></div>'}$('#nflProps').innerHTML=['td','passing','rushing','receiving','receptions'].map(cat=>{const rows=d.categories?.[cat]||[];return `<h4>${nflLabels[cat]}</h4>${rows.length?rows.slice(0,5).map(x=>{const e=x.edgeAnalytics||{},h=x.recentHitRates||{},l5=h.last5,l10=h.last10,market=e.sportsbookLine!=null?`Line ${e.sportsbookLine}`:'Model projection',proj=e.modelProjection!=null?`Model ${cat==='receptions'?e.modelProjection:nflYards5(e.modelProjection)}`:'',edge=e.rawEdge!=null?`Edge ${e.rawEdge>0?'+':''}${e.rawEdge}${e.edgePct!=null?` (${e.edgePct>0?'+':''}${e.edgePct}%)`:''}`:'',hits=[l5?`L5 ${l5.hits}/${l5.sample}`:'',l10?`L10 ${l10.hits}/${l10.sample}`:''].filter(Boolean).join(' • '),form=x.recentForm?.label&&x.recentForm.label!=='EARLY_SAMPLE'?` • ${x.recentForm.label}`:x.recentForm?.label==='EARLY_SAMPLE'?' • Early sample':'';return `<div class="nflMarketLine"><b>${x.name}</b><div class="meta">${'Model: '+nflProjection(x,cat)}${x.bestBook?` • ${x.bestBook.book} ${+x.bestBook.odds>0?'+':''}${x.bestBook.odds}`:''}</div>${[market,proj,edge].filter(Boolean).length?`<div class="note">${[market,proj,edge].filter(Boolean).join(' • ')}</div>`:''}${hits?`<div class="note">${hits}${form}</div>`:''}<div class="note">${x.momentumScore!=null&&Number.isFinite(Number(x.momentumScore))?'Momentum rating: '+x.momentumScore+'/100 (not hit probability)':'Projection based on available production and matchup data'}</div></div>`}).join(''):'<div class="note">Momentum Radar projections with current public DraftKings/FanDuel market context.</div>'}`}).join('');const quotaBlocked=String(d.oddsDebug?.error||d.oddsDebug?.sgoError||'').includes('OUT_OF_USAGE_CREDITS')||d.degraded;
+function nflSportsbookCoverageUi(data,gameId){
+ const coverage=data?.sportsbookCoverage,valid=coverage?.league==='nfl'&&
+  String(coverage.gameId||'')===String(gameId)&&
+  String(data?.gameId||'')===String(gameId)&&!data.stale&&!data.degraded;
+ const cats=['td','passing','rushing','receiving','receptions'];
+ const names={td:'TD',passing:'Pass',rushing:'Rush',
+  receiving:'Receive',receptions:'Receptions'};
+ const rows=['DraftKings','FanDuel'].map(book=>{
+  const b=valid?coverage.books?.[book]:null,counts=b?.categories||{};
+  const found=b?.pricedSelections||0;
+  const byCat=cats.map(cat=>nflEscape(names[cat])+': '+
+   nflEscape(Number(counts[cat])||0)).join(' • ');
+  return '<div><b>'+book+':</b> '+
+   (b?String(found)+' listed individual prices / '+
+    nflEscape(b.uniquePlayers||0)+' players':'not checked or data expired')+
+   (b?'<div class="refresh">'+byCat+
+    ' • Alternate prices: '+nflEscape(b.pricedAlternateSelections||0)+'</div>':'')+'</div>';
+ }).join('');
+ return '<div class="note" style="margin-top:8px"><b>Required sportsbook check • both books</b>'+
+  rows+'<div class="refresh">No sportsbook selection is invented when a book or market is missing. Public-site catalogs are not guaranteed complete; these numbers reflect observed provider markets only. Combined SGP price unverified.</div></div>';
+}
+// Public player-price observations supplement research on EVERY opened
+// NFL matchup, but NEVER silently replace authenticated book-market props.
+const nflPublicMatchupMemo=new Map();
+function nflAutoPublicMatchupUi(){
+ return '<div class="note" style="margin-top:8px"><b>Public sportsbook odds • automatic matchup check</b>'+
+  '<div id="nflMatchupPublicOddsReadout">Checking official FanDuel team pages and DraftKings player-props page…</div>'+
+  '<div class="refresh">Public price observations are NOT authenticated event-specific betting lines or combined SGP odds. No automatic changes to picks.</div></div>';
+}
+async function nflCurrentPublicMatchupResearch(id){
+ const key=String(id),existing=nflPublicMatchupMemo.get(key);
+ if(existing&&Date.now()-existing.at<8*60*1000)return existing.data;
+ if(existing?.pending)return existing.pending;
+ const pending=(async()=>{
+  const response=await fetch('/api/sportsbook-public-game?league=nfl&gameId='+
+   encodeURIComponent(key),{cache:'no-store',credentials:'omit'});
+  const data=await response.json();
+  if(!response.ok||!data.ok||String(data.gameId)!==key)
+   throw Error(data.status||data.error||'PUBLIC_RESEARCH_UNAVAILABLE');
+  nflPublicMatchupMemo.set(key,{at:Date.now(),data});
+  return data;
+ })().finally(()=>{
+  const current=nflPublicMatchupMemo.get(key);
+  if(current?.pending===pending)nflPublicMatchupMemo.delete(key);
+ });
+ nflPublicMatchupMemo.set(key,{at:Date.now(),pending});
+ return pending;
+}
+async function nflRefreshPublicMatchupOdds(id,marketData){
+ const root=$('#nflMatchupPublicOddsReadout');
+ if(!root)return;
+ root.textContent='Automatically inspecting official FanDuel and DraftKings public pages for this ESPN game…';
+ try{
+  const data=await nflCurrentPublicMatchupResearch(id);
+  if(String(nflSelected?.gameId||'')!==String(id)||!root.isConnected)return;
+  window.momentumPublicBookResearch=data;
+  const pages=Array.isArray(data.pages)?data.pages:[],categories=new Map();
+  for(const l of Object.values(marketData?.categories||{}).flat().concat(
+   (marketData?.sgps?.Analytics||[]).flatMap(x=>x.legs||[]))){
+   const name=String(l?.name||'').toUpperCase().replace(/[^A-Z0-9]/g,''),
+    cat=String(l?.cat||l?.category||'').toLowerCase();
+   if(!name||!cat)continue;
+   if(!categories.has(name))categories.set(name,new Set());
+   categories.get(name).add(cat);
+  }
+  const matched=[];
+  for(const p of pages)for(const q of p.quotes||[]){
+   const name=String(q.player||'').toUpperCase().replace(/[^A-Z0-9]/g,''),
+    cat=String(q.category||'').toLowerCase();
+   if(!categories.get(name)?.has(cat))continue;
+   matched.push(nflEscape(q.player)+' • '+nflEscape(cat)+' • '+
+    nflEscape(q.rawLine)+' • '+nflEscape(q.americanOdds)+' ('+nflEscape(p.book)+')');
+  }
+  root.innerHTML=pages.map(p=>'<div>'+nflEscape(p.book)+
+   ' • '+nflEscape(p.label)+': '+nflEscape(p.status)+
+   ' ('+nflEscape(p.quotedSelectionCount||0)+' visible price pairs)</div>').join('')+
+   (matched.length?'<div class="refresh">Model-player overlaps with public pages (RESEARCH ONLY):</div>'+
+    matched.slice(0,8).map(t=>'<div>'+t+'</div>').join(''):
+    '<div class="refresh">No same-player/stat observations found in readable public HTML.</div>')+
+   '<div class="refresh">Unmatched public source: a team page may describe its next, different opponent. No authenticated event or current SGP price. Existing model and verified bookmaker market data remain authoritative.</div>';
+ }catch(e){
+  if(String(nflSelected?.gameId||'')!==String(id)||!root.isConnected)return;
+  window.momentumPublicBookResearch=null;
+  root.textContent='Automatic public-page check unavailable: '+
+   String(e?.message||'NO_SOURCE').slice(0,90)+
+   '. No player odds invented or copied into parlays.';
+ }
+}
+function nflPublicOddsInspectorUi(){
+ return '<div class="note" style="margin-top:10px"><b>Public DraftKings / FanDuel Odds Inspector</b>'+
+ '<div class="refresh">Paste an official public player-props URL to inspect publicly readable individual +/- odds. Results are research ONLY, not verified for this matchup and never used to price an SGP.</div>'+
+ '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">'+
+ '<input id="nflBookPublicUrl" type="url" placeholder="https://sportsbook.fanduel.com/teams/nfl/.../odds" style="flex:1;min-width:180px">'+
+ '<button type="button" id="nflBookPublicCheck">Read public page</button></div>'+
+ '<div class="refresh"><a href="https://sportsbook.draftkings.com/page/nfl-player-props" target="_blank" rel="noopener noreferrer">DraftKings NFL public props</a> • <a href="https://sportsbook.fanduel.com/teams/nfl/san-francisco-49ers/odds" target="_blank" rel="noopener noreferrer">FanDuel public team-page example</a></div>'+
+ '<div id="nflPublicBookReadout" class="note">Manual public-page inspection is optional. The scheduled model uses authorized odds feeds, not guesses from page text.</div></div>';
+}
+function nflBindPublicOddsInspector(gameId){
+ const btn=$('#nflBookPublicCheck'),input=$('#nflBookPublicUrl');
+ if(!btn||!input)return;
+ btn.onclick=async()=>{
+  const output=$('#nflPublicBookReadout'),entered=String(input.value||'').trim();
+  if(!entered||!output)return;
+  output.textContent='Checking the public page without placing a bet…';
+  btn.disabled=true;
+  try{
+   const r=await fetch('/api/sportsbook-public-odds?url='+encodeURIComponent(entered),
+    {cache:'no-store',credentials:'omit'});
+   const data=await r.json();
+   if(String(nflSelected?.gameId||'')!==String(gameId))return;
+   if(!r.ok||!data.ok){
+    output.textContent='No trusted price observations: '+String(data.status||data.error||'PUBLIC_PAGE_NOT_READABLE')+
+     '. The bookmaker may expose a dynamic or geographically restricted page.';
+    return;
+   }
+   const observations=(data.quotes||[]).slice(0,24).map(x=>
+    '<div>'+nflEscape(x.player)+' • '+nflEscape(x.market)+
+    ' • '+nflEscape(x.rawLine)+' • '+nflEscape(x.americanOdds)+
+    '</div>').join('');
+   output.innerHTML='<b>'+nflEscape(data.book)+
+    ' public research:</b> '+nflEscape(data.status)+
+    ' • '+nflEscape((data.quotes||[]).length)+' paired prices seen.'+
+    (observations||'<div>Individual price/market pairs not safely extractable from this page.</div>')+
+    '<div class="refresh">Unmatched game and source timestamp: NOT an approved current SGP line or a combined sportsbook price.</div>';
+  }catch{
+   if(String(nflSelected?.gameId||'')===String(gameId))
+    output.textContent='Public page unavailable or unsupported. No betting prices inferred.';
+  }finally{if(String(nflSelected?.gameId||'')===String(gameId))btn.disabled=false}
+ };
+}
+function nflPlayerPropPricesUi(x){
+ const lines=x?.bookLineCatalog||{},books=['DraftKings','FanDuel'];
+ return '<div class="note">'+books.map(book=>{
+  const samples=(Array.isArray(lines[book])?lines[book]:[]),
+   sampled=samples.slice(0,4);
+  return '<div><b>'+nflEscape(book)+' public/book feed:</b> '+
+   (sampled.length?sampled.map(o=>{
+    const odds=Number(o.odds),price=Number.isFinite(odds)?
+     (odds>0?'+':'')+odds:'unpriced';
+    const raw=nflEscape(o.line),v=nflEscape(price);
+    let link='';
+    try{
+     const u=new URL(o.deeplink||''),host=u.hostname.toLowerCase();
+     if(u.protocol==='https:'&&!u.username&&!u.password&&!u.port&&
+      (book==='DraftKings'&&host==='sportsbook.draftkings.com'||
+       book==='FanDuel'&&host==='sportsbook.fanduel.com'))
+      link=' <a target="_blank" rel="noopener noreferrer" href="'+
+       nflEscape(u.href)+'">view line</a>';
+    }catch{}
+    return raw+' ('+v+')'+link;
+   }).join(' • ')+(samples.length>4?' • +'+nflEscape(samples.length-4)+' more':''):
+    'current player odds unavailable')+'</div>';
+ }).join('')+
+ '<div class="refresh">Individual bookmaker prices only. Combined parlay payout not verified.</div></div>';
+}
+function nflIndividualBookOddsUi(leg,expectedBook){
+ const o=leg?.bookOffer,raw=Number(o?.odds);
+ if(!o||o.book!==expectedBook||o.available===false||
+  o.odds===null||o.odds===undefined||o.odds===''||
+  !Number.isFinite(raw)||raw===0)
+  return '<span class="refresh"> • '+nflEscape(expectedBook)+' individual price pending</span>';
+ const american=(raw>0?'+':'')+String(raw);
+ const line=o.line===null||o.line===undefined?'Anytime TD':String(o.line);
+ let deeplink='';
+ try{
+  const u=new URL(String(o.deeplink||'')),host=u.hostname.toLowerCase();
+  if(u.protocol==='https:'&&!u.username&&!u.password&&!u.port&&
+   (expectedBook==='DraftKings'&&host==='sportsbook.draftkings.com'||
+    expectedBook==='FanDuel'&&host==='sportsbook.fanduel.com'))
+   deeplink='<a target="_blank" rel="noopener noreferrer" href="'+nflEscape(u.href)+'">View at '+nflEscape(expectedBook)+'</a>';
+ }catch{}
+ return '<span class="refresh"> • '+nflEscape(expectedBook)+
+  ' individual odds '+nflEscape(american)+' (source line '+nflEscape(line)+')'+
+  (deeplink?' • '+deeplink:'')+'</span>';
+}
+function nflSgpBookAuditUi(s){
+ const audits=s?.bookMarketAudits;if(!audits)return '';
+ const summary=['FanDuel','DraftKings'].map(book=>{
+  const a=audits[book];if(!a)return '';
+  if(a.status==='NO_LIVE_MARKETS')return book+': live market feed unavailable';
+  if(a.status==='MODEL_NOT_READY')return book+': model incomplete';
+  return book+': '+nflEscape(a.matchedLegs)+'/'+nflEscape(a.totalLegs)+' exact leg markets found';
+ }).filter(Boolean).join(' • ');
+ const missing=['FanDuel','DraftKings'].map(book=>{
+  const a=audits[book];
+  if(a?.status==='NO_LIVE_MARKETS'||!a?.missingLegs?.length)return '';
+  return '<div class="note"><b>'+book+' lines not confirmed:</b> '+
+   a.missingLegs.slice(0,6).map(x=>nflEscape(x.name)+': model '+
+    nflEscape(x.requested)+(x.category==='td'?'':'+')+
+    (x.listedOffers?.length?' • '+
+     nflEscape(x.listedOffers.map(y=>y.display).join(' / '))+
+     ' offered':' • no current matching offer')).join('<br>')+'</div>';
+ }).filter(Boolean).join('');
+ return '<div class="note" style="margin-top:8px"><b>Sportsbook selection audit (NOT an SGP quote):</b> '+summary+missing+
+ '<div class="note"><b>Combined odds still unverified.</b> Model Small/Medium/Nuke names are targets, not an available sportsbook payout. Do not use unmatched lines as a bet slip.</div></div>';
+}
+// Automatic no-cost per-game AI sportsbook guard. It is an observation
+// of INDIVIDUAL markets only; never imply a priced/bookable correlated SGP.
+function nflSportsbookAiGuardUi(data,id){
+ const a=data?.sportsbookAiGuard;
+ const checked=Date.parse(a?.sourceCheckedAt||'');
+ const current=String(data?.gameId||'')===String(id)&&
+  String(a?.gameId||'')===String(id)&&a?.league==='nfl'&&
+  !data?.stale&&!data?.degraded&&
+  data?.validation?.sportsbookVerificationAvailable===true&&
+  Number.isFinite(checked)&&checked<=Date.now()&&Date.now()-checked<=15*60000;
+ if(!current)return '<div class="note" style="margin-top:8px"><b>AI Sportsbook Scout:</b> Current DraftKings/FanDuel individual prop verification pending. No SGP payout is confirmed.</div>';
+ const tiers=['Small','Medium','Nuke'],books=['DraftKings','FanDuel'];
+ const counts=tiers.flatMap(risk=>books.map(book=>{
+  const item=(a.items||[]).find(x=>x.risk===risk&&x.book===book);
+  const matched=Number(item?.exactLegs),required=Number(item?.requiredLegs);
+  const valid=item&&Number.isInteger(matched)&&Number.isInteger(required)&&
+   required>0&&matched>=0&&matched<=required;
+  return '<span>'+nflEscape(risk)+' '+nflEscape(book)+': '+
+   (valid?nflEscape(matched)+'/'+nflEscape(required):'not verified')+'</span>';
+ })).join(' • ');
+ const missing=(a.items||[]).filter(x=>Array.isArray(x.proposedOfferChecks)&&
+  x.proposedOfferChecks.length>0).slice(0,3).map(x=>
+   nflEscape(x.risk+' '+x.book)+': '+
+   x.proposedOfferChecks.slice(0,2).map(l=>nflEscape(l.player)+' '+
+    nflEscape(l.category)+' model '+nflEscape(l.requested)+
+    (l.bookOffers?.length?' • book lists '+nflEscape(l.bookOffers.slice(0,3).join(' / ')):' • no exact offer')).join('; ')
+ ).join('<br>');
+ return '<div class="note" style="margin-top:8px"><b>AI Sportsbook Scout • individual prop check:</b> '+
+  counts+(missing?'<div class="note">'+missing+'</div>':'')+
+  '<div class="refresh">Checks are advisory only. A matched individual line is NOT a confirmed combined SGP price.</div></div>';
+}
+function nflSgpRebuildUi(data,id){
+ const r=data?.sgpRebuildReport;
+ if(!r||r.league!=='nfl'||String(r.gameId)!==String(id))return '';
+ const fresh=Date.parse(data.fetchedAt||'');
+ if(data.stale||data.degraded||!Number.isFinite(fresh)||
+    fresh>Date.now()||Date.now()-fresh>15*60000)
+  return '<div class="note">SGP rebuild: refresh required. No current sportsbook combined prices verified.</div>';
+ const rows=(r.tiers||[]).slice(0,3).map(t=>{
+  const books=(t.books||[]).slice(0,2).map(b=>{
+   const label=b.marketSourceStatus==='BOOK_LISTED_MODEL_CANDIDATE'?
+     (t.risk==='Small'?'conservative floor selected':t.risk==='Medium'?
+       'elevated model line selected':'ceiling model selected'):
+     b.marketSourceStatus==='SGP_COMPOSITION_RULES_FAILED'?
+       'model rules need correction':'missing or unverified lines';
+   return nflEscape(b.book)+': '+nflEscape(label);
+  });
+  return '<div class="note"><b>'+nflEscape(t.risk)+':</b> '+books.join(' • ')+'</div>';
+ }).join('');
+ return '<div class="note" style="margin-top:8px"><b>Rebuilt Same Game Parlays • sportsbook check</b>'+
+  rows+'<div class="refresh">Small / Medium / Nuke payout targets NOT verified. No combined sportsbook quote was supplied.</div></div>';
+}
+function nflSgpAiPlanUi(data,id){
+ const p=data?.sgpAiPlan;
+ if(!p||String(p.gameId)!==String(id)||p.league!=='nfl')return '';
+ const now=Date.now(),at=Date.parse(data?.fetchedAt||'');
+ const fresh=!data.stale&&!data.degraded&&Number.isFinite(at)&&
+  at<=now&&now-at<=15*60000&&p.marketEvidenceFresh===true;
+ if(!fresh)return '<div class="note"><b>AI Parlay Architect:</b> Fresh matchup/book lines are needed to rebuild and price SGPs.</div>';
+ const actions=(p.tiers||[]).slice(0,3).map(t=>{
+  const books=(t.bookActions||[]).filter(a=>['DraftKings','FanDuel'].includes(a.book))
+   .slice(0,2).map(a=>{
+    const label=nflEscape(a.book)+': '+
+     nflEscape(String(a.action||'CHECK_DATA').replaceAll('_',' ').toLowerCase());
+    // One selected book's observed and model-screened line is NOT a
+    // placed SGP leg. Never claim a price, ticket or auto-replacement.
+    const proposals=a.rescueStatus==='PROVISIONAL_BOOK_LINE_REBUILD'&&
+      a.provisionalRebuild?.readyToPublish===false?
+      (a.suggestedLineRechecks||[]).slice(0,2).map(l=>{
+       const x=(l.modelCompatibleOptions||[])[0];
+       return x?'<div class="refresh">Provisional only: '+
+        nflEscape(l.player)+' '+nflEscape(l.category)+' '+
+        nflEscape(x.sourceLabel)+' • recheck projection, injury and this book before rebuilding</div>':'';
+      }).filter(Boolean).join(''):'';
+    return label+proposals;
+   });
+  return '<div class="note"><b>'+nflEscape(t.risk)+' SGP:</b> '+
+   books.join(' • ')+'</div>';
+ }).join('');
+ return '<div class="note" style="margin-top:8px"><b>AI Parlay Architect • next checks</b>'+
+  actions+'<div class="refresh">Model/recheck instructions only. No leg replaced and no sportsbook combined SGP odds confirmed.</div></div>';
+}
+async function nflOpen(id,forceMarkets=false){let independentPropsHtml='';let verifiedMarketsLoaded=false;const g=nflData?.games?.find(x=>x.gameId===id);if(!g)return;nflSelected=g;window.momentumPublicBookResearch=null;if(typeof window.momentumAiGameChanged==='function')window.momentumAiGameChanged(g);const aiMount=document.getElementById('nflAiMount');if(aiMount)aiMount.style.display='none';document.querySelectorAll('[data-matchtab]').forEach(b=>b.classList.toggle('active',b.dataset.matchtab==='props'));$('#nflHome').style.display='none';nflBindMatchTabs();$('#nflGame').style.display='block';$('#nflGameHead').innerHTML=`<div class="card"><div class="rank">WEEK ${g.week} • ${g.status} • ${g.readiness}</div><div class="name">${g.away.name} @ ${g.home.name}</div><div class="meta">🕒 ${nflTime(g.kickoff)} • ${g.venue||''}</div><div class="refresh">Last updated ${new Date(g.lastUpdated).toLocaleTimeString()} • Markets: ${g.marketFeed}</div></div>`;$('#nflDvp').innerHTML='<div class="msg">Loading matchup rankings…</div>';nflRefreshInjuryPanel(id);loadNFLDvp(g);$('#nflProps').innerHTML='<div class="msg">Loading touchdown and yardage leaders for this matchup…</div>';getNFLMarkets(id,forceMarkets).then(d=>{if(String(nflSelected?.gameId||'')!==String(id))return;verifiedMarketsLoaded=true;$('#nflGameHead').innerHTML+=nflSportsbookAiGuardUi(d,id)+nflSgpAiPlanUi(d,id)+nflSgpRebuildUi(d,id)+nflSportsbookCoverageUi(d,id)+nflAutoPublicMatchupUi()+nflPublicOddsInspectorUi();nflBindPublicOddsInspector(id);void nflRefreshPublicMatchupOdds(id,d);const o=d.outcomePrediction,ob=$('#nflOutcome');if(ob&&o){const a=o.teamA,b=o.teamB;ob.innerHTML='<div class="nflMarketLine"><b>Projected Final Score: '+a+' '+o.projectedFinalScore[a]+' - '+b+' '+o.projectedFinalScore[b]+'</b><div class="meta">Win Probability: '+a+' '+o.winProbability[a]+'% | '+b+' '+o.winProbability[b]+'%</div><div class="note"><b>Analytical Edge:</b> '+o.analyticalEdge+'</div></div>'}$('#nflProps').innerHTML=['td','passing','rushing','receiving','receptions'].map(cat=>{const rows=d.categories?.[cat]||[];return `<h4>${nflLabels[cat]}</h4>${rows.length?rows.slice(0,10).map(x=>{const e=x.edgeAnalytics||{},h=x.recentHitRates||{},l5=h.last5,l10=h.last10,market=e.sportsbookLine!=null?`Line ${e.sportsbookLine}`:'Model projection',proj=e.modelProjection!=null?`Model ${cat==='receptions'?e.modelProjection:nflYards5(e.modelProjection)}`:'',edge=e.rawEdge!=null?`Edge ${e.rawEdge>0?'+':''}${e.rawEdge}${e.edgePct!=null?` (${e.edgePct>0?'+':''}${e.edgePct}%)`:''}`:'',hits=[l5?`L5 ${l5.hits}/${l5.sample}`:'',l10?`L10 ${l10.hits}/${l10.sample}`:''].filter(Boolean).join(' • '),form=x.recentForm?.label&&x.recentForm.label!=='EARLY_SAMPLE'?` • ${x.recentForm.label}`:x.recentForm?.label==='EARLY_SAMPLE'?' • Early sample':'';return `<div class="nflMarketLine"><b>${nflEscape(x.name)}</b><div class="meta">${'Model: '+nflProjection(x,cat)}${x.bestBook?` • ${x.bestBook.book} ${+x.bestBook.odds>0?'+':''}${x.bestBook.odds}`:''}</div>${[market,proj,edge].filter(Boolean).length?`<div class="note">${[market,proj,edge].filter(Boolean).join(' • ')}</div>`:''}${hits?`<div class="note">${hits}${form}</div>`:''}${nflPlayerPropPricesUi(x)}<div class="note">${x.momentumScore!=null&&Number.isFinite(Number(x.momentumScore))?'Momentum rating: '+x.momentumScore+'/100 (not hit probability)':'Projection based on available production and matchup data'}</div></div>`}).join(''):'<div class="note">Momentum Radar projections with current public DraftKings/FanDuel market context.</div>'}`}).join('');const quotaBlocked=String(d.oddsDebug?.error||d.oddsDebug?.sgoError||'').includes('OUT_OF_USAGE_CREDITS')||d.degraded;
 const analyticsMode=['ANALYTICS','DATA_MODEL','MODEL_FIRST_BOOK_UNQUOTED'].includes(d.sgps?.mode)&&Array.isArray(d.sgps?.Analytics)&&d.sgps.Analytics.length;
 const sgpNeedsHelp=(d.sgps?.Analytics||[]).some(s=>!Array.isArray(s.legs)||s.legs.length===0);
 const c=d.validation?.dayAheadRoleChecks;
@@ -224,12 +502,12 @@ if(analyticsMode){
  $('#nflSGP').innerHTML='<div class="card" style="grid-column:1/-1"><div class="rank">COMBINED SGP • DATA MODEL</div><span class="badge">MODEL PICKS • COMBINED ODDS UNVERIFIED</span><div class="note" style="margin-top:7px">These are three Momentum Radar model tiers. DraftKings/FanDuel cards may mirror these same tiers while live market feeds are unavailable; they are not separately confirmed sportsbook parlays. The model uses current role/injury eligibility, production, recent form, matchup and correlation analytics. Check every player and threshold at your sportsbook before placing.</div>'+
  (Number(d.validation?.conditionalRoleCount)>0?'<div class="note" style="margin-top:8px"><b>Day-before conditional model:</b> '+nflEscape(d.validation.conditionalRoleCount)+' conditional offensive roles (RB/WR/TE historical usage or ESPN depth-chart QB1) have matched current-game evidence, but are NOT officially confirmed starters. All picks remain model-only and sportsbook odds are unverified.</div>':'')+
  sourceChecks+sourceHelp+
- '</div>'+d.sgps.Analytics.map(s=>'<div class="nflSgpMini" data-risk="'+s.risk+'"><b>'+s.risk+' SGP</b><div class="meta">'+(s.tierAssessment?.compositionOk===false?'NOT READY • '+nflEscape(s.reason||s.tierAssessment.reason):'MODEL CANDIDATE • Combined sportsbook odds not verified')+'</div>'+(s.tierAssessment?.compositionOk!==false&&s.payoutTarget?'<div class="meta">Illustrative $10 target (not verified): '+s.payoutTarget+'</div>':'')+(s.momentumScore!=null?'<div class="pick">Momentum score: '+s.momentumScore+'/99</div>':'')+'<div class="note">'+((s.legs||[]).map(x=>'<span class="sgpLeg"><span class="sgpLegName">'+nflEscape(x.name)+'</span><br>'+nflModelLine(x,x.cat)+'</span>').join('')||'Waiting for qualified passing, rushing and receiving yardage picks; no valid parlay was produced.')+'</div><div class="note" style="margin-top:9px"><b>Why the model chose this build</b><br>'+((s.explanation?.summary)||(s.tierAssessment?.compositionOk===false?'This build is unavailable until enough eligible yardage legs are verified.':'Selected from the strongest current production and matchup signals.'))+((s.explanation?.legs||[]).length?'<br><br>'+s.explanation.legs.join('<br>'):'')+((s.explanation?.correlation||[]).length?'<br><br><b>How the legs work together</b><br>'+s.explanation.correlation.join('<br>'):'')+'</div><div class="refresh">Data Model • Multi-source projection</div></div>').join('');
+ '</div>'+d.sgps.Analytics.map(s=>'<div class="nflSgpMini" data-risk="'+s.risk+'"><b>'+s.risk+' SGP</b><div class="meta">'+(s.tierAssessment?.compositionOk===false?'NOT READY • '+nflEscape(s.reason||s.tierAssessment.reason):'MODEL CANDIDATE • Combined sportsbook odds not verified')+'</div>'+(s.tierAssessment?.compositionOk!==false&&s.payoutTarget?'<div class="meta">Illustrative $10 target (not verified): '+s.payoutTarget+'</div>':'')+(s.momentumScore!=null?'<div class="pick">Momentum score: '+s.momentumScore+'/99</div>':'')+'<div class="note">'+((s.legs||[]).map(x=>'<span class="sgpLeg"><span class="sgpLegName">'+nflEscape(x.name)+'</span><br>'+nflModelLine(x,x.cat)+'</span>').join('')||'Waiting for qualified passing, rushing and receiving yardage picks; no valid parlay was produced.')+'</div>'+nflSgpBookAuditUi(s)+'<div class="note" style="margin-top:9px"><b>Why the model chose this build</b><br>'+((s.explanation?.summary)||(s.tierAssessment?.compositionOk===false?'This build is unavailable until enough eligible yardage legs are verified.':'Selected from the strongest current production and matchup signals.'))+((s.explanation?.legs||[]).length?'<br><br>'+s.explanation.legs.join('<br>'):'')+((s.explanation?.correlation||[]).length?'<br><br><b>How the legs work together</b><br>'+s.explanation.correlation.join('<br>'):'')+'</div><div class="refresh">Data Model • Multi-source projection</div></div>').join('');
 }else{
- $('#nflSGP').innerHTML=['DraftKings','FanDuel'].map(book=>`<div class="card" style="grid-column:1/-1"><div class="rank">${book} SGP • MOMENTUM RADAR LIVE</div>${(d.sgps?.[book]||[]).map(s=>`<div class="nflSgpMini"><b>${s.risk}</b><div class="meta">${s.tierAssessment?.compositionOk===false?'NOT READY • '+nflEscape(s.reason||s.tierAssessment.reason):'MODEL CANDIDATE • Combined sportsbook odds not verified'}</div>${s.tierAssessment?.compositionOk!==false&&s.payoutTarget?`<div class="meta">Illustrative $10 target (not verified): ${s.payoutTarget}</div>`:''}${s.momentumScore!=null?`<div class="pick">Momentum score: ${s.momentumScore}/99</div>`:''}<div class="note">${(s.legs||[]).map(x=>x.name+' — '+nflThreshold(x,x.cat)).join('<br>')||'Momentum Radar build in progress — current multi-source model data is active.'}</div>${s.estimatedOdds!=null?`<div class="pick">Estimated: ${s.estimatedOdds>0?'+':''}${s.estimatedOdds}</div>`:''}<div class="refresh">${s.risk==='Nuke'&&!s.nukeCeilingVerified?'NUKE CEILING BUILDING • model data active':(s.legs||[]).length?'Individual prop candidate • Combined price unverified':'Model available • '+book+' combined price unverified'} • ${new Date(s.verifiedAt).toLocaleTimeString()}</div></div>`).join('')}</div>`).join('')+`<div class="note" style="grid-column:1/-1">Sportsbook-mode cards are unquoted candidates, not confirmed sportsbook tickets. Estimated odds may multiply individual-leg prices; a bookmaker-issued correlated combined SGP quote is required for real payout verification.</div>`;
+ $('#nflSGP').innerHTML=['DraftKings','FanDuel'].map(book=>`<div class="card" style="grid-column:1/-1"><div class="rank">${book} SGP • MOMENTUM RADAR LIVE</div>${(d.sgps?.[book]||[]).map(s=>`<div class="nflSgpMini"><b>${s.risk}</b><div class="meta">${s.tierAssessment?.compositionOk===false?'NOT READY • '+nflEscape(s.reason||s.tierAssessment.reason):'MODEL CANDIDATE • Combined sportsbook odds not verified'}</div>${s.tierAssessment?.compositionOk!==false&&s.payoutTarget?`<div class="meta">Illustrative $10 target (not verified): ${s.payoutTarget}</div>`:''}${s.momentumScore!=null?`<div class="pick">Momentum score: ${s.momentumScore}/99</div>`:''}<div class="note">${(s.legs||[]).map(x=>nflEscape(x.name)+' — '+nflEscape(nflThreshold(x,x.cat))+nflIndividualBookOddsUi(x,book)).join('<br>')||'Momentum Radar build in progress — current multi-source model data is active.'}</div><div class="note">Combined sportsbook SGP odds: NOT VERIFIED</div><div class="refresh">${s.risk==='Nuke'&&!s.nukeCeilingVerified?'NUKE CEILING BUILDING • model data active':(s.legs||[]).length?'Individual prop candidate • Combined price unverified':'Model available • '+book+' combined price unverified'} • ${new Date(s.verifiedAt).toLocaleTimeString()}</div></div>`).join('')}</div>`).join('')+`<div class="note" style="grid-column:1/-1">Sportsbook-mode cards are unquoted candidates, not confirmed sportsbook tickets. Estimated odds may multiply individual-leg prices; a bookmaker-issued correlated combined SGP quote is required for real payout verification.</div>`;
 }
 if(window.momentumParlayWatch)window.momentumParlayWatch.decorate(g,d);
-}).catch(()=>{const teamLine=`${g.away.abbr} @ ${g.home.abbr}`;if(independentPropsHtml)$('#nflProps').innerHTML=independentPropsHtml;else $('#nflProps').innerHTML=`<div class="nflMarketLine"><b>${teamLine}</b><div class="meta">Momentum matchup analysis remains active.</div><div class="note">Momentum Radar matchup analytics remain active using current roster, production, matchup and public sportsbook evidence.</div></div>`;$('#nflSGP').innerHTML=`<div class="card" style="grid-column:1/-1"><div class="rank">MOMENTUM SGP • ANALYTICS MODE</div><div id="nflSgpAnalytics"><div class="note">Building matchup-based SGP candidates from current rosters and injury data. Sportsbook prices will attach automatically when market verification returns.</div></div></div>`});try{const r=await fetch('/api/nfl-game?'+new URLSearchParams({gameId:id,ts:Date.now()}),{cache:'no-store'}),d=await r.json();if(d.ok&&d.playerProjections?.length){independentPropsHtml='<div class="note" style="margin-bottom:8px">Current matchup rosters are live. Momentum Radar matchup projections remain available while sportsbook observations are refreshed.</div>'+d.playerProjections.map(x=>'<div class="nflMarketLine"><b>'+x.name+'</b><div class="meta">'+(x.team||'')+(x.position?' • '+x.position:'')+' • '+(x.starterStatus||'UNVERIFIED_ROLE')+'</div><div class="note">Roster status: '+(x.availability||'UNKNOWN')+' • Starter verified: '+(x.starterVerified?'YES':'NO')+' • '+(x.recommendationEligible?'Eligible for model':'Held out of starter-dependent recommendations until role + market verification')+'</div></div>').join('');if(!verifiedMarketsLoaded)$('#nflProps').innerHTML=independentPropsHtml};if(!verifiedMarketsLoaded&&d.ok){
+}).catch(()=>{if(String(nflSelected?.gameId||'')!==String(id))return;const teamLine=`${g.away.abbr} @ ${g.home.abbr}`;if(independentPropsHtml)$('#nflProps').innerHTML=independentPropsHtml;else $('#nflProps').innerHTML=`<div class="nflMarketLine"><b>${teamLine}</b><div class="meta">Momentum matchup analysis remains active.</div><div class="note">Momentum Radar matchup analytics remain active using current roster, production, matchup and public sportsbook evidence.</div></div>`;$('#nflSGP').innerHTML=`<div class="card" style="grid-column:1/-1"><div class="rank">MOMENTUM SGP • ANALYTICS MODE</div><div id="nflSgpAnalytics"><div class="note">Building matchup-based SGP candidates from current rosters and injury data. Sportsbook prices will attach automatically when market verification returns.</div></div></div>`});try{const r=await fetch('/api/nfl-game?'+new URLSearchParams({gameId:id,ts:Date.now()}),{cache:'no-store'}),d=await r.json();if(d.ok&&d.playerProjections?.length){independentPropsHtml='<div class="note" style="margin-bottom:8px">Current matchup rosters are live. Momentum Radar matchup projections remain available while sportsbook observations are refreshed.</div>'+d.playerProjections.map(x=>'<div class="nflMarketLine"><b>'+x.name+'</b><div class="meta">'+(x.team||'')+(x.position?' • '+x.position:'')+' • '+(x.starterStatus||'UNVERIFIED_ROLE')+'</div><div class="note">Roster status: '+(x.availability||'UNKNOWN')+' • Starter verified: '+(x.starterVerified?'YES':'NO')+' • '+(x.recommendationEligible?'Eligible for model':'Held out of starter-dependent recommendations until role + market verification')+'</div></div>').join('');if(!verifiedMarketsLoaded)$('#nflProps').innerHTML=independentPropsHtml};if(!verifiedMarketsLoaded&&d.ok){
  const el=$('#nflSgpAnalytics');if(el)el.innerHTML='<div class="nflSgpMini"><b>ANALYTICS BUILD</b><div class="note">Small, Medium and Nuke builds are generated from verified roles, injuries, production and matchup analytics. Book-specific playable versions attach only thresholds verified at that sportsbook.</div><div class="refresh">Momentum Radar combines current roster, injury, production, matchup and sportsbook-source data for this build.</div></div>';
 }/* Injury panel is updated by the independent no-store feed, not this slower roster response. */}catch{}}function nflClose(){$('#nflGame').style.display='none';$('#nflHome').style.display='block';nflSelected=null;if(typeof window.momentumAiGameChanged==='function')window.momentumAiGameChanged(null)}async function nflLoadInjuryBoard(date){
  try{
@@ -280,7 +558,96 @@ document.querySelectorAll('[data-nflday]').forEach(b=>b.onclick=()=>{
 });
 const nflDateSelect=$('#nflDate');
 if(nflDateSelect&&typeof nflDateSelect.addEventListener==='function')nflDateSelect.addEventListener('change',()=>{nflClose();loadNFL()});
+// The full-slate button does REAL per-game SGP and prop rebuilds using
+// getNFLMarkets(), which reuses the server's existing 15m cache, quota
+// cool-downs, injury checks and matching logic. Unlike the scheduled cron,
+// it never requests any secret or writes a privileged collector lock.
+let nflSgpSlateRefreshRunning=false;
+async function nflRefreshAllSgpCandidates(){
+ if(nflSgpSlateRefreshRunning)return;
+ const node=$('#nflSlateSgpRefreshStatus'),btn=$('#nflRefreshAllSgps');
+ nflSgpSlateRefreshRunning=true;if(btn)btn.disabled=true;
+ const say=html=>{if(node)node.innerHTML=html};
+ try{
+  const chosen=$('#nflDate')?.value||'';
+  if(!nflData?.games?.length||chosen&&nflData.date!==chosen)await loadNFL();
+  if(!nflData?.games?.length){say('No schedule available; no SGP refresh attempted.');return}
+  const now=Date.now(),seen=new Set();
+  const games=nflData.games.filter(g=>{
+   const gameId=String(g.gameId||''),left=Date.parse(g.kickoff||'')-now;
+   if(!/^\d{7,12}$/.test(gameId)||seen.has(gameId)||
+    g.status!=='SCHEDULED'||!Number.isFinite(left)||left<=0||
+    left>36*60*60*1000)return false;
+   seen.add(gameId);return true;
+  }).sort((a,b)=>Date.parse(a.kickoff)-Date.parse(b.kickoff)).slice(0,18);
+  if(!games.length){say('No upcoming scheduled NFL games to refresh for this selected date.');return}
+  const report=new Array(games.length);let done=0,cursor=0;
+  const summary=()=>{
+   const valid=report.filter(x=>x?.state==='MODEL_AND_BOOK_LINES').length,
+    model=report.filter(x=>x?.state==='MODEL_ONLY').length,
+    pending=report.filter(x=>x?.state==='SOURCE_PENDING'||x?.state==='MODEL_NOT_READY').length,
+    failed=report.filter(x=>x?.state==='ERROR').length;
+   say('<b>All NFL game refreshes: '+done+'/'+games.length+'</b> • '+valid+
+    ' model + book lines • '+model+' model only • '+pending+
+    ' missing source • '+failed+' failed.'+
+    '<div class="refresh">Actual correlated SGP odds: NOT VERIFIED. No player price invented; existing quota limits respected.</div>'+
+    report.filter(Boolean).map(row=>'<div>'+
+     nflEscape(row.teams)+' • '+nflEscape(row.state)+
+     ' • '+nflEscape(row.tiers)+' model tiers'+
+     ' • DK '+nflEscape(row.DraftKings)+' individual prices'+
+     ' • FD '+nflEscape(row.FanDuel)+' individual prices'+
+     ' • Public pages '+nflEscape(row.publicPagesChecked||0)+
+     ', unmatched observations '+nflEscape(row.publicVisiblePrices||0)+
+     '</div>').join(''));
+  };
+  summary();
+  const worker=async()=>{
+   for(;;){
+    const i=cursor++;if(i>=games.length)return;
+    const g=games[i],entry={teams:g.away.abbr+' @ '+g.home.abbr,
+     state:'SOURCE_PENDING',tiers:0,DraftKings:0,FanDuel:0};
+    const outcomes=await Promise.allSettled([
+     getNFLMarkets(g.gameId,false),
+     nflCurrentPublicMatchupResearch(g.gameId)
+    ]);
+    const market=outcomes[0],research=outcomes[1];
+    if(market.status==='fulfilled'){
+     const d=market.value,t=Date.parse(d?.fetchedAt||''),
+      fresh=d?.ok===true&&String(d.gameId)===String(g.gameId)&&
+      !d.stale&&!d.degraded&&Number.isFinite(t)&&
+      t<=Date.now()&&Date.now()-t<=15*60*1000;
+     if(fresh){
+      entry.tiers=(d.sgps?.Analytics||[]).filter(x=>
+       ['Small','Medium','Nuke'].includes(x.risk)&&
+       x.tierAssessment?.compositionOk===true&&
+       (x.legs||[]).length>=Number(x.requiredLegs||1)).length;
+      for(const book of ['DraftKings','FanDuel'])
+       entry[book]=Math.max(0,Number(d.sportsbookCoverage?.books?.[book]?.pricedSelections)||0);
+      entry.state=!entry.tiers?'MODEL_NOT_READY':
+       entry.DraftKings+entry.FanDuel>0?
+       'MODEL_AND_BOOK_LINES':'MODEL_ONLY';
+     }
+    }else{
+     entry.state='ERROR';
+     entry.error=String(market.reason?.message||'market_unavailable').slice(0,90);
+    }
+    entry.publicPagesChecked=research.status==='fulfilled'?
+     (research.value.pages||[]).length:0;
+    entry.publicVisiblePrices=research.status==='fulfilled'?
+     (research.value.quotes||[]).length:0;
+    entry.publicPageStatus=research.status==='fulfilled'?
+     'UNMATCHED_PUBLIC_RESEARCH':'PUBLIC_PAGE_UNREADABLE';
+    report[i]=entry;done++;summary();
+   }
+  };
+  await Promise.all([worker(),worker()]);
+  const selected=nflSelected?.gameId;
+  if(selected&&games.some(g=>g.gameId===selected))nflOpen(selected,false);
+ }finally{nflSgpSlateRefreshRunning=false;if(btn)btn.disabled=false}
+}
 const nflRefreshAll=$('#nflRefreshAll');
+const nflRefreshAllSgps=$('#nflRefreshAllSgps');
+if(nflRefreshAllSgps)nflRefreshAllSgps.onclick=()=>nflRefreshAllSgpCandidates();
 if(nflRefreshAll)nflRefreshAll.onclick=()=>{const saved=nflSelected?.gameId;
  if(saved&&nflData?.date)nflMarketCache.delete(nflData.date+'|'+saved);
  loadNFL().then(()=>{if(saved&&nflData?.games?.some(g=>g.gameId===saved))nflOpen(saved,true)})

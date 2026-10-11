@@ -26,8 +26,8 @@ const sample=(at=now-60_000)=>({at,body:{
 }});
 test('snapshot path exactly matches production cache naming without charging any provider',()=>{
  const source=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
- assert.ok(source.includes("const CACHE_SCHEMA='v87-sgo-backup-only'+'-nuke-roster-adaptive-1-game-identity-2'+'-day-ahead-roles-v5-teamid-depthchart'"));
- assert.equal(NFL_SGP_SNAPSHOT_SCHEMA,'v87-sgo-backup-only-nuke-roster-adaptive-1-game-identity-2-day-ahead-roles-v5-teamid-depthchart');
+ assert.ok(source.includes("const CACHE_SCHEMA=NFL_SGP_SNAPSHOT_SCHEMA;"));
+ assert.equal(NFL_SGP_SNAPSHOT_SCHEMA,'v88-priced-altlines-sgp-rebuild-nuke-roster-adaptive-1-game-identity-2-day-ahead-roles-v5-teamid-depthchart');
  assert.equal(nflSgpSnapshotPath(date,gameId),
   'momentum-nfl-markets/v2/'+NFL_SGP_SNAPSHOT_SCHEMA+'-2026-10-11-401872981.json');
  for(const [d,id] of [['2026-02-30',gameId],['2026-13-99',gameId],
@@ -122,4 +122,66 @@ test('matchup view shows direct evidence counts and read-only link; keeps sports
  const api=readFileSync(new URL('../api/nfl-sgp-status.js',import.meta.url),'utf8');
  assert.ok(!/SPORTSGAMEODDS_API_KEY|THE_ODDS_API_KEY|GROQ_API_KEY|BALLDONTLIE_API_KEY/.test(api));
  assert.ok(api.includes("req.method!=='GET'"));
+});
+
+test('stored matchup SGP health shows all three tiers and separate FanDuel/DraftKings exact-line counts',()=>{
+ const snap=sample();
+ snap.body.sgps.Analytics[0]={risk:'Small',requiredLegs:4,legs:[
+  {playerID:'101'},{playerID:'102'},{playerID:'103'},{playerID:'104'}
+ ],tierAssessment:{compositionOk:true}};
+ snap.body.sgpVerification={league:'nfl',gameId,tiers:[{
+  risk:'Small',books:{
+   FanDuel:{status:'BOOK_LEG_MISMATCH',matchedLegs:2,requiredLegs:4,combinedOddsVerified:false},
+   DraftKings:{status:'NO_VERIFIED_BOOK_MARKETS',matchedLegs:0,requiredLegs:4,combinedOddsVerified:false}
+  }
+ }]};
+ const out=nflSgpSnapshotReadiness(snap,{now,gameId});
+ assert.equal(out.tiers.length,3);
+ assert.equal(out.tiers[0].bookMarkets.FanDuel.matchedLegs,2);
+ assert.equal(out.tiers[0].bookMarkets.FanDuel.status,'BOOK_LEG_MISMATCH');
+ assert.equal(out.tiers[0].bookMarkets.DraftKings.status,'NO_VERIFIED_BOOK_MARKETS');
+ assert.equal(out.tiers[0].sportsbookCombinedOddsVerified,false);
+ assert.equal(out.tiers[1].bookMarkets.FanDuel.status,'MODEL_NOT_READY');
+ assert.ok(!JSON.stringify(out).includes('"playerID"'));
+});
+test('stale combined bookmaker quote is never counted as verified even if model snapshot is fresh',()=>{
+ const snap=sample();
+ snap.body.sgps.Analytics[0]={risk:'Small',requiredLegs:4,legs:[
+  {playerID:'101'},{playerID:'102'},{playerID:'103'},{playerID:'104'}
+ ],tierAssessment:{compositionOk:true}};
+ snap.body.sgpVerification={league:'nfl',gameId,tiers:[{
+  risk:'Small',books:{FanDuel:{status:'TIER_COMBINED_QUOTE_VERIFIED',
+   combinedOddsVerified:true,tierVerified:true,actualCombinedOdds:2400,
+   quoteCheckedAt:new Date(now-16*60000).toISOString()}}
+ }]};
+ const stale=nflSgpSnapshotReadiness(snap,{now,gameId});
+ assert.equal(stale.tiers[0].bookMarkets.FanDuel.status,'BOOK_QUOTE_STALE');
+ assert.equal(stale.tiers[0].bookMarkets.FanDuel.combinedOddsVerified,false);
+ assert.equal(stale.tiers[0].bookMarkets.FanDuel.actualCombinedOdds,null);
+ assert.equal(stale.sportsbookCombinedOddsVerified,false);
+ // Correct event and fresh server-saved quote may be exposed in health.
+ snap.body.sgpVerification.tiers[0].books.FanDuel.quoteCheckedAt=new Date(now-30000).toISOString();
+ const fresh=nflSgpSnapshotReadiness(snap,{now,gameId});
+ assert.equal(fresh.tiers[0].bookMarkets.FanDuel.tierVerified,true);
+ assert.equal(fresh.tiers[0].bookMarkets.FanDuel.actualCombinedOdds,2400);
+ assert.equal(fresh.sportsbookCombinedOddsVerified,true);
+ assert.equal(fresh.status,'BOOK_TIER_VERIFIED');
+ assert.match(fresh.tiers[0].reason,/fresh sportsbook-issued combined quote/i);
+});
+
+test('per-game NFL saved SGP health distinguishes a fresh outside-target quote from an achieved tier',()=>{
+ const snap=sample();
+ snap.body.sgps.Analytics[1]={risk:'Medium',requiredLegs:5,legs:
+  Array.from({length:5},(_,i)=>({playerID:String(200+i)})),
+  tierAssessment:{compositionOk:true}};
+ snap.body.sgpVerification={league:'nfl',gameId,tiers:[{risk:'Medium',
+  books:{DraftKings:{status:'BOOK_COMBINED_PRICE_OUTSIDE_TIER',
+   combinedOddsVerified:true,tierVerified:false,actualCombinedOdds:975,
+   quoteCheckedAt:new Date(now-30_000).toISOString(),
+   matchedLegs:5,requiredLegs:5}}}]};
+ const out=nflSgpSnapshotReadiness(snap,{now,gameId});
+ assert.equal(out.status,'MODEL_ONLY');
+ assert.equal(out.tiers[1].bookMarkets.DraftKings.combinedOddsVerified,true);
+ assert.equal(out.tiers[1].bookMarkets.DraftKings.tierVerified,false);
+ assert.match(out.tiers[1].reason,/outside the requested tier/);
 });

@@ -23,6 +23,29 @@ export function pregameReadiness(env={}){
    propTypes:['points','rebounds','assists','threes','pra'],
    dayAheadPolicy:'ESPN completed game baseline + current rosters + capped opponent defense context; not book-quoted',
    sportsbookOddsVerified:false},
+  correlatedSgpPricing:{
+   provider:'OpticOdds',
+   configured:Boolean(env.OPTICODDS_API_KEY),
+   enabled:env.OPTICODDS_SGP_ENABLED==='true'&&Boolean(env.OPTICODDS_API_KEY),
+   referenceOnly:true,bookIssuedSgpQuoteVerified:false,
+   supportedReferenceBooks:['DraftKings'],
+   unsupportedReferenceBooks:['FanDuel'],
+   verifiedFixtureAndSelectionCrosswalkRequired:true,
+   crosswalkReady:false,
+   discoveryEnabled:env.OPTICODDS_DISCOVERY_ENABLED==='true',
+   budgetConfigured:Number.isSafeInteger(Number(env.OPTICODDS_MAX_CALLS_PER_RUN))&&
+    Number(env.OPTICODDS_MAX_CALLS_PER_RUN)>=1&&
+    Number(env.OPTICODDS_MAX_CALLS_PER_RUN)<=30,
+   providerCallsOnPublicPageLoad:false,
+   status:!env.OPTICODDS_API_KEY?'CREDENTIAL_NOT_CONFIGURED':
+    env.OPTICODDS_SGP_ENABLED!=='true'?'DISABLED':
+    env.OPTICODDS_DISCOVERY_ENABLED!=='true'?'DISCOVERY_DISABLED':
+    !Number.isSafeInteger(Number(env.OPTICODDS_MAX_CALLS_PER_RUN))||
+     Number(env.OPTICODDS_MAX_CALLS_PER_RUN)<1||
+     Number(env.OPTICODDS_MAX_CALLS_PER_RUN)>30?
+     'EXPLICIT_CALL_BUDGET_REQUIRED':'CONFIGURED_MAPPING_STILL_REQUIRED',
+   note:'OpticOdds correlation-priced sportsbook reference is not a bookmaker-issued accepted SGP ticket. No quote calls without explicit opt-in AND verified fixture/leg crosswalk.'
+  },
   ballDontLieFree:{dailyCacheReady:available,paidStatsOrPropEndpointsUsed:false},
   nextStep:available?'Check the next scheduled collector run and saved snapshot.':
    'Ensure the existing Vercel Blob store is attached. Either modern BLOB_STORE_ID with Vercel OIDC or a legacy BLOB_READ_WRITE_TOKEN is supported.'};

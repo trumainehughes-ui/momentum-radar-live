@@ -126,7 +126,7 @@ test('actual markets API and health report include scoped role counts, cache ver
  assert.ok(api.includes('await nflCurrentGameDepthChartQbs('));
  assert.ok(api.includes('teamIdsByAbbr:eligibility.teamIdsByAbbr'));
  assert.ok(api.includes('nflProjectedDepthChartQbEligible(role)'));
- assert.ok(api.includes('day-ahead-roles-v5-teamid-depthchart'));
+ assert.ok(api.includes('const CACHE_SCHEMA=NFL_SGP_SNAPSHOT_SCHEMA;'));
  assert.ok(status.includes('projectedDepthChartQb1'));
  assert.ok(status.includes('excludedOtherMatchups'));
  assert.ok(ui.includes('other-game players excluded normally'));

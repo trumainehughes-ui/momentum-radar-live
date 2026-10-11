@@ -33,3 +33,23 @@ test('October 5 hardcoded book references cannot enter live 2026-10-11 market ro
  assert.ok(!src.includes('...publicBookRows,...publicDerivedRows,...publicSgpRows'));
  assert.ok(src.includes('Historical October 5 public bookmaker reference lines stay in the historical context only.'));
 });
+
+test('book-mode cards do not display independently multiplied estimates as an actual SGP price',()=>{
+ const ui=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.ok(ui.includes('Combined sportsbook SGP odds: NOT VERIFIED'));
+ assert.ok(!ui.includes('Estimated: ${s.estimatedOdds'));
+ assert.ok(ui.includes('Individual prop candidate • Combined price unverified'));
+});
+
+test('every NFL matchup shows exact available alternatives for BOTH DraftKings and FanDuel',()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const start=html.indexOf('function nflSgpBookAuditUi(s)');
+ const end=html.indexOf('async function nflOpen(',start);
+ assert.ok(start>=0&&end>start);
+ const fn=html.slice(start,end);
+ assert.ok(fn.includes("['FanDuel','DraftKings'].map(book=>{"));
+ assert.ok(fn.includes("a.missingLegs.slice(0,6)"));
+ assert.ok(fn.includes("book+' lines not confirmed:"));
+ assert.ok(fn.includes("x.listedOffers.map(y=>y.display)"));
+ assert.ok(!fn.includes('const fd=audits.FanDuel'));
+});

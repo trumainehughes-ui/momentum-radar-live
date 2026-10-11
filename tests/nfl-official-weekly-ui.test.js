@@ -18,5 +18,5 @@ test('official published cross-check is shared by injury API, game roster, and f
  assert.ok(markets.includes('nflWeeklyForGame({gameId,summary:d,competitors:teams})'));
  assert.ok(game.includes('blockedNames=new Set(blockers.flatMap'));
  assert.ok(markets.includes('...(x.aliases||[])'));
- assert.ok(markets.includes("CACHE_SCHEMA='v87-sgo-backup-only'"));
+ assert.ok(markets.includes("const CACHE_SCHEMA=NFL_SGP_SNAPSHOT_SCHEMA;"));
 });
