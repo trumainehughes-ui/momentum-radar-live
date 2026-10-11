@@ -251,3 +251,33 @@ test('operational audit exposes only normalized causes when injury, prop and mat
  assert.equal(result.results[0].coverage,'READY_3_OF_3');
  assert.ok(!JSON.stringify(result).includes('some_private_key'));
 });
+
+test('collector count is zero without authentic matching tier quotes and does not survive staleness',async()=>{
+ const risk='Small',book='DraftKings',quoteAt=new Date(now-30_000).toISOString();
+ const sgpVerification={tiers:[{risk,modelStatus:'MODEL_CANDIDATE',
+  sportsbookStatus:'TIER_COMBINED_QUOTE_VERIFIED',
+  books:{
+   DraftKings:{status:'TIER_COMBINED_QUOTE_VERIFIED',
+    combinedOddsVerified:true,tierVerified:true,quoteCheckedAt:quoteAt,
+    matchedLegs:4,requiredLegs:4},
+   FanDuel:{status:'NO_VERIFIED_BOOK_MARKETS',
+    combinedOddsVerified:false,tierVerified:false,matchedLegs:0,requiredLegs:4}
+  }}]};
+ const good=collectorAuditReport('nfl',0,[{
+  gameId:'401872981',status:'updated',modelTiers:['Small','Medium','Nuke'],
+  sgpVerification
+ }],{now,due:1});
+ assert.equal(good.results[0].bookmakerVerifiedCount,1);
+ assert.equal(good.results[0].sportsbookTierAudit.length,1);
+ const expired=collectorAuditReport('nfl',1,[{
+  gameId:'401872982',status:'updated',modelTiers:['Small'],
+  sgpVerification
+ }],{now:now+16*60000,due:1});
+ assert.equal(expired.results[0].bookmakerVerifiedCount,0);
+ const stale=await readCollectorAudits('nfl',{now:now+45*60000,
+  listBlobs:async({prefix})=>({blobs:[{pathname:prefix,url:prefix}]}),
+  fetchBlob:async url=>({ok:true,json:async()=>url.includes('shard-0')?good:expired})});
+ assert.equal(stale.shards[0].status,'STALE');
+ assert.equal(stale.shards[0].results[0].bookmakerVerifiedCount,0);
+ assert.equal(stale.shards[0].results[0].sportsbookTierAudit[0].books.DraftKings.status,'STALE_COLLECTOR');
+});
