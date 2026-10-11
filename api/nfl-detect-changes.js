@@ -47,6 +47,14 @@ export default async function handler(req,res){
   // Only compare confirmed changes. The detector never spends PropLine credits.
   const assessed=[];
   for(const change of changes.slice(0,4))assessed.push({change,ai:await aiChangeImpact(change)});
-  return res.status(200).json({ok:true,gameId,status:prior?'compared':'baseline_created',playersObserved:current.length,changes:assessed,moreChanges:Math.max(0,changes.length-assessed.length),creditsUsed:0,propLineRefreshAuthorized:false,dvpRecalculationSuggested:assessed.some(x=>x.ai.dvpRecheck),sgpRebuildSuggested:assessed.some(x=>x.ai.sgpRebuild)});
+  // The caller receives a deterministic invalidation plan. Only an independently
+  // authenticated workflow can execute recalculation and spend market credits.
+  const invalidations=assessed.map(({change,ai})=>({
+   gameId:change.gameId,playerId:change.playerId,changeType:change.type,
+   invalidateDvp:true,invalidateSgp:true,
+   categories:ai.status==='advisory'&&ai.affectedCategories?.length?ai.affectedCategories:['passing','rushing','receiving','receptions','td'],
+   requiresFreshBookOdds:false,reason:'injury_status_changed'
+  }));
+  return res.status(200).json({ok:true,gameId,status:prior?'compared':'baseline_created',playersObserved:current.length,changes:assessed,invalidations,moreChanges:Math.max(0,changes.length-assessed.length),creditsUsed:0,propLineRefreshAuthorized:false,dvpRecalculationSuggested:assessed.some(x=>x.ai.dvpRecheck),sgpRebuildSuggested:assessed.some(x=>x.ai.sgpRebuild)});
  }catch(e){console.error('nfl_change_detector_error',String(e?.message||e));return res.status(503).json({ok:false,error:'change_detection_unavailable',creditsUsed:0})}
 }
