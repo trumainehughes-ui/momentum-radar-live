@@ -366,7 +366,7 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
   const pos=String(x?.position||'').toUpperCase(),role=roleFor(roles,x);
   const confirmed=['CONFIRMED_STARTER','EXPECTED_STARTER'].includes(String(role?.starterStatus||''))&&
    isNflConfirmedGameQb({position:pos,role});
-  const roleEligible=pos!=='QB'||confirmed||nflProjectedDepthChartQbEligible(role);
+  const roleEligible=['QB','RB','WR','TE'].includes(pos)&&(pos!=='QB'||confirmed||nflProjectedDepthChartQbEligible(role));
   return {athleteId:String(x.playerID||x.playerId||norm(x.name)),
    category:x.cat,roleEligible,ceilingSupported:x.cat==='td'||
    modelNflSgpStatThreshold(x,x.cat,'Nuke',analyticsLine(x,x.cat,'Nuke',ctx))!==null};
