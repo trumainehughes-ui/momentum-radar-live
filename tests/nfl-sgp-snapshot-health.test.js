@@ -123,3 +123,46 @@ test('matchup view shows direct evidence counts and read-only link; keeps sports
  assert.ok(!/SPORTSGAMEODDS_API_KEY|THE_ODDS_API_KEY|GROQ_API_KEY|BALLDONTLIE_API_KEY/.test(api));
  assert.ok(api.includes("req.method!=='GET'"));
 });
+
+test('stored matchup SGP health shows all three tiers and separate FanDuel/DraftKings exact-line counts',()=>{
+ const snap=sample();
+ snap.body.sgps.Analytics[0]={risk:'Small',requiredLegs:4,legs:[
+  {playerID:'101'},{playerID:'102'},{playerID:'103'},{playerID:'104'}
+ ],tierAssessment:{compositionOk:true}};
+ snap.body.sgpVerification={league:'nfl',gameId,tiers:[{
+  risk:'Small',books:{
+   FanDuel:{status:'BOOK_LEG_MISMATCH',matchedLegs:2,requiredLegs:4,combinedOddsVerified:false},
+   DraftKings:{status:'NO_VERIFIED_BOOK_MARKETS',matchedLegs:0,requiredLegs:4,combinedOddsVerified:false}
+  }
+ }]};
+ const out=nflSgpSnapshotReadiness(snap,{now,gameId});
+ assert.equal(out.tiers.length,3);
+ assert.equal(out.tiers[0].bookMarkets.FanDuel.matchedLegs,2);
+ assert.equal(out.tiers[0].bookMarkets.FanDuel.status,'BOOK_LEG_MISMATCH');
+ assert.equal(out.tiers[0].bookMarkets.DraftKings.status,'NO_VERIFIED_BOOK_MARKETS');
+ assert.equal(out.tiers[0].sportsbookCombinedOddsVerified,false);
+ assert.equal(out.tiers[1].bookMarkets.FanDuel.status,'MODEL_NOT_READY');
+ assert.ok(!JSON.stringify(out).includes('"playerID"'));
+});
+test('stale combined bookmaker quote is never counted as verified even if model snapshot is fresh',()=>{
+ const snap=sample();
+ snap.body.sgps.Analytics[0]={risk:'Small',requiredLegs:4,legs:[
+  {playerID:'101'},{playerID:'102'},{playerID:'103'},{playerID:'104'}
+ ],tierAssessment:{compositionOk:true}};
+ snap.body.sgpVerification={league:'nfl',gameId,tiers:[{
+  risk:'Small',books:{FanDuel:{status:'TIER_COMBINED_QUOTE_VERIFIED',
+   combinedOddsVerified:true,tierVerified:true,actualCombinedOdds:2400,
+   quoteCheckedAt:new Date(now-16*60000).toISOString()}}
+ }]};
+ const stale=nflSgpSnapshotReadiness(snap,{now,gameId});
+ assert.equal(stale.tiers[0].bookMarkets.FanDuel.status,'BOOK_QUOTE_STALE');
+ assert.equal(stale.tiers[0].bookMarkets.FanDuel.combinedOddsVerified,false);
+ assert.equal(stale.tiers[0].bookMarkets.FanDuel.actualCombinedOdds,null);
+ assert.equal(stale.sportsbookCombinedOddsVerified,false);
+ // Correct event and fresh server-saved quote may be exposed in health.
+ snap.body.sgpVerification.tiers[0].books.FanDuel.quoteCheckedAt=new Date(now-30000).toISOString();
+ const fresh=nflSgpSnapshotReadiness(snap,{now,gameId});
+ assert.equal(fresh.tiers[0].bookMarkets.FanDuel.tierVerified,true);
+ assert.equal(fresh.tiers[0].bookMarkets.FanDuel.actualCombinedOdds,2400);
+ assert.equal(fresh.sportsbookCombinedOddsVerified,true);
+});
