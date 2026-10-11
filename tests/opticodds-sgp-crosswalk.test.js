@@ -279,3 +279,29 @@ test('a verified DraftKings market name under the WRONG stat ID can never author
   providerMarkets:{data:[{...markets.data[0],id:'unknown_stat'}]}});
  assert.equal(malformed.sourceVerified,false);
 });
+
+test('TD category matches an explicit positive Over 0.5 or Anytime TD but never Under 0.5',()=>{
+ const td={...legs[0],cat:'td',analyticsThreshold:'Anytime TD'};
+ const group=[...legs,td],players=verifyOpticOddsPlayerRosters({
+  league:'nfl',fixture:match(),legs:group,teamPages,now
+ });
+ assert.equal(players.ready,true);
+ const marketCatalog={...catalog,td:['Player Touchdowns']};
+ const makeOdds=name=>({data:[{...fixture,odds:[...odds,{
+  ...odds[0],id:'QB-TD-LEG',market:'Player Touchdowns',name
+ }]}]});
+ for(const name of ['Trevor Lawrence Over 0.5','Trevor Lawrence Anytime TD',
+  'Trevor Lawrence Yes']){
+  const a=buildOpticOddsMarketCrosswalk({
+   fixture:match(),league:'nfl',game,legs:group,playerCrosswalk:players,
+   oddsSnapshot:makeOdds(name),marketCatalog,now
+  });
+  assert.equal(a.ready,true,name);
+ }
+ const rejected=buildOpticOddsMarketCrosswalk({
+  fixture:match(),league:'nfl',game,legs:group,playerCrosswalk:players,
+  oddsSnapshot:makeOdds('Trevor Lawrence Under 0.5'),marketCatalog,now
+ });
+ assert.equal(rejected.ready,false);
+ assert.equal(rejected.reason,'EXACT_PROVIDER_PLAYER_MARKET_UNAVAILABLE');
+});
