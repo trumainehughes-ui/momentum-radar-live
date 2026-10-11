@@ -73,6 +73,18 @@
    (failures?' '+failures:'')+
    ' No AI-generated bookmaker prices or replacement legs. Combined SGP payout NOT VERIFIED.</div>';
  }
+ function sgpRebuildStatus(d){
+  const r=d?.sgpRebuildReport,valid=d?.status==='SCHEDULED'&&
+   d?.pregameReadiness?.freshness==='CURRENT'&&r?.league==='nba'&&
+   String(r.gameId||'')===String(d.gameId||'');
+  if(!valid)return '<div class="note">NBA SGP rebuild • awaiting current game snapshot and sportsbook markets.</div>';
+  const summary=(r.tiers||[]).slice(0,3).map(t=>
+   safe(t.risk)+': '+(t.books||[]).slice(0,2)
+    .map(b=>safe(b.book)+' '+(b.bookListedLegsVerified?'individual markets listed':'lines pending'))
+    .join(' • ')).join(' | ');
+  return '<div class="note"><b>NBA SGP rebuild:</b> '+summary+
+   '<div class="refresh">Sportsbook prop lines and correlated combined odds remain unverified. The current NBA model alone cannot confirm target payouts.</div></div>';
+ }
  function sgpAiNextSteps(d){
   const plan=d?.sgpAiPlan,match=d?.status==='SCHEDULED'&&
    d?.pregameReadiness?.freshness==='CURRENT'&&
@@ -100,7 +112,7 @@
    '<div class="note">ESPN detailed game preview is not yet available. This matchup was rechecked against the ESPN scoreboard; reported injuries and starters may still be unverified.</div>':'';
   const source=summaryPending+stale+'<div class="refresh">Pregame model: '+safe(stage)+basis+' • AI review: '+safe(readiness?.aiReviewStatus||'PENDING')+' • Last model/injury check: '+safe(freshness)+
    ' • Injury evidence: '+safe(injury)+' ('+safe(readiness?.injuryReportStatus||'UNVERIFIED')+')</div>';
-  return source+sportsbookGuard(d)+sgpAiNextSteps(d)+rows.map(s=>{
+  return source+sportsbookGuard(d)+sgpAiNextSteps(d)+sgpRebuildStatus(d)+rows.map(s=>{
    const ready=s.status==='MODEL_CANDIDATE'&&Array.isArray(s.legs)&&s.legs.length>0;
    const list=ready?s.legs.map((l,i)=>
     '<div class="nflMarketLine"><b>'+(i+1)+'. '+safe(l.name)+' • '+safe(l.team)+'</b>'+
