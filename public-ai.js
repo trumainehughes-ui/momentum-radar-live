@@ -171,6 +171,32 @@
    players,priceSamplesOnly:true,combinedQuoteVerified:false,
    note:'Official per-book individual lines only; absence means unavailable or unobserved, not zero. AI must never manufacture sportsbook odds or a correlated SGP payout.'};
  }
+ // Automatic official public-page research is UNMATCHED evidence only.
+ // AI can inspect what each page visibly said, but cannot upgrade these
+ // quotes into event-verified offers or compute a correlated SGP ticket.
+ function publicBookResearchEvidence(gameId){
+  const research=window.momentumPublicBookResearch,
+   at=Date.parse(research?.checkedAt||'');
+  const valid=String(research?.gameId||'')===String(gameId)&&
+   Number.isFinite(at)&&at<=Date.now()&&Date.now()-at<=15*60*1000;
+  if(!valid)return{status:'PUBLIC_BOOK_RESEARCH_UNAVAILABLE_OR_STALE',
+   gameId,booksChecked:[],samples:[],eventPriceVerified:false};
+  const pages=Array.isArray(research.pages)?research.pages:[];
+  const checks=pages.map(p=>({book:p.book,label:p.label,
+   status:p.status,quotedSelectionCount:Number(p.quotedSelectionCount)||0}));
+  const samples=pages.flatMap(p=>(p.quotes||[]).slice(0,6).map(q=>({
+   book:p.book,player:String(q.player||'').slice(0,70),
+   category:String(q.category||'').slice(0,35),
+   rawLine:q.rawLine,americanOdds:q.americanOdds,
+   source:'UNMATCHED_OFFICIAL_PUBLIC_PAGE',
+   verifiedForCurrentEvent:false
+  }))).slice(0,16);
+  return{status:'PUBLIC_SITE_RESEARCH_NOT_EVENT_VERIFIED',
+   gameId,checkedAt:research.checkedAt,booksChecked:['DraftKings','FanDuel'],
+   checks,samples,eventPriceVerified:false,
+   combinedSgpQuoteVerified:false,canModifySgp:false,
+   note:'Official FanDuel team-page and DraftKings public page checks. Team pages can list another matchup; visible market quotes lack event and source odds timestamp. Do not use as current market prices unless separately authenticated and reconciled.'};
+ }
  function sportsbookEvidence(m,gameId){
   const cards=(m?.sgps?.Analytics||[]),verification=m?.sgpVerification;
   const verifiedScope=String(m?.gameId||'')===String(gameId);
@@ -336,6 +362,7 @@
      categories,playerRoleFacts,identityConflicts,matchup:mode==='injury'?null:conciseMatchup(defensive),playerAvailability:conciseRoster(availability,mode),sgps:selectedSgps,results,
      sportsbooks:mode==='sportsbook'?sportsbookEvidence(m,gameId):null,
      bookmakerPrices:['sportsbook','parlay','nuke','value'].includes(mode)?bookmakerPriceContext(m,gameId):null,
+     publicPageResearch:['sportsbook','parlay','nuke','value'].includes(mode)?publicBookResearchEvidence(gameId):null,
      parlayRecheck:['parlay','nuke','sportsbook'].includes(mode)?
       parlayRecheckEvidence(m,gameId):null,
      instruction:'Explain only evidence actually available. Report opponent-specific sample games, never leaguewide count as individual sample; under five games is limited. IMPORTANT: before generic role warnings, mention any playerAvailability.skillPositionAlerts such as ESPN-reported OUT/IR/Q statuses and potential impact without inventing revised projections; these are NOT confirmed official game-day inactives. Do not imply an unreported injury status means confirmed healthy. Use playerChecks for wrong-team flags. Model SGP tiers exist separately from unverified sportsbook offers and prices. Do not say ALL betting information is unavailable if model tiers and projections are present. Critically, defenseRankMost and offenseRankMost must come from exactly the SAME position and metric as their yards value; for example, RB rushYards 47.5 rank 32 is different from QB rushYards 17.5 rank 13. The offenseProducedPerGame was achieved against earlier opponents, NOT the upcoming defense. Keep missing-verification cautions short. Each playerRoleFacts position is the player actual position; QB rushing yards are compared to QB defense rushYards, not RB defense rushYards. Position-group team averages are not individual player averages. Never identify Jalen Hurts or any QB as an RB, or Chris Rodriguez Jr. or any RB as a QB. Never attach a team-group metric to an individual player. RankMost 1 means most allowed, not strongest defense. Roster membership does not prove starting.'
