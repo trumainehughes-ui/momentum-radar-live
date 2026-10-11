@@ -55,6 +55,16 @@ export default async function handler(req,res){
    categories:ai.status==='advisory'&&ai.affectedCategories?.length?ai.affectedCategories:['passing','rushing','receiving','receptions','td'],
    requiresFreshBookOdds:false,reason:'injury_status_changed'
   }));
-  return res.status(200).json({ok:true,gameId,status:prior?'compared':'baseline_created',playersObserved:current.length,changes:assessed,invalidations,moreChanges:Math.max(0,changes.length-assessed.length),creditsUsed:0,propLineRefreshAuthorized:false,dvpRecalculationSuggested:assessed.some(x=>x.ai.dvpRecheck),sgpRebuildSuggested:assessed.some(x=>x.ai.sgpRebuild)});
+  let modelRefresh={attempted:false,status:'not_needed'};
+  if(invalidations.length){
+   // Refresh DVP/SGP only; no sportsbook changeType flag is passed, so PropLine credits remain protected.
+   const date=new Date().toISOString().slice(0,10);
+   const url='https://'+req.headers.host+'/api/nfl-markets?date='+date+'&gameId='+encodeURIComponent(gameId)+'&verifiedChange=1';
+   try{
+    const response=await fetch(url,{headers:{Authorization:'Bearer '+process.env.CRON_SECRET},signal:AbortSignal.timeout(42000)});
+    modelRefresh={attempted:true,status:response.ok?'completed':'failed',httpStatus:response.status};
+   }catch{modelRefresh={attempted:true,status:'timeout_or_unavailable'}}
+  }
+  return res.status(200).json({ok:true,gameId,modelRefresh,status:prior?'compared':'baseline_created',playersObserved:current.length,changes:assessed,invalidations,moreChanges:Math.max(0,changes.length-assessed.length),creditsUsed:0,propLineRefreshAuthorized:false,dvpRecalculationSuggested:assessed.some(x=>x.ai.dvpRecheck),sgpRebuildSuggested:assessed.some(x=>x.ai.sgpRebuild)});
  }catch(e){console.error('nfl_change_detector_error',String(e?.message||e));return res.status(503).json({ok:false,error:'change_detection_unavailable',creditsUsed:0})}
 }
