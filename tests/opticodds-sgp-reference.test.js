@@ -167,3 +167,17 @@ test('operational readiness discloses opt-in requirement without leaking API cre
  assert.equal(enabled.bookIssuedSgpQuoteVerified,false);
  assert.ok(!JSON.stringify(enabled).includes('test-private'));
 });
+
+test('NFL passing/rushing/receiving alt yards must be multiples of five, but receptions may be integer',()=>{
+ for(const cat of ['passing','rushing','receiving']){
+  const broken=legs.map((l,i)=>i===0?{...l,cat,analyticsThreshold:177}:l);
+  assert.equal(prepare({legs:broken}).reason,
+   'NFL_YARDAGE_THRESHOLD_NOT_MULTIPLE_OF_FIVE',cat);
+ }
+ const reception=legs.map((l,i)=>i===0?{...l,cat:'receptions',analyticsThreshold:3}:l);
+ const m={...mapping,entries:mapping.entries.map((e,i)=>i===0?
+  {...e,cat:'receptions',analyticsThreshold:3,market:'Player Receptions',
+   selection:'Trevor Lawrence Over 2.5'}:e)};
+ const result=prepare({legs:reception,mapping:m});
+ assert.equal(result.ready,true);
+});
