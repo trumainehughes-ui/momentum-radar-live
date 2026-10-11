@@ -90,3 +90,19 @@ test("NFL model text describes NET payout targets, never total return",()=>{
  assert.ok(api.includes("min:2000,max:3000"));
  assert.ok(api.includes("min:3000,max:8000"));
 });
+
+test('core SGP composition permits a QB in different passing and rushing markets but not duplicated lines',()=>{
+ const game='401872981';
+ const legs=[
+  {name:'QB',playerID:'qb',eventID:game,cat:'passing',analyticsThreshold:225},
+  {name:'QB',playerID:'qb',eventID:game,cat:'rushing',analyticsThreshold:35},
+  {name:'Receiver',playerID:'wr',eventID:game,cat:'receiving',analyticsThreshold:65},
+  {name:'Tight End',playerID:'te',eventID:game,cat:'receptions',analyticsThreshold:4},
+  {name:'Scorer',playerID:'rb',eventID:game,cat:'td',analyticsThreshold:'Anytime TD'}
+ ];
+ const good=assessNflSgpTier({risk:'Medium',legs,requiredLegs:5});
+ assert.equal(good.compositionOk,true);
+ const bad=assessNflSgpTier({risk:'Medium',legs:[
+  legs[0],{...legs[0]},...legs.slice(2)],requiredLegs:5});
+ assert.equal(bad.compositionOk,false);
+});
