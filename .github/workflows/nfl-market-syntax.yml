@@ -1,0 +1,17 @@
+name: NFL market syntax check
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Parse NFL markets module
+        run: node --check api/nfl-markets.js
+      - name: Parse frontend JavaScript
+        run: node --check api/nfl-game.js
