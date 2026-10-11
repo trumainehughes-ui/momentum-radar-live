@@ -440,7 +440,8 @@ function propLineRows(payload,eventID){
   if(!book||!cat||!o.player||(!['Over','over'].includes(o.side)&&cat!=='td'))continue;
   if(String(o.player).includes('D/ST')||String(o.player).toLowerCase().includes('defense'))continue;
   const line=cat==='td'?null:Number(o.point);
-  if(cat!=='td'&&!Number.isFinite(line))continue;
+  if(cat!=='td'&&(o.point===null||o.point===undefined||
+    String(o.point).trim()===''||!Number.isFinite(line)||line<=0))continue;
   const odds=Number(o.americanOdds),checkedAt=o.updatedAt;
   if(!Number.isFinite(odds)||!checkedAt||Math.abs(Date.now()-Date.parse(checkedAt))>15*60*1000)continue;
   const k=[norm(o.player),cat,line??'td'].join('|');
