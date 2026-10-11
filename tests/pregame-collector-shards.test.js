@@ -49,7 +49,7 @@ test('cron config preserves previously protected endpoints and adds both league 
  assert.equal(cfg.crons.filter(x=>x.path.startsWith('/api/nfl-health')).length,2);
  assert.equal(cfg.crons.filter(x=>x.path.startsWith('/api/nba-health')).length,2);
 });
-test('collector audits expose per-game failed and successful statuses without private picks',()=>{
+test('collector audits expose per-game failed and successful statuses without private picks',async()=>{
  const report=collectorAuditReport('nfl',1,[
   {gameId:'401872981',status:'updated',stage:'DAY_AHEAD_BUILD',picks:5,sgps:3,
    changed:true,changedFields:['PLAYER_PROPS']},
