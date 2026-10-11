@@ -73,6 +73,19 @@
    (failures?' '+failures:'')+
    ' No AI-generated bookmaker prices or replacement legs. Combined SGP payout NOT VERIFIED.</div>';
  }
+ function sgpAiNextSteps(d){
+  const plan=d?.sgpAiPlan,match=d?.status==='SCHEDULED'&&
+   d?.pregameReadiness?.freshness==='CURRENT'&&
+   plan?.league==='nba'&&String(plan?.gameId||'')===String(d?.gameId||'');
+  if(!match)return '<div class="note">AI Parlay Architect: NBA bookmaker market data pending. No priced or bookable Same Game Parlay is confirmed.</div>';
+  const rows=(plan.tiers||[]).slice(0,3).map(t=>{
+   const books=(t.bookActions||[]).filter(a=>['DraftKings','FanDuel'].includes(a.book))
+    .slice(0,2).map(a=>safe(a.book)+': '+safe(String(a.action||'CHECK_DATA').replaceAll('_',' ').toLowerCase()));
+   return '<div class="note"><b>'+safe(t.risk)+' SGP:</b> '+books.join(' • ')+'</div>';
+  }).join('');
+  return '<div class="note"><b>AI Parlay Architect • next checks:</b>'+
+   rows+'<div class="refresh">Model candidates only. Actual bookmaker player markets and combined payout remain unverified.</div></div>';
+ }
  function sgps(d){
   const rows=d?.sgps||[],readiness=d?.pregameReadiness;
   const stage=readiness?.stage?String(readiness.stage).replaceAll('_',' '):'AWAITING FIRST PREGAME BUILD';
@@ -87,7 +100,7 @@
    '<div class="note">ESPN detailed game preview is not yet available. This matchup was rechecked against the ESPN scoreboard; reported injuries and starters may still be unverified.</div>':'';
   const source=summaryPending+stale+'<div class="refresh">Pregame model: '+safe(stage)+basis+' • AI review: '+safe(readiness?.aiReviewStatus||'PENDING')+' • Last model/injury check: '+safe(freshness)+
    ' • Injury evidence: '+safe(injury)+' ('+safe(readiness?.injuryReportStatus||'UNVERIFIED')+')</div>';
-  return source+sportsbookGuard(d)+rows.map(s=>{
+  return source+sportsbookGuard(d)+sgpAiNextSteps(d)+rows.map(s=>{
    const ready=s.status==='MODEL_CANDIDATE'&&Array.isArray(s.legs)&&s.legs.length>0;
    const list=ready?s.legs.map((l,i)=>
     '<div class="nflMarketLine"><b>'+(i+1)+'. '+safe(l.name)+' • '+safe(l.team)+'</b>'+
