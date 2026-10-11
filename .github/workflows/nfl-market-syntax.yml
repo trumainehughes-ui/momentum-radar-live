@@ -16,7 +16,7 @@ jobs:
       - name: Parse frontend JavaScript
         run: |
           node --check api/nfl-game.js
-          node -e 'const fs=require("node:fs");const html=fs.readFileSync("index.html","utf8");const scripts=[...html.matchAll(/<script\\b[^>]*>([\\s\\S]*?)<\\/script>/gi)];for(const [i,s] of scripts.entries()){new Function(s[1]);console.log("inline script",i,"syntax OK")}'
+          node -e 'const fs=require("node:fs");const html=fs.readFileSync("index.html","utf8");const scripts=[...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];if(!scripts.length)throw Error("No inline scripts found");for(const [i,s] of scripts.entries()){new Function(s[1]);console.log("inline script",i,"syntax OK")}'
       - name: Verify market API responds
         run: |
           node - <<'NODE'
