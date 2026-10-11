@@ -204,3 +204,50 @@ test('read collector audits sums three-tier readiness separately from collector 
  assert.equal(expired.summary.staleShards,2);
  assert.equal(expired.summary.incompleteShards,2);
 });
+
+test('old model snapshots without tier status are UNVERIFIED, never silently zero coverage',async()=>{
+ const prior={league:'nfl',shard:0,state:'COMPLETE',
+  checkedAt:new Date(now).toISOString(),due:2,attempted:2,successful:2,failed:0,
+  results:[
+   {gameId:'401872981',status:'updated',sgpCount:9,changed:true},
+   {gameId:'401872990',status:'updated',sgpCount:9,changed:true}
+  ]};
+ const second=collectorAuditReport('nfl',1,[{gameId:'401872988',
+  status:'no_qualified_model_data',modelTierReadiness:{
+   Small:{status:'NOT_READY'},Medium:{status:'NOT_READY'},Nuke:{status:'NOT_READY'}
+  }}],{now,due:1});
+ const result=await readCollectorAudits('nfl',{now:now+60_000,
+  listBlobs:async({prefix})=>({blobs:[{pathname:prefix,url:prefix}]}),
+  fetchBlob:async url=>({ok:true,json:async()=>url.endsWith('shard-0.json')?prior:second})});
+ assert.equal(result.summary.successful,3);
+ assert.equal(result.summary.coverage.unverified,2);
+ assert.equal(result.summary.coverage.none,1);
+ assert.equal(result.summary.coverage.full,0);
+ assert.equal(result.shards[0].results[0].coverage,'UNVERIFIED');
+ assert.equal(result.shards[0].results[0].rawSgpRecordCount,undefined);
+});
+test('stale or incomplete shard records cannot claim current 3-of-3 model coverage',async()=>{
+ const complete=collectorAuditReport('nfl',0,[{gameId:'401872981',status:'updated',
+  modelTierReadiness:Object.fromEntries(['Small','Medium','Nuke'].map(r=>[
+   r,{status:'MODEL_CANDIDATE',legs:5}]))}],{now,due:1});
+ const stale=collectorAuditReport('nfl',1,[{gameId:'401872990',status:'updated',
+  modelTierReadiness:Object.fromEntries(['Small','Medium','Nuke'].map(r=>[
+   r,{status:'MODEL_CANDIDATE',legs:5}]))}],{now:now-40*60000,due:1});
+ const loaded=await readCollectorAudits('nfl',{now:now+60000,
+  listBlobs:async({prefix})=>({blobs:[{pathname:prefix,url:prefix}]}),
+  fetchBlob:async url=>({ok:true,json:async()=>url.endsWith('shard-0.json')?complete:stale})});
+ assert.equal(loaded.summary.coverage.full,1);
+ assert.equal(loaded.summary.coverage.unverified,1);
+ assert.equal(loaded.summary.incompleteShards,1);
+});
+test('operational audit exposes only normalized causes when injury, prop and matchup change',()=>{
+ const result=collectorAuditReport('nba',1,[{
+  gameId:'401901821',status:'MODEL_ONLY',
+  modelTiers:['Small','Medium','Nuke'],
+  changedFields:['INJURIES','PLAYER_PROPS','MATCHUP','some_private_key'],
+  changed:true
+ }],{now});
+ assert.deepEqual(result.results[0].changedFields,['INJURIES','PLAYER_PROPS','MATCHUP']);
+ assert.equal(result.results[0].coverage,'READY_3_OF_3');
+ assert.ok(!JSON.stringify(result).includes('some_private_key'));
+});
