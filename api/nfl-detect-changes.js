@@ -11,7 +11,7 @@ function extract(data){
    const athlete=p.athlete||{},name=athlete.displayName||p.displayName||'';
    const id=String(athlete.id||p.id||'');
    const state=status(p.status||p.type?.description||p.details?.type||'unknown');
-   if(!name||!id)continue;
+   if(!name||!id||state==='unknown')continue;
    out.push({id,name,team:teamName,position:athlete.position?.abbreviation||null,status:state});
   }
  }
@@ -38,7 +38,7 @@ export default async function handler(req,res){
   if(prior){
    for(const player of current){
     const old=previous.get(player.id);
-    if(!old||old.status===player.status)continue;
+    if(!old||old.status===player.status||old.team!==player.team)continue;
     changes.push({type:player.status.includes('out')||player.status.includes('inactive')?'player_inactive':'player_injury',gameId,playerId:player.id,playerName:player.name,position:player.position,unit:'offense_or_defense',before:old.status,after:player.status,source:'ESPN NFL injury summary',observedAt:new Date().toISOString()});
    }
   }
