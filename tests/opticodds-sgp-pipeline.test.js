@@ -23,12 +23,12 @@ const sourceMarkets=Object.values(namesByCat).flat().map(name=>({
   sportsbooks:[{id:'draftkings',name:'DraftKings'}]}]}]
 }));
 const odds=legs.map((l,i)=>({id:'odds-'+i,player_id:'o-player-'+i,
- team_id:'O-JAX',sportsbook:'DraftKings',price:-115,
+ team_id:'',sportsbook:'DraftKings',price:-115,
  market:namesByCat[l.cat][0],name:l.name+' Over '+(l.analyticsThreshold-0.5),
  timestamp:now/1000}));
 const flags={OPTICODDS_SGP_ENABLED:'true',
  OPTICODDS_DISCOVERY_ENABLED:'true',OPTICODDS_API_KEY:'fixture-only-test'};
-function setup({badOdds=null,badPage=false,rateLimited=false}={}){
+function setup({badOdds=null,badPage=false,badRoster=false,rateLimited=false}={}){
  let calls=[];
  const fetcher=async(url,options)=>{
   calls.push({url,method:options.method,options});
@@ -45,7 +45,15 @@ function setup({badOdds=null,badPage=false,rateLimited=false}={}){
   const response=path.pathname.endsWith('/markets')?{data:sourceMarkets}:
    path.pathname.endsWith('/fixtures/active')?
     {data:path.searchParams.get('page')==='1'?[fixture]:[],
-     total_pages:badPage?8:2}:
+     page:Number(path.searchParams.get('page')),
+     has_more:badPage?'yes':path.searchParams.get('page')==='1'}:
+   path.pathname.endsWith('/players')?
+    {data:path.searchParams.get('team_id')==='O-JAX'?
+      legs.map((l,i)=>({
+       id:'o-player-'+i,name:badRoster&&i===1?'Wrong Player':l.name,
+       team:{id:'O-JAX'},league:{id:'nfl'},
+       sport:{id:'football'},is_active:true
+      })):[],page:Number(path.searchParams.get('page')),has_more:false}:
    path.pathname.endsWith('/fixtures/odds')?
     {data:[{...fixture,odds:badOdds||odds}]}:{data:[]};
   return{ok:true,json:async()=>response};
@@ -73,9 +81,12 @@ test('two page NFL discovery, markets and exact odds produce only a reference, n
  assert.equal(result.targetTierMatched,true);
  assert.equal(result.bookQuoteVerified,false);
  assert.equal(result.ready,true);
- assert.equal(result.requests,5);
- assert.equal(calls.length,5);
- assert.deepEqual(calls.map(c=>c.method),['GET','GET','GET','GET','POST']);
+ assert.equal(result.requests,7);
+ assert.equal(calls.length,7);
+ assert.deepEqual(calls.map(c=>c.method),['GET','GET','GET','GET','GET','GET','POST']);
+ assert.equal(calls.filter(c=>c.url.includes('/players?')).length,2);
+ assert.ok(calls.filter(c=>c.url.includes('/fixtures/active?'))
+  .every(c=>c.url.includes('start_date_after')&&c.url.includes('start_date_before')));
  assert.ok(calls.every(c=>c.options.headers['X-Api-Key']==='fixture-only-test'));
  assert.ok(!JSON.stringify(result).includes('fixture-only-test'));
 });
@@ -86,7 +97,7 @@ test('over 65.5 does not equal model 65+: no SGP quote request attempted',async(
   risk:'Medium',categoryMarketNames:namesByCat,env:flags,fetcher,now});
  assert.equal(result.ready,false);
  assert.equal(result.status,'EXACT_PROVIDER_PLAYER_MARKET_UNAVAILABLE');
- assert.equal(result.requests,4);
+ assert.equal(result.requests,6);
  assert.ok(calls.every(x=>x.method==='GET'));
 });
 test('fixture paging quota and API 429 fail closed before any quote',async()=>{
@@ -102,4 +113,14 @@ test('fixture paging quota and API 429 fail closed before any quote',async()=>{
   env:flags,fetcher:tooMany.fetcher,now});
  assert.equal(b.status,'PROVIDER_RATE_LIMITED');
  assert.equal(b.requests,1);
+});
+
+test('wrong OpticOdds roster player name stops before /fixtures/odds or combined pricing',async()=>{
+ const {fetcher,calls}=setup({badRoster:true});
+ const result=await discoverOpticOddsSgpReference({league:'nfl',game,
+  legs,risk:'Medium',categoryMarketNames:namesByCat,env:flags,fetcher,now});
+ assert.equal(result.ready,false);
+ assert.equal(result.status,'PLAYER_NOT_ON_VERIFIED_PROVIDER_TEAM');
+ assert.ok(calls.every(x=>x.method==='GET'));
+ assert.equal(calls.filter(c=>c.url.includes('/fixtures/odds')).length,0);
 });
