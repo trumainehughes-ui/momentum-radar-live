@@ -8,9 +8,14 @@ const now=Date.parse('2026-10-11T09:00:00Z'),gameId='401872981';
 const riskList=['Small','Medium','Nuke'];
 const cards=riskList.map((risk,i)=>{
  const n=i===0?4:i===1?5:6;
+ const types=['rushing','passing','receiving','receptions','rushing','passing'];
+ const targets=[50,225,65,4,80,250],floor=[35,195,50,2,65,215],
+  regular=[70,270,90,6,105,285];
  const legs=Array.from({length:n},(_,j)=>({
-  name:'Athlete '+(j+11),playerID:String(j+11),eventID:gameId,team:'JAX',cat:'rushing',
-  analyticsThreshold:50+5*j
+  name:'Athlete '+(j+11),playerID:String(j+11),eventID:gameId,
+  team:'JAX',cat:types[j],analyticsThreshold:targets[j],
+  projection:risk==='Nuke'?floor[j]:regular[j],
+  predictiveProjection:risk==='Nuke'?floor[j]:regular[j]
  }));
  return{risk,requiredLegs:n,legs,tierAssessment:{compositionOk:true},
   bookMarketAudits:{
@@ -95,9 +100,14 @@ test('a stale, unavailable, wrong-event or wrong-tier book feed NEVER authorizes
  assert.equal(empty.status,'INVALID_EVENT');
 });
 test('NBA model candidates with no sportsbook feed cannot fabricate player props or quoteable combos',()=>{
- const sgps=[{risk:'Small',status:'MODEL_CANDIDATE',legs:[{},{}]},
-  {risk:'Medium',status:'MODEL_CANDIDATE',legs:[{},{},{}]},
-  {risk:'Nuke',status:'MODEL_CANDIDATE',legs:[{},{},{},{},{}]}];
+ const types=['points','rebounds','assists','threes','pra'];
+ const sgps=[['Small',2],['Medium',3],['Nuke',5]].map(([risk,n])=>({
+  risk,status:'MODEL_CANDIDATE',legs:types.slice(0,n).map((cat,i)=>({
+   name:'NBA Athlete '+i,playerID:String(501+i),eventID:'401917234',
+   team:'LAL',cat,analyticsThreshold:30+i*5,
+   predictiveProjection:risk==='Nuke'?20+i*5:35+i*5
+  }))
+ }));
  const nba=sgpAiRecheckPlan({league:'nba',gameId:'401917234',sgps,
   sgpVerification:{league:'nba',gameId:'401917234',tiers:sgps.map(s=>({
    risk:s.risk,modelStatus:'MODEL_CANDIDATE',books:{}}))},
