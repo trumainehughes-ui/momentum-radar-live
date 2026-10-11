@@ -35,6 +35,14 @@
     {
       "path": "/api/nfl-game?mode=archive-history",
       "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/nfl-health?cron=1&shard=1",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/nba-health?shard=1",
+      "schedule": "*/15 * * * *"
     }
   ],
   "functions": {

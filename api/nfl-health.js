@@ -4,6 +4,8 @@ import {timingSafeEqual} from 'node:crypto';
 import {pregameAiAudit} from '../lib/pregame-ai-review.js';
 import {pregameEvidenceAudit,pregameNeedsAiReview,pregamePhase}
  from '../lib/pregame-revalidation.js';
+import {selectedShardGames,collectorAuditReport,writeCollectorAudit}
+ from '../lib/pregame-collector-shards.js';
 import {
  nflEasternDate,nflAddDate,nflCollectorDueGames,nflTierReadiness,
  nflCollectorSnapshotReady,nflRunCollectorBatch,MAX_NFL_COLLECTOR_CONCURRENCY
@@ -128,6 +130,9 @@ export default async function handler(req,res){
  if(cron&&blobCredentialMode(process.env)==='NOT_CONFIGURED')
   return res.status(503).json({ok:false,error:'pregame_storage_not_configured',
    action:'Connect an existing Vercel Blob store to persist game-specific SGP and injury snapshots.'});
+ const shard=cron?Number(req.query?.shard??0):null;
+ if(cron&&(!Number.isInteger(shard)||shard<0||shard>1))
+  return res.status(400).json({ok:false,error:'invalid_collector_shard'});
  const base='https://'+String(req.headers?.host||'momentum-radar-live.vercel.app');
  try{
   const today=date&&/^\d{4}-\d{2}-\d{2}$/.test(date)?date:day(new Date());
@@ -148,24 +153,32 @@ export default async function handler(req,res){
   // /api/nfl-schedule explicitly delegates sportsbook markets to the
   // separate /api/nfl-markets route; "markets.available=false" there does
   // NOT prove that the market route is down.
+  const allDue=nflCollectorDueGames(games),
+   assigned=cron?selectedShardGames(allDue,shard):[];
+  const startedAt=new Date().toISOString();
+  if(cron)await writeCollectorAudit(collectorAuditReport('nfl',shard,[],{
+   state:'RUNNING',startedAt,due:assigned.length}));
   let historyLocks=[];
-  if(cron&&games.length)historyLocks=await autoLock(base,games);
+  if(cron&&assigned.length)historyLocks=await autoLock(base,assigned);
+  if(cron)await writeCollectorAudit(collectorAuditReport('nfl',shard,historyLocks,{
+   state:'COMPLETE',startedAt,due:assigned.length}));
   if(historyLocks.some(x=>!['locked','updated'].includes(x.status)))
    degraded.push('pregame_collection');
   return res.status(blocking.length?503:200).json({
    ok:!blocking.length,date:today,datesChecked:dates,
+   shard,shardsTotal:2,totalScheduledGames:games.length,
    week:schedules.find(x=>x.week)?.week||null,games:games.length,
    markets:{status:'SEPARATE_SERVICE',verifiedByHealth:false},
    playbook:{configured:Boolean(process.env.PLAYBOOK_API_KEY)},
    blocking,degraded,historyLocks,
-   collector:{gamesDue:cron?nflCollectorDueGames(games).length:0,
+   collector:{gamesDue:assigned.length,allLeagueGamesDue:allDue.length,
     attempted:historyLocks.length,completed:historyLocks.filter(x=>['locked','updated'].includes(x.status)).length,
     failed:historyLocks.filter(x=>!['locked','updated'].includes(x.status)).length,
     changed:historyLocks.filter(x=>x.changed===true).length,
     changedByCause:Object.fromEntries(['PLAYER_PROPS','SGP_TIERS','INJURIES','MATCHUP','MODEL_INPUTS']
       .map(k=>[k,historyLocks.filter(x=>x.changedFields?.includes(k)).length])),
     concurrency:MAX_NFL_COLLECTOR_CONCURRENCY},
-   collectorVersion:'league-wide-nfl-evidence-v4-day-ahead-and-final30',
+   collectorVersion:'league-wide-nfl-sharded-v5-day-ahead-and-final30',
    checkedAt:new Date().toISOString()
   });
  }catch(e){
