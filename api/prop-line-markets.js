@@ -28,8 +28,11 @@ export default async function handler(req,res){
   if(item){const result=await fetch(item.url,{signal:AbortSignal.timeout(2500)});if(result.ok)tokenRecord=await result.json()}
  }catch{return res.status(503).json({ok:false,error:'change_token_store_unavailable'})}
  if(!tokenRecord||tokenRecord.usedAt||Date.now()-Date.parse(tokenRecord.createdAt)>15*60*1000||tokenRecord.gameId!==String(req.query.gameId||''))return res.status(403).json({ok:false,error:'change_token_invalid_or_used'});
- // Blob overwrite is not atomic: disable credit spending until a transactional claim mechanism is available.
- return res.status(503).json({ok:false,error:'atomic_change_claim_not_configured'});
+ // Atomic create-only claim: the Blob store rejects a second writer to this exact path.
+ const claimPath='momentum-nfl-change-claims/v1/'+eventToken+'.json';
+ try{
+  await put(claimPath,JSON.stringify({gameId:tokenRecord.gameId,claimedAt:new Date().toISOString()}),{access:'public',addRandomSuffix:false,allowOverwrite:false});
+ }catch{return res.status(409).json({ok:false,error:'change_already_claimed_or_claim_store_unavailable'})}
  const key=process.env.PLAYER_PROPS_API_KEY;
  if(!key)return res.status(503).json({ok:false,error:'prop_line_not_configured'});
  const league=String(req.query.league||'nfl').toLowerCase();
