@@ -561,9 +561,7 @@ const outcomePrediction=gameOutcomeProfile();
 const hasAnalytics=Object.values(categories).some(v=>Array.isArray(v)&&v.length>0);const sportsbookCoverage=gameId?sportsbookCoverageAudit({sport:'nfl',gameId,
  offers:rows.flatMap(row=>(row.books||[]).filter(b=>b.available===true).map(b=>({
   book:b.book,gameId,market:category(row)||'unknown'}))),
- attempts:['DraftKings','FanDuel'].map(book=>({book,
-  status:rows.some(row=>(row.books||[]).some(b=>b.book===book&&b.available===true))?'OBSERVED_VIA_'+String(provider).replace(/[^A-Za-z0-9]/g,'_').toUpperCase():'NOT_OBSERVED',
-  reason:'Observed market feeds do not establish a direct public sportsbook page check.'}))}):null;
+ attempts:[] // Aggregated feed offers are not direct sportsbook-site checks.}):null;
 const body={ok:true,scope:gameId?'game':'slate',gameId:gameId||null,date,categories,sgps,outcomePrediction,provider,sportsbookCoverage,degraded:rows.length===0,analyticsAvailable:hasAnalytics ,validation:{dayAheadRoleChecks:dayAheadRoles?.counters||null,
  dayAheadRoleSource:dayAheadRoles?.source||'NOT_APPLICABLE',
  conditionalRoleCount:(dayAheadRoles?.counters?.projectedHighUsageRoles||0)+
