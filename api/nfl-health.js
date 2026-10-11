@@ -4,6 +4,7 @@ import {timingSafeEqual} from 'node:crypto';
 import {pregameAiAudit} from '../lib/pregame-ai-review.js';
 import {pregameEvidenceAudit,pregameNeedsAiReview,pregamePhase}
  from '../lib/pregame-revalidation.js';
+import {sgpAiRecheckPlan} from '../lib/sgp-ai-recheck-plan.js';
 import {selectedShardGames,collectorAuditReport,writeCollectorAudit}
  from '../lib/pregame-collector-shards.js';
 import {
@@ -95,6 +96,13 @@ async function autoLock(base,games){
   snap.changedFields=audit.changedFields;
   snap.changedFromPrior=audit.changedFromPrior;
   snap.revalidationVersion=audit.modelVersion;
+  // Changes in sportsbook offers now join injury, role and matchup drift.
+  snap.sgpAiPlan=sgpAiRecheckPlan({
+   league:'nfl',gameId:g.gameId,sgps:m.sgps,
+   sgpVerification:snap.sgpVerification,sourceCheckedAt:m.fetchedAt,
+   sourceAvailable:m.validation?.sportsbookVerificationAvailable===true&&m.degraded!==true,
+   changedFields:audit.changedFields
+  });
   snap.priorCandidateInvalidated=snap.modelDataStatus==='NOT_READY'&&prior?.modelDataStatus==='MODEL_ONLY';
   // A fresh market build recalculates TD, pass/rush/receiving/receptions and
   // all SGPs using current roster/injury/opponent evidence. Store the reasons
@@ -119,7 +127,7 @@ async function autoLock(base,games){
    propCategoriesUpdated:changed?snap.propCategories:[],
    matchupReviewed:true,
    modelTierReadiness:snap.modelTierReadiness,sgpVerification:snap.sgpVerification,
-    sportsbookAiGuard:snap.sportsbookAiGuard};
+    sportsbookAiGuard:snap.sportsbookAiGuard,sgpAiPlan:snap.sgpAiPlan};
  },{concurrency:MAX_NFL_COLLECTOR_CONCURRENCY});
 }
 export default async function handler(req,res){
