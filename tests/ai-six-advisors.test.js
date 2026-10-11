@@ -30,7 +30,7 @@ const client={
   positions:[{position:'QB',metrics:[{metric:'passYards',defenseAllowedPerGame:255}]}]}]}
 };
 test('all six advisors are selectable, read-only, and use the same existing Groq endpoint',()=>{
- assert.deepEqual(ADVISORY_MODES,['guardian','nuke','opportunity','value','simulation','learning']);
+ assert.deepEqual(ADVISORY_MODES,['guardian','nuke','opportunity','value','simulation','learning','sportsbook']);
  const ui=readFileSync(new URL('../public-ai.js',import.meta.url),'utf8');
  const api=readFileSync(new URL('../api/ai-analysis.js',import.meta.url),'utf8');
  for(const mode of ADVISORY_MODES){
