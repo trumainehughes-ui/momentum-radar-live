@@ -9,6 +9,7 @@ import {sgpAiRecheckPlan} from '../lib/sgp-ai-recheck-plan.js';
 import {rebuildNflBookTierPools,rebuildNflBookNukePool} from '../lib/sgp-book-tier-targets.js';
 import {sgpBookRebuildReport} from '../lib/sgp-book-rebuild-report.js';
 import {expandSgoPlayerMarket} from '../lib/sgo-bookmaker-variants.js';
+import {buildNflPlayerBookCatalog} from '../lib/nfl-player-book-catalog.js';
 import {nflCurrentGameDepthChartQbs,nflProjectedDepthChartQbEligible} from '../lib/nfl-depthchart-qb1.js';
 import {nflCurrentRosterAthletes} from '../lib/nfl-roster-evidence.js';
 import {nflGameInjuryEvidence,nflInjuryBlocks} from '../lib/nfl-injury-evidence.js';
@@ -118,7 +119,21 @@ function bookFor(m,name){return(m?.books||[]).find(x=>x?.book===name&&x.availabl
 function bestBook(m){return PRIMARY_BOOKS.map(x=>bookFor(m,x)).find(Boolean)||approvedBook(m)||null}
 function threshold(m){const b=bestBook(m),raw=b?.line??m.line;if(raw===null||raw===undefined||raw==='')return null;const v=Number(raw);return Number.isFinite(v)?v:null}
 function reasonFor(m,cat){const b=bestBook(m);const book=b?.book||'market feed';const line=threshold(m);const base=cat==='td'?'Anytime-TD market is active':cat==='passing'?'Passing-yard market is active':cat==='rushing'?'Rushing-yard market is active':cat==='receiving'?'Receiving-yard market is active':'Reception market is active';return base+' at '+book+(line!=null?' with a '+line+' threshold':'')+'. Sportsbook availability validates the market; verified line/price data may also contribute to Edge and Momentum scoring.'}
-function pickRows(rows,cat,limit=10){const x=rows.filter(m=>category(m)===cat&&approvedBook(m));const by=new Map();for(const m of x){const k=m.playerID+'|'+cat,old=by.get(k);if(!old)by.set(k,m)}return[...by.values()].slice(0,limit).map((m,i)=>({rank:i+1,...m,threshold:threshold(m),confidence:null,bestBook:bestBook(m),sportsbooks:Object.fromEntries(APPROVED_BOOKS.map(name=>[name,bookFor(m,name)]).filter(([,v])=>v)),verifiedAt:new Date().toISOString(),reason:reasonFor(m,cat)}))}
+function pickRows(rows,cat,limit=10){
+ const x=rows.filter(m=>category(m)===cat&&approvedBook(m));
+ const catalog=buildNflPlayerBookCatalog(x);
+ const by=new Map();
+ for(const m of x){const k=m.playerID+'|'+cat;if(!by.has(k))by.set(k,m)}
+ return[...by.values()].slice(0,limit).map((m,i)=>({
+  rank:i+1,...m,threshold:threshold(m),confidence:null,bestBook:bestBook(m),
+  sportsbooks:Object.fromEntries(APPROVED_BOOKS.map(name=>[name,bookFor(m,name)]).filter(([,v])=>v)),
+  bookLineCatalog:(()=>{
+   const item=catalog.get(String(m.playerID)+'|'+cat);
+   return{DraftKings:item?.DraftKings||[],FanDuel:item?.FanDuel||[]}
+  })(),
+  verifiedAt:new Date().toISOString(),reason:reasonFor(m,cat)
+ }))
+}
 function probToAmerican(p){if(!Number.isFinite(p)||p<=0||p>=1)return null;return Math.round(p>=.5?-100*p/(1-p):100*(1-p)/p)}
 function parlayPrice(legs,book){const ps=legs.map(x=>americanToProb(bookFor(x,book)?.odds)).filter(Number.isFinite);if(ps.length!==legs.length)return null;return probToAmerican(ps.reduce((a,p)=>a*p,1))}
 function metricFor(cat){return cat==='passing'?'passYards':cat==='rushing'?'rushYards':cat==='receiving'?'recYards':cat==='receptions'?'receptions':cat==='td'?'recTD':null}
