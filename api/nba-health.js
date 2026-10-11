@@ -7,6 +7,7 @@ import {nflRunCollectorBatch} from '../lib/nfl-collector-readiness.js';
 import {pregamePhase,pregameEvidenceAudit,pregameNeedsAiReview}
  from '../lib/pregame-revalidation.js';
 import {auditLeagueSgpEvent} from '../lib/sgp-league-wide-verification.js';
+import {sportsbookAiAuditFromSnapshot} from '../lib/sportsbook-ai-audit.js';
 import {selectedShardGames,collectorAuditReport,writeCollectorAudit}
  from '../lib/pregame-collector-shards.js';
 const PREFIX='momentum-pregame/v1/nba-';
@@ -143,6 +144,13 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
    'ESPN reported statuses checked; official inactives and starters not confirmed':
    'ESPN injury-report section unavailable; status is UNVERIFIED. Do not assume no players are injured, healthy or starting.'};
  result.sgpVerification=auditLeagueSgpEvent({league:'nba',gameId:game.gameId,sgps:result.sgps});
+ // The NBA sportsbook provider is not yet configured: run the same no-cost
+ // every-game AI integrity check, but it must remain strictly unverified.
+ result.sportsbookAiGuard=sportsbookAiAuditFromSnapshot({
+  league:'nba',gameId:game.gameId,sgps:result.sgps,
+  sgpVerification:result.sgpVerification,sourceCheckedAt:result.checkedAt,
+  marketFeedAvailable:false
+ },{now});
   const audit=pregameEvidenceAudit(prior,result,{league:'nba'});
  result.evidenceDigests=audit.evidenceDigests;
  result.changedFromPrior=audit.changedFromPrior;
