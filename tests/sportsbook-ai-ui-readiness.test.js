@@ -14,11 +14,11 @@ function bodyBetween(source,a,b){
 const escape=x=>String(x??'').replace(/[&<>"']/g,
  c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nflFn=vm.runInNewContext(
- '('+bodyBetween(nflHtml,'function nflSportsbookAiGuardUi','async function nflOpen').trim()+')',
+ '('+bodyBetween(nflHtml,'function nflSportsbookAiGuardUi','function nflSgpAiPlanUi').trim()+')',
  {nflEscape:escape,Date,Number,String,Array,JSON}
 );
 const nbaFn=vm.runInNewContext(
- '('+bodyBetween(nbaJs,'function sportsbookGuard','function sgps').trim()+')',
+ '('+bodyBetween(nbaJs,'function sportsbookGuard','function sgpAiNextSteps').trim()+')',
  {safe:escape,Date,String,Array}
 );
 const currentTime=new Date().toISOString();
@@ -77,9 +77,9 @@ test('NBA view exposes scout status only when game and snapshot freshness are cu
 });
 test('NFL and NBA game routes safely render their own verified sportsbook guard snapshots',()=>{
  const nfl=nflHtml,nba=readFileSync(new URL('../api/nba-game.js',import.meta.url),'utf8');
- assert.ok(nfl.includes("$('#nflGameHead').innerHTML+=nflSportsbookAiGuardUi(d,id)"));
+ assert.ok(nfl.includes("$('#nflGameHead').innerHTML+=nflSportsbookAiGuardUi(d,id)+nflSgpAiPlanUi(d,id)"));
  assert.ok(nfl.includes("if(String(nflSelected?.gameId||'')!==String(id))return;verifiedMarketsLoaded=true;"));
  assert.ok(nba.includes("snapshot.sportsbookAiGuard?.gameId===gameId"));
  assert.ok(nba.includes("status:'PENDING_OR_STALE'"));
- assert.ok(nbaJs.includes('return source+sportsbookGuard(d)+rows.map(s=>{'));
+ assert.ok(nbaJs.includes('return source+sportsbookGuard(d)+sgpAiNextSteps(d)+rows.map(s=>{'));
 });
