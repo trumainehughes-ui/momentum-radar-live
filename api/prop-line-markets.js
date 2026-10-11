@@ -1,11 +1,11 @@
 import {list,put} from '@vercel/blob';
+import {propLineEventMatchesDate,normalizePropLinePlayerOffer} from '../lib/prop-line-nfl-normalization.js';
 // Server-only PropLine integration. No credentials or raw provider errors reach clients.
 const API='https://api.prop-line.com/v1';
 const SPORTS={nfl:'football_nfl',nba:'basketball_nba'};
 const MARKETS={nfl:['player_pass_yds','player_rush_yds','player_reception_yds','player_receptions','player_anytime_td'],nba:['player_points','player_rebounds','player_assists','player_threes']};
 const books=new Set(['draftkings','fanduel']);
 const safeDate=s=>/^\d{4}-\d{2}-\d{2}$/.test(s);
-const isoDate=s=>new Date(s).toISOString().slice(0,10);
 async function load(url,key){
  const response=await fetch(url,{headers:{'X-API-Key':key,Accept:'application/json'},signal:AbortSignal.timeout(7000)});
  const quota={remaining:Number(response.headers.get('x-daily-remaining')),limit:Number(response.headers.get('x-daily-limit'))};
@@ -51,7 +51,7 @@ export default async function handler(req,res){
   const eventsResult=await load(API+'/sports/'+sport+'/events',key);
   if(eventsResult.error)return res.status(502).json({ok:false,provider:'PropLine',error:eventsResult.error,providerStatus:eventsResult.status});
   const events=Array.isArray(eventsResult.data)?eventsResult.data:eventsResult.data?.events||[];
-  let matches=events.filter(e=>{try{return isoDate(e.commence_time)===date&&(!gameId||String(e.espn_event_id||'')===gameId)}catch{return false}});
+  let matches=events.filter(e=>propLineEventMatchesDate(e,date,league)&&(!gameId||String(e.espn_event_id||'')===gameId));
   // PropLine documents ESPN IDs on NFL event records; never call an undocumented /ids route.
   // If the ESPN ID is missing, return a clear event-not-matched result rather than guessing.
   const eventId=String(req.query.eventId||'');
@@ -67,8 +67,8 @@ export default async function handler(req,res){
    for(const market of book.markets||[]){
     if(!MARKETS[league].includes(market.key))continue;
     for(const outcome of market.outcomes||[]){
-     if(!Number.isFinite(Number(outcome.price))||!outcome.description)continue;
-     offers.push({book:book.key,market:market.key,player:outcome.description,side:outcome.name,point:outcome.point??null,americanOdds:Number(outcome.price),bookOutcomeId:outcome.book_outcome_id||null,updatedAt:market.last_update||null});
+     const normalized=normalizePropLinePlayerOffer(book,market,outcome);
+     if(normalized)offers.push(normalized);
     }
    }
   }
