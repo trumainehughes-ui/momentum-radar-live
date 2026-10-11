@@ -39,7 +39,7 @@ test('no completed Small, Medium, Nuke reports concrete missing-yardage vs ident
  const status=nflSgpSnapshotReadiness(sample(),{now,gameId});
  assert.equal(status.status,'NOT_READY');
  assert.deepEqual(status.tiers.map(x=>x.status),['NOT_READY','NOT_READY','NOT_READY']);
- assert.match(status.tiers[0].reason,/rushing \\/ receiving/);
+ assert.ok(status.tiers[0].reason.includes('rushing / receiving'));
  assert.equal(status.roleSummary.projectedHighUsageRoles,3);
  assert.equal(status.roleSummary.missingRosterOrGameIdentity,1);
  assert.equal(status.roleSummary.blockedInjuryOrQuestionable,2);
