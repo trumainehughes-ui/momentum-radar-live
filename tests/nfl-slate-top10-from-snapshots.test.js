@@ -160,3 +160,29 @@ test('Anytime TD empty state is an honest verification warning, not an endless l
  ],{date,now});
  assert.deepEqual(out.categories.td,[]);
 });
+
+test('expired saved player-book odds are removed from model rankings, and expired TD offers are excluded',()=>{
+ const oldSnap=snap('401872989','rushing',[
+  person('1','401872989','rushing',91,{
+   verifiedAt:new Date(now-17*60_000).toISOString(),
+   bestBook:{book:'DraftKings',line:89.5,odds:-110},
+   bookOffer:{book:'DraftKings',line:89.5,odds:-110},
+   sportsbooks:{DraftKings:{book:'DraftKings',line:89.5,odds:-110}}
+  })
+ ]);
+ oldSnap.at=now-17*60_000;
+ const tdSnap=snap('401872991','td',[
+  person('2','401872991','td','Anytime TD',{
+   verifiedAt:new Date(now-20*60_000).toISOString(),
+   bestBook:{book:'FanDuel',odds:155}
+  })
+ ]);
+ tdSnap.at=now-20*60_000;
+ const result=buildNflSlateRankings([oldSnap,tdSnap],{date,now});
+ assert.equal(result.categories.rushing.length,1);
+ assert.equal(result.categories.rushing[0].bestBook,null);
+ assert.equal(result.categories.rushing[0].bookOffer,null);
+ assert.deepEqual(result.categories.rushing[0].books,[]);
+ assert.deepEqual(result.categories.rushing[0].sportsbooks,{});
+ assert.deepEqual(result.categories.td,[]);
+});
