@@ -117,3 +117,72 @@ test('all four top-ten buttons load read-only slate rows, not metadata-only mark
  assert.ok(!route.includes('SPORTSGAMEODDS_API_KEY'));
  assert.ok(!route.includes('THE_ODDS_API_KEY'));
 });
+
+test('verified individually priced touchdown rows can populate Top 10 without invented TD percentages',()=>{
+ const td=(id,confidence,book,odds)=>person(id,'401872989','td','Anytime TD',{
+  confidence,verifiedAt:'2026-10-11T19:48:00Z',
+  bestBook:{book,odds},analyticsOnly:false
+ });
+ const p=snap('401872989','td',[
+  td('1',65,'DraftKings',145),
+  td('2',80,'FanDuel',-120),
+  td('3',55,'Caesars',110),
+  td('4',70,'DraftKings',0),
+  td('5',72,'DraftKings',null),
+  {...td('6',69,'DraftKings',200),verifiedAt:null},
+  {...td('7',90,'DraftKings',190),injuryStatus:'INACTIVE'}
+ ]);
+ const out=buildNflSlateRankings([p],{date,now});
+ assert.deepEqual(out.categories.td.map(x=>x.playerID),['2','1']);
+ assert.deepEqual(out.categories.td.map(x=>x.rank),[1,2]);
+ assert.equal(out.categories.td[0].projection,'Anytime TD');
+ assert.equal(out.categories.td[0].bestBook.book,'FanDuel');
+ assert.equal(out.tdMarketVerificationRequired,true);
+});
+test('unverified roster/injury evidence cannot populate even model-only rankings',()=>{
+ const games=[snap('401872989','rushing',[
+  person('1','401872989','rushing',95)
+ ],{validation:{injuryEligibilityChecked:false}})];
+ const out=buildNflSlateRankings(games,{date,now});
+ assert.equal(out.gamesWithProjections,0);
+ assert.equal(out.injuryScreenedGames,0);
+ assert.deepEqual(out.categories.rushing,[]);
+});
+test('Anytime TD empty state is an honest verification warning, not an endless loading message',()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const lib=readFileSync(new URL('../lib/nfl-slate-rankings.js',import.meta.url),'utf8');
+ assert.ok(html.includes('No individually verified DraftKings/FanDuel Anytime TD markets'));
+ assert.ok(html.includes('No verified Anytime TD market yet.'));
+ assert.ok(html.includes('Oldest saved snapshot:'));
+ assert.ok(lib.includes("'td','passing','rushing','receiving','receptions'"));
+ const out=buildNflSlateRankings([
+  snap('401872989','rushing',[person('1','401872989','rushing',70)])
+ ],{date,now});
+ assert.deepEqual(out.categories.td,[]);
+});
+
+test('expired saved player-book odds are removed from model rankings, and expired TD offers are excluded',()=>{
+ const oldSnap=snap('401872989','rushing',[
+  person('1','401872989','rushing',91,{
+   verifiedAt:new Date(now-17*60_000).toISOString(),
+   bestBook:{book:'DraftKings',line:89.5,odds:-110},
+   bookOffer:{book:'DraftKings',line:89.5,odds:-110},
+   sportsbooks:{DraftKings:{book:'DraftKings',line:89.5,odds:-110}}
+  })
+ ]);
+ oldSnap.at=now-17*60_000;
+ const tdSnap=snap('401872991','td',[
+  person('2','401872991','td','Anytime TD',{
+   verifiedAt:new Date(now-20*60_000).toISOString(),
+   bestBook:{book:'FanDuel',odds:155}
+  })
+ ]);
+ tdSnap.at=now-20*60_000;
+ const result=buildNflSlateRankings([oldSnap,tdSnap],{date,now});
+ assert.equal(result.categories.rushing.length,1);
+ assert.equal(result.categories.rushing[0].bestBook,null);
+ assert.equal(result.categories.rushing[0].bookOffer,null);
+ assert.deepEqual(result.categories.rushing[0].books,[]);
+ assert.deepEqual(result.categories.rushing[0].sportsbooks,{});
+ assert.deepEqual(result.categories.td,[]);
+});
