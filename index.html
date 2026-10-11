@@ -570,7 +570,7 @@ async function nflRefreshAllSgpCandidates(){
   const now=Date.now(),seen=new Set();
   const games=nflData.games.filter(g=>{
    const gameId=String(g.gameId||''),left=Date.parse(g.kickoff||'')-now;
-   if(!/^\\d{7,12}$/.test(gameId)||seen.has(gameId)||
+   if(!/^\d{7,12}$/.test(gameId)||seen.has(gameId)||
     g.status!=='SCHEDULED'||!Number.isFinite(left)||left<=0||
     left>36*60*60*1000)return false;
    seen.add(gameId);return true;
