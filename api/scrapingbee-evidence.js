@@ -49,7 +49,7 @@ export default async function handler(req,res){
   if(resolvedHost&&resolvedHost!==allowed.hostname)
    return res.status(422).json({ok:false,error:'provider_redirected_outside_expected_sportsbook',creditsCharged});
   if(!response.ok)return res.status(502).json({ok:false,error:'provider_request_failed',providerStatus:response.status,creditsCharged});
-  const contentType=String(response.headers.get('content-type')||'').toLowerCase();
+  const contentType=String(response.headers.get('spb-content-type')||response.headers.get('content-type')||'').toLowerCase();
   if(!contentType.includes('text/html')&&!contentType.includes('application/xhtml+xml'))
    return res.status(422).json({ok:false,error:'non_html_sportsbook_response'});
   const html=(await response.text()).slice(0,500000);
