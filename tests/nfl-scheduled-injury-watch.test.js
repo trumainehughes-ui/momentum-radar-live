@@ -31,7 +31,7 @@ test('all NFL cron games can create a free injury baseline without triggering qu
   }});
  assert.equal(calls,1);
  assert.deepEqual(data,{status:'baseline_created',changesDetected:0,
-  tokenIssued:false,modelRefreshStatus:null});
+  tokenIssued:false,modelRefreshStatus:null,modelRefreshHttpStatus:null});
 });
 test('only confirmed player status changes create a short-lived signed quote authorization',async()=>{
  const data=await checkNflScheduledInjuryChanges(game,{...opts,
@@ -95,7 +95,7 @@ test('public collector audit retains only safe injury status and change counts',
  assert.equal(out.successful,1);
  assert.deepEqual(out.results[0].injuryWatch,{
   status:'compared',changesDetected:2,tokenIssued:true,
-  modelRefreshStatus:'completed'});
+  modelRefreshStatus:'completed',modelRefreshHttpStatus:null});
  assert.ok(!JSON.stringify(out).includes('private-roster-name'));
  assert.ok(!JSON.stringify(out).includes('aaaaaa'));
 });

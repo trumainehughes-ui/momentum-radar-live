@@ -11,8 +11,9 @@ const game=(id='401872992')=>({gameId:id,kickoff,status:'SCHEDULED'});
 const fakeStore=()=>{
  const keys=new Set(),puts=[];
  return{keys,puts,putBlob:async(path,value,options)=>{
-  assert.equal(options.allowOverwrite,false,'all claims must be atomic');
-  if(keys.has(path))throw Error('conflict');
+  assert.equal(options.allowOverwrite,path.includes('/outcomes/'),
+   'only observational outcome audits may be overwritten');
+  if(keys.has(path)&&!options.allowOverwrite)throw Error('conflict');
   keys.add(path);puts.push({path,value:JSON.parse(value)});
  }};
 };
@@ -98,7 +99,7 @@ test('production cron, provider, quote and market endpoints enforce stage and qu
  const quote=readFileSync(new URL('../api/prop-line-sgp-quote.js',import.meta.url),'utf8');
  assert.ok(health.includes('runNflScheduledBookCheckpoint(g,{'));
  assert.ok(health.includes('bookCheckpoint.marketResponse||await r.json()'));
- assert.ok(health.includes('injuryWatch.tokenIssued?'));
+ assert.ok(health.includes("injuryWatch.modelRefreshStatus==='completed'"));
  assert.ok(market.includes("'scheduled_checkpoint'"));
  assert.ok(market.includes('chooseNflCheckpointQuotes(candidates,'));
  assert.ok(provider.includes('validNflCheckpointToken(tokenRecord,req.query.gameId)'));

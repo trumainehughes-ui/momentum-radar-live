@@ -549,13 +549,19 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
    try{
     const trustedPropOrigin=process.env.VERCEL_PROJECT_PRODUCTION_URL?'https://'+process.env.VERCEL_PROJECT_PRODUCTION_URL:'https://momentum-radar-live.vercel.app';
     const propUrl=trustedPropOrigin+'/api/prop-line-markets?league=nfl&date='+date+'&gameId='+encodeURIComponent(gameId);
-    const propResult=await Promise.race([(async()=>{const r=await timedFetch(propUrl,{cache:'no-store',headers:{Authorization:'Bearer '+process.env.CRON_SECRET,'x-momentum-change-token':verifiedToken}});return r.ok?await r.json():null})(),new Promise(resolve=>setTimeout(()=>resolve(null),6000))]);
+    const propResult=await Promise.race([(async()=>{const r=await timedFetch(propUrl,{cache:'no-store',headers:{Authorization:'Bearer '+process.env.CRON_SECRET,'x-momentum-change-token':verifiedToken}});return r.ok?await r.json():{ok:false,providerUnavailable:true}})(),new Promise(resolve=>setTimeout(()=>resolve({ok:false,providerUnavailable:true}),6000))]);
+    // Never convert an unavailable provider response or unmatched event into
+    // the misleading claim that a valid book returned zero selections.
+    if(propResult?.providerUnavailable||propResult?.ok===false)
+     oddsDebug.propLineStage='provider_response_unavailable';
+    else if(propResult?.status==='event_not_matched')
+     oddsDebug.propLineStage='event_not_matched';
     const offers=propLineRows(propResult,gameId);
     if(offers.length){signedPropLineRows.push(...offers);
      directRows=mergeAuthorizedPropLineRows(directRows,offers);
      provider=provider==='Analytics / ESPN'?'PropLine':provider+' + PropLine';
      oddsDebug.stage='prop_line_market_ready';oddsDebug.propLineRows=offers.length}
-    else oddsDebug.propLineStage='no_current_verified_offers';
+    else if(!oddsDebug.propLineStage) oddsDebug.propLineStage='no_current_verified_offers';
    }catch(e){oddsDebug.propLineStage='provider_unavailable';console.warn('prop_line_fallback_unavailable',String(e?.message||e))}
   }
   // "Available" means enough real yardage markets for the diversified SGP

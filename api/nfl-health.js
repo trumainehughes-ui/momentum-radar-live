@@ -103,7 +103,11 @@ async function autoLock(base,games){
   });
   // No duplicate scheduled spend when a verified injury event is already
   // driving its own independent paid/quoted rebuild for this matchup.
-  const bookCheckpoint=injuryWatch.tokenIssued?{
+  // A minted injury token alone does not prove the signed rebuild worked.
+  // If that call failed, allow the independent one-use, daily-capped
+  // pregame checkpoint instead of silently skipping an eligible window.
+  const bookCheckpoint=injuryWatch.tokenIssued&&
+   injuryWatch.modelRefreshStatus==='completed'?{
    status:'SKIPPED_VERIFIED_INJURY_REFRESH',stage:null,marketResponse:null
   }:await runNflScheduledBookCheckpoint(g,{
    base,secret:process.env.CRON_SECRET,
@@ -126,12 +130,20 @@ async function autoLock(base,games){
   if(r&&!r.ok){
    const failure=await r.json().catch(()=>null);
    return{gameId:g.gameId,status:'markets_unavailable',injuryWatch,
-    bookCheckpoint:{status:bookCheckpoint.status,stage:bookCheckpoint.stage},
+    bookCheckpoint:{status:bookCheckpoint.status,stage:bookCheckpoint.stage,
+     outcomeStatus:bookCheckpoint.outcomeStatus||null,
+     priorAttemptOutcome:bookCheckpoint.priorAttemptOutcome||null,
+     nativeOfferRows:bookCheckpoint.nativeOfferRows||0,
+     verifiedBookTiers:bookCheckpoint.verifiedBookTiers||0},
     ...nflMarketFailureDetails(r.status,failure)};
   }
   const m=bookCheckpoint.marketResponse||await r.json();
   if(!m?.ok)return{gameId:g.gameId,status:'markets_unavailable',injuryWatch,
-   bookCheckpoint:{status:bookCheckpoint.status,stage:bookCheckpoint.stage},
+   bookCheckpoint:{status:bookCheckpoint.status,stage:bookCheckpoint.stage,
+     outcomeStatus:bookCheckpoint.outcomeStatus||null,
+     priorAttemptOutcome:bookCheckpoint.priorAttemptOutcome||null,
+     nativeOfferRows:bookCheckpoint.nativeOfferRows||0,
+     verifiedBookTiers:bookCheckpoint.verifiedBookTiers||0},
    ...nflMarketFailureDetails(r?.status||200,m)};
   const prior=await priorSnapshot(g.gameId);
   const snap=historySnap(g,m,prior);
@@ -157,7 +169,11 @@ async function autoLock(base,games){
   const changed=audit.changedFromPrior;
   await put(P+g.gameId+'.json',JSON.stringify(snap),
    {access:'public',addRandomSuffix:false,allowOverwrite:true});
-  return {gameId:g.gameId,injuryWatch,bookCheckpoint:{status:bookCheckpoint.status,stage:bookCheckpoint.stage},status:snap.modelDataStatus==='NOT_READY'?'no_qualified_model_data':prior?'updated':'locked',
+  return {gameId:g.gameId,injuryWatch,bookCheckpoint:{status:bookCheckpoint.status,stage:bookCheckpoint.stage,
+     outcomeStatus:bookCheckpoint.outcomeStatus||null,
+     priorAttemptOutcome:bookCheckpoint.priorAttemptOutcome||null,
+     nativeOfferRows:bookCheckpoint.nativeOfferRows||0,
+     verifiedBookTiers:bookCheckpoint.verifiedBookTiers||0},status:snap.modelDataStatus==='NOT_READY'?'no_qualified_model_data':prior?'updated':'locked',
    stage:snap.lockStage,revision:snap.revision,picks:snap.picks.length,
    sgps:snap.sgps.length,aiReview:snap.aiReview?.status||'PENDING',
    changed,changedFields:snap.changedFields,
