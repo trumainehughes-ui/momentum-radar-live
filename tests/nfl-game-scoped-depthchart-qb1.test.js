@@ -163,3 +163,24 @@ test('numeric ESPN site depthchart retains only one rank-one QB per current team
  assert.ok(requested.some(x=>x.includes('/teams/21/depthcharts')));
  assert.ok(requested.every(x=>!x.includes('/teams/JAX/')&&!x.includes('/teams/PHI/')));
 });
+
+test('actual ESPN NFL singular depthchart response exposes rank-one QB without official starter inference',()=>{
+ const sites=[
+  {timestamp:'2026-10-11T00:40:00Z',status:'success',
+   season:{year:2026},team:{id:'30',abbreviation:'JAX'},
+   depthchart:[{name:'Offense',positions:{quarterback:{
+    position:{name:'Quarterback',abbreviation:'QB'},
+    athletes:[{rank:1,athlete:{id:'1001',displayName:'JAX QB1'}},
+              {rank:2,athlete:{id:'1008',displayName:'JAX Backup'}}]}}}]},
+  {depthchart:{positions:{quarterback:{position:{abbreviation:'QB'},
+   athletes:[{rank:1,athlete:{id:'1001',displayName:'JAX QB1'}}]}}}},
+  {depthchart:{offense:{positions:{quarterback:{position:{abbreviation:'QB'},
+   athletes:[{rank:1,athlete:{id:'1001',displayName:'JAX QB1'}}]}}}}}
+ ];
+ for(const raw of sites){
+  const result=nflDepthChartQb1(raw,'JAX');
+  assert.equal(result?.playerId,'1001');
+  assert.equal(result?.rank,1);
+  assert.match(result?.source||'',/NOT an official confirmed starter/);
+ }
+});
