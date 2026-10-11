@@ -6,6 +6,7 @@ import {pregameAiAudit} from '../lib/pregame-ai-review.js';
 import {nflRunCollectorBatch} from '../lib/nfl-collector-readiness.js';
 import {pregamePhase,pregameEvidenceAudit,pregameNeedsAiReview}
  from '../lib/pregame-revalidation.js';
+import {auditLeagueSgpEvent} from '../lib/sgp-league-wide-verification.js';
 import {selectedShardGames,collectorAuditReport,writeCollectorAudit}
  from '../lib/pregame-collector-shards.js';
 const PREFIX='momentum-pregame/v1/nba-';
@@ -141,7 +142,8 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   injuryLimitations:injurySectionPresent?
    'ESPN reported statuses checked; official inactives and starters not confirmed':
    'ESPN injury-report section unavailable; status is UNVERIFIED. Do not assume no players are injured, healthy or starting.'};
- const audit=pregameEvidenceAudit(prior,result,{league:'nba'});
+ result.sgpVerification=auditLeagueSgpEvent({league:'nba',gameId:game.gameId,sgps:result.sgps});
+  const audit=pregameEvidenceAudit(prior,result,{league:'nba'});
  result.evidenceDigests=audit.evidenceDigests;
  result.changedFromPrior=audit.changedFromPrior;
  result.changedFields=audit.changedFields;
@@ -173,6 +175,7 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
  await write(result);
  return{gameId:game.gameId,status:result.status,stage:plan.stage,revision:result.revision,
   changed:result.changedFromPrior,modelTiers:(result.sgps||[]).filter(x=>x.status==='MODEL_CANDIDATE').map(x=>x.risk),
+   sgpVerification:result.sgpVerification,
   injuryCount:injuries.length,changedFields:result.changedFields,
   offenseDefenseStatus:result.offenseDefenseStatus,reason:result.reason||null};
 }
