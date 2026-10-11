@@ -106,7 +106,11 @@ async function autoLock(base,games){
    url=base+'/api/nfl-markets?date='+date+'&gameId='+encodeURIComponent(g.gameId)+
     finalCheck+'&lockRun=1&ts='+Date.now();
   // A single delayed game must not exhaust the whole cron execution.
-  const r=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout(65000)});
+  // Only the signed cron can request the stricter ten-minute saved-snapshot
+  // freshness gate; anonymous ?lockRun=1 URLs cannot bypass the UI cache.
+  const r=await fetch(url,{cache:'no-store',
+   headers:{Authorization:'Bearer '+process.env.CRON_SECRET},
+   signal:AbortSignal.timeout(65000)});
   if(!r.ok){
    const failure=await r.json().catch(()=>null);
    return{gameId:g.gameId,status:'markets_unavailable',injuryWatch,
