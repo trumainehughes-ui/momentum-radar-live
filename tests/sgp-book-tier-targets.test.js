@@ -47,12 +47,13 @@ test('a missing Medium sportsbook alternate does not get relabeled as elevated p
  assert.ok(pools.Medium.every(x=>x.bookTierMode==='ELEVATED_EXPECTATION'));
 });
 test('reject under, unsupported 57+ yardage, or disabled/past market instead of inventing target odds',()=>{
- assert.equal(nflOfferedOverThreshold({line:'54.5',available:true},'rushing'),55);
- assert.equal(nflOfferedOverThreshold({line:'55+',available:true},'rushing'),55);
- assert.equal(nflOfferedOverThreshold({line:'57+',available:true},'rushing'),null);
- assert.equal(nflOfferedOverThreshold({line:'Over 54.5',available:true},'rushing'),null);
- assert.equal(nflOfferedOverThreshold({line:'55+',available:false},'rushing'),null);
+ assert.equal(nflOfferedOverThreshold({line:'54.5',odds:-110,available:true},'rushing'),55);
+ assert.equal(nflOfferedOverThreshold({line:'55+',odds:-110,available:true},'rushing'),55);
+ assert.equal(nflOfferedOverThreshold({line:'57+',odds:-110,available:true},'rushing'),null);
+ assert.equal(nflOfferedOverThreshold({line:'Over 54.5',odds:-110,available:true},'rushing'),null);
+ assert.equal(nflOfferedOverThreshold({line:'55+',odds:-110,available:false},'rushing'),null);
  assert.equal(nflOfferedOverThreshold({line:null},'passing'),null);
+ assert.equal(nflOfferedOverThreshold({line:'55+',odds:null,available:true},'rushing'),null);
  const bad=new Map(g);bad.set('13|receiving',[
   {...g.get('13|receiving')[0],bookOffer:{book:'FanDuel',odds:null,line:'55+',available:false}},
   {...g.get('13|receiving')[1],bookOffer:{book:'FanDuel',odds:-110,line:'87+',available:true}}
