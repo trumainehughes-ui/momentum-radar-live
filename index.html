@@ -210,7 +210,7 @@ function nflSgpBookAuditUi(s){
  }).filter(Boolean).join(' • ');
  const fd=audits.FanDuel;
  const missing=fd?.status!=='NO_LIVE_MARKETS'&&fd?.missingLegs?.length?
-  '<div class="note">FanDuel lines not confirmed: '+fd.missingLegs.slice(0,4).map(x=>nflEscape(x.name)+' '+nflEscape(x.requested)+(x.category==='td'?'':'+')).join(', ')+'</div>':'';
+  '<div class="note">FanDuel lines not confirmed: '+fd.missingLegs.slice(0,6).map(x=>nflEscape(x.name)+': model '+nflEscape(x.requested)+(x.category==='td'?'':'+')+(x.listedOffers?.length?' • '+nflEscape(x.listedOffers.map(y=>y.display).join(' / '))+' offered':' • no current matching offer')).join('<br>')+'</div>':'';
  return '<div class="note" style="margin-top:8px"><b>Sportsbook selection audit (NOT an SGP quote):</b> '+summary+missing+
  '<div class="note"><b>Combined odds still unverified.</b> Model Small/Medium/Nuke names are targets, not an available sportsbook payout. Do not use unmatched lines as a bet slip.</div></div>';
 }
