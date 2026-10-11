@@ -702,7 +702,7 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
  // Source and injury evidence must accompany the ACTIVE response path,
  // not only the unreachable legacy response below. Collector snapshots and
  // the match-up view read these exact fields to distinguish ready vs pending.
- const bookMarketCounts=Object.fromEntries(['DraftKings','FanDuel'].map(book=>[
+ const activeBookMarketCounts=Object.fromEntries(['DraftKings','FanDuel'].map(book=>[
   book,sgpRows.filter(m=>bookFor(m,book)).length
  ]));
  const response={ok:true,gameId,date,scope:'game',home,away,provider,categories,
@@ -713,7 +713,7 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
    state:sgpGateDiagnostics.eligible?'VERIFIED_INDIVIDUAL_PROPS':'NO_VERIFIED_PLAYER_PROPS',
    reason:sgpGateDiagnostics.eligible?'Individual bookmaker props observed; combined pricing is verified separately.':
     'No eligible current-book player prop rows; the ESPN analytics model remains independent.',
-   bookMarketCounts,combinedSgpQuoteAvailable:sgpResponse.combinedBookQuoteVerified
+   bookMarketCounts:activeBookMarketCounts,combinedSgpQuoteAvailable:sgpResponse.combinedBookQuoteVerified
   },
   validation:{
    sgpEligibleMarketRows:sgpGateDiagnostics.eligible,
