@@ -184,6 +184,7 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
  return{gameId:game.gameId,status:result.status,stage:plan.stage,revision:result.revision,
   changed:result.changedFromPrior,modelTiers:(result.sgps||[]).filter(x=>x.status==='MODEL_CANDIDATE').map(x=>x.risk),
    sgpVerification:result.sgpVerification,
+   sportsbookAiGuard:result.sportsbookAiGuard,
   injuryCount:injuries.length,changedFields:result.changedFields,
   offenseDefenseStatus:result.offenseDefenseStatus,reason:result.reason||null};
 }
