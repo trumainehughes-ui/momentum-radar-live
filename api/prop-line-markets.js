@@ -30,8 +30,6 @@ export default async function handler(req,res){
  if(!tokenRecord||tokenRecord.usedAt||Date.now()-Date.parse(tokenRecord.createdAt)>15*60*1000||tokenRecord.gameId!==String(req.query.gameId||''))return res.status(403).json({ok:false,error:'change_token_invalid_or_used'});
  // Blob overwrite is not atomic: disable credit spending until a transactional claim mechanism is available.
  return res.status(503).json({ok:false,error:'atomic_change_claim_not_configured'});
- // Mark before spending. Conservative fail-closed; simultaneous callers must still be serialized upstream.
- try{await put(tokenPath,JSON.stringify({...tokenRecord,usedAt:new Date().toISOString()}),{access:'public',addRandomSuffix:false,allowOverwrite:true})}catch{return res.status(503).json({ok:false,error:'change_token_store_unavailable'})}
  const key=process.env.PLAYER_PROPS_API_KEY;
  if(!key)return res.status(503).json({ok:false,error:'prop_line_not_configured'});
  const league=String(req.query.league||'nfl').toLowerCase();
