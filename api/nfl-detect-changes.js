@@ -1,3 +1,4 @@
+import {createHash} from 'node:crypto';
 import {put,list} from '@vercel/blob';
 import {aiChangeImpact} from '../lib/ai-mechanics/nfl-change-impact.js';
 const ESPN='https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=';
@@ -44,6 +45,18 @@ export default async function handler(req,res){
   }
   // A snapshot write must succeed before claiming change detection is persisted.
   await put(path,JSON.stringify({players:current,updatedAt:new Date().toISOString()}),{access:'public',addRandomSuffix:false,allowOverwrite:true});
+  // Issue a deterministic short-lived authorization only for ESPN-observed changes.
+  // The credit-consuming endpoint independently enforces a create-only claim.
+  let changeToken=null;
+  if(changes.length){
+   const fingerprint=changes.map(x=>[x.playerId,x.before,x.after].join(':')).sort().join('|');
+   changeToken=createHash('sha256').update(gameId+'|'+fingerprint).digest('hex');
+   const tokenPath='momentum-nfl-change-tokens/v1/'+changeToken+'.json';
+   await put(tokenPath,JSON.stringify({gameId,createdAt:new Date().toISOString(),source:'ESPN NFL injury summary',changeCount:changes.length}),{access:'public',addRandomSuffix:false,allowOverwrite:false}).catch(e=>{
+    if(!/already exists|already exists|409|conflict/i.test(String(e?.message||e)))throw e;
+    changeToken=null;
+   });
+  }
   // Only compare confirmed changes. The detector never spends PropLine credits.
   const assessed=[];
   for(const change of changes.slice(0,4))assessed.push({change,ai:await aiChangeImpact(change)});
@@ -66,6 +79,6 @@ export default async function handler(req,res){
     modelRefresh={attempted:true,status:response.ok?'completed':'failed',httpStatus:response.status};
    }catch{modelRefresh={attempted:true,status:'timeout_or_unavailable'}}
   }
-  return res.status(200).json({ok:true,gameId,modelRefresh,status:prior?'compared':'baseline_created',playersObserved:current.length,changes:assessed,invalidations,moreChanges:Math.max(0,changes.length-assessed.length),creditsUsed:0,propLineRefreshAuthorized:false,dvpRecalculationSuggested:assessed.some(x=>x.ai.dvpRecheck),sgpRebuildSuggested:assessed.some(x=>x.ai.sgpRebuild)});
+  return res.status(200).json({ok:true,gameId,modelRefresh,status:prior?'compared':'baseline_created',playersObserved:current.length,changes:assessed,invalidations,moreChanges:Math.max(0,changes.length-assessed.length),creditsUsed:0,propLineRefreshAuthorized:Boolean(changeToken),changeTokenIssued:Boolean(changeToken),dvpRecalculationSuggested:assessed.some(x=>x.ai.dvpRecheck),sgpRebuildSuggested:assessed.some(x=>x.ai.sgpRebuild)});
  }catch(e){console.error('nfl_change_detector_error',String(e?.message||e));return res.status(503).json({ok:false,error:'change_detection_unavailable',creditsUsed:0})}
 }
