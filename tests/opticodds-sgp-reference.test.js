@@ -181,3 +181,19 @@ test('NFL passing/rushing/receiving alt yards must be multiples of five, but rec
  const result=prepare({legs:reception,mapping:m});
  assert.equal(result.ready,true);
 });
+
+test('OpticOdds rejected SGP combinations, suspended legs, and outage errors are distinct',()=>{
+ const plan=prepare();
+ const rejected=interpretOpticOddsSgpPrice(plan,{
+  DraftKings:{error:'SelectionsCannotBeCombined'}},{now:time});
+ assert.equal(rejected.status,'PROVIDER_SGP_COMBINATION_REJECTED');
+ assert.equal(rejected.correlatedPrice,null);
+ const suspended=interpretOpticOddsSgpPrice(plan,{
+  data:{DraftKings:{error:'Missing odds for entries.',
+   missing_entries:[plan.entries[1]],price:null}}},{now:time});
+ assert.equal(suspended.status,'PROVIDER_SGP_MISSING_ENTRIES');
+ const down=interpretOpticOddsSgpPrice(plan,{
+  data:{DraftKings:{error:'Error with response. Try again later.',price:null}}},{now:time});
+ assert.equal(down.status,'PROVIDER_SGP_PRICING_ERROR');
+ for(const v of [rejected,suspended,down])assert.equal(v.bookQuoteVerified,false);
+});
