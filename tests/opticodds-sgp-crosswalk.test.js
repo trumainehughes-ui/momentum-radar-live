@@ -227,3 +227,35 @@ test('same verified quarterback can provide two DISTINCT stats within one SGP',(
  assert.equal(plan.ready,true);
  assert.equal(plan.requestBody.entries.length,6);
 });
+
+test('auto discards unknown markets and derives exact NFL category labels by documented market IDs',()=>{
+ const catalog=verifyOpticOddsMarketCatalog({league:'nfl',now,
+  providerMarkets:{data:[
+   {id:'player_passing_yards',name:'Player Passing Yards',
+    sports:[{id:'football',leagues:[{id:'nfl',sportsbooks:[{id:'draftkings'}]}]}]},
+   {id:'player_rushing_yards',name:'Player Rushing Yards',
+    sports:[{id:'football',leagues:[{id:'nfl',sportsbooks:[{id:'draftkings'}]}]}]},
+   {id:'player_receiving_yards',name:'Player Receiving Yards',
+    sports:[{id:'football',leagues:[{id:'nfl',sportsbooks:[{id:'draftkings'}]}]}]},
+   {id:'player_receptions',name:'Player Receptions',
+    sports:[{id:'football',leagues:[{id:'nfl',sportsbooks:[{id:'fanduel'}]}]}]}
+  ]}});
+ assert.equal(catalog.sourceVerified,true);
+ assert.deepEqual(catalog.passing,['Player Passing Yards']);
+ assert.deepEqual(catalog.rushing,['Player Rushing Yards']);
+ assert.deepEqual(catalog.receiving,['Player Receiving Yards']);
+ assert.deepEqual(catalog.receptions,[],'FanDuel-only market must not count as DraftKings');
+ const result=build({marketCatalog:catalog});
+ assert.equal(result.ready,true);
+});
+test('NBA automatic PRA category mapping must be verified against exact discovered provider ID',()=>{
+ const catalog=verifyOpticOddsMarketCatalog({league:'nba',now,providerMarkets:{data:[
+  {id:'player_points_+_rebounds_+_assists',name:'Player Points + Rebounds + Assists',
+   sports:[{id:'basketball',leagues:[{id:'nba',sportsbooks:[{id:'draftkings'}]}]}]},
+  {id:'player_made_threes',name:'Player Made Threes',
+   sports:[{id:'basketball',leagues:[{id:'nba',sportsbooks:[{id:'draftkings'}]}]}]}
+ ]}});
+ assert.deepEqual(catalog.pra,['Player Points + Rebounds + Assists']);
+ assert.deepEqual(catalog.threes,['Player Made Threes']);
+ assert.deepEqual(catalog.assists,[]);
+});
