@@ -59,7 +59,7 @@ test('ESPN depth-chart QB1 rank=1 is parsed; backups, ambiguity and malformed ID
 });
 test('free ESPN QB1 lookup checks only current matchup teams and isolates failed team fetch',async()=>{
  const calls=[];
- const result=await nflCurrentGameDepthChartQbs({home,away,
+ const result=nflCurrentGameDepthChartQbs({{home,away,
  teamIdsByAbbr:new Map([['JAX','30'],['PHI','21']]),fetchJson:async url=>{
   calls.push(url);
   if(url.includes('/21/'))throw Error('unavailable');
