@@ -91,6 +91,8 @@ test('event-wide verification requires authenticated quote AND all exact book-le
   league:'nfl',gameId:game,sgps:{Analytics:[s]},
   bookIssuedQuotes:{FanDuel:{Small:quote()}},quoteAdapterAuthenticated:true,now:at
  });
+ assert.equal(correct.status,'BOOK_TIER_VERIFIED');
+ assert.match(correct.tiers[0].reason,/fresh matching sportsbook-issued price/);
  assert.equal(correct.tiers[0].books.FanDuel.status,'TIER_COMBINED_QUOTE_VERIFIED');
  assert.equal(correct.tiers[0].books.FanDuel.actualCombinedOdds,2400);
  assert.equal(correct.sportsbookVerifiedCount,1);
