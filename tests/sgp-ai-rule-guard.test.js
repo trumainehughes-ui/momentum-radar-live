@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {validateAiSgpRules} from '../lib/sgp-ai-rule-guard.js';
 import {LEAGUE_SGP_TARGETS,LEAGUE_SGP_LEG_BOUNDS} from '../lib/sgp-tier-contract.js';
+import {sgpAiRecheckPlan} from '../lib/sgp-ai-recheck-plan.js';
 const gameId='401872981';
 const types=['rushing','passing','receiving','receptions','rushing','passing','td'];
 const targets=[50,225,65,4,80,250,'Anytime TD'],regular=[70,270,90,6,105,285,null],
@@ -78,4 +79,23 @@ test('NBA AI respects its own 2-3/3-5/5-7 counts, diverse stat categories and el
  assert.ok(review('Small',duplicate,'nba').rules.includes('INSUFFICIENT_NBA_STAT_DIVERSITY'));
  const bad=nba('Nuke',5);bad[3].analyticsThreshold=bad[3].predictiveProjection;
  assert.ok(review('Nuke',bad,'nba').rules.includes('NUKE_NOT_ABOVE_MODEL_PROJECTION'));
+});
+
+test('AI Parlay Architect refuses a forged model-ready flag if the actual Small rules are violated',()=>{
+ const cards=make('Small',4);
+ cards[0].analyticsThreshold=57;
+ const card={risk:'Small',requiredLegs:4,legs:cards,bookMarketAudits:{}};
+ const p=sgpAiRecheckPlan({
+  league:'nfl',gameId,sgps:{Analytics:[card]},
+  sgpVerification:{league:'nfl',gameId,tiers:[{risk:'Small',
+   modelStatus:'MODEL_CANDIDATE',books:{}}]},
+  sourceAvailable:true,sourceCheckedAt:new Date().toISOString()
+ });
+ const tier=p.tiers.find(x=>x.risk==='Small');
+ assert.equal(tier.modelStatus,'NOT_READY');
+ assert.equal(tier.aiRuleValidation.valid,false);
+ assert.ok(tier.aiRuleValidation.violations.includes('NFL_YARDS_NOT_MULTIPLE_OF_FIVE'));
+ assert.ok(tier.bookActions.every(x=>x.action==='REBUILD_MODEL'));
+ assert.equal(p.needsCombinedQuotes,0);
+ assert.equal(p.canModifyPicks,false);
 });
