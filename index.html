@@ -160,7 +160,7 @@ async function nflRefreshInjuryPanel(gameId,manual=false){
     const status=['OUT','DOUBTFUL','QUESTIONABLE','INACTIVE','IR','ACTIVE','PROBABLE','REPORTED_OTHER','UNKNOWN'].includes(x.status)?x.status:'UNKNOWN';
     const source=x.gameDesignationVerified?'NFL WEEKLY':x.section==='PRACTICE'?'NFL PRACTICE':'ESPN TRACKER';
     return '<div class="nflInjuryCard"><div class="nflInjuryPlayer">'+safe(x.name)+
-      '<span class="nflInjuryStatus '+status+'">'+status+'</span></div>'+
+      '<span class="nflInjuryStatus '+status+'">'+(x.section==='PRACTICE'&&status==='UNKNOWN'?'PRACTICE ONLY':status)+'</span></div>'+
       '<div class="nflInjuryDetails">'+safe(x.position||'—')+' • '+safe(x.injury||'Injury detail not supplied')+
       ' • '+source+(x.practiceStatus?' • '+safe(x.practiceStatus):'')+'</div></div>';
    };
