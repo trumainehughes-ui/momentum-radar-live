@@ -15,7 +15,7 @@ const req={
  ]
 };
 const good=()=>({
- quoted:true,redacted:false,bookmaker:'fanduel',event_id:872990,
+ quoted:true,redacted:false,bookmaker:'fanduel',id:'872990',
  sport_key:'football_nfl',sgp_price:10001,
  priced_at:new Date(now-5000).toISOString(),
  legs:req.legs.map(x=>({...x,accepted:true})).reverse()
@@ -28,10 +28,25 @@ test('exact, fresh provider-reported combined odds survive despite reordered leg
  assert.equal(r.legsAccepted,5);
  assert.equal(r.reason,'PROVIDER_BOOK_COMBINED_PRICE_VALIDATED');
 });
+test('documented PropLine top-level id validates and conflicting aliases never override it',()=>{
+ assert.equal(check(good()).quoted,true);
+ const legacy={...good(),id:undefined,event_id:'872990'};
+ assert.equal(check(legacy).quoted,true);
+ for(const collision of [
+  {...good(),event_id:'987'},
+  {...good(),event:{id:'987'}},
+  {...good(),id:undefined,event_id:'987'},
+  {...good(),id:null,event_id:undefined}
+ ]){
+  assert.equal(check(collision).quoted,false);
+  assert.equal(check(collision).reason,'QUOTE_EVENT_MISMATCH');
+ }
+});
 test('no unverified source may return a positive combined quote',()=>{
  const variants=[
-  {bookmaker:'draftkings'}, {bookmaker:undefined},{event_id:123},
-  {event_id:null},{sport_key:'basketball_nba'},
+  {bookmaker:'draftkings'}, {bookmaker:undefined},{id:123},
+  {event_id:123},{event:{id:987654}},
+  {id:null},{sport_key:'basketball_nba'},
   {priced_at:null},{priced_at:new Date(now-900001).toISOString()},
   {priced_at:new Date(now+1000).toISOString()},
   {sgp_price:10000.5},{sgp_price:'10001'},{sgp_price:-110},
