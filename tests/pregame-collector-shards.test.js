@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {selectedShardGames,shardForGame,COLLECTOR_SHARDS,
- collectorAuditPath,collectorAuditReport,readCollectorAudits,writeCollectorAudit}
+ collectorAuditPath,collectorAuditReport,collectorTierSummary,readCollectorAudits,writeCollectorAudit}
  from '../lib/pregame-collector-shards.js';
 import {nflCollectorDueGames} from '../lib/nfl-collector-readiness.js';
 import nflCron from '../api/nfl-health.js';
@@ -117,4 +117,70 @@ test('anonymous visitors cannot impersonate either sharded cron or write collect
  }
  const s=readFileSync(new URL('../api/pregame-collector-status.js',import.meta.url),'utf8');
  assert.ok(!/BALLDONTLIE_API_KEY|SPORTSGAMEODDS_API_KEY|GROQ_API_KEY|THE_ODDS_API_KEY/.test(s));
+});
+
+test('NFL counts actual qualified Small/Medium/Nuke tiers, not nine unquoted book cards',()=>{
+ const full={gameId:'401872981',status:'updated',sgps:9,picks:5,
+  modelTierReadiness:{
+   Small:{status:'MODEL_CANDIDATE',legs:4},
+   Medium:{status:'MODEL_CANDIDATE',legs:5},
+   Nuke:{status:'MODEL_CANDIDATE',legs:5}
+  },changedFields:['PLAYER_PROPS','INJURIES','MATCHUP','AN_UNEXPECTED_STRING']};
+ const blocked={gameId:'401872988',status:'no_qualified_model_data',sgps:0,picks:2,
+  modelTierReadiness:{
+   Small:{status:'NOT_READY',legs:0},
+   Medium:{status:'NOT_READY',legs:0},
+   Nuke:{status:'NOT_READY',legs:0}
+  }};
+ const rep=collectorAuditReport('nfl',0,[full,blocked],{now});
+ assert.equal(rep.successful,2,'successful processing is not a valid parlay');
+ assert.equal(rep.readyGames,1);
+ assert.equal(rep.incompleteModelGames,1);
+ assert.equal(rep.unknownModelGames,0);
+ assert.equal(rep.readyModelTiers,3);
+ assert.equal(rep.results[0].allModelTiersReady,true);
+ assert.equal(rep.results[0].unquotedCandidateRecords,9);
+ assert.equal(rep.results[0].verifiedCombinedOdds,false);
+ assert.deepEqual(rep.results[0].changedFields,['PLAYER_PROPS','INJURIES','MATCHUP']);
+ assert.equal(rep.results[1].allModelTiersReady,false);
+ assert.equal(rep.results[1].tiers.Nuke,'NOT_READY');
+ assert.ok(!JSON.stringify(rep).includes('actualSgpOdds'));
+});
+test('NBA uses the same per-game tier reporting without implying sportsbook quotes',()=>{
+ const report=collectorAuditReport('nba',1,[
+  {gameId:'401901821',status:'MODEL_ONLY',modelTiers:['Small','Medium','Nuke']},
+  {gameId:'401898400',status:'NOT_READY',modelTiers:[]}
+ ],{now});
+ assert.equal(report.readyGames,1);
+ assert.equal(report.incompleteModelGames,1);
+ assert.equal(report.readyModelTiers,3);
+ assert.equal(report.results[0].tiers.Medium,'MODEL_CANDIDATE');
+ assert.equal(report.results[1].tiers.Small,'NOT_READY');
+ assert.equal(report.results[0].verifiedCombinedOdds,false);
+ assert.equal(collectorTierSummary({sgps:9}).readyCount,null,
+  'unverified raw book candidates cannot manufacture ready model tiers');
+});
+test('shard dashboard shows aggregate tier readiness separately from cron success',async()=>{
+ const t=now;
+ const left=collectorAuditReport('nfl',0,[{
+  gameId:'401872981',status:'updated',modelTierReadiness:{
+   Small:{status:'MODEL_CANDIDATE',legs:4},
+   Medium:{status:'MODEL_CANDIDATE',legs:5},
+   Nuke:{status:'MODEL_CANDIDATE',legs:5}
+  }
+ }],{now:t,due:1});
+ const right=collectorAuditReport('nfl',1,[{
+  gameId:'401872988',status:'updated',modelTierReadiness:{
+   Small:{status:'NOT_READY',legs:0},Medium:{status:'NOT_READY',legs:0},
+   Nuke:{status:'NOT_READY',legs:0}
+  }
+ }],{now:t,due:1});
+ const out=await readCollectorAudits('nfl',{now:t+60000,
+  listBlobs:async({prefix})=>({blobs:[{pathname:prefix,url:prefix}]}),
+  fetchBlob:async url=>({ok:true,json:async()=>url.endsWith('shard-0.json')?left:right})});
+ assert.equal(out.summary.successful,2);
+ assert.equal(out.summary.modelReadyGames,1);
+ assert.equal(out.summary.modelIncompleteGames,1);
+ assert.equal(out.summary.modelReadyTiers,3);
+ assert.equal(out.summary.coverageCurrent,true);
 });
