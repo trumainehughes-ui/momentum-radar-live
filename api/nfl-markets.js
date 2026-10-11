@@ -9,6 +9,7 @@ import {filterCompleteNflBookSgps} from '../lib/nfl-book-sgp-candidates.js';
 import {evaluateNflBookQuoteReadiness} from '../lib/nfl-book-quote-readiness.js';
 import {mergeAuthorizedPropLineRows,nflAuthorizedBookSgpRows} from '../lib/nfl-propline-authorized-merge.js';
 import {shouldServeCachedNflMarkets,signedNflCollectorLock} from '../lib/nfl-market-response-cache.js';
+import {chooseNflCheckpointQuotes} from '../lib/nfl-checkpoint-quote-selection.js';
 import {nflCurrentGameDepthChartQbs,nflProjectedDepthChartQbEligible} from '../lib/nfl-depthchart-qb1.js';
 import {nflCurrentRosterAthletes} from '../lib/nfl-roster-evidence.js';
 import {nflGameInjuryEvidence,nflInjuryBlocks} from '../lib/nfl-injury-evidence.js';
@@ -536,13 +537,13 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
   // PropLine credits are reserved for verified roster/offense/defense change events.
   // Public page reads, routine refreshes and missing primary odds never spend credits.
   const changeType=String(req.query.changeType||'').toLowerCase();
-  const allowedChange=new Set(['player_injury','player_inactive','qb_change','offense_change','defense_change','depth_chart_change']);
+  const allowedChange=new Set(['player_injury','player_inactive','qb_change','offense_change','defense_change','depth_chart_change','scheduled_checkpoint']);
   const auth=String(req.headers.authorization||'');
   verifiedToken=String(req.headers['x-momentum-change-token']||'');
   authorizedChange=Boolean(process.env.CRON_SECRET)&&auth==='Bearer '+process.env.CRON_SECRET&&allowedChange.has(changeType)&&/^[a-f0-9]{64}$/.test(verifiedToken); // PropLine validates stored evidence and atomically claims it.
   oddsDebug.aiInWorkflow=Boolean(process.env.GROQ_API_KEY);
   oddsDebug.sportsbookStatus='verified_market_data_pending';
-  oddsDebug.propLineCreditPolicy='verified_change_only';
+  oddsDebug.propLineCreditPolicy='verified_change_or_signed_checkpoint_only';
   oddsDebug.propLineChangeType=authorizedChange?changeType:null;
   if(process.env.PLAYER_PROPS_API_KEY&&authorizedChange){
    try{
@@ -673,7 +674,13 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
   oddsDebug.authorizedQuoteCandidates=candidates.length;
   const origin=process.env.VERCEL_PROJECT_PRODUCTION_URL?
    'https://'+process.env.VERCEL_PROJECT_PRODUCTION_URL:'https://momentum-radar-live.vercel.app';
-  await Promise.all(candidates.slice(0,6).map(async({book,bookmaker,risk,candidate})=>{
+  // No more than 3 correlated quote requests in a scheduled checkpoint
+  // (plus at most two market lookups). Material injury changes retain six.
+  const quoteCandidates=changeType==='scheduled_checkpoint'?
+   chooseNflCheckpointQuotes(candidates,{gameId,
+    stage:String(req.query.checkpointStage||''),max:3}):
+   candidates.slice(0,6);
+  await Promise.all(quoteCandidates.map(async({book,bookmaker,risk,candidate})=>{
    const key=bookmaker+'_'+risk+'QuoteStatus';
    try{
     const quoteRes=await timedFetch(origin+'/api/prop-line-sgp-quote',{
@@ -742,7 +749,7 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
  // snapshot persists; ordinary UI responses keep their prior latency bound.
  await Promise.race([writeResponseSnapshot(responseKey,response),
   new Promise(resolve=>setTimeout(resolve,
-   signedNflCollectorLock(req,process.env.CRON_SECRET)?4500:1200))]);
+   (signedNflCollectorLock(req,process.env.CRON_SECRET)||authorizedChange)?4500:1200))]);
  return res.status(200).json(response);
  const tierByRisk=Object.fromEntries((analyticsSgps||[]).map(s=>[s.risk,s]));const completeBook=(arr,book)=>['Small','Medium','Nuke'].map(risk=>{const candidate=(arr||[]).find(s=>s.risk===risk);if(candidate)return {...candidate,bookVerificationPending:true,combinedBookQuoteVerified:false,actualSgpOdds:null,payoutBandVerified:false,nukePayoutVerified:false,publishable:false,displayLabel:book+' SGP • Individual-prop candidate (combined price unquoted)',reason:(candidate.reason||'')+' Individual prop legs are not a bookmaker-issued correlated SGP quote.'};return null; }).filter(Boolean); // Do not brand an analytics-only parlay as a DraftKings/FanDuel selection.let sgps=gameId?{DraftKings:completeBook(bookSgps.DraftKings,'DraftKings'),FanDuel:completeBook(bookSgps.FanDuel,'FanDuel'),Analytics:analyticsSgps,mode:'BOOK_CANDIDATES_OR_ANALYTICS_ONLY',displayOrder:['DraftKings','FanDuel','Analytics'],rule:'Display Momentum Radar model tiers as unquoted candidates; DraftKings/FanDuel individual leg offers do NOT establish a verified correlated same-game parlay price.'}:{};const manualTonight=gameId?manualAtlNoTonightSgps(date,home,away):null;requestStage='sgp_pruning';sgps=pruneSgpsForEligibility(sgps,eligibility,{gameId,home,away});if(gameId){sgps.Analytics=(sgps.Analytics||[]).map(s=>({...s,publishable:false,displayLabel:'Momentum Radar '+s.risk+' model'}));if(manualTonight)sgps.manualMarketContext={active:true,game:'ATL @ NO',date:'2026-10-05',sourcePolicy:MARKET_SOURCE_POLICY,publicMarketSnapshot:manualTonight[0]?.publicMarketSnapshot||null,currentSeasonOnly:true,note:'Manual/public sportsbook data is market context only. Analytics SGPs are generated by the normal projection engine.'}}res.setHeader('Cache-Control',clientCachePolicy);res.setHeader('CDN-Cache-Control',clientCachePolicy);res.setHeader('Vercel-CDN-Cache-Control',clientCachePolicy);requestStage='outcome_profile';function gameOutcomeProfile(){
  if(!gameId||!home||!away)return null;

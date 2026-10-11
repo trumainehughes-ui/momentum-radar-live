@@ -1,6 +1,7 @@
 import {list,put} from '@vercel/blob';
 import {verifyPropLineSgpResponse} from '../lib/prop-line-sgp-quote-verification.js';
 import {exactPropLineSgpLeg} from '../lib/prop-line-sgp-leg-identity.js';
+import {validNflCheckpointToken,NFL_CHECKPOINT_MAX_QUOTES} from '../lib/nfl-scheduled-book-checkpoint.js';
 // Explicit, change-authorized SGP pricing. No public or routine-refresh provider spend.
 const API='https://api.prop-line.com/v1';
 const SPORT={nfl:'football_nfl',nba:'basketball_nba'};
@@ -28,12 +29,29 @@ export default async function handler(req,res){
  let record;
  try{const blobs=await list({prefix:path,limit:5});const found=blobs.blobs?.find(b=>b.pathname===path);if(found){const r=await fetch(found.url,{signal:AbortSignal.timeout(2500)});if(r.ok)record=await r.json()}}catch{return res.status(503).json({ok:false,error:'token_store_unavailable'})}
  const age=Date.now()-Date.parse(record?.createdAt||'');
- if(!record||String(record.gameId)!==String(gameId)||!Number.isFinite(age)||age<0||age>900000||record.changeCount<1)return res.status(403).json({ok:false,error:'change_token_invalid'});
+ if(!record||String(record.gameId)!==String(gameId)||!Number.isFinite(age)||age<0||age>900000||
+    !(Number(record.changeCount)>=1||(league==='nfl'&&validNflCheckpointToken(record,gameId))))return res.status(403).json({ok:false,error:'change_token_invalid'});
  if(!process.env.PLAYER_PROPS_API_KEY)return res.status(503).json({ok:false,error:'provider_not_configured'});
  // Each NFL tier is single-use for this bookmaker and verified change, preventing
  // duplicate spend while allowing all three properly constructed tiers.
  const claimPath='momentum-propline-sgp-claims/v1/'+token+'/'+bookmaker+(league==='nfl'?'/'+risk:'')+'.json';
  try{await put(claimPath,JSON.stringify({gameId,eventId,risk:league==='nfl'?risk:null,at:new Date().toISOString()}),{access:'public',addRandomSuffix:false,allowOverwrite:false})}catch{return res.status(409).json({ok:false,error:'quote_already_attempted'})}
+ // Checkpoint pricing uses at most three provider quote requests across
+ // BOTH sportsbooks and ALL tiers; atomic slots enforce this even if the
+ // caller retries or independently tries to quote additional tiers.
+ if(league==='nfl'&&record.source==='NFL_SCHEDULED_CHECKPOINT'){
+  let slotClaimed=false;
+  for(let slot=0;slot<NFL_CHECKPOINT_MAX_QUOTES;slot++){
+   try{
+    await put('momentum-propline-sgp-claims/v1/'+token+'/slots/'+slot+'.json',
+     JSON.stringify({gameId,eventId,bookmaker,risk,at:new Date().toISOString()}),
+     {access:'public',addRandomSuffix:false,allowOverwrite:false});
+    slotClaimed=true;break;
+   }catch{/* Occupied or unavailable: never bypass the cap. */}
+  }
+  if(!slotClaimed)
+   return res.status(409).json({ok:false,error:'checkpoint_quote_budget_exhausted'});
+ }
  try{
   const r=await fetch(API+'/sports/'+SPORT[league]+'/events/'+eventId+'/sgp',{method:'POST',headers:{'X-API-Key':process.env.PLAYER_PROPS_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({bookmaker,legs:legs.map(l=>league==='nfl'?exactPropLineSgpLeg(l):({book_outcome_id:l.book_outcome_id,market:l.market}))}),signal:AbortSignal.timeout(12000)});
   const data=await r.json().catch(()=>({}));
