@@ -492,7 +492,7 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
   if(!directRows?.length&&process.env.PLAYER_PROPS_API_KEY&&authorizedChange){
    try{
     const propUrl=(req.headers['x-forwarded-proto']||'https')+'://'+req.headers.host+'/api/prop-line-markets?league=nfl&date='+date+'&gameId='+encodeURIComponent(gameId);
-    const propResult=await Promise.race([(async()=>{const r=await timedFetch(propUrl,{cache:'no-store'});return r.ok?await r.json():null})(),new Promise(resolve=>setTimeout(()=>resolve(null),6000))]);
+    const propResult=await Promise.race([(async()=>{const r=await timedFetch(propUrl,{cache:'no-store',headers:{Authorization:'Bearer '+process.env.CRON_SECRET}});return r.ok?await r.json():null})(),new Promise(resolve=>setTimeout(()=>resolve(null),6000))]);
     const offers=propLineRows(propResult,gameId);
     if(offers.length){directRows=offers;provider='PropLine';oddsDebug.stage='prop_line_market_ready';oddsDebug.propLineRows=offers.length}
     else oddsDebug.propLineStage='no_current_verified_offers';
