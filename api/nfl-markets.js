@@ -97,7 +97,17 @@ const PRIMARY_BOOKS=['DraftKings','FanDuel'];
 const APPROVED_BOOKS=['DraftKings','FanDuel','BetMGM','Caesars','BetRivers','Fanatics','BetOnline','Bovada'];
 function approvedBook(m){for(const name of APPROVED_BOOKS){const b=bookFor(m,name);if(b)return b}return(m.books||[]).find(x=>x?.available!==false&&x?.odds!==null&&x?.odds!==undefined&&x?.odds!==''&&Number.isFinite(Number(x.odds))&&Number(x.odds)!==0)||null}
 function market(o,eventID){const books=Object.entries(o.byBookmaker||{}).filter(([,v])=>v?.available).map(([book,v])=>({book:canonicalBook(book)||book,odds:v.odds??null,line:v.overUnder??v.spread??null,available:true}));const rawTeam=o.teamID||o.team?.abbreviation||o.statEntity?.teamID||o.statEntity?.team?.abbreviation||'';return{eventID,playerID:o.playerID||o.statEntityID||'',name:playerName(o),team:norm(rawTeam),marketName:o.marketName||'',statID:o.statID||'',periodID:o.periodID||'',betTypeID:o.betTypeID||'',sideID:o.sideID||'',fairOdds:o.fairOdds??null,bookOdds:o.bookOdds??null,line:o.bookOverUnder??null,books}}
-function category(m){const key=String(m.marketName||'').toLowerCase();if(key.startsWith('player_pass_yds'))return'passing';if(key.startsWith('player_rush_yds'))return'rushing';if(key.startsWith('player_reception_yds'))return'receiving';if(key.startsWith('player_receptions'))return'receptions';const s=(m.statID+' '+m.marketName).toLowerCase();if(m.periodID!=='game')return null;if(m.statID==='touchdowns'&&m.betTypeID==='yn'&&m.sideID==='yes')return'td';if(m.betTypeID!=='ou'||m.sideID!=='over')return null;if(s.includes('passing')&&s.includes('yard')&&!s.includes('rushing')&&!s.includes('receiving'))return'passing';if(s.includes('rushing')&&s.includes('yard')&&!s.includes('receiving')&&!s.includes('passing'))return'rushing';if((s.includes('receiving')||s.includes('reception'))&&s.includes('yard')&&!s.includes('rushing')&&!s.includes('passing'))return'receiving';if(s.includes('reception')&&!s.includes('yard')&&!s.includes('longest'))return'receptions';return null}
+function category(m){if(m.periodID!=='game')return null;
+ if(m.statID==='touchdowns'&&m.betTypeID==='yn'&&m.sideID==='yes')return'td';
+ // Strict source-side gate MUST precede any prefix-based stat detection:
+ // player_pass_yds under or a first-quarter market is NOT a game over.
+ if(m.betTypeID!=='ou'||m.sideID!=='over')return null;
+ const key=String(m.marketName||'').toLowerCase();
+ if(key.startsWith('player_pass_yds'))return'passing';
+ if(key.startsWith('player_rush_yds'))return'rushing';
+ if(key.startsWith('player_reception_yds'))return'receiving';
+ if(key.startsWith('player_receptions'))return'receptions';
+ const s=(m.statID+' '+m.marketName).toLowerCase();if(s.includes('passing')&&s.includes('yard')&&!s.includes('rushing')&&!s.includes('receiving'))return'passing';if(s.includes('rushing')&&s.includes('yard')&&!s.includes('receiving')&&!s.includes('passing'))return'rushing';if((s.includes('receiving')||s.includes('reception'))&&s.includes('yard')&&!s.includes('rushing')&&!s.includes('passing'))return'receiving';if(s.includes('reception')&&!s.includes('yard')&&!s.includes('longest'))return'receptions';return null}
 function americanToProb(a){a=+a;if(!Number.isFinite(a)||!a)return null;return a>0?100/(a+100):(-a)/(-a+100)}
 function bookFor(m,name){return(m?.books||[]).find(x=>x?.book===name&&x.available!==false&&x.odds!==null&&x.odds!==undefined&&x.odds!==''&&Number.isFinite(Number(x.odds))&&Number(x.odds)!==0)||null}
 function bestBook(m){return PRIMARY_BOOKS.map(x=>bookFor(m,x)).find(Boolean)||approvedBook(m)||null}
