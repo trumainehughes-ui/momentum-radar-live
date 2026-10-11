@@ -1,3 +1,4 @@
+import {list,put} from '@vercel/blob';
 // Server-only PropLine integration. No credentials or raw provider errors reach clients.
 const API='https://api.prop-line.com/v1';
 const SPORTS={nfl:'football_nfl',nba:'basketball_nba'};
@@ -17,6 +18,18 @@ export default async function handler(req,res){
  // Prevent unauthenticated public calls from consuming paid provider credits.
  if(!process.env.CRON_SECRET||req.headers.authorization!=='Bearer '+process.env.CRON_SECRET)
   return res.status(403).json({ok:false,error:'authorized_change_refresh_required'});
+ const eventToken=String(req.headers['x-momentum-change-token']||'');
+ if(!/^[a-f0-9]{64}$/.test(eventToken))return res.status(403).json({ok:false,error:'verified_change_token_required'});
+ const tokenPath='momentum-nfl-change-tokens/v1/'+eventToken+'.json';
+ let tokenRecord=null;
+ try{
+  const records=await list({prefix:tokenPath,limit:5});
+  const item=records.blobs?.find(x=>x.pathname===tokenPath);
+  if(item){const result=await fetch(item.url,{signal:AbortSignal.timeout(2500)});if(result.ok)tokenRecord=await result.json()}
+ }catch{return res.status(503).json({ok:false,error:'change_token_store_unavailable'})}
+ if(!tokenRecord||tokenRecord.usedAt||Date.now()-Date.parse(tokenRecord.createdAt)>15*60*1000||tokenRecord.gameId!==String(req.query.gameId||''))return res.status(403).json({ok:false,error:'change_token_invalid_or_used'});
+ // Mark before spending. Conservative fail-closed; simultaneous callers must still be serialized upstream.
+ try{await put(tokenPath,JSON.stringify({...tokenRecord,usedAt:new Date().toISOString()}),{access:'public',addRandomSuffix:false,allowOverwrite:true})}catch{return res.status(503).json({ok:false,error:'change_token_store_unavailable'})}
  const key=process.env.PLAYER_PROPS_API_KEY;
  if(!key)return res.status(503).json({ok:false,error:'prop_line_not_configured'});
  const league=String(req.query.league||'nfl').toLowerCase();
