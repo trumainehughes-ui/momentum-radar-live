@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {matchOpticOddsFixture,buildOpticOddsMarketCrosswalk}
+import {matchOpticOddsFixture,buildOpticOddsMarketCrosswalk,verifyOpticOddsMarketCatalog}
  from '../lib/opticodds-sgp-crosswalk.js';
 import {prepareOpticOddsSgpRequest} from '../lib/opticodds-sgp-reference.js';
 const now=Date.parse('2026-10-11T10:00:00Z');
@@ -128,4 +128,32 @@ test('NBA game with exact fixture and four categories uses the same market match
     market:'Player Assists',name:'Player B Over 4.5',price:-110,timestamp:now/1000}
   ]}]},now});
  assert.equal(b.ready,true);
+});
+
+test('market catalog is derived only from documented provider market discovery for league and DraftKings',()=>{
+ const fixtureMarketNames=['Player Passing Yards','Player Rushing Yards','Player Receiving Yards'];
+ const result=verifyOpticOddsMarketCatalog({league:'nfl',now,
+  categoryNames:{passing:[fixtureMarketNames[0]],rushing:[fixtureMarketNames[1]],
+   receiving:[fixtureMarketNames[2]],td:['Wrong TD Market']},
+  providerMarkets:{data:fixtureMarketNames.map(name=>({name,
+   sports:[{id:'football',leagues:[{id:'nfl',
+    sportsbooks:[{id:'draftkings',name:'DraftKings'}]}]}]}))}});
+ assert.equal(result.sourceVerified,true);
+ assert.deepEqual(result.passing,['Player Passing Yards']);
+ assert.deepEqual(result.rushing,['Player Rushing Yards']);
+ assert.deepEqual(result.receiving,['Player Receiving Yards']);
+ assert.deepEqual(result.td,[]);
+ const mapped=build({marketCatalog:result});
+ assert.equal(mapped.ready,true);
+});
+test('market catalog must not borrow market names from a different league or sportsbook',()=>{
+ const options={league:'nfl',now,categoryNames:{passing:['Player Passing Yards']}};
+ const wrongLeague=verifyOpticOddsMarketCatalog({...options,providerMarkets:{data:[{
+  name:'Player Passing Yards',sports:[{id:'football',leagues:[{id:'ncaaf',
+   sportsbooks:[{id:'draftkings'}]}]}]}]}});
+ assert.equal(wrongLeague.sourceVerified,false);
+ const wrongBook=verifyOpticOddsMarketCatalog({...options,providerMarkets:{data:[{
+  name:'Player Passing Yards',sports:[{id:'football',leagues:[{id:'nfl',
+   sportsbooks:[{id:'fanduel'}]}]}]}]}});
+ assert.equal(wrongBook.sourceVerified,false);
 });
