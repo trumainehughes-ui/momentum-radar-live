@@ -14,6 +14,9 @@ async function load(url,key){
 export default async function handler(req,res){
  res.setHeader('Cache-Control','private, no-store');
  if(req.method!=='GET')return res.status(405).json({ok:false,error:'method_not_allowed'});
+ // Prevent unauthenticated public calls from consuming paid provider credits.
+ if(!process.env.CRON_SECRET||req.headers.authorization!=='Bearer '+process.env.CRON_SECRET)
+  return res.status(403).json({ok:false,error:'authorized_change_refresh_required'});
  const key=process.env.PLAYER_PROPS_API_KEY;
  if(!key)return res.status(503).json({ok:false,error:'prop_line_not_configured'});
  const league=String(req.query.league||'nfl').toLowerCase();
