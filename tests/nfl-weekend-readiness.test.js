@@ -88,7 +88,8 @@ test('real market event IDs are mapped back to ESPN game identity',()=>{
  const api=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
  assert.ok(api.includes('async function oddsApiFallback(date,home,away,gameId)'));
  assert.ok(api.includes("return oddsApiRows(await r.json(),gameId).map(x=>({...x,providerEventID:ev.id}))"));
- assert.ok(api.includes("directRows=rows.map(x=>({...x,providerEventID:x.eventID,eventID:gameId}))"));
+ assert.ok(api.includes('mergeAuthorizedPropLineRows(rows.map(x=>({...x,providerEventID:x.eventID,eventID:gameId})),signedPropLineRows)'));
+ assert.ok(api.includes("buildBookSgp(quoteSourceRows,'DraftKings',ctx)"));
  assert.ok(api.includes('shouldUseSgoBackup({'),'SportsGameOdds must stay backup-only');
  assert.ok(!api.includes('providerBackup=1'));
 });

@@ -7,6 +7,7 @@ import {nflDayAheadRoleEvidence} from '../lib/nfl-day-ahead-roles.js';
 import {summarizeNflNukeEvidence} from '../lib/nfl-nuke-evidence-diagnostics.js';
 import {filterCompleteNflBookSgps} from '../lib/nfl-book-sgp-candidates.js';
 import {evaluateNflBookQuoteReadiness} from '../lib/nfl-book-quote-readiness.js';
+import {mergeAuthorizedPropLineRows,nflAuthorizedBookSgpRows} from '../lib/nfl-propline-authorized-merge.js';
 import {shouldServeCachedNflMarkets,signedNflCollectorLock} from '../lib/nfl-market-response-cache.js';
 import {nflCurrentGameDepthChartQbs,nflProjectedDepthChartQbEligible} from '../lib/nfl-depthchart-qb1.js';
 import {nflCurrentRosterAthletes} from '../lib/nfl-roster-evidence.js';
@@ -514,6 +515,7 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
  let kickoff=null;
  if(gameId){const s=await json(ESPN+'/summary?event='+encodeURIComponent(gameId));const c=s.header?.competitions?.[0]||{},cs=c.competitors||[];home=cs.find(x=>x.homeAway==='home')?.team?.abbreviation||'';away=cs.find(x=>x.homeAway==='away')?.team?.abbreviation||'';kickoff=c.date||null}
  let events=[],provider='Analytics / ESPN',directRows=null,oddsDebug={attempted:false,stage:'model_primary'};
+ const signedPropLineRows=[];
  let authorizedChange=false,verifiedToken='';
  const sgoFlag=String(process.env.SPORTSGAMEODDS_ENABLED||'').toLowerCase();
  const sgoEnabled=Boolean(process.env.SPORTSGAMEODDS_API_KEY)&&sgoFlag!=='false';
@@ -541,13 +543,16 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
   oddsDebug.sportsbookStatus='verified_market_data_pending';
   oddsDebug.propLineCreditPolicy='verified_change_only';
   oddsDebug.propLineChangeType=authorizedChange?changeType:null;
-  if(!directRows?.length&&process.env.PLAYER_PROPS_API_KEY&&authorizedChange){
+  if(process.env.PLAYER_PROPS_API_KEY&&authorizedChange){
    try{
     const trustedPropOrigin=process.env.VERCEL_PROJECT_PRODUCTION_URL?'https://'+process.env.VERCEL_PROJECT_PRODUCTION_URL:'https://momentum-radar-live.vercel.app';
     const propUrl=trustedPropOrigin+'/api/prop-line-markets?league=nfl&date='+date+'&gameId='+encodeURIComponent(gameId);
     const propResult=await Promise.race([(async()=>{const r=await timedFetch(propUrl,{cache:'no-store',headers:{Authorization:'Bearer '+process.env.CRON_SECRET,'x-momentum-change-token':verifiedToken}});return r.ok?await r.json():null})(),new Promise(resolve=>setTimeout(()=>resolve(null),6000))]);
     const offers=propLineRows(propResult,gameId);
-    if(offers.length){directRows=offers;provider='PropLine';oddsDebug.stage='prop_line_market_ready';oddsDebug.propLineRows=offers.length}
+    if(offers.length){signedPropLineRows.push(...offers);
+     directRows=mergeAuthorizedPropLineRows(directRows,offers);
+     provider=provider==='Analytics / ESPN'?'PropLine':provider+' + PropLine';
+     oddsDebug.stage='prop_line_market_ready';oddsDebug.propLineRows=offers.length}
     else oddsDebug.propLineStage='no_current_verified_offers';
    }catch(e){oddsDebug.propLineStage='provider_unavailable';console.warn('prop_line_fallback_unavailable',String(e?.message||e))}
   }
@@ -574,7 +579,7 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
     const rows=matches.flatMap(e=>Object.values(e.odds||{}).filter(o=>
       o&&!['all','home','away'].includes(String(o.statEntityID||'').toLowerCase())).map(o=>market(o,e.eventID||e.id)));
     if(rows.some(m=>bookFor(m,'DraftKings')||bookFor(m,'FanDuel'))){
-     directRows=rows.map(x=>({...x,providerEventID:x.eventID,eventID:gameId}));provider='SportsGameOdds (backup)';oddsDebug.stage='sgo_backup_market_ready'
+     directRows=mergeAuthorizedPropLineRows(rows.map(x=>({...x,providerEventID:x.eventID,eventID:gameId})),signedPropLineRows);provider=signedPropLineRows.length?'SportsGameOdds (backup) + PropLine':'SportsGameOdds (backup)';oddsDebug.stage='sgo_backup_market_ready'
     }else oddsDebug.stage='sgo_backup_no_market';
    }catch(e){
     oddsDebug.stage='sgo_backup_unavailable';oddsDebug.sgoError=String(e?.message||e);
@@ -635,7 +640,7 @@ for(const cat of ['td','passing','rushing','receiving','receptions']){let qualif
 const publicDerivedRows=[];for(const r of publicRefs){if(!String(r.market||'').toLowerCase().includes('touchdown'))continue;for(const book of ['DraftKings','FanDuel']){if(r.book!==book)continue;const rr=roleFor(roles,{name:r.player}),odds=Number(String(r.odds??'').replace('+',''));publicDerivedRows.push({eventID:gameId,playerID:rr?.playerId||norm(r.player),name:r.player,team:rr?.team||'',position:rr?.position||'',marketName:'player_anytime_td',statID:'touchdowns',periodID:'game',betTypeID:'yn',sideID:'yes',line:null,books:[{book,line:null,odds:Number.isFinite(odds)?odds:null,available:true,source:'public sportsbook'}],provider:'Public sportsbook research'})}}// Historical October 5 public bookmaker reference lines stay in the historical context only.
 // Never insert manual or hardcoded prices into the live game-specific market pool.
 const mergedMarketRows=[...(rows||[])];
-requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarkets(mergedMarketRows,statBoards).map(x=>{const r=roleFor(roles,x),cat=category(x),a=(statBoards?.[cat]||[]).find(v=>norm(v.name)===norm(x.name));return r?{...a,...x,team:norm(r.team||x.team),position:x.position||r.position,playerID:r.playerId||x.playerID||x.playerId,projection:x.projection??a?.projection,predictiveProjection:x.predictiveProjection??a?.predictiveProjection??a?.projection,perGame:x.perGame??a?.perGame,gamesPlayed:x.gamesPlayed??a?.gamesPlayed,usagePerGame:x.usagePerGame??a?.usagePerGame}:x});const sgpGateDiagnostics={total:enrichedMarketRows.length,missingRole:0,missingCategory:0,missingBook:0,missingRoster:0,injuryBlocked:0,teamMismatch:0,insufficientUsage:0,eligible:0};requestStage='sgp_eligibility';const sgpRows=enrichedMarketRows.filter(x=>{const r=roleFor(roles,x),cat=category(x),hasBook=Boolean(bookFor(x,'DraftKings')||bookFor(x,'FanDuel')),roster=eligibility?.rosterById?.get(String(x.playerID||x.playerId||''))||eligibility?.rosterByName?.get(norm(x.name));if(!r){sgpGateDiagnostics.missingRole++;return false}if(!cat){sgpGateDiagnostics.missingCategory++;return false}if(!hasBook){sgpGateDiagnostics.missingBook++;return false}if(!roster){sgpGateDiagnostics.missingRoster++;return false}if(eligibility?.blockedIds?.has(String(x.playerID||x.playerId||''))||eligibility?.blockedNames?.has(norm(x.name))){sgpGateDiagnostics.injuryBlocked++;return false}if(x.team&&norm(roster.team)!==norm(x.team)){sgpGateDiagnostics.teamMismatch++;return false}if(cat!=='td'&&!analyticsUsageEligible(x,r,cat)){sgpGateDiagnostics.insufficientUsage++;return false}sgpGateDiagnostics.eligible++;return true});requestStage='book_sgp_build';const bookSgps=gameId?{DraftKings:buildBookSgp(sgpRows,'DraftKings',ctx),FanDuel:buildBookSgp(sgpRows,'FanDuel',ctx)}:{};const hasCompleteBookLegCandidate=Boolean(gameId&&Object.values(bookSgps).some(v=>(v||[]).some(s=>(s.legs||[]).length===s.requiredLegs)));requestStage='analytics_sgp_build';const analyticsSgps=gameId?buildAnalyticsSgp(categories,ctx,roles,{gameId,home,away,rosterChecked:eligibility?.checked===true,rosterById:eligibility?.rosterById,rosterByName:eligibility?.rosterByName,normalizeName:norm}):[];requestStage='sgp_tier_assembly';
+requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarkets(mergedMarketRows,statBoards).map(x=>{const r=roleFor(roles,x),cat=category(x),a=(statBoards?.[cat]||[]).find(v=>norm(v.name)===norm(x.name));return r?{...a,...x,team:norm(r.team||x.team),position:x.position||r.position,playerID:r.playerId||x.playerID||x.playerId,projection:x.projection??a?.projection,predictiveProjection:x.predictiveProjection??a?.predictiveProjection??a?.projection,perGame:x.perGame??a?.perGame,gamesPlayed:x.gamesPlayed??a?.gamesPlayed,usagePerGame:x.usagePerGame??a?.usagePerGame}:x});const sgpGateDiagnostics={total:enrichedMarketRows.length,missingRole:0,missingCategory:0,missingBook:0,missingRoster:0,injuryBlocked:0,teamMismatch:0,insufficientUsage:0,eligible:0};requestStage='sgp_eligibility';const sgpRows=enrichedMarketRows.filter(x=>{const r=roleFor(roles,x),cat=category(x),hasBook=Boolean(bookFor(x,'DraftKings')||bookFor(x,'FanDuel')),roster=eligibility?.rosterById?.get(String(x.playerID||x.playerId||''))||eligibility?.rosterByName?.get(norm(x.name));if(!r){sgpGateDiagnostics.missingRole++;return false}if(!cat){sgpGateDiagnostics.missingCategory++;return false}if(!hasBook){sgpGateDiagnostics.missingBook++;return false}if(!roster){sgpGateDiagnostics.missingRoster++;return false}if(eligibility?.blockedIds?.has(String(x.playerID||x.playerId||''))||eligibility?.blockedNames?.has(norm(x.name))){sgpGateDiagnostics.injuryBlocked++;return false}if(x.team&&norm(roster.team)!==norm(x.team)){sgpGateDiagnostics.teamMismatch++;return false}if(cat!=='td'&&!analyticsUsageEligible(x,r,cat)){sgpGateDiagnostics.insufficientUsage++;return false}sgpGateDiagnostics.eligible++;return true});requestStage='book_sgp_build';const quoteSourceRows=nflAuthorizedBookSgpRows(sgpRows,{authorizedChange,signedSelectionRows:signedPropLineRows.length});oddsDebug.providerNativeRows=signedPropLineRows.length;const bookSgps=gameId?{DraftKings:buildBookSgp(quoteSourceRows,'DraftKings',ctx),FanDuel:buildBookSgp(quoteSourceRows,'FanDuel',ctx)}:{};const hasCompleteBookLegCandidate=Boolean(gameId&&Object.values(bookSgps).some(v=>(v||[]).some(s=>(s.legs||[]).length===s.requiredLegs)));requestStage='analytics_sgp_build';const analyticsSgps=gameId?buildAnalyticsSgp(categories,ctx,roles,{gameId,home,away,rosterChecked:eligibility?.checked===true,rosterById:eligibility?.rosterById,rosterByName:eligibility?.rosterByName,normalizeName:norm}):[];requestStage='sgp_tier_assembly';
  // Respond before legacy malformed/commented response tail; all candidates are unquoted.
  const unquoted=(rows,book)=>(rows||[]).map(s=>({...s,bookVerificationPending:true,combinedBookQuoteVerified:false,actualSgpOdds:null,publishable:false,displayLabel:book+' individual-prop candidate (unquoted)'}));
  const quoteReady=(rows,book)=>(rows||[]).map(s=>{
