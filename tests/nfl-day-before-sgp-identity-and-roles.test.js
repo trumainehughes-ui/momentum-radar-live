@@ -85,7 +85,7 @@ test('a wrong-game/player-identity candidate still fails completely; empty fix n
 });
 test('day-before verified 2026 roster+completed-game usage unlocks conditional RB/WR/TE only',()=>{
  const out=nflDayAheadRoleEvidence({gameId,home,away,eligibility,gate:gate(),statBoards});
- assert.equal(out.source,'ESPN_SAME_SEASON_USAGE_CONDITIONAL');
+ assert.equal(out.source,'ESPN_GAME_SCOPED_USAGE_AND_DEPTHCHART');
  assert.ok(out.counters.projectedHighUsageRoles>=5);
  for(const a of athletes.filter(x=>x.position!=='QB')){
   const r=out.roles.get(a.id);
@@ -133,7 +133,7 @@ test('game SGP code imports conditional evidence, but keeps strict verified-QB a
  assert.ok(api.includes('roles.roles=dayAheadRoles.roles'));
  assert.ok(api.includes('conditionalRolesNotConfirmedStarters:true'));
  assert.ok(api.includes("isNflConfirmedGameQb({position:pos,role})"));
- assert.ok(api.includes("-day-ahead-roles-v3"));
+ assert.ok(api.includes("-day-ahead-roles-v4-game-scope-qb1"));
  assert.ok(html.includes('Day-before conditional model'));
  assert.ok(html.includes('NOT officially confirmed starters'));
  assert.ok(!/priceVerified:true|combinedBookSgpQuoteAvailable:true/.test(api));
