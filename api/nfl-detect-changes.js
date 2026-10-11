@@ -44,6 +44,7 @@ export default async function handler(req,res){
   }
   // A snapshot write must succeed before claiming change detection is persisted.
   await put(path,JSON.stringify({players:current,updatedAt:new Date().toISOString()}),{access:'public',addRandomSuffix:false,allowOverwrite:true});
+  // Only compare confirmed changes. The detector never spends PropLine credits.
   const assessed=[];
   for(const change of changes.slice(0,4))assessed.push({change,ai:await aiChangeImpact(change)});
   return res.status(200).json({ok:true,gameId,status:prior?'compared':'baseline_created',playersObserved:current.length,changes:assessed,moreChanges:Math.max(0,changes.length-assessed.length),creditsUsed:0,propLineRefreshAuthorized:false,dvpRecalculationSuggested:assessed.some(x=>x.ai.dvpRecheck),sgpRebuildSuggested:assessed.some(x=>x.ai.sgpRebuild)});
