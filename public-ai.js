@@ -182,6 +182,11 @@
    evidenceChanges:(p.evidenceChanges||[]).slice(0,5),
    tiers:(p.tiers||[]).slice(0,3).map(t=>({
     risk:t.risk,modelStatus:t.modelStatus,
+    aiRuleValidation:{
+     valid:t.aiRuleValidation?.valid===true,
+     violations:(t.aiRuleValidation?.violations||[]).slice(0,9),
+     targetOdds:t.aiRuleValidation?.targetOdds||null
+    },
     books:(t.bookActions||[]).slice(0,2).map(a=>({
      book:a.book,action:a.action,reason:a.reason,
      individuallyMatched:a.individuallyMatched,
