@@ -383,6 +383,23 @@ function pruneSgpsForEligibility(sgps,elig,{gameId,home,away}={}){
  });
 }
 function oddsApiCategory(k){return k==='player_anytime_td'?'td':k==='player_pass_yds'||k==='player_pass_yds_alternate'?'passing':k==='player_rush_yds'||k==='player_rush_yds_alternate'?'rushing':k==='player_reception_yds'||k==='player_reception_yds_alternate'?'receiving':k==='player_receptions'||k==='player_receptions_alternate'?'receptions':null}
+function propLineRows(payload,eventID){
+ const groups=new Map();
+ for(const o of payload?.offers||[]){
+  const book=o.book==='draftkings'?'DraftKings':o.book==='fanduel'?'FanDuel':null;
+  const cat=oddsApiCategory(o.market);
+  if(!book||!cat||!o.player||(!['Over','over'].includes(o.side)&&cat!=='td'))continue;
+  if(/\\bD\\/ST\\b|\\bdefense\\b/i.test(o.player))continue;
+  const line=cat==='td'?null:Number(o.point);
+  if(cat!=='td'&&!Number.isFinite(line))continue;
+  const odds=Number(o.americanOdds),checkedAt=o.updatedAt;
+  if(!Number.isFinite(odds)||!checkedAt||Math.abs(Date.now()-Date.parse(checkedAt))>15*60*1000)continue;
+  const k=[norm(o.player),cat,line??'td'].join('|');
+  if(!groups.has(k))groups.set(k,{eventID,playerID:norm(o.player),name:o.player,team:'',marketName:o.market,statID:cat==='td'?'touchdowns':o.market,periodID:'game',betTypeID:cat==='td'?'yn':'ou',sideID:cat==='td'?'yes':'over',line,books:[],provider:'PropLine',checkedAt});
+  groups.get(k).books.push({book,odds,line,available:true,checkedAt,sourceProvider:'PropLine',sourceUrl:'https://prop-line.com'});
+ }
+ return [...groups.values()];
+}
 function oddsApiRows(d,eventID){
  const out=[];
  for(const b of d?.bookmakers||[]){const book=canonicalBook(b.key||b.title);if(!book)continue;for(const mk of b.markets||[]){const cat=oddsApiCategory(mk.key);if(!cat)continue;for(const o of mk.outcomes||[]){const side=String(o.description||o.name||'');const isTD=cat==='td',isOver=String(o.name||'').toLowerCase()==='over';if(!isTD&&!isOver)continue;const name=isTD?String(o.description||''):side;if(!name)continue;out.push({eventID,playerID:norm(name),name,team:'',marketName:mk.key,statID:cat==='td'?'touchdowns':mk.key,periodID:'game',betTypeID:isTD?'yn':'ou',sideID:isTD?'yes':'over',fairOdds:null,bookOdds:o.price??null,line:o.point??null,books:[{book,odds:o.price??null,line:o.point??null,available:true,checkedAt:mk.last_update||b.last_update||null,sourceProvider:'The Odds API',sourceBookmakerKey:b.key||null}],provider:'The Odds API',checkedAt:mk.last_update||b.last_update||null})}}}return out
@@ -463,6 +480,15 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
    oddsDebug.attempted=true;oddsDebug.stage='primary_market_degraded';
    oddsDebug.error=String(e?.message||e);
    console.warn('primary_market_degraded',oddsDebug.error);
+  }
+  if(!directRows?.length&&process.env.PLAYER_PROPS_API_KEY){
+   try{
+    const propUrl=(req.headers['x-forwarded-proto']||'https')+'://'+req.headers.host+'/api/prop-line-markets?league=nfl&date='+date+'&gameId='+encodeURIComponent(gameId);
+    const propResult=await Promise.race([(async()=>{const r=await timedFetch(propUrl,{cache:'no-store'});return r.ok?await r.json():null})(),new Promise(resolve=>setTimeout(()=>resolve(null),6000))]);
+    const offers=propLineRows(propResult,gameId);
+    if(offers.length){directRows=offers;provider='PropLine';oddsDebug.stage='prop_line_market_ready';oddsDebug.propLineRows=offers.length}
+    else oddsDebug.propLineStage='no_current_verified_offers';
+   }catch(e){oddsDebug.propLineStage='provider_unavailable';console.warn('prop_line_fallback_unavailable',String(e?.message||e))}
   }
   // "Available" means enough real yardage markets for the diversified SGP
   // builder, not simply one isolated TD offer from a single sportsbook.
