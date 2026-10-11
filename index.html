@@ -24,7 +24,7 @@
 #nflInjuries .nflInjuryRefreshBtn{background:#183749;color:#f5fbff;border:1px solid #6ca7c7;padding:9px 12px;border-radius:8px;font-weight:800;margin-top:11px;cursor:pointer}
 #nflInjuries .nflInjurySourceLink{color:#9ee7ff;text-decoration:underline;font-weight:800}
 </style></head><body><div class="wrap"><div class="top"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><div class="brand">Momentum Radar <span class="live">LIVE</span></div><span class="rockingChairMark" role="img" aria-label="Rocking chair" title="Sit back. Let the data work.">🪑</span><button id="nflHelp" class="helpBtn">❓ How to Use</button></div><div id="status" class="status">Connecting…</div></div><div id="nflGuide" class="guide"><h3>How to Use Momentum Radar</h3><div class="note" style="margin-bottom:10px">Simple guide: choose what you want to see, then click a game when you want a full matchup breakdown.</div><div class="guideSteps"><div class="guideStep"><b>1. Choose a Sport</b>Use the sport tabs to open the section you want to explore.</div><div class="guideStep"><b>2. Game Day</b>See every game on the day's slate. <strong>Click a game name</strong> to open all available analytics for that matchup.</div><div class="guideStep"><b>3. Inside a Game</b>Find player analytics, injuries/inactives, and three Same Game Parlay ideas: <strong>Small, Medium, and Nuke</strong>. Use ← Back to Games when you're finished.</div><div class="guideStep"><b>4. Top 10 Player Lists</b>Use the player-category tabs to see the top players across the day's games.</div><div class="guideStep"><b>5. Same Game Parlay</b>Want an SGP for one matchup? Go to <strong>Game Day → click that game → Same Game Parlay</strong>.</div><div class="guideStep"><b>6. Live Trackers</b>During games, use the live tracker to follow results as they happen. A ⭐ is used only when a result matches a locked, verified pregame selection.</div><div class="guideStep"><b>When NFL Data Updates</b>Momentum Radar does not refresh NFL sportsbook data continuously. NFL data is collected <strong>the day before games</strong>, refreshed again on <strong>game day</strong>, and receives a <strong>final validation 30 minutes before kickoff</strong> for injuries, inactives and market changes. If nothing meaningful changes, existing selections stay the same. Picks lock at kickoff.</div><div class="guideStep"><b>Reading the Data</b>Sportsbook lines and odds are supporting market information. They help you understand available bets; they are not guarantees. Always check the sportsbook before placing a wager.</div></div></div><div class="panel"><div class="tabs"><button class="tab active" data-league="mlb">⚾ MLB</button><button class="tab" data-league="nfl">🏈 NFL</button><button class="tab" data-league="nba">🏀 NBA</button></div></div><div id="mlb"><div class="panel"><h2>⚡ Quick Bets — Probability Board</h2><div class="note">All visible numbers are estimated event probabilities, never 99/98 ranking scores. HR probability uses current season + recent 20/10/5 form, pitcher vulnerability, Baseball Savant park factor when available, MLB game weather and confirmed game status. HR Shadow Radar is a separate validation layer and does not alter the Top-10 ranking.</div><div id="qt" class="qtabs" style="margin-top:10px"></div><div id="quick" class="grid"><div class="msg">Loading current slate…</div></div><div id="fresh" class="refresh"></div></div><div class="panel"><h2>💎 Hidden Gems — Hit Probability</h2><div id="hidden" class="secondary"><div class="msg">Loading…</div></div></div><div class="panel"><h2>🔥 Top Home Run Probabilities</h2><div class="note">One hitter per game and one hitter per team. Ordered by estimated chance of 1+ home run.</div><div id="hrboard" class="secondary"><div class="msg">Loading…</div></div></div></div><div id="nba" style="display:none"><div class="panel"><div class="trackerTop"><h2>🏀 NBA — Momentum Radar</h2><span class="badge">ESPN DATA</span></div><div class="note">Game-day schedule, verified game results and injury observations. Player box scores are actual results, never pregame projections or sportsbook offers.</div><div class="qtabs" id="nbaNav" style="margin-top:12px"><button class="qtab active" data-nbatab="gameday">📅 Game Day</button><button class="qtab" data-nbatab="points">Points</button><button class="qtab" data-nbatab="rebounds">Rebounds</button><button class="qtab" data-nbatab="assists">Assists</button><button class="qtab" data-nbatab="threes">3-Pointers</button><button class="qtab" data-nbatab="pra">PRA</button><button class="qtab" data-nbatab="sgp">🏀 SGP Builder</button></div><div class="row" style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center"><label style="font-weight:800">Game date <input id="nbaDate" type="date" aria-label="NBA game date" style="background:#102330;color:#f2f6f8;border:1px solid #31586d;border-radius:8px;padding:8px;margin-left:8px"></label><button type="button" class="tinyBtn" id="nbaReload">Refresh NBA</button><span id="nbaFresh" class="refresh" aria-live="polite">Loading official NBA schedule…</span></div></div><div class="panel" id="nbaHome"><div class="nflDashGrid"><div class="nflDashBox"><h2>NBA Game Day</h2><div id="nbaBoard" class="secondary">Loading NBA games…</div></div><div class="nflDashBox"><h2 id="nbaTopTitle">Selected NBA Matchup</h2><div id="nbaTopBoard" class="secondary">Select a game to view its available data.</div></div></div><div class="note" style="margin-top:14px">Players and Top 10 boards use verified game box-score results only. Pregame analytical prop recommendations will be added after player projections, availability and market verification pass.</div></div><div class="panel" id="nbaDetail" style="display:none"><button id="nbaBack" type="button" class="tinyBtn">← Back to NBA Games</button><div id="nbaGameHead" style="margin-top:12px"></div><div class="nflDashGrid" style="margin-top:12px"><div class="nflDashBox"><h3>Player Statistics</h3><div id="nbaPlayers" class="secondary">Loading verified game details…</div></div><div class="nflDashBox"><h3>Injuries / Availability</h3><div id="nbaInjuries" class="secondary">Loading available injury evidence…</div><h3 style="margin-top:18px">Small / Medium / Nuke SGPs</h3><div id="nbaSgps" class="secondary">Checking eligible NBA prop inputs…</div></div></div></div></div><div id="nfl" style="display:none">
-<div class="panel"><div class="nflHero"><div><h1>🏈 NFL</h1><div class="note">Data. Matchups. Trends. Opportunities.</div><div class="refresh">Updates: day before • game day • final validation 30 min before kickoff • locks final pregame selections</div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px"><label class="note" for="nflDate">NFL game date</label><input type="date" id="nflDate" aria-label="Select NFL game date" style="background:#102330;color:#f2f6f8;border:1px solid #31586d;border-radius:8px;padding:8px"/><button type="button" class="tinyBtn" data-nflday="0">Sunday</button><button type="button" class="tinyBtn" data-nflday="1">Monday</button><button type="button" class="tinyBtn" data-nflday="4">Thursday</button><button type="button" class="tinyBtn" id="nflRefreshAll">Refresh selected slate</button></div><div id="nflSlateFresh" class="refresh">Choose Sunday, Monday or Thursday for that day’s complete NFL slate.</div></div><span class="badge">WEEK <span id="nflWeekHero">—</span></span></div><div class="qtabs" id="nflNav"><button class="qtab active" data-nfltab="gameday">📅 Game Day</button><button class="qtab" data-nfltab="td">⭐ Anytime TD</button><button class="qtab" data-nfltab="passing">Passing</button><button class="qtab" data-nfltab="rushing">Rushing</button><button class="qtab" data-nfltab="receiving">Receiving</button><button class="qtab" data-nfltab="receptions">Receptions</button><button class="qtab" data-nfltab="sgp">🔗 Same Game Parlays</button><button class="qtab" data-nfltab="multigame">🏆 Best of Slate</button><button class="qtab" data-nfltab="tracker">📊 Live TD Tracker</button><button class="qtab" data-nfltab="history">🗂️ History</button></div></div>
+<div class="panel"><div class="nflHero"><div><h1>🏈 NFL</h1><div class="note">Data. Matchups. Trends. Opportunities.</div><div class="refresh">Updates: day before • game day • final validation 30 min before kickoff • locks final pregame selections</div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px"><label class="note" for="nflDate">NFL game date</label><input type="date" id="nflDate" aria-label="Select NFL game date" style="background:#102330;color:#f2f6f8;border:1px solid #31586d;border-radius:8px;padding:8px"/><button type="button" class="tinyBtn" data-nflday="0">Sunday</button><button type="button" class="tinyBtn" data-nflday="1">Monday</button><button type="button" class="tinyBtn" data-nflday="4">Thursday</button><button type="button" class="tinyBtn" id="nflRefreshAll">Refresh schedule / selected matchup</button><button type="button" class="tinyBtn" id="nflRefreshAllSgps">Rebuild all upcoming SGPs</button></div><div id="nflSlateSgpRefreshStatus" class="refresh" role="status">SGP refresh not started. Rebuild checks all upcoming games using existing provider quotas.</div><div id="nflSlateFresh" class="refresh">Choose Sunday, Monday or Thursday for that day’s complete NFL slate.</div></div><span class="badge">WEEK <span id="nflWeekHero">—</span></span></div><div class="qtabs" id="nflNav"><button class="qtab active" data-nfltab="gameday">📅 Game Day</button><button class="qtab" data-nfltab="td">⭐ Anytime TD</button><button class="qtab" data-nfltab="passing">Passing</button><button class="qtab" data-nfltab="rushing">Rushing</button><button class="qtab" data-nfltab="receiving">Receiving</button><button class="qtab" data-nfltab="receptions">Receptions</button><button class="qtab" data-nfltab="sgp">🔗 Same Game Parlays</button><button class="qtab" data-nfltab="multigame">🏆 Best of Slate</button><button class="qtab" data-nfltab="tracker">📊 Live TD Tracker</button><button class="qtab" data-nfltab="history">🗂️ History</button></div></div>
 <div class="panel" id="nflRankPanel" style="display:none"><div class="trackerTop"><h2 id="nflRankTitle">NFL Top 10</h2><span class="badge">TOP 10</span></div><div id="nflRankBoard" class="secondary"><div class="msg">Loading slate analytics…</div></div></div>
 <div class="panel" id="nflMultiPanel" style="display:none"><div class="trackerTop"><h2>🏆 Best of the Slate — Multi-Game Parlay</h2><span class="badge">ONE BEST LEG / GAME</span></div><div class="note">Momentum Radar compares every qualified offensive player and supported stat inside each matchup, then takes only the strongest data-supported leg from that game. Games without a qualified leg are skipped.</div><div id="nflMultiBoard" class="secondary" style="margin-top:10px"><div class="msg">Choose Best of Slate to build the parlay.</div></div></div>
 <div class="panel" id="nflHistoryPanel" style="display:none"><div class="trackerTop"><h2>🗂️ NFL Results History</h2><span class="badge">GRADED</span></div><div class="note">Locked pregame picks are preserved and compared with final scores and official box-score results.</div><div id="nflHistoryBoard" class="secondary" style="margin-top:10px"><div class="msg">Loading completed results…</div></div></div><div class="panel" id="nflLivePanel"><div class="trackerTop"><h2>🎯 Live Touchdown Tracker</h2><span class="badge">LIVE</span></div><div class="note">Auto-refreshes with NFL data. ⭐ is reserved for a locked verified pregame Anytime TD selection.</div><div id="nflLiveOverview" class="msg" style="margin-top:10px">No touchdowns recorded yet in today's games.</div><div class="refresh">NFL data refreshes automatically while this tab is open.</div></div>
@@ -553,7 +553,78 @@ document.querySelectorAll('[data-nflday]').forEach(b=>b.onclick=()=>{
 });
 const nflDateSelect=$('#nflDate');
 if(nflDateSelect&&typeof nflDateSelect.addEventListener==='function')nflDateSelect.addEventListener('change',()=>{nflClose();loadNFL()});
+// The full-slate button does REAL per-game SGP and prop rebuilds using
+// getNFLMarkets(), which reuses the server's existing 15m cache, quota
+// cool-downs, injury checks and matching logic. Unlike the scheduled cron,
+// it never requests any secret or writes a privileged collector lock.
+let nflSgpSlateRefreshRunning=false;
+async function nflRefreshAllSgpCandidates(){
+ if(nflSgpSlateRefreshRunning)return;
+ const node=$('#nflSlateSgpRefreshStatus'),btn=$('#nflRefreshAllSgps');
+ nflSgpSlateRefreshRunning=true;if(btn)btn.disabled=true;
+ const say=html=>{if(node)node.innerHTML=html};
+ try{
+  const chosen=$('#nflDate')?.value||'';
+  if(!nflData?.games?.length||chosen&&nflData.date!==chosen)await loadNFL();
+  if(!nflData?.games?.length){say('No schedule available; no SGP refresh attempted.');return}
+  const now=Date.now(),seen=new Set();
+  const games=nflData.games.filter(g=>{
+   const gameId=String(g.gameId||''),left=Date.parse(g.kickoff||'')-now;
+   if(!/^\\d{7,12}$/.test(gameId)||seen.has(gameId)||
+    g.status!=='SCHEDULED'||!Number.isFinite(left)||left<=0||
+    left>36*60*60*1000)return false;
+   seen.add(gameId);return true;
+  }).sort((a,b)=>Date.parse(a.kickoff)-Date.parse(b.kickoff)).slice(0,18);
+  if(!games.length){say('No upcoming scheduled NFL games to refresh for this selected date.');return}
+  const report=new Array(games.length);let done=0,cursor=0;
+  const summary=()=>{
+   const valid=report.filter(x=>x?.state==='MODEL_AND_BOOK_LINES').length,
+    model=report.filter(x=>x?.state==='MODEL_ONLY').length,
+    pending=report.filter(x=>x?.state==='SOURCE_PENDING').length,
+    failed=report.filter(x=>x?.state==='ERROR').length;
+   say('<b>All NFL game refreshes: '+done+'/'+games.length+'</b> • '+valid+
+    ' model + book lines • '+model+' model only • '+pending+
+    ' missing source • '+failed+' failed.'+
+    '<div class="refresh">Actual correlated SGP odds: NOT VERIFIED. No player price invented; existing quota limits respected.</div>'+
+    report.filter(Boolean).map(row=>'<div>'+
+     nflEscape(row.teams)+' • '+nflEscape(row.state)+
+     ' • '+nflEscape(row.tiers)+' model tiers'+
+     ' • DK '+nflEscape(row.DraftKings)+' individual prices'+
+     ' • FD '+nflEscape(row.FanDuel)+' individual prices</div>').join(''));
+  };
+  summary();
+  const worker=async()=>{
+   for(;;){
+    const i=cursor++;if(i>=games.length)return;
+    const g=games[i],entry={teams:g.away.abbr+' @ '+g.home.abbr,
+     state:'SOURCE_PENDING',tiers:0,DraftKings:0,FanDuel:0};
+    try{
+     const d=await getNFLMarkets(g.gameId,false);
+     const t=Date.parse(d?.fetchedAt||''),fresh=d?.ok===true&&
+      String(d.gameId)===String(g.gameId)&&!d.stale&&!d.degraded&&
+      Number.isFinite(t)&&t<=Date.now()&&Date.now()-t<=15*60*1000;
+     if(fresh){
+      entry.tiers=(d.sgps?.Analytics||[]).filter(x=>
+       ['Small','Medium','Nuke'].includes(x.risk)&&
+       x.tierAssessment?.compositionOk===true&&
+       (x.legs||[]).length>=Number(x.requiredLegs||1)).length;
+      for(const book of ['DraftKings','FanDuel'])
+       entry[book]=Math.max(0,Number(d.sportsbookCoverage?.books?.[book]?.pricedSelections)||0);
+      entry.state=entry.DraftKings+entry.FanDuel>0?
+       'MODEL_AND_BOOK_LINES':'MODEL_ONLY';
+     }
+    }catch(e){entry.state='ERROR';entry.error=String(e?.message||'unavailable').slice(0,90)}
+    report[i]=entry;done++;summary();
+   }
+  };
+  await Promise.all([worker(),worker()]);
+  const selected=nflSelected?.gameId;
+  if(selected&&games.some(g=>g.gameId===selected))nflOpen(selected,false);
+ }finally{nflSgpSlateRefreshRunning=false;if(btn)btn.disabled=false}
+}
 const nflRefreshAll=$('#nflRefreshAll');
+const nflRefreshAllSgps=$('#nflRefreshAllSgps');
+if(nflRefreshAllSgps)nflRefreshAllSgps.onclick=()=>nflRefreshAllSgpCandidates();
 if(nflRefreshAll)nflRefreshAll.onclick=()=>{const saved=nflSelected?.gameId;
  if(saved&&nflData?.date)nflMarketCache.delete(nflData.date+'|'+saved);
  loadNFL().then(()=>{if(saved&&nflData?.games?.some(g=>g.gameId===saved))nflOpen(saved,true)})
