@@ -46,7 +46,17 @@ export default async function handler(req,res){
   const eventsResult=await load(API+'/sports/'+sport+'/events',key);
   if(eventsResult.error)return res.status(502).json({ok:false,provider:'PropLine',error:eventsResult.error,providerStatus:eventsResult.status});
   const events=Array.isArray(eventsResult.data)?eventsResult.data:eventsResult.data?.events||[];
-  const matches=events.filter(e=>{try{return isoDate(e.commence_time)===date&&(!gameId||String(e.espn_event_id||'')===gameId)}catch{return false}});
+  let matches=events.filter(e=>{try{return isoDate(e.commence_time)===date&&(!gameId||String(e.espn_event_id||'')===gameId)}catch{return false}});
+  // ESPN IDs can be absent on the event feed. Use PropLine's official ID crosswalk,
+  // never fuzzy player/team matching or guessed event identifiers.
+  if(gameId&&!matches.length){
+   const ids=await load(API+'/sports/'+sport+'/ids',key);
+   if(!ids.error){
+    const crosswalk=Array.isArray(ids.data)?ids.data:ids.data?.events||[];
+    const matchingIds=new Set(crosswalk.filter(x=>String(x.espn_event_id||'')===gameId).map(x=>String(x.id)));
+    matches=events.filter(e=>matchingIds.has(String(e.id))&&isoDate(e.commence_time)===date);
+   }
+  }
   const eventId=String(req.query.eventId||'');
   if(eventId&&!/^\d{1,14}$/.test(eventId))return res.status(400).json({ok:false,error:'invalid_event_id'});
   const chosen=eventId?matches.find(e=>String(e.id)===eventId):gameId?matches[0]:null;
