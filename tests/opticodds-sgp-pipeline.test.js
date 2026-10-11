@@ -27,7 +27,8 @@ const odds=legs.map((l,i)=>({id:'odds-'+i,player_id:'o-player-'+i,
  market:namesByCat[l.cat][0],name:l.name+' Over '+(l.analyticsThreshold-0.5),
  timestamp:now/1000}));
 const flags={OPTICODDS_SGP_ENABLED:'true',
- OPTICODDS_DISCOVERY_ENABLED:'true',OPTICODDS_API_KEY:'fixture-only-test'};
+ OPTICODDS_DISCOVERY_ENABLED:'true',OPTICODDS_API_KEY:'fixture-only-test',
+ OPTICODDS_MAX_CALLS_PER_RUN:'10'};
 function setup({badOdds=null,badPage=false,badRoster=false,rateLimited=false}={}){
  let calls=[];
  const fetcher=async(url,options)=>{
@@ -123,4 +124,24 @@ test('wrong OpticOdds roster player name stops before /fixtures/odds or combined
  assert.equal(result.status,'PLAYER_NOT_ON_VERIFIED_PROVIDER_TEAM');
  assert.ok(calls.every(x=>x.method==='GET'));
  assert.equal(calls.filter(c=>c.url.includes('/fixtures/odds')).length,0);
+});
+
+test('provider costs are capped, including avoiding a final POST when the request budget is exhausted',async()=>{
+ const insufficient=setup();
+ const output=await discoverOpticOddsSgpReference({league:'nfl',
+  game,legs,risk:'Medium',categoryMarketNames:namesByCat,
+  env:{...flags,OPTICODDS_MAX_CALLS_PER_RUN:'6'},
+  fetcher:insufficient.fetcher,now});
+ assert.equal(output.status,'PROVIDER_REQUEST_BUDGET_EXCEEDED');
+ assert.equal(output.requests,6);
+ assert.equal(insufficient.calls.length,6);
+ assert.ok(insufficient.calls.every(x=>x.method==='GET'));
+ const noBudget=setup();
+ const pending=await discoverOpticOddsSgpReference({league:'nfl',
+  game,legs,risk:'Medium',categoryMarketNames:namesByCat,
+  env:{...flags,OPTICODDS_MAX_CALLS_PER_RUN:undefined},
+  fetcher:noBudget.fetcher,now});
+ assert.equal(pending.status,'EXPLICIT_PROVIDER_CALL_BUDGET_REQUIRED');
+ assert.equal(pending.requests,0);
+ assert.equal(noBudget.calls.length,0);
 });
