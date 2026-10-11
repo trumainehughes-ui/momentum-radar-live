@@ -2,6 +2,7 @@ import {createHash} from 'node:crypto';
 import {put,list} from '@vercel/blob';
 import {aiChangeImpact} from '../lib/ai-mechanics/nfl-change-impact.js';
 import {nflEasternDate} from '../lib/nfl-collector-readiness.js';
+import {verifiedNflInjuryTransitions} from '../lib/nfl-injury-status-transitions.js';
 const ESPN='https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=';
 const PREFIX='momentum-nfl-change-snapshots/v1/';
 const status=s=>String(s||'').trim().toLowerCase();
@@ -35,14 +36,11 @@ export default async function handler(req,res){
   const found=await list({prefix:path,limit:10});
   const item=found.blobs?.find(b=>b.pathname===path);
   if(item){const old=await fetch(item.url,{signal:AbortSignal.timeout(3500)});if(old.ok)prior=await old.json()}
-  const previous=new Map((prior?.players||[]).map(p=>[p.id,p]));
   const changes=[];
   if(prior){
-   for(const player of current){
-    const old=previous.get(player.id);
-    if(!old||old.status===player.status||old.team!==player.team)continue;
-    changes.push({type:player.status.includes('out')||player.status.includes('inactive')?'player_inactive':'player_injury',gameId,playerId:player.id,playerName:player.name,position:player.position,unit:'offense_or_defense',before:old.status,after:player.status,source:'ESPN NFL injury summary',observedAt:new Date().toISOString()});
-   }
+   changes.push(...verifiedNflInjuryTransitions(prior.players,current,{
+    gameId,observedAt:new Date().toISOString()
+   }));
   }
   // A snapshot write must succeed before claiming change detection is persisted.
   await put(path,JSON.stringify({players:current,updatedAt:new Date().toISOString()}),{access:'public',addRandomSuffix:false,allowOverwrite:true});
