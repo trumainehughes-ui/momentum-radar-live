@@ -49,6 +49,9 @@ export default async function handler(req,res){
    data.injuryRecheckedAt=snapshot.injuryCheckedAt;
    data.sgpModelVersion=snapshot.modelVersion||'legacy-unversioned';
    data.sgpVerification=snapshot.sgpVerification||null;
+   data.sgpAiPlan=snapshot.sgpAiPlan?.gameId===gameId&&
+    data.pregameReadiness.freshness==='CURRENT'&&data.status==='SCHEDULED'?
+    snapshot.sgpAiPlan:null;
    const current=data.pregameReadiness.freshness==='CURRENT';
    // The NBA sportsbook feed is not connected yet. Even a previous
    // deterministic guard becomes historical on stage or time rollover.
