@@ -210,3 +210,37 @@ test('Sportsbook Scout refuses a previous-game sportsbook audit even if current 
  assert.equal(sb.marketFeedAvailable,false);
  assert.equal(sb.tiers[0].books.FanDuel.status,'UNVERIFIED');
 });
+
+test('AI Parlay Architect Groq receives current per-book SGP recheck decisions, not fabricated sportsbook tickets',async()=>{
+ const plan={gameId:'game-123',league:'nfl',status:'SOURCE_SCOPED_RECHECK_PLAN',
+  needsMarketRecheck:1,needsModelRebuild:0,needsCombinedQuotes:1,
+  evidenceChanges:['SPORTSBOOK_MARKETS'],
+  tiers:[{risk:'Small',modelStatus:'MODEL_CANDIDATE',
+   bookActions:[{book:'DraftKings',action:'REQUEST_CORRELATED_BOOK_QUOTE',
+    reason:'Exact player markets matched',individuallyMatched:4,requestedLegs:4},
+    {book:'FanDuel',action:'REVALIDATE_MISSING_LEGS',
+    reason:'One sportsbook line unavailable',individuallyMatched:3,requestedLegs:4,
+    suggestedLineRechecks:[{player:'Player A',category:'rushing',requested:60,
+     observedOffers:[{display:'65+',minimumToWin:65}]}]}]}]};
+ const market={ok:true,gameId:'game-123',fetchedAt:new Date().toISOString(),
+  degraded:false,stale:false,validation:{sportsbookVerificationAvailable:true},
+  categories:{passing:[]},sgps:{Analytics:[{risk:'Small',
+   legs:[{name:'Player A',team:'AWY',cat:'rushing',eventID:'game-123',playerID:'11',
+    analyticsThreshold:60}]}]},sgpAiPlan:plan};
+ const h=harness({mode:'parlay',market});
+ await h.button.onclick();
+ assert.equal(h.payloads.length,1);
+ const report=h.payloads[0].data.parlayRecheck;
+ assert.equal(report.status,'SOURCE_SCOPED_RECHECK_PLAN');
+ assert.equal(report.needsCombinedQuotes,1);
+ assert.equal(report.tiers[0].books[0].action,'REQUEST_CORRELATED_BOOK_QUOTE');
+ assert.equal(report.tiers[0].books[1].action,'REVALIDATE_MISSING_LEGS');
+ assert.equal(report.tiers[0].books[1].suggestedLineRechecks[0].observedOffers[0].display,'65+');
+ assert.equal(report.tiers[0].books[0].bookableWagerConfirmed,false);
+ assert.equal(h.calls.length,3,'no additional sportsbook request');
+ const stale=harness({mode:'parlay',market:{...market,
+  fetchedAt:new Date(Date.now()-16*60000).toISOString()}});
+ await stale.button.onclick();
+ assert.equal(stale.payloads[0].data.parlayRecheck.status,'FRESH_BOOKMARKET_RECHECK_REQUIRED');
+ assert.equal(stale.payloads[0].data.parlayRecheck.tiers.length,0);
+});
