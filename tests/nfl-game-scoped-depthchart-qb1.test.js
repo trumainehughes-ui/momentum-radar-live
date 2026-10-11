@@ -59,14 +59,15 @@ test('ESPN depth-chart QB1 rank=1 is parsed; backups, ambiguity and malformed ID
 });
 test('free ESPN QB1 lookup checks only current matchup teams and isolates failed team fetch',async()=>{
  const calls=[];
- const result=await nflCurrentGameDepthChartQbs({home,away,fetchJson:async url=>{
+ const result=await nflCurrentGameDepthChartQbs({home,away,
+ teamIdsByAbbr:new Map([['JAX','30'],['PHI','21']]),fetchJson:async url=>{
   calls.push(url);
-  if(url.includes('/PHI/'))throw Error('unavailable');
+  if(url.includes('/21/'))throw Error('unavailable');
   return {depthCharts:[{positions:{QB:{position:{abbreviation:'QB'},
    athletes:[{rank:1,athlete:{id:'1001',displayName:'JAX QB1'}}]}}}]};
  }});
  assert.equal(calls.length,2);
- assert.ok(calls.every(x=>/\/teams\/(JAX|PHI)\/depthcharts$/.test(x)));
+ assert.ok(calls.every(x=>/\/teams\/(30|21)\/depthcharts$/.test(x)));
  assert.equal(result.length,1);
  assert.equal(result[0].team,'JAX');
 });
@@ -123,11 +124,84 @@ test('actual markets API and health report include scoped role counts, cache ver
  const status=readFileSync(new URL('../lib/nfl-sgp-snapshot-status.js',import.meta.url),'utf8');
  const ui=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert.ok(api.includes('await nflCurrentGameDepthChartQbs('));
+ assert.ok(api.includes('teamIdsByAbbr:eligibility.teamIdsByAbbr'));
  assert.ok(api.includes('nflProjectedDepthChartQbEligible(role)'));
- assert.ok(api.includes('day-ahead-roles-v4-game-scope-qb1'));
+ assert.ok(api.includes('day-ahead-roles-v5-teamid-depthchart'));
  assert.ok(status.includes('projectedDepthChartQb1'));
  assert.ok(status.includes('excludedOtherMatchups'));
  assert.ok(ui.includes('other-game players excluded normally'));
  assert.ok(ui.includes('depth-chart QB1 models'));
  assert.ok(!api.includes('combinedBookSgpQuoteAvailable:true'));
+});
+
+test('missing ESPN numeric team IDs fail closed; no guessed QB1 and no extra requests',async()=>{
+ let fetched=0;
+ const rows=await nflCurrentGameDepthChartQbs({home,away,
+  teamIdsByAbbr:new Map([['JAX','JAX'],['PHI','undefined']]),
+  fetchJson:async()=>{fetched++;throw Error('should not request invalid team ID')}});
+ assert.deepEqual(rows,[]);
+ assert.equal(fetched,0);
+});
+test('numeric ESPN site depthchart retains only one rank-one QB per current team',async()=>{
+ const requested=[];
+ const rows=await nflCurrentGameDepthChartQbs({home,away,
+  teamIdsByAbbr:new Map([['JAX','30'],['PHI','21']]),
+  fetchJson:async url=>{
+   requested.push(url);
+   const jax=url.includes('/30/'),
+    id=jax?'1001':'2001',
+    name=jax?'JAX QB1':'PHI QB1';
+   return{depthCharts:[{name:'Offense',positions:{quarterback:{
+    position:{abbreviation:'QB'},athletes:[
+      {rank:1,athlete:{id,displayName:name}},
+      {rank:2,athlete:{id:'9991',displayName:'Backup QB'}}
+    ]}}}]};
+  }});
+ assert.equal(rows.length,2);
+ assert.deepEqual(rows.map(x=>x.playerId).sort(),['1001','2001']);
+ assert.ok(requested.some(x=>x.includes('/teams/30/depthcharts')));
+ assert.ok(requested.some(x=>x.includes('/teams/21/depthcharts')));
+ assert.ok(requested.every(x=>!x.includes('/teams/JAX/')&&!x.includes('/teams/PHI/')));
+});
+
+test('actual ESPN NFL singular depthchart response exposes rank-one QB without official starter inference',()=>{
+ const sites=[
+  {timestamp:'2026-10-11T00:40:00Z',status:'success',
+   season:{year:2026},team:{id:'30',abbreviation:'JAX'},
+   depthchart:[{name:'Offense',positions:{quarterback:{
+    position:{name:'Quarterback',abbreviation:'QB'},
+    athletes:[{rank:1,athlete:{id:'1001',displayName:'JAX QB1'}},
+              {rank:2,athlete:{id:'1008',displayName:'JAX Backup'}}]}}}]},
+  {depthchart:{positions:{quarterback:{position:{abbreviation:'QB'},
+   athletes:[{rank:1,athlete:{id:'1001',displayName:'JAX QB1'}}]}}}},
+  {depthchart:{offense:{positions:{quarterback:{position:{abbreviation:'QB'},
+   athletes:[{rank:1,athlete:{id:'1001',displayName:'JAX QB1'}}]}}}}}
+ ];
+ for(const raw of sites){
+  const result=nflDepthChartQb1(raw,'JAX');
+  assert.equal(result?.playerId,'1001');
+  assert.equal(result?.rank,1);
+  assert.match(result?.source||'',/NOT an official confirmed starter/);
+ }
+});
+
+test('live ESPN singular depthchart quarterback positions use ordered direct athlete rows without rank fields',()=>{
+ const payload={timestamp:'2026-10-11T00:40:00Z',
+  season:{year:2026},team:{id:'30',abbreviation:'JAX'},
+  depthchart:[{name:'Base 4-3 D',positions:{mlb:{position:{abbreviation:'MLB'},
+   athletes:[{id:'77777',displayName:'Defender'}]}}},
+   {name:'Special Teams',positions:{p:{position:{abbreviation:'P'},
+    athletes:[{id:'88888',displayName:'Punter'}]}}},
+   {name:'3WR 1TE',positions:{qb:{position:{abbreviation:'QB'},
+    athletes:[{id:'4360310',displayName:'Trevor Lawrence'},
+     {id:'9999999',displayName:'Backup Quarterback'}]}}}]};
+ const result=nflDepthChartQb1(payload,'JAX');
+ assert.equal(result?.playerId,'4360310');
+ assert.equal(result?.rank,1);
+ assert.equal(result?.name,'Trevor Lawrence');
+ assert.match(result?.source||'',/NOT an official confirmed starter/);
+ const wrong={...payload,depthchart:[{name:'3WR 1TE',positions:{qb:{
+  position:{abbreviation:'QB'},athletes:[
+   {rank:2,id:'4360310',displayName:'Trevor Lawrence'}]}}}]};
+ assert.equal(nflDepthChartQb1(wrong,'JAX'),null);
 });

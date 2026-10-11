@@ -96,7 +96,7 @@ test('prior-season stats cannot use a traded player from a different current tea
  assert.ok(result.sgps.every(x=>x.status==='NOT_READY'));
 });
 test('NBA collector schedules recalculate cached pregame snapshots under new historical season model',()=>{
- assert.ok(NBA_PREGAME_MODEL_VERSION.startsWith('v4-'));
+ assert.ok(NBA_PREGAME_MODEL_VERSION.startsWith('v5-'));
  const game=fixture(2);
  const now=Date.parse(game.kickoff)-24*3600000;
  const previous={modelVersion:'v2-season-aware-freshness',stage:'DAY_AHEAD_BUILD',

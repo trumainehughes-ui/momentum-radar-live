@@ -5,10 +5,20 @@ export function pregameReadiness(env={}){
  const cron=Boolean(env.CRON_SECRET),storage=blobStorageReadiness(env);
  const available=cron&&storage.configured;
  return{ok:true,status:available?'CONFIGURED':'BLOCKED',storage,
+  leagueWidePolicy:{registeredSports:['nfl','nba'],futureSportAdaptersRequired:true,
+   coverage:'Every qualified scheduled game, not just popular/selected matchups',
+   lookaheadHours:{nfl:30,nba:36},cronIntervalMinutes:15,
+   windows:['DAY_AHEAD_BUILD','PREGAME_VALIDATION','FINAL_T_MINUS_30'],
+   finalCheck:'First qualifying scheduled 15-minute run at or below 30 minutes to kickoff/tip-off; exact-minute execution not guaranteed',
+   automaticRecalculation:['injury_designations','roster_role_evidence','player_props','sgp_small_medium_nuke','offense_vs_defense'],
+   aiPolicy:'Advisory review only; no unverified sportsbook quote or injury eligibility override'},
   nfl:{cronConfigured:cron,collectorReady:available,modelRefreshMinutes:15,
-   tMinus30Policy:'Recalculate only from verified injury/roster evidence; AI review advisory only'},
+   propTypes:['anytime_td','passing','rushing','receiving','receptions'],
+   tMinus30Policy:'Refresh eligible model props and SGPs with reported injuries, roster, offense-defense and AI advisory'},
   nba:{cronConfigured:cron,collectorReady:available,modelRefreshMinutes:15,
-   dayAheadPolicy:'ESPN completed game samples and current rosters; candidates may remain Not Ready',
+   modelRebuildMinutes:{dayAhead:60,pregameValidation:15,final30:10},
+   propTypes:['points','rebounds','assists','threes','pra'],
+   dayAheadPolicy:'ESPN completed game baseline + current rosters + capped opponent defense context; not book-quoted',
    sportsbookOddsVerified:false},
   ballDontLieFree:{dailyCacheReady:available,paidStatsOrPropEndpointsUsed:false},
   nextStep:available?'Check the next scheduled collector run and saved snapshot.':
