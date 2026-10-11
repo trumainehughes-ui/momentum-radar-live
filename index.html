@@ -51,11 +51,11 @@ const nflMarketCache=new Map(),nflMarketInflight=new Map(),nflMarketBlocked=new 
 async function getNFLMarkets(gameId='',forceFresh=false){
   if(!nflData?.date)throw Error('nfl_date_unavailable');
   const key=nflData.date+'|'+gameId,now=Date.now(),blocked=nflMarketBlocked.get(key)||0;
-  if(now<blocked)throw Error('sportsbook_cooldown');
+  if(now<blocked){const previous=nflMarketCache.get(key);if(previous?.data?.ok)return previous.data;throw Error('sportsbook_cooldown');}
   const hit=nflMarketCache.get(key);
   if(!forceFresh&&hit&&now-hit.at<15*60*1000)return hit.data;
   if(nflMarketInflight.has(key))return nflMarketInflight.get(key);
-  const p=(async()=>{const q={date:nflData.date};if(gameId)q.gameId=gameId;if(forceFresh)q.finalCheck='1';const r=await fetch('/api/nfl-markets?'+new URLSearchParams(q));const d=await r.json();if(!r.ok||!d.ok){const retry=Math.max(60,Number(r.headers.get('retry-after'))||900);nflMarketBlocked.set(key,Date.now()+retry*1000);throw Error(d.error||'markets')}nflMarketBlocked.delete(key);nflMarketCache.set(key,{at:Date.now(),data:d});return d})().finally(()=>nflMarketInflight.delete(key));
+  const p=(async()=>{const q={date:nflData.date};if(gameId)q.gameId=gameId;if(forceFresh)q.finalCheck='1';const r=await fetch('/api/nfl-markets?'+new URLSearchParams(q));const d=await r.json();if(!r.ok||!d.ok){const retry=Math.max(60,Number(r.headers.get('retry-after'))||900);nflMarketBlocked.set(key,Date.now()+retry*1000);const previous=nflMarketCache.get(key);if(previous?.data?.ok)return previous.data;throw Error(d.error||'markets')}nflMarketBlocked.delete(key);nflMarketCache.set(key,{at:Date.now(),data:d});return d})().finally(()=>nflMarketInflight.delete(key));
   nflMarketInflight.set(key,p);return p
 }const nflLabels={td:'Anytime TDs',passing:'Passing Yards',rushing:'Rushing Yards',receiving:'Receiving Yards',receptions:'Receptions'};
 let nflDvpData=null;
