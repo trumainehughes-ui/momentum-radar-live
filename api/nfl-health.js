@@ -7,6 +7,7 @@ import {pregameEvidenceAudit,pregameNeedsAiReview,pregamePhase}
 import {selectedShardGames,collectorAuditReport,writeCollectorAudit}
  from '../lib/pregame-collector-shards.js';
 import {checkNflScheduledInjuryChanges} from '../lib/nfl-scheduled-injury-watch.js';
+import {runNflScheduledBookCheckpoint} from '../lib/nfl-scheduled-book-checkpoint.js';
 import {
  nflEasternDate,nflAddDate,nflCollectorDueGames,nflTierReadiness,
  nflCollectorSnapshotReady,nflRunCollectorBatch,nflMarketFailureDetails,MAX_NFL_COLLECTOR_CONCURRENCY
@@ -100,6 +101,14 @@ async function autoLock(base,games){
   const injuryWatch=await checkNflScheduledInjuryChanges(g,{
    base,cronSecret:process.env.CRON_SECRET
   });
+  // No duplicate scheduled spend when a verified injury event is already
+  // driving its own independent paid/quoted rebuild for this matchup.
+  const bookCheckpoint=injuryWatch.tokenIssued?{
+   status:'SKIPPED_VERIFIED_INJURY_REFRESH',stage:null,marketResponse:null
+  }:await runNflScheduledBookCheckpoint(g,{
+   base,secret:process.env.CRON_SECRET,
+   configured:Boolean(process.env.PLAYER_PROPS_API_KEY)
+  });
   const date=day(new Date(g.kickoff)),
    mins=(Date.parse(g.kickoff)-Date.now())/60000,
    finalCheck=mins<=30?'&finalCheck=1':'',
@@ -108,17 +117,22 @@ async function autoLock(base,games){
   // A single delayed game must not exhaust the whole cron execution.
   // Only the signed cron can request the stricter ten-minute saved-snapshot
   // freshness gate; anonymous ?lockRun=1 URLs cannot bypass the UI cache.
-  const r=await fetch(url,{cache:'no-store',
+  // The signed checkpoint just returned a newly rebuilt market response;
+  // do not immediately overwrite its real bookmaker quote with a routine
+  // model-only refresh, especially at T-minus-30.
+  const r=bookCheckpoint.marketResponse?null:await fetch(url,{cache:'no-store',
    headers:{Authorization:'Bearer '+process.env.CRON_SECRET},
    signal:AbortSignal.timeout(65000)});
-  if(!r.ok){
+  if(r&&!r.ok){
    const failure=await r.json().catch(()=>null);
    return{gameId:g.gameId,status:'markets_unavailable',injuryWatch,
+    bookCheckpoint:{status:bookCheckpoint.status,stage:bookCheckpoint.stage},
     ...nflMarketFailureDetails(r.status,failure)};
   }
-  const m=await r.json();
+  const m=bookCheckpoint.marketResponse||await r.json();
   if(!m?.ok)return{gameId:g.gameId,status:'markets_unavailable',injuryWatch,
-   ...nflMarketFailureDetails(r.status,m)};
+   bookCheckpoint:{status:bookCheckpoint.status,stage:bookCheckpoint.stage},
+   ...nflMarketFailureDetails(r?.status||200,m)};
   const prior=await priorSnapshot(g.gameId);
   const snap=historySnap(g,m,prior);
   const audit=pregameEvidenceAudit(prior,snap,{league:'nfl'});
@@ -143,7 +157,7 @@ async function autoLock(base,games){
   const changed=audit.changedFromPrior;
   await put(P+g.gameId+'.json',JSON.stringify(snap),
    {access:'public',addRandomSuffix:false,allowOverwrite:true});
-  return {gameId:g.gameId,injuryWatch,status:snap.modelDataStatus==='NOT_READY'?'no_qualified_model_data':prior?'updated':'locked',
+  return {gameId:g.gameId,injuryWatch,bookCheckpoint:{status:bookCheckpoint.status,stage:bookCheckpoint.stage},status:snap.modelDataStatus==='NOT_READY'?'no_qualified_model_data':prior?'updated':'locked',
    stage:snap.lockStage,revision:snap.revision,picks:snap.picks.length,
    sgps:snap.sgps.length,aiReview:snap.aiReview?.status||'PENDING',
    changed,changedFields:snap.changedFields,
@@ -211,6 +225,11 @@ export default async function handler(req,res){
     attempted:historyLocks.length,completed:historyLocks.filter(x=>['locked','updated'].includes(x.status)).length,
     failed:historyLocks.filter(x=>!['locked','updated'].includes(x.status)).length,
     changed:historyLocks.filter(x=>x.changed===true).length,
+   sportsbookCheckpoints:{
+    refreshed:historyLocks.filter(x=>x.bookCheckpoint?.status==='MARKET_REFRESHED').length,
+    skipped:historyLocks.filter(x=>x.bookCheckpoint?.status==='ALREADY_ATTEMPTED_OR_STORE_UNAVAILABLE').length,
+    budgetExhausted:historyLocks.filter(x=>x.bookCheckpoint?.status==='DAILY_CHECKPOINT_BUDGET_EXHAUSTED').length
+   },
    injuryWatch:{
     checked:historyLocks.filter(x=>['compared','baseline_created',
      'insufficient_injury_evidence'].includes(x.injuryWatch?.status)).length,
