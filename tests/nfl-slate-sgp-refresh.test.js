@@ -90,5 +90,5 @@ test('NFL UI exposes explicit all-games actual SGP rebuild, bounded workers, and
  assert.match(html,/await Promise\.all\(\[worker\(\),worker\(\)\]\)/);
  assert.match(html,/entry\[book\]=Math\.max\(0,Number\(d\.sportsbookCoverage/);
  assert.match(html,/Actual correlated SGP odds: NOT VERIFIED/);
- assert.match(html,/if\(!\/\^\\d\{7,12\}\$\//);
+ assert.ok(html.includes(String.raw`if(!/^\d{7,12}$/.test(gameId)`));
 });
