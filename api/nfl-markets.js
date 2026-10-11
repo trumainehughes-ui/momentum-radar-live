@@ -481,7 +481,15 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
    oddsDebug.error=String(e?.message||e);
    console.warn('primary_market_degraded',oddsDebug.error);
   }
-  if(!directRows?.length&&process.env.PLAYER_PROPS_API_KEY){
+  // PropLine credits are reserved for verified roster/offense/defense change events.
+  // Public page reads, routine refreshes and missing primary odds never spend credits.
+  const changeType=String(req.query.changeType||'').toLowerCase();
+  const allowedChange=new Set(['player_injury','player_inactive','qb_change','offense_change','defense_change','depth_chart_change']);
+  const auth=String(req.headers.authorization||'');
+  const authorizedChange=Boolean(process.env.CRON_SECRET)&&auth==='Bearer '+process.env.CRON_SECRET&&allowedChange.has(changeType);
+  oddsDebug.propLineCreditPolicy='verified_change_only';
+  oddsDebug.propLineChangeType=authorizedChange?changeType:null;
+  if(!directRows?.length&&process.env.PLAYER_PROPS_API_KEY&&authorizedChange){
    try{
     const propUrl=(req.headers['x-forwarded-proto']||'https')+'://'+req.headers.host+'/api/prop-line-markets?league=nfl&date='+date+'&gameId='+encodeURIComponent(gameId);
     const propResult=await Promise.race([(async()=>{const r=await timedFetch(propUrl,{cache:'no-store'});return r.ok?await r.json():null})(),new Promise(resolve=>setTimeout(()=>resolve(null),6000))]);
