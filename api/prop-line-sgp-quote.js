@@ -1,4 +1,5 @@
 import {list,put} from '@vercel/blob';
+import {verifyPropLineSgpResponse} from '../lib/prop-line-sgp-quote-verification.js';
 // Explicit, change-authorized SGP pricing. No public or routine-refresh provider spend.
 const API='https://api.prop-line.com/v1';
 const SPORT={nfl:'football_nfl',nba:'basketball_nba'};
@@ -28,7 +29,7 @@ export default async function handler(req,res){
   const data=await r.json().catch(()=>({}));
   const remaining=r.headers.get('x-daily-remaining');
   if(!r.ok)return res.status(502).json({ok:false,error:'quote_provider_rejected',providerStatus:r.status,remaining:remaining===null?null:Number(remaining)});
-  const quoted=data.quoted===true&&data.redacted!==true&&Number.isFinite(Number(data.sgp_price))&&data.legs?.length===legs.length&&data.legs.every(l=>l.accepted===true);
-  return res.status(200).json({ok:true,quoted,bookmaker,eventId,americanOdds:quoted?Number(data.sgp_price):null,pricedAt:quoted?data.priced_at:null,legsAccepted:quoted?legs.length:0,remaining:remaining===null?null:Number(remaining),status:quoted?'BOOK_QUOTED':'BOOK_DECLINED_OR_REDACTED'});
+  const verified=verifyPropLineSgpResponse({league,gameId,eventId,bookmaker,legs},data);
+  return res.status(200).json({ok:true,quoted:verified.quoted,bookmaker,eventId,americanOdds:verified.americanOdds,pricedAt:verified.pricedAt,legsAccepted:verified.legsAccepted,remaining:remaining===null?null:Number(remaining),status:verified.quoted?'PROVIDER_BOOK_COMBINED_QUOTE':'BOOK_QUOTE_NOT_VERIFIED',reason:verified.reason});
  }catch{return res.status(502).json({ok:false,error:'quote_provider_unavailable'})}
 }
