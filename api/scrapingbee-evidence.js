@@ -34,14 +34,14 @@ export default async function handler(req,res){
  try{await put(claimPath,JSON.stringify({gameId,book,claimedAt:new Date().toISOString()}),{access:'public',addRandomSuffix:false,allowOverwrite:false})}catch{return res.status(409).json({ok:false,error:'change_already_claimed_or_claim_store_unavailable'})}
  try{
   const endpoint=new URL('https://app.scrapingbee.com/api/v1/');
-  endpoint.searchParams.set('api_key',process.env.SCRAPINGBEE_API_KEY);
+  // Keep provider credentials out of query strings, redirects and logs.
   endpoint.searchParams.set('url',target);
   endpoint.searchParams.set('render_js','false'); // Minimum-cost mode; never enable premium proxy or JS rendering automatically.
   endpoint.searchParams.set('block_resources','true');
   // Diagnostic and production requests must stay in the lowest-cost mode.
   endpoint.searchParams.set('premium_proxy','false');
   endpoint.searchParams.set('stealth_proxy','false');
-  const response=await fetch(endpoint,{redirect:'manual',signal:AbortSignal.timeout(12000)});
+  const response=await fetch(endpoint,{headers:{Authorization:'Bearer '+process.env.SCRAPINGBEE_API_KEY},redirect:'manual',signal:AbortSignal.timeout(12000)});
   const reportedCost=response.headers.get('spb-cost');
   const creditsCharged=reportedCost===null?null:Number(reportedCost);
   const providerRequestId=String(response.headers.get('spb-request-id')||'').slice(0,100);
