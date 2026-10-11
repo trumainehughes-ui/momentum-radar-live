@@ -106,6 +106,30 @@
    '<div class="refresh"><a href="https://sportsbook.draftkings.com/page/nba-player-props" target="_blank" rel="noopener noreferrer">DraftKings NBA props page</a></div>'+
    '<div id="nbaPublicOddsReadout">Publicly visible odds may be partial. No combined SGP price verified.</div></div>';
  }
+ async function nbaAutomaticBookResearch(gameId){
+  const output=qs('#nbaPublicOddsReadout');
+  if(!output)return;
+  output.textContent='Automatically checking both official sportsbooks for this verified ESPN matchup…';
+  try{
+   const resp=await fetch('/api/sportsbook-public-game?league=nba&gameId='+
+    encodeURIComponent(gameId),{cache:'no-store',credentials:'omit'});
+   const report=await resp.json();
+   if(selected!==gameId||!output.isConnected)return;
+   if(!resp.ok||!report.ok){
+    output.textContent='Automatic public-page check not available: '+
+     String(report.status||report.error||'UNAVAILABLE')+
+     '. No NBA sportsbook price was inferred.';
+    return;
+   }
+   const rows=(report.pages||[]).map(p=>'<div>'+
+    safe(p.book)+' • '+safe(p.label)+' • '+safe(p.status)+
+    ' • '+safe(p.quotedSelectionCount||0)+' publicly observed player prices</div>').join('');
+   output.innerHTML='<b>Both-book automatic research:</b> '+rows+
+    '<div class="refresh">These publicly observed team-page prices might belong to another matchup and have no authenticated event/timestamp. NBA parlays stay model-only until current sportsbook market and combined price are separately verified.</div>';
+  }catch{
+   if(selected===gameId)output.textContent='Automatic sportsbook page check blocked or unavailable. No NBA price inferred.';
+  }
+ }
  function bindNbaPublicOdds(gameId){
   const button=qs('#nbaPublicOddsRead'),input=qs('#nbaBookPageUrl');
   if(!button||!input)return;
@@ -180,6 +204,7 @@
    const d=await detail(id);if(request!==token||selected!==id)return;
    qs('#nbaSgps').innerHTML=sgps(d)+nbaPublicSportsbookPanel();
    bindNbaPublicOdds(id);
+   void nbaAutomaticBookResearch(id);
    renderInjuries(d);
    if(!d.players?.length){
     qs('#nbaPlayers').innerHTML='<div class="msg">'+
