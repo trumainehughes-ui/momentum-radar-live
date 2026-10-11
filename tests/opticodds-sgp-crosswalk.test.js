@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {matchOpticOddsFixture,buildOpticOddsMarketCrosswalk,verifyOpticOddsMarketCatalog}
+import {matchOpticOddsFixture,buildOpticOddsMarketCrosswalk,verifyOpticOddsMarketCatalog,
+ verifyOpticOddsPlayerRosters}
  from '../lib/opticodds-sgp-crosswalk.js';
 import {prepareOpticOddsSgpRequest} from '../lib/opticodds-sgp-reference.js';
 const now=Date.parse('2026-10-11T10:00:00Z');
@@ -12,7 +13,7 @@ const fixture={
  home_competitors:[{id:'O-JAX',abbreviation:'JAX',name:'Jacksonville Jaguars'}],
  away_competitors:[{id:'O-PHI',abbreviation:'PHI',name:'Philadelphia Eagles'}]
 };
-const source={data:[fixture],page:1,total_pages:1};
+const source={data:[fixture],page:1,has_more:false};
 const legs=[
  {name:'Trevor Lawrence',playerID:'11',team:'JAX',eventID:gameId,cat:'passing',analyticsThreshold:180},
  {name:'Bhayshul Tuten',playerID:'22',team:'JAX',eventID:gameId,cat:'rushing',analyticsThreshold:65},
@@ -30,12 +31,23 @@ const odds=legs.map((l,i)=>({
  timestamp:(now-30000)/1000
 }));
 const oddsSnapshot={data:[{...fixture,odds}]};
+const playerRows=legs.map((l,i)=>({
+ id:'OPTIC-PLAYER-'+i,name:l.name,is_active:true,
+ team:{id:'O-JAX'},league:{id:'nfl'},sport:{id:'football'}
+}));
+const teamPages={
+ JAX:[{data:playerRows,page:1,has_more:false}],
+ PHI:[{data:[],page:1,has_more:false}]
+};
+const playerCrosswalk=()=>verifyOpticOddsPlayerRosters({
+ league:'nfl',fixture:match(),legs,teamPages,now
+});
 const match=(overrides={})=>matchOpticOddsFixture({league:'nfl',game,
  fixtures:source,now,...overrides});
 const build=(opts={})=>{
  const f=match();
  return buildOpticOddsMarketCrosswalk({fixture:f,league:'nfl',game,legs,
-  oddsSnapshot,marketCatalog:catalog,now,...opts});
+  oddsSnapshot,marketCatalog:catalog,playerCrosswalk:playerCrosswalk(),now,...opts});
 };
 test('exact away/home and kickoff yields a single provider fixture mapping',()=>{
  const x=match();
@@ -52,7 +64,7 @@ test('wrong teams, swapped venues, kickoff mismatch, wrong sport, incomplete pag
   {fixtures:{data:[{...fixture,league:{id:'nba'}}]}},
   {fixtures:{data:[{...fixture,status:'completed'}]}},
   {fixtures:{data:[fixture,fixture]}},
-  {fixtures:{data:[fixture],total_pages:2}},
+  {fixtures:{data:[fixture],has_more:true}},
   {game:{...game,kickoff:'bad'}},
   {game:{...game,home:{abbr:'PHI'}}}
  ]){
@@ -74,7 +86,7 @@ test('fresh DraftKings + correct provider player, team, exact yard line gives pr
   fixture_id:fixtureId,market:'Player Passing Yards',
   name:'Trevor Lawrence Over 179.5'});
 });
-test('mispriced lines, missing player team ID, wrong book, duplicate player markets and stale odds cannot map',()=>{
+test('mispriced lines, wrong reported team ID, wrong book, duplicate markets and stale odds cannot map',()=>{
  const tests=[
   [{...odds[1],name:'Bhayshul Tuten Over 65.5'},'EXACT_PROVIDER_PLAYER_MARKET_UNAVAILABLE'],
   [{...odds[1],team_id:'O-PHI'},'EXACT_PROVIDER_PLAYER_MARKET_UNAVAILABLE'],
@@ -118,7 +130,22 @@ test('NBA game with exact fixture and four categories uses the same market match
   {gameId:basketballGame,playerId:'11',name:'Player A',team:'DEN',category:'points',threshold:20},
   {gameId:basketballGame,playerId:'22',name:'Player B',team:'LAL',category:'assists',threshold:5}
  ];
+ const nbaTeamPages={
+  DEN:[{page:1,has_more:false,data:[{
+   id:'O-1',name:'Player A',is_active:true,team:{id:'O-DEN'},
+   league:{id:'nba'},sport:{id:'basketball'}
+  }]}],
+  LAL:[{page:1,has_more:false,data:[{
+   id:'O-2',name:'Player B',is_active:true,team:{id:'O-LAL'},
+   league:{id:'nba'},sport:{id:'basketball'}
+  }]}]
+ };
+ const nbaCrosswalk=verifyOpticOddsPlayerRosters({
+  league:'nba',fixture:f,legs:nbaLegs,teamPages:nbaTeamPages,now
+ });
+ assert.equal(nbaCrosswalk.ready,true);
  const b=buildOpticOddsMarketCrosswalk({fixture:f,game:g,league:'nba',legs:nbaLegs,
+  playerCrosswalk:nbaCrosswalk,
   marketCatalog:{league:'nba',sourceVerified:true,checkedAt:new Date(now).toISOString(),
    points:['Player Points'],assists:['Player Assists']},
   oddsSnapshot:{data:[{...fx,odds:[
@@ -156,4 +183,22 @@ test('market catalog must not borrow market names from a different league or spo
   name:'Player Passing Yards',sports:[{id:'football',leagues:[{id:'nfl',
    sportsbooks:[{id:'fanduel'}]}]}]}]}});
  assert.equal(wrongBook.sourceVerified,false);
+});
+
+test('documented DraftKings player-prop odds with empty team_id still match through roster player_id',()=>{
+ const x=build({oddsSnapshot:{data:[{...fixture,odds:odds.map(x=>({...x,team_id:''}))}]}});
+ assert.equal(x.ready,true);
+ assert.equal(x.entries.length,legs.length);
+});
+test('missing or ambiguous provider player rosters stop mapping before any pricing attempt',()=>{
+ assert.equal(build({playerCrosswalk:null}).reason,'PROVIDER_PLAYER_ROSTER_CROSSWALK_REQUIRED');
+ const duplicate=verifyOpticOddsPlayerRosters({league:'nfl',fixture:match(),legs,
+  teamPages:{...teamPages,JAX:[{page:1,has_more:false,data:[playerRows[0],{...playerRows[0],id:'other'},...playerRows.slice(1)]}]},now});
+ assert.equal(duplicate.reason,'AMBIGUOUS_PROVIDER_ROSTER_PLAYER');
+ const wrongTeam=verifyOpticOddsPlayerRosters({league:'nfl',fixture:match(),legs,
+  teamPages:{...teamPages,JAX:[{page:1,has_more:false,data:playerRows.map((p,i)=>i===0?{...p,team:{id:'O-PHI'}}:p)}]},now});
+ assert.equal(wrongTeam.reason,'PLAYER_NOT_ON_VERIFIED_PROVIDER_TEAM');
+ const wrongId=build({playerCrosswalk:{...playerCrosswalk(),
+  entries:playerCrosswalk().entries.map((x,i)=>i===1?{...x,opticPlayerId:'wrong'}:x)}});
+ assert.equal(wrongId.reason,'EXACT_PROVIDER_PLAYER_MARKET_UNAVAILABLE');
 });
