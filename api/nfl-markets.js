@@ -699,7 +699,37 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
    .some(book=>sgpResponse[book].some(s=>s.combinedBookQuoteVerified===true));
   if(sgpResponse.combinedBookQuoteVerified)sgpResponse.mode='BOOK_QUOTED_PARTIAL';
  }
- const response={ok:true,gameId,date,scope:'game',home,away,provider,categories,sgps:sgpResponse,marketRows:(directRows||[]).length,degraded:!hasCompleteBookLegCandidate,validation:{sgpEligibleMarketRows:sgpGateDiagnostics.eligible,sgpGateDiagnostics,combinedBookSgpQuoteAvailable:sgpResponse.combinedBookQuoteVerified},oddsDebug,fetchedAt:new Date().toISOString()};
+ // Source and injury evidence must accompany the ACTIVE response path,
+ // not only the unreachable legacy response below. Collector snapshots and
+ // the match-up view read these exact fields to distinguish ready vs pending.
+ const activeBookMarketCounts=Object.fromEntries(['DraftKings','FanDuel'].map(book=>[
+  book,sgpRows.filter(m=>bookFor(m,book)).length
+ ]));
+ const response={ok:true,gameId,date,scope:'game',home,away,provider,categories,
+  sgps:sgpResponse,marketRows:(directRows||[]).length,
+  degraded:!hasCompleteBookLegCandidate,
+  analyticsAvailable:Object.values(categories).some(v=>Array.isArray(v)&&v.length>0),
+  sportsbookIntegration:{
+   state:sgpGateDiagnostics.eligible?'VERIFIED_INDIVIDUAL_PROPS':'NO_VERIFIED_PLAYER_PROPS',
+   reason:sgpGateDiagnostics.eligible?'Individual bookmaker props observed; combined pricing is verified separately.':
+    'No eligible current-book player prop rows; the ESPN analytics model remains independent.',
+   bookMarketCounts:activeBookMarketCounts,combinedSgpQuoteAvailable:sgpResponse.combinedBookQuoteVerified
+  },
+  validation:{
+   sgpEligibleMarketRows:sgpGateDiagnostics.eligible,
+   sgpGateDiagnostics,bookLegCandidateComplete:hasCompleteBookLegCandidate,
+   combinedBookSgpQuoteAvailable:sgpResponse.combinedBookQuoteVerified,
+   injuryEligibilityChecked:eligibility.checked===true,
+   blockedPlayerCount:Math.max(eligibility.blockedIds.size,eligibility.blockedNames.size),
+   dayAheadRoleSource:dayAheadRoles?.source||'NOT_APPLICABLE',
+   dayAheadRoleChecks:dayAheadRoles?.counters||null,
+   conditionalRoleCount:(dayAheadRoles?.counters?.projectedHighUsageRoles||0)+
+    (dayAheadRoles?.counters?.projectedDepthChartQb1||0),
+   depthChartQb1Count:dayAheadRoles?.counters?.projectedDepthChartQb1||0,
+   conditionalRolesNotConfirmedStarters:true,
+   currentRosterRequired:true,wrongTeamRowsBlocked:true,
+   finalPregameCheckMinutes:30
+  },oddsDebug,fetchedAt:new Date().toISOString()};
  res.setHeader('Cache-Control','private, no-store');
  await Promise.race([writeResponseSnapshot(responseKey,response),new Promise(resolve=>setTimeout(resolve,1200))]);
  return res.status(200).json(response);
