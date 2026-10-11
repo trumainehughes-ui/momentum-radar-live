@@ -36,6 +36,9 @@ export default async function handler(req,res){
   endpoint.searchParams.set('url',target);
   endpoint.searchParams.set('render_js','false'); // Minimum-cost mode; never enable premium proxy or JS rendering automatically.
   endpoint.searchParams.set('block_resources','true');
+  // Diagnostic and production requests must stay in the lowest-cost mode.
+  endpoint.searchParams.set('premium_proxy','false');
+  endpoint.searchParams.set('stealth_proxy','false');
   const response=await fetch(endpoint,{redirect:'manual',signal:AbortSignal.timeout(12000)});
   if(!response.ok)return res.status(502).json({ok:false,error:'provider_request_failed',providerStatus:response.status});
   const contentType=String(response.headers.get('content-type')||'').toLowerCase();
