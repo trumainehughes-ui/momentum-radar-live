@@ -29,6 +29,7 @@ test('PHI-JAX model 55+ does not match FanDuel offered 60+; 3/4 is NOT sportsboo
  assert.equal(a.missingLegs.length,1);
  assert.equal(a.missingLegs[0].requested,55);
  assert.deepEqual(a.missingLegs[0].listed,[60]);
+ assert.deepEqual(a.missingLegs[0].listedOffers,[{display:'60+',minimumToWin:60}]);
  assert.equal(a.allLegsMatched,false);
  assert.equal(a.combinedBookQuoteVerified,false);
  assert.equal(a.actualCombinedOdds,null);
