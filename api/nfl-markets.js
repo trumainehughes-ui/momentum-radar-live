@@ -595,6 +595,8 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
   return {...s,bookVerificationPending:true,combinedBookQuoteVerified:false,actualSgpOdds:null,publishable:false,
    quoteEligibility:eligible?'READY_FOR_AUTHORIZED_QUOTE':'MISSING_VERIFIED_BOOK_SELECTIONS',
    quoteSelectionCount:eligible?selections.length:0,
+   // These IDs are provider-issued and not secrets; only complete selections are exposed.
+   quoteRequest:eligible?{league:'nfl',gameId:String(gameId),bookmaker:book==='DraftKings'?'draftkings':'fanduel',legs:selections}:null,
    // Never expose quote credentials or mark an individual-leg parlay as priced.
    displayLabel:book+' individual-prop candidate (unquoted)'};
  });
