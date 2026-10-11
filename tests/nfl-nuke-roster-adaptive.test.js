@@ -104,5 +104,5 @@ test('market route builds Nuke from vetted roster pool before last-resort presen
  assert.ok(api.includes("const nuke=selectNflAdaptiveNuke(make);"));
  assert.ok(api.includes('buildAnalyticsSgp(categories,ctx,roles,{gameId,home,away,rosterChecked:'));
  assert.ok(api.includes('sgps=pruneSgpsForEligibility(sgps,eligibility,{gameId,home,away})'));
- assert.ok(api.includes("CACHE_SCHEMA='v87-sgo-backup-only'+'-nuke-roster-adaptive-1-game-identity-2'"));
+ assert.ok(api.includes("CACHE_SCHEMA='v92-strict-nuke-profit-20261011'+'-nuke-roster-adaptive-1-game-identity-2'"));
 });

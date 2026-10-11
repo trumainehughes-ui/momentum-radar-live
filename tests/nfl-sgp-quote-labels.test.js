@@ -16,7 +16,7 @@ test('NFL SGP never conflates single-leg market candidates with a correlated spo
 });
 test('NFL SGP payout guidance uses NET profit, not estimated correlated odds',()=>{
  assert.ok(src.includes('Small targets +2000 to +3000 ($200-$300 net profit on $10)'));
- assert.ok(src.includes('Nuke targets +10000 or higher ($1,000+ net profit)'));
+ assert.ok(src.includes('Nuke targets greater than +10000 (over $1,000 net profit)'));
  assert.ok(src.includes('target bands are not verified sportsbook payouts'));
 });
 

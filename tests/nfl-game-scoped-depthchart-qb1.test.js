@@ -123,7 +123,7 @@ test('actual markets API and health report include scoped role counts, cache ver
  const api=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
  const status=readFileSync(new URL('../lib/nfl-sgp-snapshot-status.js',import.meta.url),'utf8');
  const ui=readFileSync(new URL('../index.html',import.meta.url),'utf8');
- assert.ok(api.includes('await nflCurrentGameDepthChartQbs('));
+ assert.ok(api.includes('nflCurrentGameDepthChartQbs({'));
  assert.ok(api.includes('teamIdsByAbbr:eligibility.teamIdsByAbbr'));
  assert.ok(api.includes('nflProjectedDepthChartQbEligible(role)'));
  assert.ok(api.includes('day-ahead-roles-v5-teamid-depthchart'));
