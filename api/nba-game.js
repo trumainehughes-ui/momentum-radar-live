@@ -50,6 +50,20 @@ export default async function handler(req,res){
    data.sgpModelVersion=snapshot.modelVersion||'legacy-unversioned';
    data.sgpVerification=snapshot.sgpVerification||null;
    const current=data.pregameReadiness.freshness==='CURRENT';
+   // The NBA sportsbook feed is not connected yet. Even a previous
+   // deterministic guard becomes historical on stage or time rollover.
+   // Never promote it to live market, roster or quote verification.
+   data.sportsbookAiGuard=current&&data.status==='SCHEDULED'&&
+    snapshot.sportsbookAiGuard?.gameId===gameId?
+     snapshot.sportsbookAiGuard:{
+      status:'PENDING_OR_STALE',gameId,league:'nba',
+      reviewedTiers:['Small','Medium','Nuke'],books:['DraftKings','FanDuel'],
+      flags:[{code:'NBA_BOOK_FEED_UNVERIFIED',
+       detail:'No fresh NBA DraftKings/FanDuel player-prop audit is available.'}],
+      items:[],reviewOnly:true,canSetOdds:false,canChangePicks:false,
+      bookmakerCombinedOddsVerified:false,aiProviderCalled:false,
+      additionalSportsbookRequests:0
+     };
    if(data.pregameSourceMode==='SCOREBOARD_VERIFIED_FALLBACK'&&current&&
      snapshot.injuryReportStatus==='ESPN_REPORTED_INJURIES_RECHECKED'&&
      Array.isArray(snapshot.verifiedInjuries)){
@@ -61,7 +75,14 @@ export default async function handler(req,res){
    if(data.status==='SCHEDULED')data.sgps=current?snapshot.sgps:
     nbaNotReadyTiers(data.pregameReadiness.reason);
    else data.pregameHistoricalSgps=snapshot.sgps;
-  }else data.pregameReadiness=nbaPregameStatus(null);
+  }else{
+   data.pregameReadiness=nbaPregameStatus(null);
+   data.sportsbookAiGuard={status:'PENDING_OR_STALE',league:'nba',gameId,
+    reviewedTiers:['Small','Medium','Nuke'],books:['DraftKings','FanDuel'],
+    items:[],reviewOnly:true,canSetOdds:false,canChangePicks:false,
+    bookmakerCombinedOddsVerified:false,aiProviderCalled:false,
+    additionalSportsbookRequests:0};
+  }
   return res.status(200).json(data);
  }catch(e){
   console.warn('nba_game_summary_unavailable',{gameId,reason:String(e?.message||e).slice(0,100)});
