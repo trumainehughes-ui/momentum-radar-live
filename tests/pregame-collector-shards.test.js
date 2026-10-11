@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {selectedShardGames,shardForGame,COLLECTOR_SHARDS,
- collectorAuditPath,collectorAuditReport,readCollectorAudits,writeCollectorAudit}
+ collectorAuditPath,collectorAuditReport,collectorTierCoverage,readCollectorAudits,writeCollectorAudit}
  from '../lib/pregame-collector-shards.js';
 import {nflCollectorDueGames} from '../lib/nfl-collector-readiness.js';
 import nflCron from '../api/nfl-health.js';
@@ -60,7 +60,9 @@ test('collector audits expose per-game failed and successful statuses without pr
  assert.equal(report.attempted,4);
  assert.equal(report.successful,2);
  assert.equal(report.failed,2);
- assert.equal(report.results[0].sgpCount,3);
+ assert.equal(report.results[0].rawSgpRecordCount,3);
+ assert.equal(report.results[0].coverage,'UNVERIFIED',
+  'A raw 3-record count alone does not prove three verified model tiers');
  assert.equal(report.results[0].changed,true);
  assert.ok(!JSON.stringify(report).includes('"legs"'));
  assert.equal(collectorAuditPath('nba',0),'momentum-ops/v1/pregame-collector-nba-shard-0.json');
@@ -117,4 +119,88 @@ test('anonymous visitors cannot impersonate either sharded cron or write collect
  }
  const s=readFileSync(new URL('../api/pregame-collector-status.js',import.meta.url),'utf8');
  assert.ok(!/BALLDONTLIE_API_KEY|SPORTSGAMEODDS_API_KEY|GROQ_API_KEY|THE_ODDS_API_KEY/.test(s));
+});
+
+
+test('league-wide SGP audit separates all three model tiers from unquoted book duplicates',()=>{
+ const nfl=collectorAuditReport('nfl',0,[
+  {gameId:'401872981',status:'updated',picks:4,sgps:9,stage:'DAY_AHEAD_BUILD',
+   modelTierReadiness:{
+    Small:{status:'MODEL_CANDIDATE',legs:4},
+    Medium:{status:'MODEL_CANDIDATE',legs:5},
+    Nuke:{status:'MODEL_CANDIDATE',legs:5}
+   }},
+  {gameId:'401872988',status:'updated',picks:5,sgps:0,stage:'DAY_AHEAD_BUILD',
+   modelTierReadiness:{
+    Small:{status:'NOT_READY',reason:'Passing yardage evidence unavailable'},
+    Medium:{status:'NOT_READY',reason:'No eligible receiving yardage'},
+    Nuke:{status:'NOT_READY',reason:'Injury review pending'}
+   }}
+ ],{now,startedAt:'2026-10-11T00:55:00Z',due:2});
+ assert.equal(nfl.successful,2,'an operationally successful refresh is not proof of a qualified SGP');
+ assert.equal(nfl.failed,0);
+ assert.deepEqual(nfl.coverage,{full:1,partial:0,none:1,unverified:0});
+ assert.deepEqual(nfl.results[0].readyTiers,['Small','Medium','Nuke']);
+ assert.equal(nfl.results[0].modelCandidateCount,3);
+ assert.equal(nfl.results[0].rawSgpRecordCount,9);
+ assert.equal(nfl.results[1].coverage,'NO_QUALIFIED_TIERS');
+ assert.deepEqual(nfl.results[1].missingTiers,['Small','Medium','Nuke']);
+ assert.match(nfl.results[1].tierReasons.Small,/Passing yardage/);
+ assert.ok(!JSON.stringify(nfl).includes('"legs"'));
+});
+test('NBA uses returned modelTiers rather than non-existent raw sgps count',()=>{
+ const reports=collectorAuditReport('nba',1,[
+  {gameId:'401908941',status:'MODEL_ONLY',stage:'DAY_AHEAD_BUILD',
+   modelTiers:['Small','Medium','Nuke']},
+  {gameId:'401898400',status:'NOT_READY',stage:'DAY_AHEAD_BUILD',
+   modelTiers:[],reason:'No roster sample'},
+  {gameId:'401899999',status:'MODEL_ONLY',stage:'FINAL_T_MINUS_30',
+   modelTiers:['Small','Medium']}
+ ],{now,due:3});
+ assert.deepEqual(reports.coverage,{full:1,partial:1,none:1,unverified:0});
+ assert.equal(reports.results[0].modelCandidateCount,3);
+ assert.equal(reports.results[0].rawSgpRecordCount,0,
+  'NBA JSON has modelTiers, not a misleading raw SGP count');
+ assert.equal(reports.results[1].coverage,'NO_QUALIFIED_TIERS');
+ assert.equal(reports.results[2].coverage,'PARTIAL_TIERS');
+ assert.deepEqual(reports.results[2].missingTiers,['Nuke']);
+});
+test('missing model tiers never silently count as ready; runtime/Blob failures remain separate',()=>{
+ const failed=collectorAuditReport('nfl',0,[
+  {gameId:'401872981',status:'collector_error',error:'timeout'},
+  {gameId:'401872982',status:'markets_unavailable'},
+  {gameId:'401872983',status:'no_qualified_model_data'}
+ ],{now,due:3});
+ assert.equal(failed.failed,2);
+ assert.equal(failed.coverage.unverified,2);
+ assert.equal(failed.coverage.none,1);
+ const absent=collectorTierCoverage({gameId:'401872981',sgps:9});
+ assert.equal(absent.coverage,'UNVERIFIED');
+ assert.equal(absent.modelCandidateCount,0);
+ const wrong=collectorTierCoverage({status:'updated',
+  modelTierReadiness:{Small:{status:'MODEL_CANDIDATE'}}});
+ assert.equal(wrong.coverage,'PARTIAL_TIERS');
+ assert.deepEqual(wrong.missingTiers,['Medium','Nuke']);
+});
+test('read collector audits sums three-tier readiness separately from collector success',async()=>{
+ const first=collectorAuditReport('nfl',0,[{
+  gameId:'401872981',status:'updated',modelTierReadiness:{
+   Small:{status:'MODEL_CANDIDATE'},Medium:{status:'MODEL_CANDIDATE'},Nuke:{status:'MODEL_CANDIDATE'}}}
+ ],{now,due:1});
+ const second=collectorAuditReport('nfl',1,[{
+  gameId:'401872982',status:'no_qualified_model_data',modelTierReadiness:{
+   Small:{status:'NOT_READY'},Medium:{status:'NOT_READY'},Nuke:{status:'NOT_READY'}}}
+ ],{now,due:1});
+ const result=await readCollectorAudits('nfl',{now:now+60000,
+  listBlobs:async({prefix})=>({blobs:[{pathname:prefix,url:'https://example.test/'+prefix}]}),
+  fetchBlob:async url=>({ok:true,json:async()=>url.includes('shard-0')?first:second})});
+ assert.equal(result.summary.successful,2);
+ assert.equal(result.summary.coverage.full,1);
+ assert.equal(result.summary.coverage.none,1);
+ assert.equal(result.summary.incompleteShards,0);
+ const expired=await readCollectorAudits('nfl',{now:now+45*60000,
+  listBlobs:async({prefix})=>({blobs:[{pathname:prefix,url:'https://example.test/'+prefix}]}),
+  fetchBlob:async url=>({ok:true,json:async()=>url.includes('shard-0')?first:second})});
+ assert.equal(expired.summary.staleShards,2);
+ assert.equal(expired.summary.incompleteShards,2);
 });
