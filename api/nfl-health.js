@@ -2,6 +2,8 @@ import {put,list} from '@vercel/blob';
 import {blobCredentialMode} from '../lib/blob-storage-config.js';
 import {timingSafeEqual} from 'node:crypto';
 import {pregameAiAudit} from '../lib/pregame-ai-review.js';
+import {pregameEvidenceAudit,pregameNeedsAiReview,pregamePhase}
+ from '../lib/pregame-revalidation.js';
 import {
  nflEasternDate,nflAddDate,nflCollectorDueGames,nflTierReadiness,
  nflCollectorSnapshotReady,nflRunCollectorBatch,MAX_NFL_COLLECTOR_CONCURRENCY
@@ -62,7 +64,12 @@ export function historySnap(g,m,prior=null){
   injuryChecks:{rosterAndInjuryEligibilityChecked:m.validation?.injuryEligibilityChecked===true,
     blockedPlayerCount:Number(m.validation?.blockedPlayerCount)||0,
     officialInactivesVerified:false},
-  checkedAt:new Date().toISOString(),game:g,picks,sgps};
+  checkedAt:new Date().toISOString(),game:g,picks,sgps,
+  injuryEvidence:m.validation?.injuryEvidence||[],
+  matchupEvidence:m.outcomePrediction||null,
+  offenseDefense:m.outcomePrediction||null,
+  modelVersion:'nfl-2026-matchup-revalidation-v1',
+  propCategories:['td','passing','rushing','receiving','receptions']};
 }
 async function autoLock(base,games){
  const due=nflCollectorDueGames(games);
@@ -79,22 +86,35 @@ async function autoLock(base,games){
   if(!m?.ok)return{gameId:g.gameId,status:'markets_unavailable'};
   const prior=await priorSnapshot(g.gameId);
   const snap=historySnap(g,m,prior);
-  const currentSignature=JSON.stringify(snap.sgps.map(s=>[s.risk,s.legs.map(l=>[l.playerID||l.playerId,l.category,l.threshold])]));
-  const priorSignature=JSON.stringify((prior?.sgps||[]).map(s=>[s.risk,(s.legs||[]).map(l=>[l.playerID||l.playerId,l.category,l.threshold])]));
-  const changed=Boolean(prior)&&currentSignature!==priorSignature;
-  snap.changedFromPrior=changed;
+  const audit=pregameEvidenceAudit(prior,snap,{league:'nfl'});
+  snap.evidenceDigests=audit.evidenceDigests;
+  snap.changedFields=audit.changedFields;
+  snap.changedFromPrior=audit.changedFromPrior;
+  snap.revalidationVersion=audit.modelVersion;
   snap.priorCandidateInvalidated=snap.modelDataStatus==='NOT_READY'&&prior?.modelDataStatus==='MODEL_ONLY';
-  // The model rebuilds on fresh injury/role evidence. AI reviews the outcome,
-  // but can never silently edit player eligibility or numeric sportsbook odds.
-  if(snap.lockStage==='FINAL_T_MINUS_30'&&(changed||prior?.lockStage!=='FINAL_T_MINUS_30')&&snap.sgps.length)
-    snap.aiReview=await pregameAiAudit('nfl',g,snap,{base});
-  else snap.aiReview=prior?.aiReview||{status:'PENDING',reason:'no_T30_model_change'};
+  // A fresh market build recalculates TD, pass/rush/receiving/receptions and
+  // all SGPs using current roster/injury/opponent evidence. Store the reasons
+  // instead of silently reusing yesterday's AI review when any pick changes.
+  if(!snap.sgps.length){
+   snap.aiReview={status:'SKIPPED',reason:'No qualified new SGP legs to review'};
+  }else if(pregameNeedsAiReview({stage:snap.lockStage,
+    changedFields:audit.changedFields,
+    priorAiReviewed:prior?.aiReview?.status==='REVIEWED'&&
+      prior?.lockStage==='FINAL_T_MINUS_30'})){
+   snap.aiReview=await pregameAiAudit('nfl',g,snap,{base});
+  }else if(!audit.changedFromPrior&&snap.lockStage===prior?.lockStage)
+   snap.aiReview=prior?.aiReview||{status:'PENDING',reason:'awaiting_T30_review'};
+  else snap.aiReview={status:'PENDING',reason:'new_model_evidence_pending_T30_review'};
+  const changed=audit.changedFromPrior;
   await put(P+g.gameId+'.json',JSON.stringify(snap),
    {access:'public',addRandomSuffix:false,allowOverwrite:true});
   return {gameId:g.gameId,status:snap.modelDataStatus==='NOT_READY'?'no_qualified_model_data':prior?'updated':'locked',
    stage:snap.lockStage,revision:snap.revision,picks:snap.picks.length,
    sgps:snap.sgps.length,aiReview:snap.aiReview?.status||'PENDING',
-   changed,modelTierReadiness:snap.modelTierReadiness};
+   changed,changedFields:snap.changedFields,
+   propCategoriesUpdated:changed?snap.propCategories:[],
+   matchupReviewed:true,
+   modelTierReadiness:snap.modelTierReadiness};
  },{concurrency:MAX_NFL_COLLECTOR_CONCURRENCY});
 }
 export default async function handler(req,res){
@@ -141,8 +161,11 @@ export default async function handler(req,res){
    collector:{gamesDue:cron?nflCollectorDueGames(games).length:0,
     attempted:historyLocks.length,completed:historyLocks.filter(x=>['locked','updated'].includes(x.status)).length,
     failed:historyLocks.filter(x=>!['locked','updated'].includes(x.status)).length,
+    changed:historyLocks.filter(x=>x.changed===true).length,
+    changedByCause:Object.fromEntries(['PLAYER_PROPS','SGP_TIERS','INJURIES','MATCHUP','MODEL_INPUTS']
+      .map(k=>[k,historyLocks.filter(x=>x.changedFields?.includes(k)).length])),
     concurrency:MAX_NFL_COLLECTOR_CONCURRENCY},
-   collectorVersion:'history-v3-isolated-slates-and-tier-readiness',
+   collectorVersion:'league-wide-nfl-evidence-v4-day-ahead-and-final30',
    checkedAt:new Date().toISOString()
   });
  }catch(e){
