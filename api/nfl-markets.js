@@ -6,7 +6,7 @@ import {auditNflBookSgpMarkets} from '../lib/nfl-sgp-book-market-audit.js';
 import {auditLeagueSgpEvent} from '../lib/sgp-league-wide-verification.js';
 import {sportsbookAiAuditFromSnapshot} from '../lib/sportsbook-ai-audit.js';
 import {sgpAiRecheckPlan} from '../lib/sgp-ai-recheck-plan.js';
-import {rebuildNflBookTierPools} from '../lib/sgp-book-tier-targets.js';
+import {rebuildNflBookTierPools,rebuildNflBookNukePool} from '../lib/sgp-book-tier-targets.js';
 import {sgpBookRebuildReport} from '../lib/sgp-book-rebuild-report.js';
 import {nflCurrentGameDepthChartQbs,nflProjectedDepthChartQbEligible} from '../lib/nfl-depthchart-qb1.js';
 import {nflCurrentRosterAthletes} from '../lib/nfl-roster-evidence.js';
@@ -161,7 +161,8 @@ function buildBookSgp(rows,book,ctx){
  // Never equate an individually priced leg with correlated SGP payout.
  const tierPools=rebuildNflBookTierPools(basePool,groups,
   (x,cat,risk)=>analyticsLine(x,cat,risk,ctx));
- const nukePool=basePool.map(x=>{if(!['passing','receiving','rushing','receptions'].includes(x.cat)||!Number.isFinite(+x.bookOffer?.line))return x;const avg=Number(x.predictiveProjection??x.projection??x.perGame)||+x.bookOffer.line,modelTarget=analyticsLine(x,x.cat,'Nuke',ctx),step=x.cat==='receptions'?1:5,minimum=x.cat==='receptions'?Math.floor(avg)+1:Math.ceil((avg+0.0001)/step)*step,target=Number.isFinite(modelTarget)?Math.max(minimum,modelTarget):minimum,g=groups.get(x.playerID+'|'+x.cat)||[],higher=g.filter(v=>Number.isFinite(+v.bookOffer?.line)&&+v.bookOffer.line>+x.bookOffer.line&&+v.bookOffer.line>=minimum*.92).sort((a,b)=>Math.abs(+a.bookOffer.line-target)-Math.abs(+b.bookOffer.line-target));const pick=higher.find(v=>+v.bookOffer.line>=target);if(!pick)return{...x,nukeTarget:target,nukeJuiced:false,nukeAboveProjection:false,nukeRejectedReason:'No '+book+' alternate reaches Momentum Nuke target '+target+' above projection '+avg};return{...pick,nukeTarget:target,nukeJuiced:+pick.bookOffer?.line>+x.bookOffer.line,nukeAboveProjection:+pick.bookOffer?.line>avg,nukeMeetsModelTarget:+pick.bookOffer?.line>=target}}).sort((a,b)=>{const aj=a.nukeJuiced?1:0,bj=b.nukeJuiced?1:0;return bj-aj||(Number(b.momentumScore)||0)-(Number(a.momentumScore)||0)});
+ const nukePool=rebuildNflBookNukePool(basePool,groups,
+  (x,cat)=>analyticsLine(x,cat,'Nuke',ctx));
  const make=(risk,count,offset)=>{let source=risk==='Nuke'?nukePool:(tierPools[risk]||[]);if(risk==='Nuke'){source=source.filter(x=>x.cat==='td'||x.nukeAboveProjection===true);const juiced=source.filter(x=>x.nukeJuiced||x.cat==='td'),standard=source.filter(x=>!x.nukeJuiced&&x.cat!=='td');source=juiced.concat(standard)}const legs=[],used=new Set(),usedCats=new Set(),rotated=source.slice(offset).concat(source.slice(0,offset));const add=x=>{
    const id=String(x?.playerID||'').trim(),key=id+'|'+x?.cat;
    if(!x||!id||used.has(key)||
