@@ -57,8 +57,12 @@ test('unavailable/zero-priced, under, first-quarter or wrong-domain sportsbook l
  fake.byBookmaker.draftkings.altLines[0].deeplink='javascript:alert(1)';
  fake.byBookmaker.fanduel.available=false;
  const rows=sgoBookmakerVariants(fake);
- assert.ok(rows.every(x=>x.book==='DraftKings'));
- assert.ok(rows.every(x=>x.deeplink===null||x.deeplink.startsWith('https://sportsbook.draftkings.com/')));
+ // An unavailable main line can coexist with an independently available
+ // FanDuel alternate market. We must keep that ALT, not drop the book.
+ assert.equal(rows.filter(x=>x.book==='FanDuel').length,1);
+ assert.equal(rows.find(x=>x.book==='FanDuel').alt,true);
+ assert.ok(rows.filter(x=>x.book==='DraftKings').every(x=>
+  x.deeplink===null||x.deeplink.startsWith('https://sportsbook.draftkings.com/')));
  const missing=structuredClone(original);
  missing.byBookmaker.draftkings.odds=null;
  missing.byBookmaker.fanduel.odds='0';
