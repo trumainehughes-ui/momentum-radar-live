@@ -50,6 +50,6 @@ test("NFL SGP runtime uses strict DVP ranks, model-aligned Medium and confirmed 
  assert.ok(api.includes("function buildAnalyticsSgp(categories,ctx,roles,identity)"));
  assert.ok(api.includes("isNflConfirmedGameQb({position:pos,role})"));
  assert.ok(api.includes("buildAnalyticsSgp(categories,ctx,roles,{gameId,home,away,rosterChecked:"));
- assert.ok(api.includes("v87-sgo-backup-only"));
+ assert.ok(api.includes("v88-day-ahead-role-evidence"));
  assert.ok(!api.includes("defRank=Number(ctx?.dvp?.defenseRanks"));
 });
