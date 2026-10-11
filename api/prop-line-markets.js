@@ -1,5 +1,6 @@
 import {list,put} from '@vercel/blob';
 import {propLineEventMatchesDate,normalizePropLinePlayerOffer} from '../lib/prop-line-nfl-normalization.js';
+import {validNflCheckpointToken} from '../lib/nfl-scheduled-book-checkpoint.js';
 // Server-only PropLine integration. No credentials or raw provider errors reach clients.
 const API='https://api.prop-line.com/v1';
 const SPORTS={nfl:'football_nfl',nba:'basketball_nba'};
@@ -27,7 +28,9 @@ export default async function handler(req,res){
   const item=records.blobs?.find(x=>x.pathname===tokenPath);
   if(item){const result=await fetch(item.url,{signal:AbortSignal.timeout(2500)});if(result.ok)tokenRecord=await result.json()}
  }catch{return res.status(503).json({ok:false,error:'change_token_store_unavailable'})}
- if(!tokenRecord||tokenRecord.usedAt||Date.now()-Date.parse(tokenRecord.createdAt)>15*60*1000||tokenRecord.gameId!==String(req.query.gameId||''))return res.status(403).json({ok:false,error:'change_token_invalid_or_used'});
+ if(!tokenRecord||tokenRecord.usedAt||tokenRecord.gameId!==String(req.query.gameId||'')||
+   !(Number(tokenRecord.changeCount)>=1||validNflCheckpointToken(tokenRecord,req.query.gameId))||
+   Date.now()-Date.parse(tokenRecord.createdAt)>15*60*1000)return res.status(403).json({ok:false,error:'change_token_invalid_or_used'});
  // Atomic create-only claim: the Blob store rejects a second writer to this exact path.
  if(!process.env.PLAYER_PROPS_API_KEY)return res.status(503).json({ok:false,error:'prop_line_not_configured'});
  if(!SPORTS[String(req.query.league||'nfl').toLowerCase()])return res.status(400).json({ok:false,error:'unsupported_league'});
