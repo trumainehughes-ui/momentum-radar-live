@@ -52,4 +52,5 @@ test('collector keeps response status and categories instead of generic markets_
  }],{due:1});
  assert.equal(report.results[0].failureCode,null);
  assert.equal(report.results[0].httpStatus,502);
+ assert.ok(!JSON.stringify(report).includes('private api key leak'));
 });
