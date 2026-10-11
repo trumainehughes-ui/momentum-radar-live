@@ -40,7 +40,7 @@ test('AI scout flags FanDuel mismatch and independent DraftKings listing without
  assert.equal(fd.proposedOfferChecks[0].requested,55);
  assert.equal(fd.proposedOfferChecks[0].action.includes('Manual recheck'),true);
  assert.ok(v.flags.some(x=>x.code==='BOOK_LEGS_NOT_ALL_MATCHED'));
- assert.ok(v.notes.some(x=>x.includes('do not')));
+ assert.ok(v.notes.some(x=>x.includes('not verify')||x.includes('does not prove')));
  assert.ok(!('actualCombinedOdds' in dk));
 });
 test('missing/wrong-game/stale individual markets never give AI candidate advice',()=>{
@@ -105,8 +105,10 @@ test('source-scoped sportsbook evidence reaches existing Groq API only on explic
    return{ok:true,json:async()=>({choices:[{message:{content:
     'FanDuel Small has 3/4 matching props. DraftKings Small has 4/4 individually listed. Combined SGP quote not verified.'}}]})};
   };
+  const current=evidence();
+  current.sportsbooks.sourceCheckedAt=new Date().toISOString();
   const req={method:'POST',headers:{'x-forwarded-for':'sportsbook-scout-integration-unique'},
-   body:{mode:'sportsbook',data:evidence()}};
+   body:{mode:'sportsbook',data:current}};
   const res={code:null,setHeader(){return this},status(n){this.code=n;return this},json(body){this.body=body;return this}};
   await handler(req,res);
   assert.equal(res.code,200);
