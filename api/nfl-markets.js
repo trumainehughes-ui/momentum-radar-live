@@ -466,6 +466,7 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
  let kickoff=null;
  if(gameId){const s=await json(ESPN+'/summary?event='+encodeURIComponent(gameId));const c=s.header?.competitions?.[0]||{},cs=c.competitors||[];home=cs.find(x=>x.homeAway==='home')?.team?.abbreviation||'';away=cs.find(x=>x.homeAway==='away')?.team?.abbreviation||'';kickoff=c.date||null}
  let events=[],provider='Analytics / ESPN',directRows=null,oddsDebug={attempted:false,stage:'model_primary'};
+ let authorizedChange=false,verifiedToken='';
  const sgoFlag=String(process.env.SPORTSGAMEODDS_ENABLED||'').toLowerCase();
  const sgoEnabled=Boolean(process.env.SPORTSGAMEODDS_API_KEY)&&sgoFlag!=='false';
  oddsDebug.primaryConfigured=Boolean(process.env.THE_ODDS_API_KEY);oddsDebug.reserveConfigured=sgoEnabled;oddsDebug.requestedGameId=gameId||null;if(!gameId)oddsDebug.note='League slate uses ESPN analytics only; reserve sportsbook API is not queried.';
@@ -486,8 +487,8 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
   const changeType=String(req.query.changeType||'').toLowerCase();
   const allowedChange=new Set(['player_injury','player_inactive','qb_change','offense_change','defense_change','depth_chart_change']);
   const auth=String(req.headers.authorization||'');
-  const verifiedToken=String(req.headers['x-momentum-change-token']||'');
-  const authorizedChange=Boolean(process.env.CRON_SECRET)&&auth==='Bearer '+process.env.CRON_SECRET&&allowedChange.has(changeType)&&/^[a-f0-9]{64}$/.test(verifiedToken); // PropLine validates stored evidence and atomically claims it.
+  verifiedToken=String(req.headers['x-momentum-change-token']||'');
+  authorizedChange=Boolean(process.env.CRON_SECRET)&&auth==='Bearer '+process.env.CRON_SECRET&&allowedChange.has(changeType)&&/^[a-f0-9]{64}$/.test(verifiedToken); // PropLine validates stored evidence and atomically claims it.
   oddsDebug.aiInWorkflow=Boolean(process.env.GROQ_API_KEY);
   oddsDebug.sportsbookStatus='verified_market_data_pending';
   oddsDebug.propLineCreditPolicy='verified_change_only';
