@@ -45,7 +45,8 @@ test('collector keeps response status and categories instead of generic markets_
  assert.ok(collector.includes('nflMarketFailureDetails(r.status,failure)'));
  assert.ok(collector.includes('nflMarketFailureDetails(r?.status||200,m)'));
  assert.ok(collector.includes('bookCheckpoint.marketResponse||await r.json()'));
- assert.ok(collector.includes('if(!r.ok){'));
+ assert.ok(collector.includes('if(r&&!r.ok){'));
+ assert.ok(collector.includes('bookCheckpoint.marketResponse?null:await fetch(url'));
  const report=collectorAuditReport('nfl',1,[{
   gameId:'401872990',status:'markets_unavailable',
   httpStatus:502,failureCode:'INJECTED_PRIVATE_FAILURE',
