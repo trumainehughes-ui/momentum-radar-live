@@ -188,8 +188,13 @@
      requestedLegs:a.requestedLegs,
      suggestedLineRechecks:(a.suggestedLineRechecks||[]).slice(0,3)
       .map(l=>({player:l.player,category:l.category,requested:l.requested,
-       observedOffers:(l.observedOffers||[]).slice(0,3)})),
-     bookableWagerConfirmed:false
+       observedOffers:(l.observedOffers||[]).slice(0,3),
+       modelCompatibleOptions:(l.modelCompatibleOptions||[]).slice(0,2).map(o=>({
+        threshold:o.threshold,sourceLabel:o.sourceLabel,
+        needsFreshBookAudit:true,requiresUpdatedProjection:true
+       }))})),
+     rescueStatus:a.rescueStatus||null,
+     provisionalOnly:true,bookableWagerConfirmed:false
     }))
    }))
   };
