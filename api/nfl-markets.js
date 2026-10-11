@@ -5,6 +5,7 @@ import { assessNflSgpTier, fillNflSgpMarketMix, guardFinalNflSgpCards, modelNflS
 import {validNflDvpRank,capNflTierYardTarget,isNflConfirmedGameQb} from '../lib/ai-mechanics/nfl-projection-safety.js';
 import {nflDayAheadRoleEvidence} from '../lib/nfl-day-ahead-roles.js';
 import {summarizeNflNukeEvidence} from '../lib/nfl-nuke-evidence-diagnostics.js';
+import {filterCompleteNflBookSgps} from '../lib/nfl-book-sgp-candidates.js';
 import {nflCurrentGameDepthChartQbs,nflProjectedDepthChartQbEligible} from '../lib/nfl-depthchart-qb1.js';
 import {nflCurrentRosterAthletes} from '../lib/nfl-roster-evidence.js';
 import {nflGameInjuryEvidence,nflInjuryBlocks} from '../lib/nfl-injury-evidence.js';
@@ -165,8 +166,9 @@ function buildBookSgp(rows,book,ctx){
  // Candidate composition is independent of payout verification. Do not drop
  // exact, book-offered legs based on multiplied odds; a genuine correlated
  // combined sportsbook price must be quoted separately.
- return[findTier('Small',4,0),findTier('Medium',5,1),dynamicNuke()]
-  .filter(s=>s?.legs?.length===s.requiredLegs&&s.tierAssessment?.compositionOk===true);
+ return filterCompleteNflBookSgps([
+  findTier('Small',4,0),findTier('Medium',5,1),dynamicNuke()
+ ]);
 }
 function analyticsMetric(cat,pos){
  if(cat==='passing')return'passYards';
