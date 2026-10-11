@@ -75,7 +75,7 @@ test('NBA T-30 and day-before windows revalidate early and later than thirty min
  const early=nbaPregameStage(game,null,{now:tip-26*3600000});
  assert.deepEqual([early.stage,early.due],['DAY_AHEAD_BUILD',true]);
  const valid={checkedAt:new Date(tip-26*3600000).toISOString(),stage:'DAY_AHEAD_BUILD'};
- assert.equal(nbaPregameStage(game,valid,{now:tip-25*3600000}).due,false);
+ assert.equal(nbaPregameStage(game,valid,{now:tip-25*3600000}).due,true); // one-hour day-ahead refresh
  assert.equal(nbaPregameStage(game,valid,{now:tip-19*3600000}).due,true);
  assert.equal(nbaPregameStage(game,valid,{now:tip-25*60000}).stage,'FINAL_T_MINUS_30');
  const check=nbaPregameStage(game,valid,{now:tip-25*60000});
