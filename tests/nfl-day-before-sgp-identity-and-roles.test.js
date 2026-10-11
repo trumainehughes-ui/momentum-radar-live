@@ -85,7 +85,7 @@ test('a wrong-game/player-identity candidate still fails completely; empty fix n
 });
 test('day-before verified 2026 roster+completed-game usage unlocks conditional RB/WR/TE only',()=>{
  const out=nflDayAheadRoleEvidence({gameId,home,away,eligibility,gate:gate(),statBoards});
- assert.equal(out.source,'ESPN_SAME_SEASON_USAGE_CONDITIONAL');
+ assert.equal(out.source,'ESPN_GAME_SCOPED_USAGE_AND_DEPTHCHART');
  assert.ok(out.counters.projectedHighUsageRoles>=5);
  for(const a of athletes.filter(x=>x.position!=='QB')){
   const r=out.roles.get(a.id);
