@@ -184,3 +184,24 @@ test('actual ESPN NFL singular depthchart response exposes rank-one QB without o
   assert.match(result?.source||'',/NOT an official confirmed starter/);
  }
 });
+
+test('live ESPN singular depthchart quarterback positions use ordered direct athlete rows without rank fields',()=>{
+ const payload={timestamp:'2026-10-11T00:40:00Z',
+  season:{year:2026},team:{id:'30',abbreviation:'JAX'},
+  depthchart:[{name:'Base 4-3 D',positions:{mlb:{position:{abbreviation:'MLB'},
+   athletes:[{id:'77777',displayName:'Defender'}]}}},
+   {name:'Special Teams',positions:{p:{position:{abbreviation:'P'},
+    athletes:[{id:'88888',displayName:'Punter'}]}}},
+   {name:'3WR 1TE',positions:{qb:{position:{abbreviation:'QB'},
+    athletes:[{id:'4360310',displayName:'Trevor Lawrence'},
+     {id:'9999999',displayName:'Backup Quarterback'}]}}}]};
+ const result=nflDepthChartQb1(payload,'JAX');
+ assert.equal(result?.playerId,'4360310');
+ assert.equal(result?.rank,1);
+ assert.equal(result?.name,'Trevor Lawrence');
+ assert.match(result?.source||'',/NOT an official confirmed starter/);
+ const wrong={...payload,depthchart:[{name:'3WR 1TE',positions:{qb:{
+  position:{abbreviation:'QB'},athletes:[
+   {rank:2,id:'4360310',displayName:'Trevor Lawrence'}]}}}]};
+ assert.equal(nflDepthChartQb1(wrong,'JAX'),null);
+});
