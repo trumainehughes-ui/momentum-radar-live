@@ -44,7 +44,7 @@ test('verified status changes and T-minus-30 checks can explicitly force rebuild
 test('production collector signs per-game market refresh only inside protected cron',()=>{
  const health=readFileSync(new URL('../api/nfl-health.js',import.meta.url),'utf8');
  const markets=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
- assert.ok(health.includes("const url=base+'/api/nfl-markets?date='"));
+ assert.ok(health.includes("url=base+'/api/nfl-markets?date='"));
  assert.ok(health.includes("'&lockRun=1&ts='+Date.now()"));
  assert.ok(health.includes("headers:{Authorization:'Bearer '+process.env.CRON_SECRET}"));
  assert.ok(markets.includes('shouldServeCachedNflMarkets(saved,req,{secret:process.env.CRON_SECRET,ttl:TTL})'));
