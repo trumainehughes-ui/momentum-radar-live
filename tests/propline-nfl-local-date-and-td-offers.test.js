@@ -31,7 +31,7 @@ test('two-way yardage props require an Over side, verified player description an
   point:79.5,price:-115,book_outcome_id:'fd-79-yes'});
  assert.deepEqual(ok,{
   book:'fanduel',market:'player_rush_yds',player:'Josh Jacobs',
-  side:'Over',point:79.5,americanOdds:-115,
+  side:'Over',point:79.5,outcomeName:'Over',outcomeDescription:'Josh Jacobs',americanOdds:-115,
   bookOutcomeId:'fd-79-yes',updatedAt:rush.last_update
  });
  for(const invalid of [
@@ -68,6 +68,8 @@ test('one-way anytime touchdowns retain player-named outcomes without inventing 
   book_outcome_id:'fd-td-yes'});
  assert.equal(direct.player,'Amon-Ra St. Brown');
  assert.equal(direct.side,'Yes');
+ assert.equal(direct.outcomeName,'Amon-Ra St. Brown');
+ assert.equal(direct.outcomeDescription,'');
  assert.equal(direct.bookOutcomeId,'fd-td-yes');
  const yes=normalizePropLinePlayerOffer(book,touchdown,{
   name:'Yes',description:'Josh Jacobs',price:+105,book_outcome_id:null});
