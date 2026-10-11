@@ -61,13 +61,18 @@ test('fanduel URL must come from actual ESPN team name not unchecked URLs',()=>{
  assert.equal(invalid.status,'EVENT_NOT_VERIFIED');
  assert.equal(invalid.matchedObservations.length,0);
 });
-test('game page automatically checks both FanDuel team pages and the DraftKings public page once per match per 5m',()=>{
+test('game page uses server-verified ESPN game to inspect both FanDuel team pages and DraftKings within an 8-minute cache',()=>{
  const ui=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert.match(ui,/function nflAutoPublicMatchupUi\(\)/);
  assert.match(ui,/function nflRefreshPublicMatchupOdds\(id,marketData\)/);
  assert.match(ui,/void nflRefreshPublicMatchupOdds\(id,d\);/);
- assert.match(ui,/Promise\.all\(urls\.map\(async url=>/);
- assert.match(ui,/const existing=nflPublicMatchupMemo\.get\(String\(id\)\),now=Date\.now\(\);/);
+ assert.match(ui,/nflCurrentPublicMatchupResearch\(g\.gameId\)/);
+ assert.match(ui,/Promise\.allSettled\(\[/);
+ assert.match(ui,/nflPublicMatchupMemo\.get\(key\)/);
+ assert.match(ui,/8\*60\*1000/);
+ const endpoint=readFileSync(new URL('../api/sportsbook-public-game.js',import.meta.url),'utf8');
+ assert.match(endpoint,/verifiedESPNPublicGame/);
+ assert.match(endpoint,/researchOfficialGamePages\(official\)/);
  assert.match(ui,/No automatic changes to picks/);
  assert.match(ui,/authentic|authenticated/i);
 });
