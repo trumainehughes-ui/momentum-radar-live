@@ -106,3 +106,13 @@ test('core SGP composition permits a QB in different passing and rushing markets
   legs[0],{...legs[0]},...legs.slice(2)],requiredLegs:5});
  assert.equal(bad.compositionOk,false);
 });
+
+test('all NFL games use 4 Small, 5 Medium and 5-7 Nuke for book-specific SGP candidates too',()=>{
+ const source=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
+ assert.ok(source.includes("findTier('Small',4,4,0)"));
+ assert.ok(source.includes("findTier('Medium',5,5,1)"));
+ assert.ok(source.includes("for(let n=5;n<=Math.min(7,nukePool.length);n++)"));
+ assert.ok(!source.includes("findTier('Small',2,6,0)"));
+ assert.ok(!source.includes("findTier('Medium',3,7,1)"));
+ assert.ok(!source.includes("for(let n=3;n<=Math.min(8,nukePool.length);n++"));
+});
