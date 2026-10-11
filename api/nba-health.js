@@ -9,6 +9,7 @@ import {pregamePhase,pregameEvidenceAudit,pregameNeedsAiReview}
 import {auditLeagueSgpEvent} from '../lib/sgp-league-wide-verification.js';
 import {sportsbookAiAuditFromSnapshot} from '../lib/sportsbook-ai-audit.js';
 import {sgpAiRecheckPlan} from '../lib/sgp-ai-recheck-plan.js';
+import {sgpBookRebuildReport} from '../lib/sgp-book-rebuild-report.js';
 import {selectedShardGames,collectorAuditReport,writeCollectorAudit}
  from '../lib/pregame-collector-shards.js';
 const PREFIX='momentum-pregame/v1/nba-';
@@ -145,6 +146,7 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
    'ESPN reported statuses checked; official inactives and starters not confirmed':
    'ESPN injury-report section unavailable; status is UNVERIFIED. Do not assume no players are injured, healthy or starting.'};
  result.sgpVerification=auditLeagueSgpEvent({league:'nba',gameId:game.gameId,sgps:result.sgps});
+ result.sgpRebuildReport=sgpBookRebuildReport({league:'nba',gameId:game.gameId,sgps:result.sgps});
  // The NBA sportsbook provider is not yet configured: run the same no-cost
  // every-game AI integrity check, but it must remain strictly unverified.
  result.sportsbookAiGuard=sportsbookAiAuditFromSnapshot({
@@ -193,6 +195,7 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
    sgpVerification:result.sgpVerification,
    sportsbookAiGuard:result.sportsbookAiGuard,
    sgpAiPlan:result.sgpAiPlan,
+   sgpRebuildReport:result.sgpRebuildReport,
   injuryCount:injuries.length,changedFields:result.changedFields,
   offenseDefenseStatus:result.offenseDefenseStatus,reason:result.reason||null};
 }
