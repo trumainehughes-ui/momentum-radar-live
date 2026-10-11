@@ -1,5 +1,6 @@
 import { put, list } from '@vercel/blob';
 import { validateBookOffer } from '../lib/sportsbook-market-verification.js';
+import { sportsbookCoverageAudit } from '../lib/sportsbook-source-policy.js';
 import { assessNflSgpTier, fillNflSgpMarketMix, guardFinalNflSgpCards, modelNflSgpStatThreshold, nflLegMatchesGameRoster, selectNflAdaptiveNuke } from '../lib/ai-mechanics/nfl-sgp-tiers.js';
 import {validNflDvpRank,capNflTierYardTarget,isNflConfirmedGameQb} from '../lib/ai-mechanics/nfl-projection-safety.js';
 import {nflDayAheadRoleEvidence} from '../lib/nfl-day-ahead-roles.js';
@@ -557,7 +558,13 @@ const enrichedMarketRows=attachAnalyticsToMarkets(mergedMarketRows,statBoards).m
  return{teamA:away,teamB:home,projectedFinalScore:{[away]:as,[home]:hs},winProbability:{[away]:ap,[home]:hp},analyticalEdge:(hBest?home+' has a '+(hBest.category||'player')+' edge led by '+hBest.name+' against '+away+' based on current production, usage and matchup data. ':home+' receives the home-field adjustment. ')+(aBest?away+' counters through '+aBest.name+', but the final weighting also incorporates current roster eligibility, DVP, recent form and available public sportsbook evidence.':'The final weighting also incorporates current roster eligibility, DVP, recent form and available public sportsbook evidence.'),inputs:{teamAggregates:true,individualPerformance:true,homeAway:true,injuryEligibility:true,recentForm:true,dvp:true,publicSportsbookEvidence:true},generatedAt:new Date().toISOString()};
 }
 const outcomePrediction=gameOutcomeProfile();
-const hasAnalytics=Object.values(categories).some(v=>Array.isArray(v)&&v.length>0);const body={ok:true,scope:gameId?'game':'slate',gameId:gameId||null,date,categories,sgps,outcomePrediction,provider,degraded:rows.length===0,analyticsAvailable:hasAnalytics ,validation:{dayAheadRoleChecks:dayAheadRoles?.counters||null,
+const hasAnalytics=Object.values(categories).some(v=>Array.isArray(v)&&v.length>0);const sportsbookCoverage=gameId?sportsbookCoverageAudit({sport:'nfl',gameId,
+ offers:rows.flatMap(row=>(row.books||[]).filter(b=>b.available===true).map(b=>({
+  book:b.book,gameId,market:category(row)||'unknown'}))),
+ attempts:['DraftKings','FanDuel'].map(book=>({book,
+  status:rows.some(row=>(row.books||[]).some(b=>b.book===book&&b.available===true))?'OBSERVED_VIA_'+String(provider).replace(/[^A-Za-z0-9]/g,'_').toUpperCase():'NOT_OBSERVED',
+  reason:'Observed market feeds do not establish a direct public sportsbook page check.'}))}):null;
+const body={ok:true,scope:gameId?'game':'slate',gameId:gameId||null,date,categories,sgps,outcomePrediction,provider,sportsbookCoverage,degraded:rows.length===0,analyticsAvailable:hasAnalytics ,validation:{dayAheadRoleChecks:dayAheadRoles?.counters||null,
  dayAheadRoleSource:dayAheadRoles?.source||'NOT_APPLICABLE',
  conditionalRoleCount:(dayAheadRoles?.counters?.projectedHighUsageRoles||0)+
  (dayAheadRoles?.counters?.projectedDepthChartQb1||0),
