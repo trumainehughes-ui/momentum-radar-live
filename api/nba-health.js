@@ -4,9 +4,11 @@ import {timingSafeEqual} from 'node:crypto';
 import {nbaPrepareEvidence} from '../lib/nba-pregame-model.js';
 import {pregameAiAudit} from '../lib/pregame-ai-review.js';
 import {nflRunCollectorBatch} from '../lib/nfl-collector-readiness.js';
+import {pregamePhase,pregameEvidenceAudit,pregameNeedsAiReview}
+ from '../lib/pregame-revalidation.js';
 const PREFIX='momentum-pregame/v1/nba-';
 const MS=60_000,LOOKAHEAD=36*60*MS;
-export const NBA_PREGAME_MODEL_VERSION='v4-preseason-baseline-stage-freshness';
+export const NBA_PREGAME_MODEL_VERSION='v5-league-wide-matchup-revalidation';
 const path=id=>PREFIX+id+'.json';
 const DAY='America/New_York';
 const dateET=(when=new Date())=>{
@@ -39,15 +41,14 @@ export async function nbaReadPregame(id,{strict=false}={}){
 }
 export function nbaPregameStage(game,prior,{now=Date.now()}={}){
  if(game?.status!=='SCHEDULED')return{due:false,stage:'CLOSED'};
- const before=Date.parse(game.kickoff)-now;
- if(!Number.isFinite(before)||before<=0||before>LOOKAHEAD)return{due:false,stage:'OUTSIDE_WINDOW'};
- const stage=before<=30*MS?'FINAL_T_MINUS_30':before<=90*MS?'PREGAME_VALIDATION':'DAY_AHEAD_BUILD';
+ const phase=pregamePhase(game,{now});
+ if(!phase.due)return{due:false,stage:phase.stage};
+ const before=Date.parse(game.kickoff)-now,stage=phase.stage;
  if(prior?.modelVersion&&prior.modelVersion!==NBA_PREGAME_MODEL_VERSION)
   return{due:true,stage,reason:'model_version_changed'};
  const at=Date.parse(prior?.checkedAt||''),
    age=Number.isFinite(at)?now-at:Infinity;
- const ttl=stage==='FINAL_T_MINUS_30'?10*MS:
-  stage==='PREGAME_VALIDATION'?45*MS:6*60*MS;
+ const ttl=phase.maxSnapshotAgeMinutes*MS;
  return{due:!prior||!Number.isFinite(age)||age<0||age>=ttl||prior.stage!==stage,
   stage,minutesToTipoff:Math.ceil(before/MS),snapshotAgeMs:Number.isFinite(age)?age:null};
 }
@@ -120,10 +121,9 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   }
  }
  const evidence=await prepare({...game,injuries},{fetchJson});
- const same=JSON.stringify((prior?.sgps||[]).map(s=>({risk:s.risk,status:s.status,
-  legs:(s.legs||[]).map(x=>[x.playerId,x.category,x.threshold])})))===
-  JSON.stringify((evidence.sgps||[]).map(s=>({risk:s.risk,status:s.status,
-  legs:(s.legs||[]).map(x=>[x.playerId,x.category,x.threshold])})));
+ // Old SGP-only comparisons missed same-player prop changes, injury
+ // designations and defense-vs-position movements. Fingerprint all of them
+ // on each scheduled collection instead.
  const result={...evidence,gameId:game.gameId,kickoff:game.kickoff,
   home:game.home,away:game.away,
   checkedAt:new Date(now).toISOString(),
@@ -133,12 +133,20 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   stage:plan.stage,modelVersion:NBA_PREGAME_MODEL_VERSION,
   seasonYear:game.seasonYear||null,seasonType:game.seasonType||null,
   revision:(Number(prior?.revision)||0)+1,
-  changedFromPrior:Boolean(prior)&&!same,
+  changedFromPrior:false,
   aiReviewed:false,adjustmentPolicy:'Deterministic roster and injury revalidation; Groq/OpenRouter advisory cannot silently change picks',
   verifiedInjuries:injuries,completed:false,
   injuryLimitations:injurySectionPresent?
    'ESPN reported statuses checked; official inactives and starters not confirmed':
    'ESPN injury-report section unavailable; status is UNVERIFIED. Do not assume no players are injured, healthy or starting.'};
+ const audit=pregameEvidenceAudit(prior,result,{league:'nba'});
+ result.evidenceDigests=audit.evidenceDigests;
+ result.changedFromPrior=audit.changedFromPrior;
+ result.changedFields=audit.changedFields;
+ result.revalidatedAt=new Date(now).toISOString();
+ result.refreshPolicy='DAY_AHEAD_60M_PREGAME_15M_FINAL_10M_WITH_15M_CRON';
+ result.propCategories=['points','rebounds','assists','threes','pra'];
+ result.offenseDefenseStatus=result.offenseDefense?.status||'INSUFFICIENT_SAMPLES';
  // A failed data source must never overwrite an earlier populated model
  // without explaining the degradation. In either case, store audit metadata.
  if(result.status==='NOT_READY'&&prior?.status==='MODEL_ONLY')
@@ -149,8 +157,10 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
  const eligible=result.sgps?.some(x=>x.status==='MODEL_CANDIDATE');
  if(!eligible){
   result.aiReview={status:'SKIPPED',reason:'No eligible NBA SGP remains to review'};
- }else if(plan.stage==='FINAL_T_MINUS_30'&&(result.changedFromPrior||
-   prior?.stage!=='FINAL_T_MINUS_30'||prior?.modelVersion!==NBA_PREGAME_MODEL_VERSION)){
+ }else if(pregameNeedsAiReview({stage:plan.stage,
+   changedFields:audit.changedFields,
+   priorAiReviewed:prior?.aiReviewed===true&&prior?.stage==='FINAL_T_MINUS_30'&&
+    prior?.modelVersion===NBA_PREGAME_MODEL_VERSION})){
    result.aiReview=await review('nba',game,result);
    result.aiReviewed=result.aiReview?.status==='REVIEWED';
  }else if(prior&&!result.changedFromPrior&&prior.stage===plan.stage&&
@@ -161,7 +171,8 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
  await write(result);
  return{gameId:game.gameId,status:result.status,stage:plan.stage,revision:result.revision,
   changed:result.changedFromPrior,modelTiers:(result.sgps||[]).filter(x=>x.status==='MODEL_CANDIDATE').map(x=>x.risk),
-  injuryCount:injuries.length,reason:result.reason||null};
+  injuryCount:injuries.length,changedFields:result.changedFields,
+  offenseDefenseStatus:result.offenseDefenseStatus,reason:result.reason||null};
 }
 export default async function handler(req,res){
  res.setHeader('Cache-Control','no-store');
@@ -195,6 +206,9 @@ export default async function handler(req,res){
  return res.status(200).json({ok:true,datesChecked:dates,games:games.length,
   due:pending.length,checked:reports.length,results:reports,
   failed:reports.filter(r=>r?.status==='collector_error').length,
+  changed:reports.filter(r=>r?.changed).length,
+  changedByCause:Object.fromEntries(['PLAYER_PROPS','SGP_TIERS','INJURIES','MATCHUP','MODEL_INPUTS']
+   .map(k=>[k,reports.filter(r=>r?.changedFields?.includes(k)).length])),
   note:'NBA model-only SGP candidates; same game is rechecked for injuries and eligible legs at 30 minutes. AI does not silently override deterministic selections.',
   checkedAt:new Date().toISOString()});
 }
