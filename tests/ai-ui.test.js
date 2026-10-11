@@ -161,3 +161,52 @@ test('no selected game does not call any network route',async()=>{
  const h=harness();h.ctx.nflSelected=null;await h.button.onclick();
  assert.equal(h.calls.length,0);assert.match(h.output.textContent,/Choose an NFL game/);
 });
+
+test('Sportsbook Scout automatically receives same-game FanDuel and DraftKings exact prop audit, with no added sportsbook fetches',async()=>{
+ const gameId='game-123',tiers=['Small','Medium','Nuke'];
+ const gameCards=tiers.map((risk,i)=>{
+  const legs=Array.from({length:i===0?4:i===1?5:6},(_,j)=>({
+   name:'Player '+j,team:'AWY',eventID:gameId,
+   playerID:String(100+j),cat:'rushing',analyticsThreshold:50+5*j
+  }));
+  return{risk,legs,bookMarketAudits:{
+   FanDuel:{book:'FanDuel',requestedTier:risk,gameId,totalLegs:legs.length,
+    matchedLegs:legs.length-1,status:'MODEL_LINES_NOT_FULLY_LISTED',
+    missingLegs:[{name:'Player 0',category:'rushing',requested:50,
+     listedOffers:[{display:'55+',minimumToWin:55}]}]},
+   DraftKings:{book:'DraftKings',requestedTier:risk,gameId,
+    totalLegs:legs.length,matchedLegs:legs.length,
+    status:'ALL_LEGS_LISTED_COMBINED_ODDS_UNVERIFIED',missingLegs:[]}
+  }};
+ });
+ const market={ok:true,gameId,fetchedAt:new Date().toISOString(),
+  validation:{sportsbookVerificationAvailable:true},categories:{passing:[]},
+  sgps:{Analytics:gameCards},
+  sgpVerification:{league:'nfl',gameId,
+   tiers:tiers.map(risk=>({risk,modelStatus:'MODEL_CANDIDATE'}))}};
+ const h=harness({mode:'sportsbook',market});
+ await h.button.onclick();
+ assert.equal(h.payloads.length,1);
+ assert.equal(h.payloads[0].mode,'sportsbook');
+ const sb=h.payloads[0].data.sportsbooks;
+ assert.equal(sb.gameId,gameId);
+ assert.equal(sb.marketFeedAvailable,true);
+ assert.equal(sb.tiers.length,3);
+ assert.equal(sb.tiers[0].books.FanDuel.matchedLegs,3);
+ assert.equal(sb.tiers[0].books.DraftKings.matchedLegs,4);
+ assert.equal(sb.tiers[0].books.FanDuel.missingLegs[0].listedOffers[0].display,'55+');
+ assert.equal(sb.combinedSgpQuoteAuthorized,false);
+ assert.equal(h.calls.length,3,'only existing ESPN/DVP reads and one on-demand AI request');
+});
+test('Sportsbook Scout refuses a previous-game sportsbook audit even if current model legs exist',async()=>{
+ const h=harness({mode:'sportsbook',market:{ok:true,gameId:'another-game',
+  fetchedAt:new Date().toISOString(),validation:{sportsbookVerificationAvailable:true},
+  categories:{},sgps:{Analytics:[{risk:'Small',legs:[],bookMarketAudits:{
+   FanDuel:{book:'FanDuel',gameId:'another-game',requestedTier:'Small',
+    matchedLegs:4,totalLegs:4,missingLegs:[]}}}]}}});
+ await h.button.onclick();
+ const sb=h.payloads[0].data.sportsbooks;
+ assert.equal(sb.gameId,null);
+ assert.equal(sb.marketFeedAvailable,false);
+ assert.equal(sb.tiers[0].books.FanDuel.status,'UNVERIFIED');
+});
