@@ -86,7 +86,9 @@ test('NFL UI exposes explicit all-games actual SGP rebuild, bounded workers, and
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert.match(html,/id="nflRefreshAllSgps">Rebuild all upcoming SGPs/);
  assert.match(html,/async function nflRefreshAllSgpCandidates\(\)/);
- assert.match(html,/const d=await getNFLMarkets\(g.gameId,false\)/);
+ assert.match(html,/getNFLMarkets\(g.gameId,false\)/);
+ assert.match(html,/nflCurrentPublicMatchupResearch\(g.gameId\)/);
+ assert.match(html,/Promise\.allSettled\(\[/);
  assert.match(html,/await Promise\.all\(\[worker\(\),worker\(\)\]\)/);
  assert.match(html,/entry\[book\]=Math\.max\(0,Number\(d\.sportsbookCoverage/);
  assert.match(html,/Actual correlated SGP odds: NOT VERIFIED/);
