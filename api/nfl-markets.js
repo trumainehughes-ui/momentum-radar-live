@@ -642,33 +642,59 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
    quoteEligibility:eligible?'READY_FOR_AUTHORIZED_QUOTE':'MISSING_VERIFIED_BOOK_SELECTIONS',
    quoteSelectionCount:eligible?selections.length:0,
    // These IDs are provider-issued and not secrets; only complete selections are exposed.
-   quoteRequest:eligible?{league:'nfl',gameId:String(gameId),eventId:providerEventIds[0],bookmaker:book==='DraftKings'?'draftkings':'fanduel',legs:selections}:null,
+   quoteRequest:eligible?{league:'nfl',gameId:String(gameId),eventId:providerEventIds[0],bookmaker:book==='DraftKings'?'draftkings':'fanduel',risk:s.risk,legs:selections}:null,
    // Never expose quote credentials or mark an individual-leg parlay as priced.
    displayLabel:book+' individual-prop candidate (unquoted)'};
  });
  const sgpResponse={DraftKings:quoteReady(bookSgps.DraftKings,'DraftKings'),FanDuel:quoteReady(bookSgps.FanDuel,'FanDuel'),Analytics:(analyticsSgps||[]).map(s=>({...s,publishable:false})),mode:'UNQUOTED_CANDIDATES',combinedBookQuoteVerified:false};
- // Quote at most one complete candidate per bookmaker on a verified-change refresh.
- // An accepted bookmaker price is required; analytics estimates never become book quotes.
+ // At most Small, Medium, Nuke for each book per verified material change:
+ // max six distinct signed, single-use quote attempts. Ordinary reads spend zero.
+ // Quote jobs run concurrently to stay inside the 45-second NFL market deadline.
+ // A valid bookmaker-correlated price (not multiplied individual-leg odds)
+ // is required before any tier can be published as book-priced.
  if(authorizedChange&&gameId){
+  const candidates=[];
   for(const [book,bookmaker] of [['DraftKings','draftkings'],['FanDuel','fanduel']]){
-   const candidate=(sgpResponse[book]||[]).find(s=>s.quoteEligibility==='READY_FOR_AUTHORIZED_QUOTE'&&s.quoteRequest);
-   if(!candidate)continue;
+   for(const risk of ['Small','Medium','Nuke']){
+    const candidate=(sgpResponse[book]||[]).find(s=>s.risk===risk&&
+      s.quoteEligibility==='READY_FOR_AUTHORIZED_QUOTE'&&s.quoteRequest);
+    if(candidate)candidates.push({book,bookmaker,risk,candidate});
+   }
+  }
+  oddsDebug.authorizedQuoteCandidates=candidates.length;
+  const origin=process.env.VERCEL_PROJECT_PRODUCTION_URL?
+   'https://'+process.env.VERCEL_PROJECT_PRODUCTION_URL:'https://momentum-radar-live.vercel.app';
+  await Promise.all(candidates.slice(0,6).map(async({book,bookmaker,risk,candidate})=>{
+   const key=bookmaker+'_'+risk+'QuoteStatus';
    try{
-    const origin=process.env.VERCEL_PROJECT_PRODUCTION_URL?'https://'+process.env.VERCEL_PROJECT_PRODUCTION_URL:'https://momentum-radar-live.vercel.app';
-    const quoteRes=await timedFetch(origin+'/api/prop-line-sgp-quote',{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json',Authorization:'Bearer '+process.env.CRON_SECRET,'x-momentum-change-token':verifiedToken},body:JSON.stringify(candidate.quoteRequest),signal:AbortSignal.timeout(12000)});
+    const quoteRes=await timedFetch(origin+'/api/prop-line-sgp-quote',{
+     method:'POST',cache:'no-store',
+     headers:{'Content-Type':'application/json',
+      Authorization:'Bearer '+process.env.CRON_SECRET,'x-momentum-change-token':verifiedToken},
+     body:JSON.stringify(candidate.quoteRequest),signal:AbortSignal.timeout(13000)
+    });
     const quote=await quoteRes.json().catch(()=>null);
-    oddsDebug[bookmaker+'QuoteStatus']=quote?.status||quote?.error||'invalid_provider_response';
-    if(quoteRes.ok&&quote?.quoted===true&&quote?.bookmaker===bookmaker&&String(quote?.eventId)===String(candidate.quoteRequest?.eventId)&&Number.isFinite(Date.parse(quote?.pricedAt||''))&&Date.now()-Date.parse(quote.pricedAt)>=0&&Date.now()-Date.parse(quote.pricedAt)<=15*60000&&sgpOddsInBand(candidate.risk,quote.americanOdds)){
+    oddsDebug[key]=quote?.status||quote?.error||'invalid_provider_response';
+    const pricedAt=Date.parse(quote?.pricedAt||''),now=Date.now();
+    if(quoteRes.ok&&quote?.quoted===true&&quote?.status==='PROVIDER_BOOK_COMBINED_QUOTE'&&
+      quote?.bookmaker===bookmaker&&
+      String(quote?.eventId)===String(candidate.quoteRequest.eventId)&&
+      Number(quote?.legsAccepted)===candidate.quoteRequest.legs.length&&
+      Number.isFinite(pricedAt)&&pricedAt<=now&&now-pricedAt<=15*60000&&
+      sgpOddsInBand(risk,quote.americanOdds)){
      candidate.actualSgpOdds=Number(quote.americanOdds);
      candidate.combinedBookQuoteVerified=true;
      candidate.bookVerificationPending=false;
      candidate.publishable=true;
-     candidate.displayLabel=book+' bookmaker-priced SGP';
-     candidate.quotedAt=quote.pricedAt||new Date().toISOString();
+     candidate.displayLabel=book+' bookmaker-priced '+risk+' SGP';
+     candidate.quotedAt=quote.pricedAt;
+    }else if(quote?.quoted===true){
+     oddsDebug[key]='QUOTE_NOT_IN_REQUESTED_TIER_OR_INVALID';
     }
-   }catch(e){oddsDebug[bookmaker+'QuoteStatus']='quote_unavailable'}
-  }
-  sgpResponse.combinedBookQuoteVerified=['DraftKings','FanDuel'].some(book=>sgpResponse[book].some(s=>s.combinedBookQuoteVerified));
+   }catch(e){oddsDebug[key]='quote_unavailable'}
+  }));
+  sgpResponse.combinedBookQuoteVerified=['DraftKings','FanDuel']
+   .some(book=>sgpResponse[book].some(s=>s.combinedBookQuoteVerified===true));
   if(sgpResponse.combinedBookQuoteVerified)sgpResponse.mode='BOOK_QUOTED_PARTIAL';
  }
  const response={ok:true,gameId,date,scope:'game',home,away,provider,categories,sgps:sgpResponse,marketRows:(directRows||[]).length,degraded:!hasCompleteBookLegCandidate,validation:{sgpEligibleMarketRows:sgpGateDiagnostics.eligible,sgpGateDiagnostics,combinedBookSgpQuoteAvailable:sgpResponse.combinedBookQuoteVerified},oddsDebug,fetchedAt:new Date().toISOString()};
