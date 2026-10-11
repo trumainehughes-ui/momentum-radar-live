@@ -48,6 +48,7 @@ export default async function handler(req,res){
    data.pregameCheckedAt=snapshot.checkedAt;
    data.injuryRecheckedAt=snapshot.injuryCheckedAt;
    data.sgpModelVersion=snapshot.modelVersion||'legacy-unversioned';
+   data.sgpVerification=snapshot.sgpVerification||null;
    const current=data.pregameReadiness.freshness==='CURRENT';
    if(data.pregameSourceMode==='SCOREBOARD_VERIFIED_FALLBACK'&&current&&
      snapshot.injuryReportStatus==='ESPN_REPORTED_INJURIES_RECHECKED'&&
