@@ -200,6 +200,48 @@ if(typeof setInterval==='function')setInterval(()=>{
  const intervalMs=Number.isFinite(minutes)&&minutes<=120&&minutes>=-240?30*1000:180*1000;
  if(!prev.running&&Date.now()-(prev.at||0)>=intervalMs)nflRefreshInjuryPanel(g.gameId);
 },15*1000);
+function nflPublicOddsInspectorUi(){
+ return '<div class="note" style="margin-top:10px"><b>Public DraftKings / FanDuel Odds Inspector</b>'+
+ '<div class="refresh">Paste an official public player-props URL to inspect publicly readable individual +/- odds. Results are research ONLY, not verified for this matchup and never used to price an SGP.</div>'+
+ '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">'+
+ '<input id="nflBookPublicUrl" type="url" placeholder="https://sportsbook.fanduel.com/teams/nfl/.../odds" style="flex:1;min-width:180px">'+
+ '<button type="button" id="nflBookPublicCheck">Read public page</button></div>'+
+ '<div class="refresh"><a href="https://sportsbook.draftkings.com/page/nfl-player-props" target="_blank" rel="noopener noreferrer">DraftKings NFL public props</a> • <a href="https://sportsbook.fanduel.com/teams/nfl/san-francisco-49ers/odds" target="_blank" rel="noopener noreferrer">FanDuel public team-page example</a></div>'+
+ '<div id="nflPublicBookReadout" class="note">Manual public-page inspection is optional. The scheduled model uses authorized odds feeds, not guesses from page text.</div></div>';
+}
+function nflBindPublicOddsInspector(gameId){
+ const btn=$('#nflBookPublicCheck'),input=$('#nflBookPublicUrl');
+ if(!btn||!input)return;
+ btn.onclick=async()=>{
+  const output=$('#nflPublicBookReadout'),entered=String(input.value||'').trim();
+  if(!entered||!output)return;
+  output.textContent='Checking the public page without placing a bet…';
+  btn.disabled=true;
+  try{
+   const r=await fetch('/api/sportsbook-public-odds?url='+encodeURIComponent(entered),
+    {cache:'no-store',credentials:'omit'});
+   const data=await r.json();
+   if(String(nflSelected?.gameId||'')!==String(gameId))return;
+   if(!r.ok||!data.ok){
+    output.textContent='No trusted price observations: '+String(data.status||data.error||'PUBLIC_PAGE_NOT_READABLE')+
+     '. The bookmaker may expose a dynamic or geographically restricted page.';
+    return;
+   }
+   const observations=(data.quotes||[]).slice(0,24).map(x=>
+    '<div>'+nflEscape(x.player)+' • '+nflEscape(x.market)+
+    ' • '+nflEscape(x.rawLine)+' • '+nflEscape(x.americanOdds)+
+    '</div>').join('');
+   output.innerHTML='<b>'+nflEscape(data.book)+
+    ' public research:</b> '+nflEscape(data.status)+
+    ' • '+nflEscape((data.quotes||[]).length)+' paired prices seen.'+
+    (observations||'<div>Individual price/market pairs not safely extractable from this page.</div>')+
+    '<div class="refresh">Unmatched game and source timestamp: NOT an approved current SGP line or a combined sportsbook price.</div>';
+  }catch{
+   if(String(nflSelected?.gameId||'')===String(gameId))
+    output.textContent='Public page unavailable or unsupported. No betting prices inferred.';
+  }finally{if(String(nflSelected?.gameId||'')===String(gameId))btn.disabled=false}
+ };
+}
 function nflIndividualBookOddsUi(leg,expectedBook){
  const o=leg?.bookOffer,raw=Number(o?.odds);
  if(!o||o.book!==expectedBook||o.available===false||
@@ -323,7 +365,7 @@ function nflSgpAiPlanUi(data,id){
  return '<div class="note" style="margin-top:8px"><b>AI Parlay Architect • next checks</b>'+
   actions+'<div class="refresh">Model/recheck instructions only. No leg replaced and no sportsbook combined SGP odds confirmed.</div></div>';
 }
-async function nflOpen(id,forceMarkets=false){let independentPropsHtml='';let verifiedMarketsLoaded=false;const g=nflData?.games?.find(x=>x.gameId===id);if(!g)return;nflSelected=g;if(typeof window.momentumAiGameChanged==='function')window.momentumAiGameChanged(g);const aiMount=document.getElementById('nflAiMount');if(aiMount)aiMount.style.display='none';document.querySelectorAll('[data-matchtab]').forEach(b=>b.classList.toggle('active',b.dataset.matchtab==='props'));$('#nflHome').style.display='none';nflBindMatchTabs();$('#nflGame').style.display='block';$('#nflGameHead').innerHTML=`<div class="card"><div class="rank">WEEK ${g.week} • ${g.status} • ${g.readiness}</div><div class="name">${g.away.name} @ ${g.home.name}</div><div class="meta">🕒 ${nflTime(g.kickoff)} • ${g.venue||''}</div><div class="refresh">Last updated ${new Date(g.lastUpdated).toLocaleTimeString()} • Markets: ${g.marketFeed}</div></div>`;$('#nflDvp').innerHTML='<div class="msg">Loading matchup rankings…</div>';nflRefreshInjuryPanel(id);loadNFLDvp(g);$('#nflProps').innerHTML='<div class="msg">Loading touchdown and yardage leaders for this matchup…</div>';getNFLMarkets(id,forceMarkets).then(d=>{if(String(nflSelected?.gameId||'')!==String(id))return;verifiedMarketsLoaded=true;$('#nflGameHead').innerHTML+=nflSportsbookAiGuardUi(d,id)+nflSgpAiPlanUi(d,id)+nflSgpRebuildUi(d,id);const o=d.outcomePrediction,ob=$('#nflOutcome');if(ob&&o){const a=o.teamA,b=o.teamB;ob.innerHTML='<div class="nflMarketLine"><b>Projected Final Score: '+a+' '+o.projectedFinalScore[a]+' - '+b+' '+o.projectedFinalScore[b]+'</b><div class="meta">Win Probability: '+a+' '+o.winProbability[a]+'% | '+b+' '+o.winProbability[b]+'%</div><div class="note"><b>Analytical Edge:</b> '+o.analyticalEdge+'</div></div>'}$('#nflProps').innerHTML=['td','passing','rushing','receiving','receptions'].map(cat=>{const rows=d.categories?.[cat]||[];return `<h4>${nflLabels[cat]}</h4>${rows.length?rows.slice(0,5).map(x=>{const e=x.edgeAnalytics||{},h=x.recentHitRates||{},l5=h.last5,l10=h.last10,market=e.sportsbookLine!=null?`Line ${e.sportsbookLine}`:'Model projection',proj=e.modelProjection!=null?`Model ${cat==='receptions'?e.modelProjection:nflYards5(e.modelProjection)}`:'',edge=e.rawEdge!=null?`Edge ${e.rawEdge>0?'+':''}${e.rawEdge}${e.edgePct!=null?` (${e.edgePct>0?'+':''}${e.edgePct}%)`:''}`:'',hits=[l5?`L5 ${l5.hits}/${l5.sample}`:'',l10?`L10 ${l10.hits}/${l10.sample}`:''].filter(Boolean).join(' • '),form=x.recentForm?.label&&x.recentForm.label!=='EARLY_SAMPLE'?` • ${x.recentForm.label}`:x.recentForm?.label==='EARLY_SAMPLE'?' • Early sample':'';return `<div class="nflMarketLine"><b>${x.name}</b><div class="meta">${'Model: '+nflProjection(x,cat)}${x.bestBook?` • ${x.bestBook.book} ${+x.bestBook.odds>0?'+':''}${x.bestBook.odds}`:''}</div>${[market,proj,edge].filter(Boolean).length?`<div class="note">${[market,proj,edge].filter(Boolean).join(' • ')}</div>`:''}${hits?`<div class="note">${hits}${form}</div>`:''}<div class="note">${x.momentumScore!=null&&Number.isFinite(Number(x.momentumScore))?'Momentum rating: '+x.momentumScore+'/100 (not hit probability)':'Projection based on available production and matchup data'}</div></div>`}).join(''):'<div class="note">Momentum Radar projections with current public DraftKings/FanDuel market context.</div>'}`}).join('');const quotaBlocked=String(d.oddsDebug?.error||d.oddsDebug?.sgoError||'').includes('OUT_OF_USAGE_CREDITS')||d.degraded;
+async function nflOpen(id,forceMarkets=false){let independentPropsHtml='';let verifiedMarketsLoaded=false;const g=nflData?.games?.find(x=>x.gameId===id);if(!g)return;nflSelected=g;if(typeof window.momentumAiGameChanged==='function')window.momentumAiGameChanged(g);const aiMount=document.getElementById('nflAiMount');if(aiMount)aiMount.style.display='none';document.querySelectorAll('[data-matchtab]').forEach(b=>b.classList.toggle('active',b.dataset.matchtab==='props'));$('#nflHome').style.display='none';nflBindMatchTabs();$('#nflGame').style.display='block';$('#nflGameHead').innerHTML=`<div class="card"><div class="rank">WEEK ${g.week} • ${g.status} • ${g.readiness}</div><div class="name">${g.away.name} @ ${g.home.name}</div><div class="meta">🕒 ${nflTime(g.kickoff)} • ${g.venue||''}</div><div class="refresh">Last updated ${new Date(g.lastUpdated).toLocaleTimeString()} • Markets: ${g.marketFeed}</div></div>`;$('#nflDvp').innerHTML='<div class="msg">Loading matchup rankings…</div>';nflRefreshInjuryPanel(id);loadNFLDvp(g);$('#nflProps').innerHTML='<div class="msg">Loading touchdown and yardage leaders for this matchup…</div>';getNFLMarkets(id,forceMarkets).then(d=>{if(String(nflSelected?.gameId||'')!==String(id))return;verifiedMarketsLoaded=true;$('#nflGameHead').innerHTML+=nflSportsbookAiGuardUi(d,id)+nflSgpAiPlanUi(d,id)+nflSgpRebuildUi(d,id)+nflPublicOddsInspectorUi();nflBindPublicOddsInspector(id);const o=d.outcomePrediction,ob=$('#nflOutcome');if(ob&&o){const a=o.teamA,b=o.teamB;ob.innerHTML='<div class="nflMarketLine"><b>Projected Final Score: '+a+' '+o.projectedFinalScore[a]+' - '+b+' '+o.projectedFinalScore[b]+'</b><div class="meta">Win Probability: '+a+' '+o.winProbability[a]+'% | '+b+' '+o.winProbability[b]+'%</div><div class="note"><b>Analytical Edge:</b> '+o.analyticalEdge+'</div></div>'}$('#nflProps').innerHTML=['td','passing','rushing','receiving','receptions'].map(cat=>{const rows=d.categories?.[cat]||[];return `<h4>${nflLabels[cat]}</h4>${rows.length?rows.slice(0,5).map(x=>{const e=x.edgeAnalytics||{},h=x.recentHitRates||{},l5=h.last5,l10=h.last10,market=e.sportsbookLine!=null?`Line ${e.sportsbookLine}`:'Model projection',proj=e.modelProjection!=null?`Model ${cat==='receptions'?e.modelProjection:nflYards5(e.modelProjection)}`:'',edge=e.rawEdge!=null?`Edge ${e.rawEdge>0?'+':''}${e.rawEdge}${e.edgePct!=null?` (${e.edgePct>0?'+':''}${e.edgePct}%)`:''}`:'',hits=[l5?`L5 ${l5.hits}/${l5.sample}`:'',l10?`L10 ${l10.hits}/${l10.sample}`:''].filter(Boolean).join(' • '),form=x.recentForm?.label&&x.recentForm.label!=='EARLY_SAMPLE'?` • ${x.recentForm.label}`:x.recentForm?.label==='EARLY_SAMPLE'?' • Early sample':'';return `<div class="nflMarketLine"><b>${x.name}</b><div class="meta">${'Model: '+nflProjection(x,cat)}${x.bestBook?` • ${x.bestBook.book} ${+x.bestBook.odds>0?'+':''}${x.bestBook.odds}`:''}</div>${[market,proj,edge].filter(Boolean).length?`<div class="note">${[market,proj,edge].filter(Boolean).join(' • ')}</div>`:''}${hits?`<div class="note">${hits}${form}</div>`:''}<div class="note">${x.momentumScore!=null&&Number.isFinite(Number(x.momentumScore))?'Momentum rating: '+x.momentumScore+'/100 (not hit probability)':'Projection based on available production and matchup data'}</div></div>`}).join(''):'<div class="note">Momentum Radar projections with current public DraftKings/FanDuel market context.</div>'}`}).join('');const quotaBlocked=String(d.oddsDebug?.error||d.oddsDebug?.sgoError||'').includes('OUT_OF_USAGE_CREDITS')||d.degraded;
 const analyticsMode=['ANALYTICS','DATA_MODEL','MODEL_FIRST_BOOK_UNQUOTED'].includes(d.sgps?.mode)&&Array.isArray(d.sgps?.Analytics)&&d.sgps.Analytics.length;
 const sgpNeedsHelp=(d.sgps?.Analytics||[]).some(s=>!Array.isArray(s.legs)||s.legs.length===0);
 const c=d.validation?.dayAheadRoleChecks;
