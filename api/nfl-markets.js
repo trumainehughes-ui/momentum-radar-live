@@ -395,7 +395,7 @@ function propLineRows(payload,eventID){
   const odds=Number(o.americanOdds),checkedAt=o.updatedAt;
   if(!Number.isFinite(odds)||!checkedAt||Math.abs(Date.now()-Date.parse(checkedAt))>15*60*1000)continue;
   const k=[norm(o.player),cat,line??'td'].join('|');
-  if(!groups.has(k))groups.set(k,{eventID,playerID:norm(o.player),name:o.player,team:'',marketName:o.market,statID:cat==='td'?'touchdowns':o.market,periodID:'game',betTypeID:cat==='td'?'yn':'ou',sideID:cat==='td'?'yes':'over',line,books:[],provider:'PropLine',checkedAt});
+  if(!groups.has(k))groups.set(k,{eventID,playerID:norm(o.player),name:o.player,team:'',marketName:o.market,statID:cat==='td'?'touchdowns':o.market,periodID:'game',betTypeID:cat==='td'?'yn':'ou',sideID:cat==='td'?'yes':'over',line,books:[],provider:'PropLine',providerEventId:String(payload?.event?.id||''),checkedAt});
   groups.get(k).books.push({book,odds,line,available:true,checkedAt,sourceProvider:'PropLine',sourceUrl:'https://prop-line.com',bookOutcomeId:o.bookOutcomeId||null,marketKey:o.market});
  }
  return [...groups.values()];
@@ -591,12 +591,13 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
  const unquoted=(rows,book)=>(rows||[]).map(s=>({...s,bookVerificationPending:true,combinedBookQuoteVerified:false,actualSgpOdds:null,publishable:false,displayLabel:book+' individual-prop candidate (unquoted)'}));
  const quoteReady=(rows,book)=>(rows||[]).map(s=>{
   const selections=(s.legs||[]).map(l=>({market:l.bookOffer?.marketKey||null,book_outcome_id:l.bookOffer?.bookOutcomeId||null}));
-  const eligible=s.legs?.length===s.requiredLegs&&selections.length>=2&&selections.every(x=>typeof x.book_outcome_id==='string'&&x.book_outcome_id.length>=3&&typeof x.market==='string'&&x.market.length>0);
+  const providerEventIds=[...new Set((s.legs||[]).map(l=>String(l.providerEventId||'')).filter(Boolean))];
+  const eligible=s.legs?.length===s.requiredLegs&&selections.length>=2&&providerEventIds.length===1&&/^[0-9]{1,14}$/.test(providerEventIds[0])&&selections.every(x=>typeof x.book_outcome_id==='string'&&x.book_outcome_id.length>=3&&typeof x.market==='string'&&x.market.length>0);
   return {...s,bookVerificationPending:true,combinedBookQuoteVerified:false,actualSgpOdds:null,publishable:false,
    quoteEligibility:eligible?'READY_FOR_AUTHORIZED_QUOTE':'MISSING_VERIFIED_BOOK_SELECTIONS',
    quoteSelectionCount:eligible?selections.length:0,
    // These IDs are provider-issued and not secrets; only complete selections are exposed.
-   quoteRequest:eligible?{league:'nfl',gameId:String(gameId),bookmaker:book==='DraftKings'?'draftkings':'fanduel',legs:selections}:null,
+   quoteRequest:eligible?{league:'nfl',gameId:String(gameId),eventId:providerEventIds[0],bookmaker:book==='DraftKings'?'draftkings':'fanduel',legs:selections}:null,
    // Never expose quote credentials or mark an individual-leg parlay as priced.
    displayLabel:book+' individual-prop candidate (unquoted)'};
  });
