@@ -79,3 +79,33 @@ test('API on-demand public check is read-only, and the current SGO feed actually
  assert.match(nfl,/baseUrl\.searchParams\.set\('includeAltLines','true'\)/);
  assert.match(nfl,/expandSgoPlayerMarket\(o,e\.eventID\|\|e\.id,market\)/);
 });
+
+test('read-only public-page discovery extends to MLB, NBA, and NHL while retaining strict official hosts',()=>{
+ const examples=[
+  ['https://sportsbook.fanduel.com/teams/nba/denver-nuggets/odds','nba'],
+  ['https://sportsbook.fanduel.com/teams/mlb/colorado-rockies/odds','mlb'],
+  ['https://sportsbook.draftkings.com/page/nhl-player-props','nhl']
+ ];
+ for(const [url,league] of examples){
+  const page=officialSportsbookPublicPage(url);
+  assert.ok(page,url);
+  assert.equal(page.sport,league);
+ }
+ assert.equal(officialSportsbookPublicPage('https://sportsbook.fanduel.com/private/account'),null);
+});
+test('public FanDuel NBA plus/minus prices are observed, but never treated as sportsbook-verified SGP offers',()=>{
+ const fdNBA='https://sportsbook.fanduel.com/teams/nba/denver-nuggets/odds';
+ const html='<h2>Will Nikola Jokic...</h2>'+
+  '<p>score at least 24.5 points?</p><p>Yes-115</p><p>No-105</p>'+
+  '<p>have at least 12.5 rebounds?</p><p>Yes+130</p>'+
+  '<p>have at least 8.5 assists?</p><p>Yes-102</p>'+
+  '<p>have at least 1.5 three-pointers?</p><p>Yes+160</p>';
+ const quotes=parsePublishedSportsbookHtml(fdNBA,html);
+ assert.equal(quotes.length,4);
+ assert.deepEqual(quotes.map(x=>[x.market,x.winningMinimum,x.americanOdds]),[
+  ['points',25,'-115'],['rebounds',13,'+130'],
+  ['assists',9,'-102'],['threes',2,'+160']
+ ]);
+ assert.ok(quotes.every(x=>x.modelEligible===false&&
+  x.combinedSgpQuoteVerified===false));
+});
