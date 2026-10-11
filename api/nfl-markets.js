@@ -95,11 +95,11 @@ function playerName(o){const explicit=o.statEntityName||o.playerName||o.player?.
 function canonicalBook(x){const raw=String(x||''),k=raw.toLowerCase().replace(/[^a-z]/g,'');if(k.includes('draftkings'))return'DraftKings';if(k.includes('fanduel'))return'FanDuel';if(k.includes('betmgm')||k==='mgm')return'BetMGM';if(k.includes('caesars'))return'Caesars';if(k.includes('betrivers'))return'BetRivers';if(k.includes('fanatics'))return'Fanatics';if(k.includes('betonline'))return'BetOnline';if(k.includes('bovada'))return'Bovada';return raw||null}
 const PRIMARY_BOOKS=['DraftKings','FanDuel'];
 const APPROVED_BOOKS=['DraftKings','FanDuel','BetMGM','Caesars','BetRivers','Fanatics','BetOnline','Bovada'];
-function approvedBook(m){for(const name of APPROVED_BOOKS){const b=bookFor(m,name);if(b)return b}return m.books.find(x=>Number.isFinite(+x.odds))||null}
+function approvedBook(m){for(const name of APPROVED_BOOKS){const b=bookFor(m,name);if(b)return b}return(m.books||[]).find(x=>x?.available!==false&&x?.odds!==null&&x?.odds!==undefined&&x?.odds!==''&&Number.isFinite(Number(x.odds))&&Number(x.odds)!==0)||null}
 function market(o,eventID){const books=Object.entries(o.byBookmaker||{}).filter(([,v])=>v?.available).map(([book,v])=>({book:canonicalBook(book)||book,odds:v.odds??null,line:v.overUnder??v.spread??null,available:true}));const rawTeam=o.teamID||o.team?.abbreviation||o.statEntity?.teamID||o.statEntity?.team?.abbreviation||'';return{eventID,playerID:o.playerID||o.statEntityID||'',name:playerName(o),team:norm(rawTeam),marketName:o.marketName||'',statID:o.statID||'',periodID:o.periodID||'',betTypeID:o.betTypeID||'',sideID:o.sideID||'',fairOdds:o.fairOdds??null,bookOdds:o.bookOdds??null,line:o.bookOverUnder??null,books}}
 function category(m){const key=String(m.marketName||'').toLowerCase();if(key.startsWith('player_pass_yds'))return'passing';if(key.startsWith('player_rush_yds'))return'rushing';if(key.startsWith('player_reception_yds'))return'receiving';if(key.startsWith('player_receptions'))return'receptions';const s=(m.statID+' '+m.marketName).toLowerCase();if(m.periodID!=='game')return null;if(m.statID==='touchdowns'&&m.betTypeID==='yn'&&m.sideID==='yes')return'td';if(m.betTypeID!=='ou'||m.sideID!=='over')return null;if(s.includes('passing')&&s.includes('yard')&&!s.includes('rushing')&&!s.includes('receiving'))return'passing';if(s.includes('rushing')&&s.includes('yard')&&!s.includes('receiving')&&!s.includes('passing'))return'rushing';if((s.includes('receiving')||s.includes('reception'))&&s.includes('yard')&&!s.includes('rushing')&&!s.includes('passing'))return'receiving';if(s.includes('reception')&&!s.includes('yard')&&!s.includes('longest'))return'receptions';return null}
 function americanToProb(a){a=+a;if(!Number.isFinite(a)||!a)return null;return a>0?100/(a+100):(-a)/(-a+100)}
-function bookFor(m,name){return m.books.find(x=>x.book===name&&Number.isFinite(+x.odds))||null}
+function bookFor(m,name){return(m?.books||[]).find(x=>x?.book===name&&x.available!==false&&x.odds!==null&&x.odds!==undefined&&x.odds!==''&&Number.isFinite(Number(x.odds))&&Number(x.odds)!==0)||null}
 function bestBook(m){return PRIMARY_BOOKS.map(x=>bookFor(m,x)).find(Boolean)||approvedBook(m)||null}
 function threshold(m){const b=bestBook(m),raw=b?.line??m.line;if(raw===null||raw===undefined||raw==='')return null;const v=Number(raw);return Number.isFinite(v)?v:null}
 function reasonFor(m,cat){const b=bestBook(m);const book=b?.book||'market feed';const line=threshold(m);const base=cat==='td'?'Anytime-TD market is active':cat==='passing'?'Passing-yard market is active':cat==='rushing'?'Rushing-yard market is active':cat==='receiving'?'Receiving-yard market is active':'Reception market is active';return base+' at '+book+(line!=null?' with a '+line+' threshold':'')+'. Sportsbook availability validates the market; verified line/price data may also contribute to Edge and Momentum scoring.'}
@@ -127,7 +127,18 @@ function pairCorrelation(a,b){let s=0,reasons=[];const sameTeam=norm(a.team)&&no
 function sgpCorrelation(legs){if(!legs||legs.length<2)return{score:50,label:'NEUTRAL',pairs:[]};let total=0,pairs=[];for(let i=0;i<legs.length;i++)for(let j=i+1;j<legs.length;j++){const p=pairCorrelation(legs[i],legs[j]);total+=p.score;if(p.score||p.reasons.length)pairs.push({a:legs[i].name,b:legs[j].name,score:p.score,reasons:p.reasons})}const score=Math.max(1,Math.min(99,Math.round(50+total))),label=score>=65?'STRONG_ALIGNMENT':score>=55?'ALIGNED':score<=40?'CONFLICTING':'NEUTRAL';return{score,label,pairs}}
 function buildBookSgp(rows,book,ctx){
  const all=[];
- for(const cat of ['passing','receiving','rushing','receptions','td'])for(const m of rows.filter(x=>category(x)===cat&&bookFor(x,book))){const base={...m,cat,bookOffer:bookFor(m,book)},mom=momentumScore(base,ctx);all.push({...base,momentumScore:mom.score,momentumSignals:mom.signals,edgeAnalytics:mom.edge,recentHitRates:recentHitRates(base,base.bookOffer?.line)})}
+ for(const cat of ['passing','receiving','rushing','receptions','td'])for(const m of rows.filter(x=>category(x)===cat&&bookFor(x,book))){
+   const offer=bookFor(m,book);
+   const raw=String(offer?.line??'').trim();
+   const realLine=Number.isFinite(Number(raw))&&Number(raw)>0||
+      /^\d+(?:\.\d+)?\+$/.test(raw)&&Number(raw.slice(0,-1))>0;
+   // The price/line must come from THIS sportsbook's currently available
+   // selection. A missing DraftKings line cannot borrow FanDuel's number.
+   if(cat!=='td'&&!realLine)continue;
+   const base={...m,cat,bookOffer:offer},mom=momentumScore(base,ctx);
+   all.push({...base,momentumScore:mom.score,momentumSignals:mom.signals,
+    edgeAnalytics:mom.edge,recentHitRates:recentHitRates(base,offer?.line)});
+  }
  all.sort((a,b)=>b.momentumScore-a.momentumScore);
  const groups=new Map();for(const x of all){const k=x.playerID+'|'+x.cat;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(x)}
  const basePool=[];for(const g of groups.values()){const primary=g.find(x=>!String(x.marketName).includes('alternate'));basePool.push(primary||g.slice().sort((a,b)=>(+a.bookOffer?.line||0)-(+b.bookOffer?.line||0))[0])}
