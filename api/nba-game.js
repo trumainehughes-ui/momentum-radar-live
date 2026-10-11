@@ -49,6 +49,9 @@ export default async function handler(req,res){
    data.injuryRecheckedAt=snapshot.injuryCheckedAt;
    data.sgpModelVersion=snapshot.modelVersion||'legacy-unversioned';
    data.sgpVerification=snapshot.sgpVerification||null;
+   data.sgpRebuildReport=snapshot.sgpRebuildReport?.gameId===gameId&&
+    data.pregameReadiness.freshness==='CURRENT'&&data.status==='SCHEDULED'?
+    snapshot.sgpRebuildReport:null;
    data.sgpAiPlan=snapshot.sgpAiPlan?.gameId===gameId&&
     data.pregameReadiness.freshness==='CURRENT'&&data.status==='SCHEDULED'?
     snapshot.sgpAiPlan:null;
