@@ -162,7 +162,8 @@ test('market catalog is derived only from documented provider market discovery f
  const result=verifyOpticOddsMarketCatalog({league:'nfl',now,
   categoryNames:{passing:[fixtureMarketNames[0]],rushing:[fixtureMarketNames[1]],
    receiving:[fixtureMarketNames[2]],td:['Wrong TD Market']},
-  providerMarkets:{data:fixtureMarketNames.map(name=>({name,
+  providerMarkets:{data:fixtureMarketNames.map((name,i)=>({
+   id:['player_passing_yards','player_rushing_yards','player_receiving_yards'][i],name,
    sports:[{id:'football',leagues:[{id:'nfl',
     sportsbooks:[{id:'draftkings',name:'DraftKings'}]}]}]}))}});
  assert.equal(result.sourceVerified,true);
@@ -258,4 +259,23 @@ test('NBA automatic PRA category mapping must be verified against exact discover
  assert.deepEqual(catalog.pra,['Player Points + Rebounds + Assists']);
  assert.deepEqual(catalog.threes,['Player Made Threes']);
  assert.deepEqual(catalog.assists,[]);
+});
+
+test('a verified DraftKings market name under the WRONG stat ID can never authorize an NFL prop category',()=>{
+ const markets={data:[
+  {id:'player_rushing_yards',name:'Player Rushing Yards',
+   sports:[{id:'football',leagues:[{id:'nfl',sportsbooks:[{id:'draftkings'}]}]}]},
+  {id:'player_receiving_yards',name:'Player Receiving Yards',
+   sports:[{id:'football',leagues:[{id:'nfl',sportsbooks:[{id:'draftkings'}]}]}]}
+ ]};
+ const mislabeled=verifyOpticOddsMarketCatalog({league:'nfl',now,
+  categoryNames:{passing:['Player Rushing Yards'],
+   rushing:['Player Rushing Yards']},providerMarkets:markets});
+ assert.deepEqual(mislabeled.passing,[]);
+ assert.deepEqual(mislabeled.rushing,['Player Rushing Yards']);
+ assert.deepEqual(mislabeled.receiving,['Player Receiving Yards']);
+ const malformed=verifyOpticOddsMarketCatalog({league:'nfl',now,
+  categoryNames:{passing:['Player Rushing Yards']},
+  providerMarkets:{data:[{...markets.data[0],id:'unknown_stat'}]}});
+ assert.equal(malformed.sourceVerified,false);
 });
