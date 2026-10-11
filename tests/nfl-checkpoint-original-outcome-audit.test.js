@@ -78,6 +78,7 @@ test('actual provider odds are distinguished from unpriced offers and verified c
  assert.equal(priced.status,'VERIFIED_BOOK_QUOTE');
  assert.equal(priced.verifiedBookTiers,1);
  assert.equal(classifyNflCheckpointMarket(response({
+  oddsDebug:{providerNativeRows:0,authorizedQuoteCandidates:0},
   sgps:{combinedBookQuoteVerified:false,
    DraftKings:[{combinedBookQuoteVerified:true}],FanDuel:[]}
  })).status,'NO_PROVIDER_SELECTIONS');
