@@ -208,9 +208,16 @@ function nflSgpBookAuditUi(s){
   if(a.status==='MODEL_NOT_READY')return book+': model incomplete';
   return book+': '+nflEscape(a.matchedLegs)+'/'+nflEscape(a.totalLegs)+' exact leg markets found';
  }).filter(Boolean).join(' • ');
- const fd=audits.FanDuel;
- const missing=fd?.status!=='NO_LIVE_MARKETS'&&fd?.missingLegs?.length?
-  '<div class="note">FanDuel lines not confirmed: '+fd.missingLegs.slice(0,6).map(x=>nflEscape(x.name)+': model '+nflEscape(x.requested)+(x.category==='td'?'':'+')+(x.listedOffers?.length?' • '+nflEscape(x.listedOffers.map(y=>y.display).join(' / '))+' offered':' • no current matching offer')).join('<br>')+'</div>':'';
+ const missing=['FanDuel','DraftKings'].map(book=>{
+  const a=audits[book];
+  if(a?.status==='NO_LIVE_MARKETS'||!a?.missingLegs?.length)return '';
+  return '<div class="note"><b>'+book+' lines not confirmed:</b> '+
+   a.missingLegs.slice(0,6).map(x=>nflEscape(x.name)+': model '+
+    nflEscape(x.requested)+(x.category==='td'?'':'+')+
+    (x.listedOffers?.length?' • '+
+     nflEscape(x.listedOffers.map(y=>y.display).join(' / '))+
+     ' offered':' • no current matching offer')).join('<br>')+'</div>';
+ }).filter(Boolean).join('');
  return '<div class="note" style="margin-top:8px"><b>Sportsbook selection audit (NOT an SGP quote):</b> '+summary+missing+
  '<div class="note"><b>Combined odds still unverified.</b> Model Small/Medium/Nuke names are targets, not an available sportsbook payout. Do not use unmatched lines as a bet slip.</div></div>';
 }
