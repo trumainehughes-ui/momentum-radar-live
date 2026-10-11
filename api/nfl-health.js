@@ -8,7 +8,7 @@ import {selectedShardGames,collectorAuditReport,writeCollectorAudit}
  from '../lib/pregame-collector-shards.js';
 import {
  nflEasternDate,nflAddDate,nflCollectorDueGames,nflTierReadiness,
- nflCollectorSnapshotReady,nflRunCollectorBatch,MAX_NFL_COLLECTOR_CONCURRENCY
+ nflCollectorSnapshotReady,nflRunCollectorBatch,nflMarketFailureDetails,MAX_NFL_COLLECTOR_CONCURRENCY
 } from '../lib/nfl-collector-readiness.js';
 const P='momentum-history/v1/nfl-';
 const day=nflEasternDate;
@@ -100,9 +100,14 @@ async function autoLock(base,games){
     finalCheck+'&lockRun=1&ts='+Date.now();
   // A single delayed game must not exhaust the whole cron execution.
   const r=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout(65000)});
-  if(!r.ok)return{gameId:g.gameId,status:'markets_unavailable',httpStatus:r.status};
+  if(!r.ok){
+   const failure=await r.json().catch(()=>null);
+   return{gameId:g.gameId,status:'markets_unavailable',
+    ...nflMarketFailureDetails(r.status,failure)};
+  }
   const m=await r.json();
-  if(!m?.ok)return{gameId:g.gameId,status:'markets_unavailable'};
+  if(!m?.ok)return{gameId:g.gameId,status:'markets_unavailable',
+   ...nflMarketFailureDetails(r.status,m)};
   const prior=await priorSnapshot(g.gameId);
   const snap=historySnap(g,m,prior);
   const audit=pregameEvidenceAudit(prior,snap,{league:'nfl'});
