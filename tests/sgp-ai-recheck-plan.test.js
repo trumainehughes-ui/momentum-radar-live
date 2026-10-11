@@ -9,7 +9,7 @@ const riskList=['Small','Medium','Nuke'];
 const cards=riskList.map((risk,i)=>{
  const n=i===0?4:i===1?5:6;
  const legs=Array.from({length:n},(_,j)=>({
-  playerID:String(j+11),eventID:gameId,team:'JAX',cat:'rushing',
+  name:'Athlete '+(j+11),playerID:String(j+11),eventID:gameId,team:'JAX',cat:'rushing',
   analyticsThreshold:50+5*j
  }));
  return{risk,requiredLegs:n,legs,tierAssessment:{compositionOk:true},
@@ -22,6 +22,21 @@ const cards=riskList.map((risk,i)=>{
      listedOffers:[{display:'55+',minimumToWin:55}]}]}
   }};
 });
+// A fresh, complete audit must attest EACH exact player/team/event/market
+// identity, not just the total matched counter.
+for(const card of cards){
+ for(const book of ['DraftKings','FanDuel']){
+  const audit=card.bookMarketAudits[book];
+  audit.legs=card.legs.map((x,i)=>({
+   playerID:x.playerID,name:x.name,team:x.team,eventID:x.eventID,
+   category:x.cat,requested:x.analyticsThreshold,
+   matched:book==='DraftKings'||i!==0,
+   listedOffers:book==='FanDuel'&&i===0?
+    [{display:'55+',minimumToWin:55}]:[]
+  }));
+  audit.missingLegs=audit.legs.filter(x=>!x.matched);
+ }
+}
 const verification={league:'nfl',gameId,tiers:riskList.map((risk,i)=>({
  risk,modelStatus:'MODEL_CANDIDATE',books:{
   DraftKings:{status:'EXACT_LEGS_LISTED_COMBINED_ODDS_UNVERIFIED',
@@ -125,4 +140,38 @@ test('NFL/NBA routes and both user interfaces expose actionable plans with no bo
   const src=readFileSync(new URL('../'+path,import.meta.url),'utf8');
   assert.ok(src.includes(match),path);
  }
+});
+
+test('book quote readiness refuses a count-only, swapped-player, wrong-team or mismatched threshold audit',()=>{
+ const input=data();
+ for(const change of [
+  x=>delete x.legs,
+  x=>x.legs[0].playerID='another-athlete',
+  x=>x.legs[0].team='PHI',
+  x=>x.legs[0].requested=65,
+  x=>x.legs[0].category='receiving',
+  x=>x.matchedLegs=4,
+  x=>x.allLegsMatched=false
+ ]){
+  const clone=structuredClone(input);
+  const a=clone.sgps.Analytics[0].bookMarketAudits.DraftKings;
+  change(a);
+  const result=sgpAiRecheckPlan(clone).tiers[0].bookActions.find(x=>x.book==='DraftKings');
+  assert.equal(result.action,'MATCH_BOOK_PLAYER_PROPS');
+  assert.equal(result.individuallyMatched,null);
+  assert.equal(result.observedQuoteVerified,false);
+  assert.equal(result.bookableWagerConfirmed,false);
+ }
+});
+test('falsely stamped verification status never bypasses missing or inconsistent player market audit',()=>{
+ const input=structuredClone(data());
+ input.sgpVerification.tiers[0].books.FanDuel={
+  status:'TIER_COMBINED_QUOTE_VERIFIED',combinedOddsVerified:true,tierVerified:true,
+  matchedLegs:4,requiredLegs:4,
+  quoteCheckedAt:new Date(now).toISOString()
+ };
+ const report=sgpAiRecheckPlan(input),fd=report.tiers[0].bookActions.find(x=>x.book==='FanDuel');
+ assert.equal(fd.action,'REVALIDATE_MISSING_LEGS');
+ assert.equal(fd.observedQuoteVerified,false);
+ assert.equal(report.observedQuoteTiers,0);
 });
