@@ -150,7 +150,7 @@ test('book quote readiness refuses a count-only, swapped-player, wrong-team or m
   x=>x.legs[0].team='PHI',
   x=>x.legs[0].requested=65,
   x=>x.legs[0].category='receiving',
-  x=>x.matchedLegs=4,
+  x=>x.matchedLegs=3,
   x=>x.allLegsMatched=false
  ]){
   const clone=structuredClone(input);
