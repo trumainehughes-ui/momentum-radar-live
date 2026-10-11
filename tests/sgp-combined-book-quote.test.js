@@ -106,9 +106,13 @@ test('event-wide verification requires authenticated quote AND all exact book-le
  assert.equal(nope.sportsbookVerifiedCount,0);
 });
 test('genuine bookmaker +975 cannot be displayed as verified Medium and remains correct audit',()=>{
- const model=card('Medium');
+ const mediumLegs=[...legs,{name:'Tight End E',playerID:'55',team:'JAX',
+  eventID:game,cat:'receiving',analyticsThreshold:45}];
+ const model=card('Medium',game,mediumLegs);
  const a=auditLeagueSgpEvent({league:'nfl',gameId:game,sgps:{Analytics:[model]},
-  quoteAdapterAuthenticated:true,bookIssuedQuotes:{FanDuel:{Medium:quote({americanOdds:975})}},now:at});
+  quoteAdapterAuthenticated:true,bookIssuedQuotes:{FanDuel:{Medium:quote({
+   americanOdds:975,legs:mediumLegs
+  })}},now:at});
  assert.equal(a.tiers[1].books.FanDuel.status,'BOOK_COMBINED_PRICE_OUTSIDE_TIER');
  assert.equal(a.tiers[1].books.FanDuel.actualCombinedOdds,975);
  assert.equal(a.tiers[1].books.FanDuel.tierVerified,false);
@@ -129,4 +133,18 @@ test('NBA uses exactly the same authenticated quote rule and never trusts a hypo
  const result=auditLeagueSgpEvent({...data,quoteAdapterAuthenticated:true});
  assert.equal(result.sportsbookVerifiedCount,1);
  assert.equal(result.tiers[0].books.FanDuel.actualNetProfit,260);
+});
+
+test('strict cross-league tier leg limits reject a 4-leg Medium or 4-leg Nuke even with matching books',()=>{
+ for(const risk of ['Medium','Nuke']){
+  const r=auditLeagueSgpEvent({league:'nfl',gameId:game,sgps:{Analytics:[card(risk)]},
+   quoteAdapterAuthenticated:true,bookIssuedQuotes:{FanDuel:{[risk]:quote()}},now:at});
+  assert.equal(r.tiers.find(x=>x.risk===risk).modelStatus,'NOT_READY');
+  assert.equal(r.sportsbookVerifiedCount,0);
+ }
+ const nbaGame='401917234';
+ const two=[{gameId:nbaGame,playerId:'101',name:'One',team:'DEN',category:'points',threshold:20},
+  {gameId:nbaGame,playerId:'102',name:'Two',team:'LAL',category:'rebounds',threshold:8}];
+ const s={risk:'Medium',status:'MODEL_CANDIDATE',legs:two,requiredLegs:2};
+ assert.equal(auditLeagueSgpEvent({league:'nba',gameId:nbaGame,sgps:[s]}).tiers[1].modelStatus,'NOT_READY');
 });
