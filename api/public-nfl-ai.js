@@ -3,7 +3,7 @@ import {list} from '@vercel/blob';
 // This endpoint serves saved, already-generated AI reports. Public viewers can
 // choose analysis topics but cannot trigger inference, alter picks or consume
 // provider credits. Internal evidence digests and private prompts stay hidden.
-const safeText=(v,max=1500)=>String(v??'').replace(/https?:\/\/\S+/gi,'')
+const safeText=(v,max=1500)=>String(v??'').replace(new RegExp('https?:[^ ]+','gi'),'')
  .replace(/[<>]/g,'').slice(0,max).trim();
 const dateEt=x=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',
  year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(x));
