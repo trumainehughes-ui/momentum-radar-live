@@ -1,0 +1,30 @@
+name: Public Feature Parity
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout PR (full history for diff)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify owner/public paired changes
+        if: github.event_name == 'pull_request'
+        env:
+          PARITY_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PARITY_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/check-public-parity.mjs
+      - name: Test public contracts
+        run: node --test tests/public-*.test.js
