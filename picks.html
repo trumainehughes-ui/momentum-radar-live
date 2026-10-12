@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#07121b">
+<meta name="description" content="Momentum Radar — clear NFL matchup predictions, touchdown insights, game trends and model-based parlays.">
+<meta property="og:title" content="Momentum Radar | Game-day insights">
+<meta property="og:description" content="Matchups, player projections, touchdown radar and parlay insights in one clean view.">
+<title>Momentum Radar | Game-day Insights</title>
+<style>
+:root{color-scheme:dark;--ink:#edf5f9;--muted:#a1b4c3;--bg:#07121b;--panel:#0d1d29;--panel2:#102634;--border:#284352;--green:#50e7ac;--aqua:#76cffa;--gold:#ffce74}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 75% -20%,#173f44 0,transparent 48%),radial-gradient(ellipse at -5% 40%,#112d3a 0,transparent 40%),var(--bg);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink);min-height:100vh}
+button,input{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible{outline:2px solid var(--aqua);outline-offset:3px}
+a{color:inherit;text-decoration:none}.container{width:min(1180px,calc(100% - 36px));margin:auto}
+header{border-bottom:1px solid #233a45;background:#091721dc;position:sticky;top:0;z-index:10;backdrop-filter:blur(16px)}
+.nav{height:74px;display:flex;align-items:center;gap:16px;justify-content:space-between}.brand{display:flex;align-items:center;gap:12px;font-size:18px;font-weight:900;letter-spacing:-.4px}
+.logo{width:40px;height:40px;border:1px solid #417965;border-radius:13px;display:grid;place-items:center;background:#163b35;color:var(--green);font-size:24px;box-shadow:0 0 22px #1abb8660}
+.toplinks{display:flex;gap:8px;align-items:center}.navpill,.small-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:850;color:var(--muted)}
+.navpill{border:1px solid #346352;background:#14382e;color:#abf5d6;padding:7px 11px;border-radius:999px}
+button.soft{background:#173241;color:#d5f2ff;border:1px solid #366274;border-radius:11px;padding:10px 15px;font-weight:750}
+button.soft:hover,.chip:hover,.game-card:hover{border-color:#68a4b2}
+.hero{padding:60px 0 35px;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(230px,.65fr);gap:28px;align-items:center}
+.eyebrow{font-size:12px;color:var(--green);letter-spacing:.18em;font-weight:850;text-transform:uppercase}
+h1{font-size:clamp(36px,5.4vw,66px);line-height:1.05;letter-spacing:-.055em;margin:12px 0 20px;max-width:780px}
+.hero h1 em{font-style:normal;color:var(--green)}.hero p{font-size:17px;line-height:1.62;color:#b5cbd7;max-width:600px;margin:0}
+.hero-stat{border:1px solid #3b5a66;border-radius:20px;background:linear-gradient(145deg,#143540,#0e202c);padding:26px;box-shadow:0 20px 55px #0003}
+.hero-stat .number{font-size:36px;font-weight:950;letter-spacing:-.06em;color:var(--green);margin:13px 0}
+.hero-stat p{font-size:13px;line-height:1.5;color:var(--muted)}
+.sparkline{display:flex;align-items:end;height:34px;gap:6px;margin-top:19px}.sparkline i{flex:1;background:linear-gradient(#6eecbb,#1f6d64);border-radius:4px 4px 0 0;opacity:.75}
+.section{margin:28px 0 36px}.section-head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin:0 0 18px}
+h2{font-size:26px;letter-spacing:-.035em;margin:0 0 5px}h3{font-size:18px;letter-spacing:-.02em;margin:0}
+.sub{font-size:13px;color:var(--muted);line-height:1.5;margin:0}
+.controls{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.datebox{background:#112734;color:#f0f8fa;border:1px solid #385765;border-radius:10px;padding:10px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}.chip{border:1px solid #39535e;border-radius:999px;padding:10px 16px;background:#0e2230;color:#b7ccd7;font-weight:700;font-size:13px}
+.chip.active{border-color:#36ab85;background:#165344;color:#d5ffec}
+.game-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(246px,1fr));gap:13px}
+.game-card{width:100%;text-align:left;border:1px solid var(--border);border-radius:16px;padding:19px;background:linear-gradient(145deg,#102532,#0b1c27);color:var(--ink);transition:border-color .2s,transform .2s}
+.game-card:hover{transform:translateY(-2px)}.game-card.selected{border:1px solid #46dba4;box-shadow:inset 0 0 0 1px #46dba433,0 0 20px #43d5a416}
+.game-head{display:flex;justify-content:space-between;gap:10px;font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.07em}
+.game-status{color:var(--green)}.team{display:flex;align-items:center;gap:10px;margin:13px 0;font-size:16px;font-weight:850}
+.team-crest{min-width:36px;height:36px;border:1px solid #3a6070;border-radius:11px;background:#1a3444;display:grid;place-items:center;font-size:12px;font-weight:900;color:#a7edff}
+.game-meta{border-top:1px solid #25414f;padding-top:12px;color:#a8bfcb;font-size:12px}
+.panel{border:1px solid var(--border);border-radius:18px;background:#0d1d29;padding:23px}.details-top{display:flex;gap:12px;justify-content:space-between;align-items:start;flex-wrap:wrap}
+.details-top .matchup{font-size:24px;font-weight:900;letter-spacing:-.035em;margin:5px 0}.fresh{font-size:12px;color:var(--muted)}
+.market-tabs{display:flex;gap:7px;flex-wrap:wrap;margin:20px 0 17px}.market-tabs .chip{font-size:12px;border-radius:10px;padding:9px 13px}
+.players-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:11px}
+.player{background:#102733;border-radius:12px;border:1px solid #2b4a58;padding:16px}.player b{font-size:15px;display:block;margin:7px 0}
+.player .stat{font-size:25px;font-weight:900;color:var(--green);letter-spacing:-.04em}
+.player .small{font-size:12px;line-height:1.5;color:#b2c6d0;margin-top:7px}.tiny{font-size:10px;text-transform:uppercase;font-weight:850;letter-spacing:.09em;color:var(--muted)}
+.parlay-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px}
+.parlay{background:#102733;border:1px solid #305565;border-radius:14px;padding:18px}.parlay .tier{display:flex;justify-content:space-between;align-items:center;font-size:17px;font-weight:900}
+.parlay .tier small{font-size:10px;border:1px solid #365c68;padding:5px 7px;border-radius:6px;color:#bdd5e2}
+.parlay .tier.nuke{color:var(--gold)}.parlay .tier.medium{color:var(--aqua)}
+.leg{padding:12px 0;border-bottom:1px solid #243e4a}.leg:last-child{border-bottom:0}.leg strong{font-size:14px}
+.leg .target{font-size:13px;color:var(--green);margin-top:3px;font-weight:800}
+.parlay p{font-size:12px;color:var(--muted);line-height:1.5}
+.bookquote{color:#c6ebff;background:#193b49;border-radius:10px;padding:12px;margin-top:16px;font-size:13px}
+.rank-card{border:1px solid #2b4957;background:#102532;padding:14px;border-radius:12px}.rank-head{display:flex;gap:8px;align-items:center}
+.rank-index{color:var(--green);font-size:19px;font-weight:950}.rank-card strong{font-size:14px}.rank-card .pick{color:var(--green);font-size:21px;font-weight:900;margin-top:10px}
+.empty{border:1px dashed #41606b;border-radius:13px;padding:22px;background:#0b1e28;color:#b3c8d5;font-size:14px;line-height:1.6}
+.empty strong{color:var(--ink)}.grid-span{grid-column:1/-1}
+.loading{opacity:.85;animation:pulse 1.3s ease-in-out infinite alternate}@keyframes pulse{from{opacity:.45}to{opacity:1}}
+footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0 40px;font-size:12px;line-height:1.6}
+.footer-wrap{display:flex;justify-content:space-between;gap:25px;flex-wrap:wrap}.footer-wrap div{max-width:650px}
+.flexline{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+@media(max-width:860px){.hero{grid-template-columns:1fr;padding-top:35px}.hero-stat{display:none}.parlay-grid{grid-template-columns:1fr}.section-head{align-items:start;flex-direction:column}}
+@media(max-width:570px){.container{width:min(100% - 24px,1180px)}.nav{height:64px}.toplinks .navpill{display:none}h2{font-size:23px}.panel{padding:16px}.game-grid,.players-grid{grid-template-columns:1fr}.hero p{font-size:15px}.brand{font-size:16px}}
+</style></head>
+<body>
+<header><div class="container nav"><a class="brand" href="/picks" aria-label="Momentum Radar home"><span class="logo" aria-hidden="true">↗</span><span>Momentum <span style="color:#50e7ac">Radar</span></span></a><div class="toplinks"><span class="navpill">SPORTS INSIGHTS</span><button class="soft" id="refresh" type="button">↻ Refresh</button></div></div></header>
+<main class="container">
+<section class="hero"><div><div class="eyebrow">Your game-day edge</div><h1>See the game <em>before it unfolds.</em></h1><p>Player projections, touchdown opportunities, matchup insights, and game parlays. One clear view, with none of the noise.</p></div><aside class="hero-stat" aria-label="Prediction coverage"><div class="small-label">Momentum at a glance</div><div class="number">GAME DAY</div><p>Explore player matchups and compare model picks before kickoff. Updated predictions appear when fresh, verified data is available.</p><div class="sparkline" aria-hidden="true"><i style="height:38%"></i><i style="height:63%"></i><i style="height:45%"></i><i style="height:76%"></i><i style="height:59%"></i><i style="height:98%"></i><i style="height:81%"></i></div></aside></section>
+<section class="section" aria-label="Choose a league"><div class="section-head"><div><h2>Explore matchups</h2><p class="sub">Choose a league, then select a game.</p></div><div class="controls"><input id="day" class="datebox" type="date" aria-label="Choose game date"><button id="today" class="soft" type="button">Upcoming</button></div></div><div class="chips" id="leagues"><button type="button" class="chip active" data-league="nfl">🏈 NFL</button><button type="button" class="chip" data-league="nba">🏀 NBA</button></div><p id="date-caption" class="sub" style="margin:16px 0 11px" aria-live="polite">Loading scheduled games…</p><div id="games" class="game-grid"><div class="empty loading grid-span">Loading matchups…</div></div></section>
+<section class="section" id="game-section"><div class="panel"><div class="details-top"><div><div class="eyebrow">Matchup breakdown</div><div id="match-title" class="matchup">Select a game</div><p id="match-subtitle" class="sub">Model forecasts are screened before appearing here.</p></div><div id="freshness" class="fresh"></div></div><div id="match-content"><div class="empty" style="margin-top:18px">Choose a matchup above to view the player outlook and parlay tiers.</div></div></div></section>
+<section class="section" id="rankings-section"><div class="section-head"><div><h2>Players to watch</h2><p class="sub">Ranked model projections from games on the selected NFL slate.</p></div></div><div class="market-tabs" id="rank-tabs"><button type="button" class="chip active" data-rank="td">Anytime TD</button><button type="button" class="chip" data-rank="passing">Passing</button><button type="button" class="chip" data-rank="rushing">Rushing</button><button type="button" class="chip" data-rank="receiving">Receiving</button><button type="button" class="chip" data-rank="receptions">Receptions</button></div><div class="players-grid" id="rankings"><div class="empty grid-span">Waiting for today's saved rankings…</div></div></section>
+</main>
+<footer><div class="container footer-wrap"><div><b style="color:#edf5f9">Momentum Radar</b><div>Independent sports insights. Model-generated projections are estimates, not guarantees or confirmed sportsbook bets. Combined parlay odds appear only when explicitly verified and may change before placement.</div></div><div>For informational use only. Bet responsibly where legal. 21+ where required.</div></div></footer>
+<script>
+(function(){
+ 'use strict';
+ const $=s=>document.querySelector(s);
+ const labels={td:'Anytime TD',passing:'Passing yards',rushing:'Rushing yards',receiving:'Receiving yards',receptions:'Receptions'};
+ const state={league:'nfl',date:'',games:[],selected:'',rank:'td',rankings:null,loading:0,rankLoading:0};
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const fmtTime=v=>{const n=Date.parse(v||'');return Number.isFinite(n)?new Intl.DateTimeFormat(undefined,{weekday:'short',hour:'numeric',minute:'2-digit'}).format(new Date(n)):'Time TBD'};
+ const fmtStamp=v=>{const n=Date.parse(v||'');return Number.isFinite(n)?'Updated '+new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(n)):'Awaiting updates'};
+ const noData=(t,detail)=>'<div class="empty grid-span"><strong>'+esc(t)+'</strong><div>'+esc(detail)+'</div></div>';
+ async function getJson(path){const res=await fetch(path,{cache:'no-store'});const data=await res.json();if(!res.ok||!data.ok)throw Error(data.error||'Data unavailable');return data}
+ function statusLabel(g){const s=String(g.status||'SCHEDULED').toUpperCase();return s==='FINAL'?'Final':s==='LIVE'?'Live':'Pregame'}
+ function teamLine(team){const ab=team?.abbr||'TBD',name=team?.name||ab;return '<div class="team"><span class="team-crest">'+esc(ab)+'</span><span>'+esc(name)+'</span></div>'}
+ function renderGames(){const box=$('#games');if(!state.games.length){box.innerHTML=noData('No games listed for this date.','Choose another date or try Upcoming.');return}
+ box.innerHTML=state.games.map(g=>'<button class="game-card '+(String(g.gameId)===String(state.selected)?'selected':'')+'" type="button" data-game="'+esc(g.gameId)+'" aria-label="Open '+esc(g.away?.name)+' at '+esc(g.home?.name)+'"><div class="game-head"><span>'+esc(state.league.toUpperCase())+' • '+esc('Week '+(g.week||'Matchup'))+'</span><span class="game-status">'+esc(statusLabel(g))+'</span></div>'+teamLine(g.away)+teamLine(g.home)+'<div class="game-meta">'+esc(fmtTime(g.kickoff))+(g.venue?' • '+esc(g.venue):'')+'</div></button>').join('')}
+ function renderOdds(offers){if(!Array.isArray(offers)||!offers.length)return '';
+ return '<div class="bookquote"><b>Verified combined sportsbook quote</b><div>'+offers.map(q=>esc(q.book)+' '+esc(q.risk)+' '+(Number(q.americanOdds)>0?'+':'')+esc(q.americanOdds)).join(' • ')+'</div><div class="sub">Prices may change; a quote is not a placed wager.</div></div>'}
+ function renderParlays(d){const tiers=['Small','Medium','Nuke'];const available=d.parlays||[];
+ return '<div class="section-head" style="margin-top:24px"><div><h3>Same Game Parlays</h3><p class="sub">Small / Medium / Nuke • model lineups, not bookmaker tickets</p></div></div>'+
+ '<div class="parlay-grid">'+tiers.map(risk=>{const t=available.find(x=>x.risk===risk),cls=risk.toLowerCase();
+ return '<div class="parlay"><div class="tier '+cls+'">'+risk+' <small>'+(t?t.legCount+' LEGS':'PENDING')+'</small></div>'+
+ (t?t.legs.map(l=>'<div class="leg"><strong>'+esc(l.player)+'</strong><div class="sub">'+esc(l.team)+'</div><div class="target">'+esc(l.target)+'</div></div>').join('')+'<p>Model pick • combined sportsbook odds not verified</p>':'<p>Insufficient screened player props for this tier. Check again after the next update.</p>')+'</div>'}).join('')+'</div>'+renderOdds(d.verifiedQuotes)}
+ function renderPlayer(x,cat){const isTd=cat==='td',stat=isTd?Number(x.modelChancePct)+'%':esc(x.projection)+' '+(cat==='receptions'?'receptions':'yards');
+ const detail=isTd?[x.opportunitiesPerGame!=null?x.opportunitiesPerGame+' opportunities per game':'',x.historicalTouchdowns!=null?x.historicalTouchdowns+' previous TDs':'',x.opponentTdRank!=null?'Opponent positional TD allowance rank #'+x.opponentTdRank:''].filter(Boolean).join(' • '):
+ (x.gameSample?'Based on '+x.gameSample+' completed-game sample':'Model estimate');
+ return '<div class="player"><div class="tiny">'+esc(x.team||'')+' • '+esc(labels[cat])+'</div><b>'+esc(x.name)+'</b><div class="stat">'+stat+'</div><div class="small">'+esc(detail)+'</div><div class="tiny" style="margin-top:10px">Model '+(isTd?'chance estimate':'projection')+'</div></div>'}
+ function renderGame(d){if(!d||d.status!=='CURRENT'){const msg=d?.message||'Predictions are not ready for this matchup.';$('#match-content').innerHTML='<div style="margin-top:18px">'+noData('Prediction update pending',msg)+'</div>';return}
+ let html='<div class="section-head" style="margin-top:24px"><div><h3>Anytime Touchdown Radar</h3><p class="sub">Model-estimated touchdown opportunities for this matchup</p></div></div>';
+ const td=(d.categories?.td||[]).slice(0,6);
+ html+='<div class="players-grid">'+(td.length?td.map(x=>renderPlayer(x,'td')).join(''):noData('Anytime TD analysis pending','Waiting for enough eligible player and matchup data.'))+'</div>';
+ html+='<div class="section-head" style="margin-top:28px"><div><h3>Player Projections</h3><p class="sub">Game-specific passing, rushing, receiving and receptions</p></div></div>';
+ for(const cat of ['passing','rushing','receiving','receptions']){const rows=(d.categories?.[cat]||[]).slice(0,4);html+='<h3 style="font-size:14px;color:#bdd4e0;margin:17px 0 9px">'+esc(labels[cat])+'</h3><div class="players-grid">'+(rows.length?rows.map(x=>renderPlayer(x,cat)).join(''):noData('Not available yet','This matchup has no screened '+labels[cat].toLowerCase()+' predictions yet.'))+'</div>'}
+ html+=renderParlays(d);$('#match-content').innerHTML=html;}
+ async function openGame(id){const g=state.games.find(x=>String(x.gameId)===String(id));if(!g)return;state.selected=String(id);renderGames();const token=++state.loading;
+ $('#match-title').textContent=(g.away?.name||'Away')+' @ '+(g.home?.name||'Home');
+ $('#match-subtitle').textContent=fmtTime(g.kickoff)+' • '+statusLabel(g)+' • Predictions are estimates';
+ $('#freshness').textContent='';$('#match-content').innerHTML='<div class="empty loading" style="margin-top:18px">Loading saved predictions…</div>';
+ if(state.league==='nba'){$('#match-content').innerHTML='<div class="empty" style="margin-top:18px"><strong>NBA matchup preview</strong><div>Schedule and scores are available. Screened public player and parlay picks will appear here when NBA prediction snapshots are enabled.</div></div>';return}
+ if(g.status==='FINAL'||g.status==='LIVE'){$('#match-content').innerHTML='<div class="empty" style="margin-top:18px">This game is '+esc(statusLabel(g).toLowerCase())+'. Pregame predictions are not presented as live betting lines.</div>';return}
+ try{const d=await getJson('/api/public-nfl-game?'+new URLSearchParams({date:state.date,gameId:String(id)}));if(token!==state.loading)return;
+ $('#freshness').textContent=fmtStamp(d.updatedAt);renderGame(d)}
+ catch{if(token===state.loading)$('#match-content').innerHTML='<div class="empty" style="margin-top:18px">Predictions are temporarily unavailable. Try refreshing shortly.</div>'}}
+ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?.[state.rank]||[];
+ box.innerHTML=rows.length?rows.slice(0,8).map((x,i)=>'<div class="rank-card"><div class="rank-head"><div class="rank-index">#'+(i+1)+'</div><div><strong>'+esc(x.name)+'</strong><div class="sub">'+esc(x.team)+' vs '+esc(x.opponent)+'</div></div></div><div class="pick">'+(state.rank==='td'?esc(x.modelChancePct)+'% TD chance':esc(x.projection)+' '+(state.rank==='receptions'?'receptions':'yards'))+'</div><div class="tiny" style="margin-top:8px">Model estimate</div></div>').join(''):
+ noData('No screened rankings for this category.','Model rankings appear after the scheduled predictions have been saved.')}
+ async function loadRanks(){const token=++state.rankLoading;state.rankings=null;$('#rankings').innerHTML='<div class="empty loading grid-span">Loading rankings…</div>';
+ if(state.league!=='nfl')return;
+ try{const d=await getJson('/api/public-nfl-rankings?'+new URLSearchParams({date:state.date}));if(token!==state.rankLoading)return;state.rankings=d;renderRanks()}catch{if(token===state.rankLoading)$('#rankings').innerHTML=noData('Rankings unavailable','Check again after the next saved update.')}}
+ async function loadSlate(upcoming){++state.loading;++state.rankLoading;state.selected='';state.games=[];$('#games').innerHTML='<div class="empty loading grid-span">Loading scheduled matchups…</div>';
+ $('#match-title').textContent='Select a game';$('#match-content').innerHTML='<div class="empty" style="margin-top:18px">Choose a matchup to explore the picks.</div>';$('#rankings-section').style.display=state.league==='nfl'?'':'none';
+ const base=state.league==='nfl'?'/api/nfl-schedule':'/api/nba-slate';
+ const q=(!upcoming&&state.date)?'?'+new URLSearchParams({date:state.date}):'';
+ try{const d=await getJson(base+q);state.date=d.date||state.date;$('#day').value=state.date;$('#date-caption').textContent=state.league.toUpperCase()+' • '+(d.games?.length||0)+' scheduled matchups • '+state.date;
+ state.games=Array.isArray(d.games)?d.games:[];renderGames();
+ if(state.league==='nfl')loadRanks();
+ if(state.games.length)openGame(String(state.games[0].gameId));
+ }catch{$('#date-caption').textContent='Unable to retrieve game schedule';$('#games').innerHTML=noData('Schedule temporarily unavailable','Refresh or try another date.')}}
+ $('#games').addEventListener('click',e=>{const b=e.target.closest('[data-game]');if(b)openGame(b.dataset.game)});
+ $('#leagues').addEventListener('click',e=>{const b=e.target.closest('[data-league]');if(!b||state.league===b.dataset.league)return;
+ state.league=b.dataset.league;document.querySelectorAll('[data-league]').forEach(el=>el.classList.toggle('active',el===b));state.date='';$('#day').value='';loadSlate(true)});
+ $('#rank-tabs').addEventListener('click',e=>{const b=e.target.closest('[data-rank]');if(!b)return;state.rank=b.dataset.rank;document.querySelectorAll('[data-rank]').forEach(el=>el.classList.toggle('active',el===b));renderRanks()});
+ $('#day').addEventListener('change',()=>{state.date=$('#day').value;if(state.date)loadSlate(false)});
+ $('#today').addEventListener('click',()=>{state.date='';$('#day').value='';loadSlate(true)});
+ $('#refresh').addEventListener('click',()=>loadSlate(false));
+ loadSlate(true);
+})();
+</script></body></html>
