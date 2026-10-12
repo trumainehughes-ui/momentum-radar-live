@@ -115,7 +115,7 @@ test('history snapshot retains evidence for model revalidation and the AI review
   source:'DATA_MODEL',risk:'Small',legs:cards[0].legs.map((l,i)=>({
    ...l,name:'Athlete '+i,cat:i===0?'passing':'rushing',position:i===0?'QB':'RB',
    projection:100,analyticsThreshold:95
-  }))]});
+  }))}]});
  assert.equal(input.matchup.sides.length,2);
  assert.equal(input.model.validation.injuryEligibilityChecked,true);
  assert.equal(input.playerAvailability.officialInactivesVerified,false);
