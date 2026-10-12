@@ -8,6 +8,7 @@ import {selectedShardGames,collectorAuditReport,writeCollectorAudit}
  from '../lib/pregame-collector-shards.js';
 import {checkNflScheduledInjuryChanges} from '../lib/nfl-scheduled-injury-watch.js';
 import {runNflScheduledBookCheckpoint} from '../lib/nfl-scheduled-book-checkpoint.js';
+import {nflModelSgpRevisionAudit,nflSafeSgpRevisionAudit} from '../lib/nfl-model-sgp-revision-audit.js';
 import {
  nflEasternDate,nflAddDate,nflCollectorDueGames,nflTierReadiness,
  nflCollectorSnapshotReady,nflRunCollectorBatch,nflMarketFailureDetails,MAX_NFL_COLLECTOR_CONCURRENCY
@@ -151,6 +152,8 @@ async function autoLock(base,games){
   snap.evidenceDigests=audit.evidenceDigests;
   snap.changedFields=audit.changedFields;
   snap.changedFromPrior=audit.changedFromPrior;
+  snap.sgpRevisionAudit=nflSafeSgpRevisionAudit(
+   nflModelSgpRevisionAudit(prior,snap,{changedFields:audit.changedFields}));
   snap.revalidationVersion=audit.modelVersion;
   snap.priorCandidateInvalidated=snap.modelDataStatus==='NOT_READY'&&prior?.modelDataStatus==='MODEL_ONLY';
   // A fresh market build recalculates TD, pass/rush/receiving/receptions and
@@ -177,6 +180,7 @@ async function autoLock(base,games){
    stage:snap.lockStage,revision:snap.revision,picks:snap.picks.length,
    sgps:snap.sgps.length,aiReview:snap.aiReview?.status||'PENDING',
    changed,changedFields:snap.changedFields,
+   sgpRevisionAudit:snap.sgpRevisionAudit,
    propCategoriesUpdated:changed?snap.propCategories:[],
    matchupReviewed:true,
    modelTierReadiness:snap.modelTierReadiness};
