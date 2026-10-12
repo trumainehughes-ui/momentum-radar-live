@@ -11,6 +11,7 @@ import {mergeAuthorizedPropLineRows,nflAuthorizedBookSgpRows} from '../lib/nfl-p
 import {shouldServeCachedNflMarkets,signedNflCollectorLock} from '../lib/nfl-market-response-cache.js';
 import {chooseNflCheckpointQuotes} from '../lib/nfl-checkpoint-quote-selection.js';
 import {nflProfessionalBilateralReview} from '../lib/nfl-professional-bilateral-review.js';
+import {nflScheduledGameDvpIdentity} from '../lib/nfl-game-dvp-week-identity.js';
 import {nflCurrentGameDepthChartQbs,nflProjectedDepthChartQbEligible} from '../lib/nfl-depthchart-qb1.js';
 import {nflCurrentRosterAthletes} from '../lib/nfl-roster-evidence.js';
 import {nflGameInjuryEvidence,nflInjuryBlocks} from '../lib/nfl-injury-evidence.js';
@@ -419,9 +420,13 @@ async function gameEligibility(gameId){if(!gameId)return{blockedIds:new Set(),bl
  if(x.playerId)blockedIds.add(String(x.playerId));
  for(const name of [x.name,...(x.aliases||[])])if(name)blockedNames.add(norm(name))
 }const rosterById=new Map(),rosterByName=new Map();await Promise.all([...abbrs].map(async abbr=>{try{const rd=await json(ESPN+'/teams/'+encodeURIComponent(abbr)+'/roster',{},1),athletes=nflCurrentRosterAthletes(rd);for(const a of athletes){const id=a.id,name=a.name,pos=a.position||'';if(id)rosterById.set(id,{team:abbr,name,pos});if(name)rosterByName.set(norm(name),{team:abbr,id,pos})}}catch(e){console.error('current_roster_fetch_failed',abbr,String(e?.message||e))}}));return{blockedIds,blockedNames,rosterById,rosterByName,checked:injury.reportAvailable&&rosterById.size>0,injuryChecked:injury.reportAvailable,injuryCheckedAt:injury.checkedAt,officialInactivesVerified:false,teamIdsByAbbr,
- injuryEvidence:(injury.injuries||[]).map(x=>({
-  playerId:String(x.playerId||''),name:String(x.name||''),
-  team:String(x.team||''),status:String(x.status||'UNKNOWN')
+ injuryEvidence:(injury.injuries||[]).slice(0,100).map(x=>({
+  playerId:String(x.playerId||''),name:String(x.name||'').slice(0,110),
+  team:String(x.team||''),status:String(x.status||'UNKNOWN'),
+  source:String(x.source||injury.source||'ESPN injury/roster evidence').slice(0,120),
+  evidenceTier:String(x.evidenceTier||'UNVERIFIED').slice(0,40),
+  section:String(x.section||'UNKNOWN').slice(0,30),
+  gameDesignationVerified:x.gameDesignationVerified===true
  })),
  source:injury.source+' + current team rosters'}}catch(e){console.error('game_eligibility_failed',String(e?.message||e));return{blockedIds:new Set(),blockedNames:new Set(),rosterById:new Map(),rosterByName:new Map(),checked:false}}}
 function eligibilityFilter(rows,elig){if(!elig?.checked)return [];return(rows||[]).filter(x=>{const id=String(x.playerID||x.playerId||''),name=norm(x.name);if(elig.blockedIds.has(id)||elig.blockedNames.has(name))return false;const rr=elig.rosterById?.get(id)||elig.rosterByName?.get(name);if(!rr)return false;return !x.team||norm(nflCanonTeam(rr.team))===norm(nflCanonTeam(x.team))})}
@@ -620,7 +625,34 @@ requestStage='historical_stats';const statBoards=await statBoardsPromise;
  // Passing projections are QB1-only for the current game. A backup QB with historical attempts must never appear beside the verified starter.
 if(gameId&&roles?.checked){const starterQbTeams=new Set((roles.players||[]).filter(x=>String(x.position||'').toUpperCase()==='QB'&&x.starterVerified===true&&x.recommendationEligible===true).map(x=>norm(x.team)));for(const x of statBoards.passing||[]){const r=roleFor(roles,x);if(String(x.position||r?.position||'').toUpperCase()==='QB'&&starterQbTeams.has(norm(x.team))&&r?.starterVerified!==true)x._excludeBackupQb=true}}
 for(const cat of ['passing','rushing','receiving','receptions']){const analytics=statBoards[cat]||[],markets=categories[cat]||[],marketByName=new Map(markets.map(x=>[norm(x.name),x]));const merged=analytics.filter(a=>!a._excludeBackupQb).map(a=>{const m=marketByName.get(norm(a.name));return m?{...a,...m,eventID:a.eventID,playerID:a.playerID,team:a.team,opponent:a.opponent,position:a.position,projection:a.projection,projectionUnit:a.projectionUnit,projectionMethod:a.projectionMethod,seasonTotal:a.seasonTotal,gamesPlayed:a.gamesPlayed,perGame:a.perGame,range:a.range,recentForm:a.recentForm,usagePerGame:a.usagePerGame,targets:a.targets,receptions:a.receptions,confidence:a.confidence,reason:a.reason,bestBook:m.bestBook,books:m.books,analyticsOnly:false}:a});for(const m of markets)if(!merged.some(a=>norm(a.name)===norm(m.name)))merged.push(m);categories[cat]=merged.filter(x=>(!gameId||String(x.eventID)===gameId)&&(!gameId||[norm(home),norm(away)].includes(norm(x.team)))).map(x=>{const po=publicOfferFor(x.name,cat);return po&&!x.bestBook?{...x,bestBook:po,bookOffer:po,books:[po],publicSportsbookVerified:true}:x}).sort((a,b)=>(Number(b.confidence)||0)-(Number(a.confidence)||0)||(Number(b.projection)||0)-(Number(a.projection)||0)).slice(0,60).map((x,i)=>({...x,rank:i+1}))}categories.td=(categories.td||[]).map(x=>{const r=roleFor(roles,x),po=publicOfferFor(x.name,'td'),base=r?.playerId?{...x,marketPlayerID:x.playerID,playerID:r.playerId}:x;return po?{...base,bestBook:po,bookOffer:po,books:[po],publicSportsbookVerified:true}:base});
-if(gameId){for(const cat of ['passing','rushing','receiving','receptions','td'])categories[cat]=(categories[cat]||[]).map(x=>{const po=publicOfferFor(x.name,cat);return po?{...x,bestBook:po,bookOffer:po,books:[po],publicMarketRefs:publicRefByPlayerCat.get(norm(x.name)+'|'+cat)||[],publicSportsbookVerified:true}:x})}requestStage='matchup_context';let ctx={opponents:{},dvp:null};if(gameId&&home&&away){ctx.opponents[norm(home)]=norm(away);ctx.opponents[norm(away)]=norm(home);try{const season=Number(chosen?.[0]?.season)||new Date().getUTCFullYear(),week=Number(chosen?.[0]?.week)||1;const base=(req.headers['x-forwarded-proto']||'https')+'://'+req.headers.host;const dvpUrl=base+'/api/nfl-dvp?season='+season+'&week='+week+'&teams='+encodeURIComponent(home+','+away);const dvpData=await Promise.race([(async()=>{const dr=await timedFetch(dvpUrl,{cache:'no-store'});return dr.ok?await dr.json():null})().catch(()=>null),new Promise(resolve=>setTimeout(()=>resolve(null),1800))]);if(dvpData?.ok&&Number(dvpData.completedGames)>0)ctx.dvp=dvpData}catch{}}
+if(gameId){for(const cat of ['passing','rushing','receiving','receptions','td'])categories[cat]=(categories[cat]||[]).map(x=>{const po=publicOfferFor(x.name,cat);return po?{...x,bestBook:po,bookOffer:po,books:[po],publicMarketRefs:publicRefByPlayerCat.get(norm(x.name)+'|'+cat)||[],publicSportsbookVerified:true}:x})}requestStage='matchup_context';let ctx={opponents:{},dvp:null};if(gameId&&home&&away){ctx.opponents[norm(home)]=norm(away);ctx.opponents[norm(away)]=norm(home);try{
+ const base=process.env.VERCEL_PROJECT_PRODUCTION_URL?
+  'https://'+process.env.VERCEL_PROJECT_PRODUCTION_URL:
+  'https://momentum-radar-live.vercel.app';
+ const schedule=await Promise.race([
+  (async()=>{const r=await timedFetch(base+'/api/nfl-schedule?date='+encodeURIComponent(date),
+   {cache:'no-store',signal:AbortSignal.timeout(1900)});
+   return r.ok?await r.json():null})().catch(()=>null),
+  new Promise(resolve=>setTimeout(()=>resolve(null),2100))
+ ]);
+ const gameWeek=nflScheduledGameDvpIdentity(schedule,{gameId,date});
+ if(gameWeek){
+  oddsDebug.dvpGameWeek=gameWeek.week;
+  const dvpUrl=base+'/api/nfl-dvp?season='+gameWeek.season+
+   '&week='+gameWeek.week+'&teams='+encodeURIComponent(home+','+away);
+  const dvpData=await Promise.race([
+   (async()=>{const dr=await timedFetch(dvpUrl,{cache:'no-store',
+    signal:AbortSignal.timeout(2300)});
+    return dr.ok?await dr.json():null})().catch(()=>null),
+   new Promise(resolve=>setTimeout(()=>resolve(null),2400))
+  ]);
+  if(dvpData?.ok&&Number(dvpData.completedGames)>0&&
+   Number(dvpData.season)===gameWeek.season&&
+   Number(dvpData.week)===gameWeek.week){
+   ctx.dvp=dvpData;oddsDebug.dvpStage='ESPN_SCHEDULE_WEEK_VERIFIED';
+  }else oddsDebug.dvpStage='WEEK_MATCHED_DVP_UNAVAILABLE';
+ }else oddsDebug.dvpStage='CURRENT_GAME_WEEK_UNVERIFIED';
+ }catch{oddsDebug.dvpStage='CURRENT_GAME_WEEK_UNVERIFIED'}}
 else if(!gameId){
   for(const x of Object.values(statBoards).flat()){
     const team=norm(x.team),opponent=norm(x.opponent);
@@ -748,6 +780,14 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
    sgpGateDiagnostics,bookLegCandidateComplete:hasCompleteBookLegCandidate,
    combinedBookSgpQuoteAvailable:sgpResponse.combinedBookQuoteVerified,
    injuryEligibilityChecked:eligibility.checked===true,
+   injuryEvidence:eligibility.checked===true?
+    (Array.isArray(eligibility.injuryEvidence)?eligibility.injuryEvidence:[]):[],
+   injuryEvidenceSource:eligibility.checked===true?
+    String(eligibility.source||'ESPN_AND_OFFICIAL_WEEKLY_EVIDENCE').slice(0,200):
+    'NOT_VERIFIED',
+   injuryReportCheckedAt:eligibility.checked===true?
+    eligibility.injuryCheckedAt||null:null,
+   officialInactivesVerified:eligibility.officialInactivesVerified===true,
    blockedPlayerCount:Math.max(eligibility.blockedIds.size,eligibility.blockedNames.size),
    dayAheadRoleSource:dayAheadRoles?.source||'NOT_APPLICABLE',
    dayAheadRoleChecks:dayAheadRoles?.counters||null,
