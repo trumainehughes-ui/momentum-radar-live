@@ -109,7 +109,8 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    offers.map(q=>esc(q.book)+' '+esc(q.risk)+' '+(Number(q.americanOdds)>0?'+':'')+esc(q.americanOdds)).join(' • ')+
    '</div><div class="sub">Book-issued quote at the recorded time, not a wager or a live guaranteed offer.</div></div>'}
  function renderParlays(d){const tiers=['Small','Medium','Nuke'];const available=d.parlays||[];
-  return (d.status==='LAST_SAVED'?'<div class="bookquote"><b>Archived model only:</b> These SGP legs may be outdated and are not live bookmaker tickets.</div>':'')+
+  return '<div class="bookquote" style="background:#392a1e;border:1px solid #b38854"><b>MODEL RESEARCH ONLY — NOT A VERIFIED SPORTSBOOK PARLAY</b><div class="small">Every player and exact prop market must exist at the selected book, pass the current roster/injury screen, and receive an actual book-issued combined quote. A missing FanDuel or DraftKings line invalidates that book\'s parlay; do not substitute a model projection.</div></div>'+
+    (d.status==='LAST_SAVED'?'<div class="bookquote"><b>Archived model only:</b> These SGP legs may be outdated and are not live bookmaker tickets.</div>':'')+
    '<div class="section-head" style="margin-top:18px"><div><h3>Same Game Parlays • Detailed Breakdown</h3><p class="sub">The same model tiers available in the full dashboard. Real combined odds appear only if confirmed separately.</p></div></div>'+
   '<div class="parlay-grid">'+tiers.map(risk=>{const t=available.find(x=>x.risk===risk),cls=risk.toLowerCase();
    return '<div class="parlay"><div class="tier '+cls+'">'+risk+' <small>'+(t?t.legCount+' LEGS':'PENDING')+'</small></div>'+
@@ -119,7 +120,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     (t.explanation?'<p><b>Why these picks:</b> '+esc(t.explanation)+'</p>':'')+
     (t.matchupNotes?.length?'<details><summary class="small" style="cursor:pointer">See detailed leg analysis</summary>'+
     t.matchupNotes.map(x=>'<p>'+esc(x)+'</p>').join('')+'</details>':'')+
-    '<p>Model candidate • combined sportsbook odds must be independently confirmed</p>':
+    '<p><b>NOT BOOK-VERIFIED:</b> Analysis-only parlay concept. Availability and combined odds have not been confirmed by FanDuel or DraftKings.</p>':
     '<p>Not enough screened player props for this tier. It will appear after the next eligible update.</p>')+'</div>'
   }).join('')+'</div>'+renderOdds(d.verifiedQuotes)}
  function offerHtml(x){const o=x.bookOffer;if(!o)return '';
