@@ -419,9 +419,13 @@ async function gameEligibility(gameId){if(!gameId)return{blockedIds:new Set(),bl
  if(x.playerId)blockedIds.add(String(x.playerId));
  for(const name of [x.name,...(x.aliases||[])])if(name)blockedNames.add(norm(name))
 }const rosterById=new Map(),rosterByName=new Map();await Promise.all([...abbrs].map(async abbr=>{try{const rd=await json(ESPN+'/teams/'+encodeURIComponent(abbr)+'/roster',{},1),athletes=nflCurrentRosterAthletes(rd);for(const a of athletes){const id=a.id,name=a.name,pos=a.position||'';if(id)rosterById.set(id,{team:abbr,name,pos});if(name)rosterByName.set(norm(name),{team:abbr,id,pos})}}catch(e){console.error('current_roster_fetch_failed',abbr,String(e?.message||e))}}));return{blockedIds,blockedNames,rosterById,rosterByName,checked:injury.reportAvailable&&rosterById.size>0,injuryChecked:injury.reportAvailable,injuryCheckedAt:injury.checkedAt,officialInactivesVerified:false,teamIdsByAbbr,
- injuryEvidence:(injury.injuries||[]).map(x=>({
-  playerId:String(x.playerId||''),name:String(x.name||''),
-  team:String(x.team||''),status:String(x.status||'UNKNOWN')
+ injuryEvidence:(injury.injuries||[]).slice(0,100).map(x=>({
+  playerId:String(x.playerId||''),name:String(x.name||'').slice(0,110),
+  team:String(x.team||''),status:String(x.status||'UNKNOWN'),
+  source:String(x.source||injury.source||'ESPN injury/roster evidence').slice(0,120),
+  evidenceTier:String(x.evidenceTier||'UNVERIFIED').slice(0,40),
+  section:String(x.section||'UNKNOWN').slice(0,30),
+  gameDesignationVerified:x.gameDesignationVerified===true
  })),
  source:injury.source+' + current team rosters'}}catch(e){console.error('game_eligibility_failed',String(e?.message||e));return{blockedIds:new Set(),blockedNames:new Set(),rosterById:new Map(),rosterByName:new Map(),checked:false}}}
 function eligibilityFilter(rows,elig){if(!elig?.checked)return [];return(rows||[]).filter(x=>{const id=String(x.playerID||x.playerId||''),name=norm(x.name);if(elig.blockedIds.has(id)||elig.blockedNames.has(name))return false;const rr=elig.rosterById?.get(id)||elig.rosterByName?.get(name);if(!rr)return false;return !x.team||norm(nflCanonTeam(rr.team))===norm(nflCanonTeam(x.team))})}
@@ -748,6 +752,14 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
    sgpGateDiagnostics,bookLegCandidateComplete:hasCompleteBookLegCandidate,
    combinedBookSgpQuoteAvailable:sgpResponse.combinedBookQuoteVerified,
    injuryEligibilityChecked:eligibility.checked===true,
+   injuryEvidence:eligibility.checked===true?
+    (Array.isArray(eligibility.injuryEvidence)?eligibility.injuryEvidence:[]):[],
+   injuryEvidenceSource:eligibility.checked===true?
+    String(eligibility.source||'ESPN_AND_OFFICIAL_WEEKLY_EVIDENCE').slice(0,200):
+    'NOT_VERIFIED',
+   injuryReportCheckedAt:eligibility.checked===true?
+    eligibility.injuryCheckedAt||null:null,
+   officialInactivesVerified:eligibility.officialInactivesVerified===true,
    blockedPlayerCount:Math.max(eligibility.blockedIds.size,eligibility.blockedNames.size),
    dayAheadRoleSource:dayAheadRoles?.source||'NOT_APPLICABLE',
    dayAheadRoleChecks:dayAheadRoles?.counters||null,
