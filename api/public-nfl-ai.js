@@ -1,4 +1,6 @@
 import {list} from '@vercel/blob';
+import {nflSgpSnapshotPath} from '../lib/nfl-sgp-snapshot-status.js';
+import {nflAiReviewMarketAgreement} from '../lib/nfl-ai-review-integrity.js';
 
 // This endpoint serves saved, already-generated AI reports. Public viewers can
 // choose analysis topics but cannot trigger inference, alter picks or consume
@@ -7,7 +9,7 @@ const safeText=(v,max=1500)=>String(v??'').replace(new RegExp('https?:[^ ]+','gi
  .replace(/[<>]/g,'').slice(0,max).trim();
 const dateEt=x=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',
  year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(x));
-export function publicAiSummary(snap,{date,gameId,now=Date.now()}={}){
+export function publicAiSummary(snap,{date,gameId,now=Date.now(),currentMarket=null,requireMarketAgreement=false}={}){
  if(snap?.league!=='nfl'||String(snap.gameId)!==String(gameId)||
   String(snap?.game?.gameId||'')!==String(gameId)||
   !Number.isFinite(Date.parse(snap?.game?.kickoff))||
@@ -18,6 +20,14 @@ export function publicAiSummary(snap,{date,gameId,now=Date.now()}={}){
  if(r.status!=='REVIEWED'||!r.advisoryOnly||r.canAlterPicks!==false||
   !safeText(r.summary)||!Number.isFinite(at)||at>now+60_000)
   return{ok:true,status:'REVIEW_PENDING',message:'The game-day AI review is still waiting for eligible, current model evidence.'};
+ if(requireMarketAgreement){
+  const gate=nflAiReviewMarketAgreement(snap,currentMarket,{date,gameId,now});
+  if(!gate.ok)return{ok:true,status:'REVIEW_PENDING',
+   reason:gate.status,
+   message:gate.status==='AI_REVIEW_NEEDS_REVALIDATION'?
+    'Injury status or SGP legs changed after the saved AI review. The old narrative has been withheld until a verified new review is generated.':
+    'Waiting for a fresh, verified game prediction snapshot before showing the AI narrative.'};
+ }
  const stale=now-at>36*3600_000;
  return{ok:true,status:stale?'HISTORICAL_AI_REVIEW':'SAVED_AI_REVIEW',
   generatedAt:new Date(at).toISOString(),
@@ -38,14 +48,27 @@ export default async function handler(req,res){
  if(day<today-2||day>today+30)
   return res.status(400).json({ok:false,error:'date_outside_window'});
  try{
-  const path='momentum-history/v1/nfl-'+gameId+'.json';
-  const objects=await list({prefix:path,limit:4}),item=(objects.blobs||[])
-   .find(x=>x.pathname===path);
+  const path='momentum-history/v1/nfl-'+gameId+'.json',
+   marketPath=nflSgpSnapshotPath(date,gameId);
+  if(!marketPath)throw Error('invalid_market_snapshot_path');
+  const [historyBlobs,marketBlobs]=await Promise.all([
+   list({prefix:path,limit:4}),list({prefix:marketPath,limit:4})
+  ]);
+  const item=(historyBlobs.blobs||[]).find(x=>x.pathname===path),
+   current=(marketBlobs.blobs||[]).find(x=>x.pathname===marketPath);
   if(!item)return res.status(200).json({ok:true,status:'REVIEW_PENDING',
    message:'No saved AI game analysis has been generated yet.'});
-  const result=await fetch(item.url,{cache:'no-store',signal:AbortSignal.timeout(6000)});
-  if(!result.ok)throw Error('stored_ai_not_readable');
-  return res.status(200).json(publicAiSummary(await result.json(),{date,gameId}));
+  if(!current)return res.status(200).json({ok:true,status:'REVIEW_PENDING',
+   reason:'MODEL_REFRESH_PENDING',
+   message:'Waiting for a current game model before showing the AI review.'});
+  const [historyResponse,marketResponse]=await Promise.all([
+   fetch(item.url,{cache:'no-store',signal:AbortSignal.timeout(6000)}),
+   fetch(current.url,{cache:'no-store',signal:AbortSignal.timeout(6000)})
+  ]);
+  if(!historyResponse.ok||!marketResponse.ok)throw Error('saved_snapshot_unreadable');
+  const [history,market]=await Promise.all([historyResponse.json(),marketResponse.json()]);
+  return res.status(200).json(publicAiSummary(history,{date,gameId,
+   currentMarket:market,requireMarketAgreement:true}));
  }catch{
   res.setHeader('Cache-Control','private, no-store');
   return res.status(503).json({ok:false,error:'saved_ai_report_temporarily_unavailable'});
