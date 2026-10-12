@@ -138,7 +138,7 @@ test('public AI analysis presents immediate real model evidence while saved Groq
  const aiStart=html.indexOf('function showAi(d)');
  const aiEnd=html.indexOf('function showLive(d)');
  assert.ok(aiStart>0&&aiEnd>aiStart);
- assert.ok(html.slice(aiStart,aiEnd).includes('return intro+modelBrief+review+insight;'));
+ assert.ok(html.slice(aiStart,aiEnd).includes('return intro+modelBrief+review+insight+'));
  assert.ok(!html.slice(aiStart,aiEnd).includes('/api/ai-analysis'));
 });
 test('public site auto-refresh reads saved responses only and retains matchup tab selection',()=>{
