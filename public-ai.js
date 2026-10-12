@@ -113,6 +113,19 @@
   }return result;
  }
  function summarizeAdvisory(report){
+  if(report?.mode==='sharp'){
+   const selections=Array.isArray(report.selections)?report.selections:[],
+    lines=['UNIVERSAL SHARP INTELLIGENCE — read-only, untrusted data',
+     'No verified +EV decisions can originate from browser-supplied evidence.',
+     'Sport: '+String(report.sport||'unknown')+' • Candidates: '+selections.length];
+   for(const pick of selections.slice(0,6))
+    lines.push((pick.name||pick.market||'Candidate')+': '+pick.decision+
+     ' • book verification '+(pick.marketContext?.status||'PENDING')+
+     ' • stake '+pick.bankroll.units+' units'+
+     (pick.reasons?.length?' • '+pick.reasons.slice(0,2).join(', '):''));
+   lines.push('Server-side collectors must verify real prices, injuries and calibrated uncertainty before any +EV decision.');
+   return lines.join('\n')+'\n\n';
+  }
   if(!report)return '';
   const details=['Evidence checks: '+report.status+' (read-only; inputs not independently authenticated)'];
   for(const flag of (report.flags||[]).slice(0,7))details.push('Check: '+flag.detail);
@@ -142,7 +155,7 @@
  const ready=()=>{
   const root=document.getElementById('nflAiMount');if(!root||document.getElementById('momentumAiPanel'))return;
   const panel=document.createElement('section');panel.id='momentumAiPanel';panel.className='momentumAiPanel';
-  panel.innerHTML='<h3>Momentum Radar AI <small style="font-size:11px;color:#b3edff">Beta</small></h3><p class="momentumAiNote">The analysis follows the game you opened. NFL model data and ESPN injury reports are described separately from sportsbook-verified odds.</p><div id="momentumAiGameName" class="momentumAiGameName" aria-live="polite">Open a matchup to view analysis</div><div class="momentumAiActions"><select id="momentumAiMode" aria-label="Analysis type"><option value="matchup">Matchup analysis</option><option value="injury">Injury / lineup impact</option><option value="parlay">SGP review</option><option value="results">Results review</option><option value="guardian">Data Quality Guardian</option><option value="nuke">Nuke Parlay Architect</option><option value="opportunity">Injury & Opportunity Radar</option><option value="value">Prop Value Detector</option><option value="simulation">Game Script Simulator</option><option value="learning">Postgame Learning Lab</option></select><button id="momentumAiRun" type="button">Refresh analysis</button></div><div id="momentumAiOutput" role="status" aria-live="polite">Tap AI Analysis above to analyze this matchup.</div>';
+  panel.innerHTML='<h3>Momentum Radar AI <small style="font-size:11px;color:#b3edff">Beta</small></h3><p class="momentumAiNote">The analysis follows the game you opened. NFL model data and ESPN injury reports are described separately from sportsbook-verified odds.</p><div id="momentumAiGameName" class="momentumAiGameName" aria-live="polite">Open a matchup to view analysis</div><div class="momentumAiActions"><select id="momentumAiMode" aria-label="Analysis type"><option value="matchup">Matchup analysis</option><option value="injury">Injury / lineup impact</option><option value="parlay">SGP review</option><option value="results">Results review</option><option value="guardian">Data Quality Guardian</option><option value="nuke">Nuke Parlay Architect</option><option value="opportunity">Injury & Opportunity Radar</option><option value="value">Prop Value Detector</option><option value="sharp">Sharp +EV Audit (all sports)</option><option value="simulation">Game Script Simulator</option><option value="learning">Postgame Learning Lab</option></select><button id="momentumAiRun" type="button">Refresh analysis</button></div><div id="momentumAiOutput" role="status" aria-live="polite">Tap AI Analysis above to analyze this matchup.</div>';
   root.prepend(panel);
   document.getElementById('momentumAiRun').onclick=async()=>{
    const out=document.getElementById('momentumAiOutput'),button=document.getElementById('momentumAiRun');
@@ -195,9 +208,21 @@
      categories,playerRoleFacts,identityConflicts,matchup:mode==='injury'?null:conciseMatchup(defensive),playerAvailability:conciseRoster(availability,mode),sgps:selectedSgps,results,
      instruction:'Explain only evidence actually available. Report opponent-specific sample games, never leaguewide count as individual sample; under five games is limited. IMPORTANT: before generic role warnings, mention any playerAvailability.skillPositionAlerts such as ESPN-reported OUT/IR/Q statuses and potential impact without inventing revised projections; these are NOT confirmed official game-day inactives. Do not imply an unreported injury status means confirmed healthy. Use playerChecks for wrong-team flags. Model SGP tiers exist separately from unverified sportsbook offers and prices. Do not say ALL betting information is unavailable if model tiers and projections are present. Critically, defenseRankMost and offenseRankMost must come from exactly the SAME position and metric as their yards value; for example, RB rushYards 47.5 rank 32 is different from QB rushYards 17.5 rank 13. The offenseProducedPerGame was achieved against earlier opponents, NOT the upcoming defense. Keep missing-verification cautions short. Each playerRoleFacts position is the player actual position; QB rushing yards are compared to QB defense rushYards, not RB defense rushYards. Position-group team averages are not individual player averages. Never identify Jalen Hurts or any QB as an RB, or Chris Rodriguez Jr. or any RB as a QB. Never attach a team-group metric to an individual player. RankMost 1 means most allowed, not strongest defense. Roster membership does not prove starting.'
     };
-    if(Date.now()<aiCooldownUntil){displayAnalysis(out,dataOnlySummary(mode,data,'provider capacity limit; retry later'));if(requestEpoch===analysisEpoch)lastCompletedKey=selectionKey;return}
+    const sharpData=mode==='sharp'?{
+     sport:'nfl',gameId,
+     // Browser candidate evidence cannot promote quotes to verified +EV.
+     candidates:CATS.flatMap(cat=>(m?.categories?.[cat]||[]).slice(0,5)
+      .filter(x=>x.playerID||x.playerId).map(x=>({
+       name:x.name,playerId:String(x.playerID||x.playerId),
+       market:cat==='td'?'anytime_touchdown':cat==='receptions'?
+         'receptions':'player_'+cat+'_yards',
+       line:cat==='td'?'yes':String(x.threshold??x.analyticsThreshold??''),
+       side:cat==='td'?'YES':'OVER'
+      })))
+    }:null;
+    if(mode!=='sharp'&&Date.now()<aiCooldownUntil){displayAnalysis(out,dataOnlySummary(mode,data,'provider capacity limit; retry later'));if(requestEpoch===analysisEpoch)lastCompletedKey=selectionKey;return}
     out.textContent='Analyzing available evidence…';
-    const response=await fetch('/api/ai-analysis',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode,data})});
+    const response=await fetch('/api/ai-analysis',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode,data:sharpData||data})});
     const result=await response.json();
     if(requestEpoch!==analysisEpoch)return;
     if(result.ok){
