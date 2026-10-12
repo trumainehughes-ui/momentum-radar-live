@@ -16,6 +16,8 @@ import {buildNflAnytimeTdCandidates} from '../lib/nfl-anytime-td-model.js';
 import {nflScheduledGameDvpIdentity} from '../lib/nfl-game-dvp-week-identity.js';
 import {nflCurrentGameDepthChartQbs,nflProjectedDepthChartQbEligible} from '../lib/nfl-depthchart-qb1.js';
 import {nflCurrentRosterAthletes} from '../lib/nfl-roster-evidence.js';
+import {nflOfficialTransactionHolds,nflRosterReserveHold}
+ from '../lib/nfl-official-transaction-holds.js';
 import {nflGameInjuryEvidence,nflInjuryBlocks} from '../lib/nfl-injury-evidence.js';
 import {nflWeeklyForGame} from '../lib/nfl-injury-weekly-loader.js';
 import {nflCanonTeam} from '../lib/nfl-official-injury-feed.js';
@@ -414,7 +416,7 @@ function roleFilter(rows,gate,cat){
  return eligible.filter(x=>keep.has(String(x.playerID||x.playerId||norm(x.name))));
 }
 function sgpRoleFilter(rows,gate){if(!gate?.checked)return[];return(rows||[]).map(x=>{const r=roleFor(gate,x);if(!r||r.recommendationEligible!==true)return null;const cat=category(x),pos=String(x.position||r.position||'').toUpperCase();if(cat==='passing'&&(pos!=='QB'||r.starterVerified!==true))return null;return{...x,playerID:r.playerId||x.playerID||x.playerId,team:norm(r.team||x.team),position:pos,starterVerified:r.starterVerified===true,starterStatus:r.starterStatus||'VERIFIED_ROLE',roleSource:r.verification?.role?.source||null}}).filter(Boolean)}
-async function gameEligibility(gameId){if(!gameId)return{blockedIds:new Set(),blockedNames:new Set(),rosterById:new Map(),rosterByName:new Map(),checked:false};try{const d=await json(ESPN+'/summary?event='+encodeURIComponent(gameId),{},1),comp=d.header?.competitions?.[0]||{},teams=comp.competitors||[],ids=new Set(teams.map(x=>String(x.team?.id||'')).filter(Boolean)),abbrs=new Set(teams.map(x=>String(x.team?.abbreviation||'').toUpperCase()).filter(Boolean)),
+async function gameEligibility(gameId,{date,home,away}={}){if(!gameId)return{blockedIds:new Set(),blockedNames:new Set(),rosterById:new Map(),rosterByName:new Map(),checked:false};try{const d=await json(ESPN+'/summary?event='+encodeURIComponent(gameId),{},1),comp=d.header?.competitions?.[0]||{},teams=comp.competitors||[],ids=new Set(teams.map(x=>String(x.team?.id||'')).filter(Boolean)),abbrs=new Set(teams.map(x=>String(x.team?.abbreviation||'').toUpperCase()).filter(Boolean)),
  teamIdsByAbbr=new Map(teams.map(x=>[nflCanonTeam(x.team?.abbreviation),String(x.team?.id||'')]).filter(x=>x[0]&&/^\d{1,5}$/.test(x[1])));let league=null;try{league=await json(ESPN+'/injuries',{},1)}catch(e){console.warn('league_injury_unavailable',String(e?.message||e))}const weekly=await nflWeeklyForGame({gameId,summary:d,competitors:teams});const injury=nflGameInjuryEvidence({summary:d,league,weekly,competitors:teams,checkedAt:new Date().toISOString()});const blockedIds=new Set(),blockedNames=new Set();for(const x of injury.injuries||[]){
  const uncertain=x.status==='QUESTIONABLE'||(x.section==='PRACTICE'&&/Did Not Participate/i.test(String(x.practiceStatus||'')));
  // Unconfirmed/questionable players are held from fresh model recommendations.
@@ -422,8 +424,27 @@ async function gameEligibility(gameId){if(!gameId)return{blockedIds:new Set(),bl
  if(!nflInjuryBlocks(x.status)&&!uncertain)continue;
  if(x.playerId)blockedIds.add(String(x.playerId));
  for(const name of [x.name,...(x.aliases||[])])if(name)blockedNames.add(norm(name))
-}const rosterById=new Map(),rosterByName=new Map();await Promise.all([...abbrs].map(async abbr=>{try{const rd=await json(ESPN+'/teams/'+encodeURIComponent(abbr)+'/roster',{},1),athletes=nflCurrentRosterAthletes(rd);for(const a of athletes){const id=a.id,name=a.name,pos=a.position||'';if(id)rosterById.set(id,{team:abbr,name,pos});if(name)rosterByName.set(norm(name),{team:abbr,id,pos})}}catch(e){console.error('current_roster_fetch_failed',abbr,String(e?.message||e))}}));return{blockedIds,blockedNames,rosterById,rosterByName,checked:injury.reportAvailable&&rosterById.size>0,injuryChecked:injury.reportAvailable,injuryCheckedAt:injury.checkedAt,officialInactivesVerified:false,teamIdsByAbbr,
- injuryEvidence:(injury.injuries||[]).slice(0,100).map(x=>({
+}const officialHolds=nflOfficialTransactionHolds({gameId,date,home,away});
+for(const hold of officialHolds){
+ blockedIds.add(hold.playerId);blockedNames.add(norm(hold.name));
+}
+const rosterHoldEvidence=[];
+const rosterById=new Map(),rosterByName=new Map();await Promise.all([...abbrs].map(async abbr=>{try{const rd=await json(ESPN+'/teams/'+encodeURIComponent(abbr)+'/roster',{},1),athletes=nflCurrentRosterAthletes(rd);for(const a of athletes){const id=a.id,name=a.name,pos=a.position||'';
+ if(nflRosterReserveHold(a)){
+  blockedIds.add(id);blockedNames.add(norm(name));
+  rosterHoldEvidence.push({playerId:id,name,team:abbr,status:'IR',
+   source:'ESPN_CURRENT_ROSTER_RESERVE_STATUS',
+   evidenceTier:'ESPN_ROSTER_RESERVE',section:'RESERVE',
+   gameDesignationVerified:true});
+ }
+ if(id)rosterById.set(id,{team:abbr,name,pos});
+ if(name)rosterByName.set(norm(name),{team:abbr,id,pos})
+}}catch(e){console.error('current_roster_fetch_failed',abbr,String(e?.message||e))}}));return{blockedIds,blockedNames,rosterById,rosterByName,checked:injury.reportAvailable&&rosterById.size>0,injuryChecked:injury.reportAvailable,injuryCheckedAt:injury.checkedAt,officialInactivesVerified:false,teamIdsByAbbr,
+ injuryEvidence:[...(injury.injuries||[]),...rosterHoldEvidence,
+ ...officialHolds.map(x=>({playerId:x.playerId,name:x.name,
+   team:x.team,status:'IR',source:x.source,
+   evidenceTier:'TEAM_OFFICIAL_TRANSACTION',section:'RESERVE',
+   gameDesignationVerified:true}))].slice(0,100).map(x=>({
   playerId:String(x.playerId||''),name:String(x.name||'').slice(0,110),
   team:String(x.team||''),status:String(x.status||'UNKNOWN'),
   source:String(x.source||injury.source||'ESPN injury/roster evidence').slice(0,120),
@@ -605,7 +626,7 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
     console.warn('sgo_backup_skipped',oddsDebug.sgoError);
    }
   }else if(!primaryBooksReady)oddsDebug.stage=sgoEnabled?'backup_reserved':'backup_not_configured';
- }let chosen=events;if(gameId)chosen=events.filter(e=>{const h=e.teams?.home||{},a=e.teams?.away||{};const hs=[h.teamID,h.names?.short,h.names?.medium,h.names?.long].map(norm),as=[a.teamID,a.names?.short,a.names?.medium,a.names?.long].map(norm);return hs.includes(norm(home))&&as.includes(norm(away))});const rawRows=directRows||chosen.flatMap(e=>Object.values(e.odds||{}).filter(o=>o&&!['all','home','away'].includes(String(o.statEntityID||'').toLowerCase())).map(o=>market(o,e.eventID||e.id)));const emptyStatBoards={passing:[],rushing:[],receiving:[],receptions:[],td:[]};const statBoardsPromise=gameId?Promise.race([analyticsStatBoards(date,[home,away]),new Promise(resolve=>setTimeout(()=>resolve(emptyStatBoards),6500))]):Promise.resolve(emptyStatBoards);const base=process.env.VERCEL_PROJECT_PRODUCTION_URL?'https://'+process.env.VERCEL_PROJECT_PRODUCTION_URL:'https://momentum-radar-live.vercel.app';requestStage='eligibility_and_roles';const [eligibility,roles]=await Promise.all([Promise.race([gameEligibility(gameId),new Promise(resolve=>setTimeout(()=>resolve({blockedIds:new Set(),blockedNames:new Set(),rosterById:new Map(),rosterByName:new Map(),checked:false,injuryChecked:false,injuryEvidence:[],teamIdsByAbbr:new Map()}),10000))]),Promise.race([gameRoleGate(gameId,base),new Promise(resolve=>setTimeout(()=>resolve({checked:false,roles:new Map(),players:[]}),8500))])]);const rows=gameId?eligibilityFilter(rawRows,eligibility):rawRows;const categories={};for(const c of ['td','passing','rushing','receiving','receptions'])categories[c]=pickRows(rows,c,10);// Game-scoped model TD candidates are built below from the same already-loaded ESPN box scores.
+ }let chosen=events;if(gameId)chosen=events.filter(e=>{const h=e.teams?.home||{},a=e.teams?.away||{};const hs=[h.teamID,h.names?.short,h.names?.medium,h.names?.long].map(norm),as=[a.teamID,a.names?.short,a.names?.medium,a.names?.long].map(norm);return hs.includes(norm(home))&&as.includes(norm(away))});const rawRows=directRows||chosen.flatMap(e=>Object.values(e.odds||{}).filter(o=>o&&!['all','home','away'].includes(String(o.statEntityID||'').toLowerCase())).map(o=>market(o,e.eventID||e.id)));const emptyStatBoards={passing:[],rushing:[],receiving:[],receptions:[],td:[]};const statBoardsPromise=gameId?Promise.race([analyticsStatBoards(date,[home,away]),new Promise(resolve=>setTimeout(()=>resolve(emptyStatBoards),6500))]):Promise.resolve(emptyStatBoards);const base=process.env.VERCEL_PROJECT_PRODUCTION_URL?'https://'+process.env.VERCEL_PROJECT_PRODUCTION_URL:'https://momentum-radar-live.vercel.app';requestStage='eligibility_and_roles';const [eligibility,roles]=await Promise.all([Promise.race([gameEligibility(gameId,{date,home,away}),new Promise(resolve=>setTimeout(()=>resolve({blockedIds:new Set(),blockedNames:new Set(),rosterById:new Map(),rosterByName:new Map(),checked:false,injuryChecked:false,injuryEvidence:[],teamIdsByAbbr:new Map()}),10000))]),Promise.race([gameRoleGate(gameId,base),new Promise(resolve=>setTimeout(()=>resolve({checked:false,roles:new Map(),players:[]}),8500))])]);const rows=gameId?eligibilityFilter(rawRows,eligibility):rawRows;const categories={};for(const c of ['td','passing','rushing','receiving','receptions'])categories[c]=pickRows(rows,c,10);// Game-scoped model TD candidates are built below from the same already-loaded ESPN box scores.
 const publicRefs=gameId?manualAtlNoTonightSgps(date,home,away)?.[0]?.publicMarketSnapshot?.references||[]:[];
 // Public ATD observations must become real category rows even when an upstream API supplies no TD base row.
 if(gameId&&categories.td.length===0){const seen=new Set();categories.td=publicRefs.filter(r=>String(r.market||'').toLowerCase().includes('anytime td')).map(r=>{const rr=roleFor(roles,{name:r.player})||null,key=norm(r.player);if(seen.has(key))return null;seen.add(key);return{name:r.player,playerID:rr?.playerId||key,team:rr?.team||'',position:rr?.position||'',eventID:gameId,category:'td',projection:'Anytime TD',projectionUnit:'touchdown',projectionMethod:'Momentum Radar TD matchup model + verified public sportsbook market',analyticsOnly:false,confidence:60,reason:'Verified current-game anytime touchdown market; final confidence is adjusted by role, usage, matchup and injury eligibility.'}}).filter(Boolean)}
