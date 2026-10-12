@@ -2,6 +2,9 @@ import { gradeHistory, parlayStatus } from '../lib/nfl-results.js';
 import {nflGameInjuryEvidence,nflInjuryBlocks} from '../lib/nfl-injury-evidence.js';
 import {nflWeeklyForGame} from '../lib/nfl-injury-weekly-loader.js';
 import {nflCanonTeam} from '../lib/nfl-official-injury-feed.js';
+import {nflCurrentRosterAthletes} from '../lib/nfl-roster-evidence.js';
+import {nflOfficialTransactionHolds,nflRosterReserveHold}
+ from '../lib/nfl-official-transaction-holds.js';
 import { put, list, del } from '@vercel/blob';
 import {timingSafeEqual} from 'node:crypto';
 const ESPN="https://site.api.espn.com/apis/site/v2/sports/football/nfl";
@@ -20,7 +23,7 @@ export function nflHistoryWriteAuthorized(req,secret){
 async function json(url){const r=await fetch(url,{headers:{"accept":"application/json"}});if(!r.ok)throw new Error("upstream_"+r.status);return r.json()}
 async function projections(competitors,blockedIds=new Set()){
  const out=[];
- for(const c of competitors){const team=c.team||{},abbr=String(team.abbreviation||'').toUpperCase(),teamKey=abbr||String(team.id||'');if(!teamKey)continue;try{let d;try{d=await json(ESPN+'/teams/'+encodeURIComponent(teamKey)+'/roster')}catch{d=await json(ESPN+'/teams/'+encodeURIComponent(teamKey)+'?enable=roster')}const groups=Array.isArray(d.athletes)?d.athletes:Array.isArray(d.team?.athletes)?d.team.athletes:Array.isArray(d.team?.roster?.athletes)?d.team.roster.athletes:Array.isArray(d.roster?.athletes)?d.roster.athletes:Array.isArray(d.items)?d.items:[];const rows=groups.flatMap(g=>Array.isArray(g.items)?g.items:Array.isArray(g.athletes)?g.athletes:Array.isArray(g.positions)?g.positions.flatMap(p=>p.items||p.athletes||[]):(g.id||g.displayName||g.fullName)?[g]:[]);for(const a of rows){const pos=a.position?.abbreviation||a.position?.name||null;if(!['QB','RB','WR','TE'].includes(pos)||blockedIds.has(String(a.id||'')))continue;out.push({playerId:String(a.id||''),name:a.displayName||a.fullName||a.name||'Unknown',team:abbr,position:pos,stats:[],source:'ESPN current team roster',rosterOnly:true})}}catch(e){}}
+ for(const c of competitors){const team=c.team||{},abbr=String(team.abbreviation||'').toUpperCase(),teamKey=abbr||String(team.id||'');if(!teamKey)continue;try{let d;try{d=await json(ESPN+'/teams/'+encodeURIComponent(teamKey)+'/roster')}catch{d=await json(ESPN+'/teams/'+encodeURIComponent(teamKey)+'?enable=roster')}const rows=nflCurrentRosterAthletes(d);for(const a of rows){const pos=a.position||null;if(!['QB','RB','WR','TE'].includes(pos)||blockedIds.has(String(a.id||''))||nflRosterReserveHold(a))continue;out.push({playerId:String(a.id||''),name:a.name||'Unknown',team:abbr,position:pos,stats:[],source:'ESPN current team roster',rosterOnly:true})}}catch(e){}}
  if(!out.length){for(const c of competitors){const abbr=String(c.team?.abbreviation||'').toUpperCase();try{const d=await json(ESPN+'/teams/'+encodeURIComponent(abbr));const a=d.team?.athletes||d.athletes||[];for(const x of a){const p=x.athlete||x,pos=p.position?.abbreviation||p.position?.name||null,id=String(p.id||'');if(['QB','RB','WR','TE'].includes(pos)&&!blockedIds.has(id))out.push({playerId:id,name:p.displayName||p.fullName||p.name||'Unknown',team:abbr,position:pos,stats:[],source:'ESPN team athlete fallback',rosterOnly:true})}}catch{}}}const balanced=[]; for(const c of competitors){const abbr=String(c.team?.abbreviation||'').toUpperCase();balanced.push(...out.filter(x=>x.team===abbr))} return balanced;
 }
 
@@ -105,7 +108,20 @@ export default async function handler(req,res){
   const injuries=injuryReport.injuries;
   const athleteTeam=new Map(); for(const t of (summary.rosters||[])){const ta=nflCanonTeam(t.team?.abbreviation);for(const a of (t.roster||t.athletes||[])){const id=String(a.athlete?.id||a.id||"");if(id)athleteTeam.set(id,ta)}}
   const scopedInjuries=injuries.filter(x=>allowedAbbr.has(String(x.team||"").toUpperCase())||allowedAbbr.has(athleteTeam.get(x.playerId)||""));
-  const blockers=scopedInjuries.filter(x=>nflInjuryBlocks(x.status));const gameRoleBlockers=[];if(String(gameId)==='401872966'){gameRoleBlockers.push({team:'NYG',playerId:'4689114',name:'Jaxson Dart',position:'QB',injury:'Knee',status:'IR',rawStatus:'Season-ending regular-season injury',source:'New York Giants official starter update'});}for(const x of gameRoleBlockers)if(!blockers.some(b=>String(b.playerId)===String(x.playerId)))blockers.push(x);const questionableIds=new Set(scopedInjuries.filter(x=>x.status==="QUESTIONABLE").map(x=>x.playerId));
+  // Team IR transactions are official availability blockers even if ESPN
+   // game injury lists and season roster snapshots omit the player's IR flag.
+   const kickoff=Date.parse(comp.date||'');
+   const localDate=Number.isFinite(kickoff)?new Intl.DateTimeFormat('en-CA',{
+     timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'
+   }).format(new Date(kickoff)):'';
+   const gameAbbrs=competitors.map(x=>nflCanonTeam(x.team?.abbreviation));
+   const officialHolds=nflOfficialTransactionHolds({gameId,date:localDate,
+     home:gameAbbrs[0],away:gameAbbrs[1]});
+   for(const hold of officialHolds)if(!scopedInjuries.some(x=>
+      String(x.playerId)===hold.playerId||normalizeName(x.name)===normalizeName(hold.name)))
+      scopedInjuries.push({...hold,section:'RESERVE',
+       evidenceTier:'TEAM_OFFICIAL_TRANSACTION'});
+   const blockers=scopedInjuries.filter(x=>nflInjuryBlocks(x.status));const gameRoleBlockers=[];if(String(gameId)==='401872966'){gameRoleBlockers.push({team:'NYG',playerId:'4689114',name:'Jaxson Dart',position:'QB',injury:'Knee',status:'IR',rawStatus:'Season-ending regular-season injury',source:'New York Giants official starter update'});}for(const x of gameRoleBlockers)if(!blockers.some(b=>String(b.playerId)===String(x.playerId)))blockers.push(x);const questionableIds=new Set(scopedInjuries.filter(x=>x.status==="QUESTIONABLE").map(x=>x.playerId));
   const teams=competitors.map(c=>({id:String(c.team?.id||""),abbr:nflCanonTeam(c.team?.abbreviation),name:c.team?.displayName,homeAway:c.homeAway}));
   if(String(req.query.mode||'')==='history-grade'){const locked=await readHistory(gameId),stats=finalStats(summary),final=String(comp.status?.type?.state||'').toLowerCase()==='post'||/final/i.test(String(comp.status?.type?.description||'')),score=competitors.map(c=>({team:c.team?.abbreviation||'',homeAway:c.homeAway,score:hnum(c.score)})),picks=(locked?.picks||[]).map(p=>({...p,grade:gradeHistory(p,stats)})),sgps=(locked?.sgps||[]).map(s=>{const legs=(s.legs||[]).map(p=>({...p,grade:gradeHistory(p,stats)}));return{...s,legs,legsHit:legs.filter(x=>x.grade.status==='HIT').length,legsTotal:legs.length,status:parlayStatus(legs),hit:parlayStatus(legs)==='HIT'}});return res.status(200).json({ok:true,gameId,final,teams:score,picks,sgps,lockedAt:locked?.lockedAt||null,gradedAt:new Date().toISOString()})}
   // Hard game-day availability overrides for authoritative official/NFL transaction states that can lag ESPN summary injury payloads.
