@@ -124,7 +124,7 @@
      ' • stake '+pick.bankroll.units+' units'+
      (pick.reasons?.length?' • '+pick.reasons.slice(0,2).join(', '):''));
    lines.push('Server-side collectors must verify real prices, injuries and calibrated uncertainty before any +EV decision.');
-   return lines.join('\\n')+'\\n\\n';
+   return lines.join('\n')+'\n\n';
   }
   if(!report)return '';
   const details=['Evidence checks: '+report.status+' (read-only; inputs not independently authenticated)'];
