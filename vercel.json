@@ -79,5 +79,11 @@
     "api/nba-health.js": {
       "maxDuration": 300
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/picks",
+      "destination": "/picks.html"
+    }
+  ]
 }
