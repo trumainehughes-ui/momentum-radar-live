@@ -184,8 +184,8 @@ export default async function handler(req,res) {
       '+EV Verdict: '+first.decision+'; '+first.reasons.join(', ')+'.',
       'Bankroll Strategy: '+first.bankroll.units+' units (one unit = 1% bankroll).',
       'Bet responsibly; do not chase losses.'
-     ].join('\\n'):'Market Context: No authenticated market evidence supplied.\\n'+
-      'Quantitative Angle: Unavailable.\\nMarket Movement: Unavailable.\\n'+
+     ].join('\n'):'Market Context: No authenticated market evidence supplied.\n'+
+      'Quantitative Angle: Unavailable.\nMarket Movement: Unavailable.\n'+
       '+EV Verdict: WAIT.\\nBankroll Strategy: 0 units. Bet responsibly.';
     return respond(res,200,{ok:true,analysis:summary,mechanics,
       verified:false,aiAvailable:false,model:null,provider:null,cached:false,
