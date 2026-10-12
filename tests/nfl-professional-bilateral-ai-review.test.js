@@ -124,10 +124,11 @@ test('history snapshot retains evidence for model revalidation and the AI review
  const a=pregameEvidenceAudit(null,history,{league:'nfl'});
  const old={...history,evidenceDigests:a.evidenceDigests};
  assert.deepEqual(pregameEvidenceAudit(old,history,{league:'nfl'}).changedFields,[]);
- const update={...history,matchupEvidence:{
-  ...evidence,sides:evidence.sides.map((x,i)=>i===0?{
+ const changedMatchup={...evidence,sides:evidence.sides.map((x,i)=>i===0?{
    ...x,offenseSampleGames:6
-  }:x)}};
+  }:x)};
+ const update={...history,matchupEvidence:changedMatchup,
+  offenseDefense:changedMatchup};
  assert.ok(pregameEvidenceAudit(old,update,{league:'nfl'}).changedFields.includes('MATCHUP'));
 });
 test('final NFL AI reviewer gets bookmaker-safe matchup and risk evidence, never makes changes',async()=>{
