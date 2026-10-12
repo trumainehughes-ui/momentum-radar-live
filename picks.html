@@ -109,7 +109,8 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    offers.map(q=>esc(q.book)+' '+esc(q.risk)+' '+(Number(q.americanOdds)>0?'+':'')+esc(q.americanOdds)).join(' • ')+
    '</div><div class="sub">Book-issued quote at the recorded time, not a wager or a live guaranteed offer.</div></div>'}
  function renderParlays(d){const tiers=['Small','Medium','Nuke'];const available=d.parlays||[];
-  return '<div class="section-head" style="margin-top:18px"><div><h3>Same Game Parlays • Detailed Breakdown</h3><p class="sub">The same model tiers available in the full dashboard. Real combined odds appear only if confirmed separately.</p></div></div>'+
+  return (d.status==='LAST_SAVED'?'<div class="bookquote"><b>Archived model only:</b> These SGP legs may be outdated and are not live bookmaker tickets.</div>':'')+
+   '<div class="section-head" style="margin-top:18px"><div><h3>Same Game Parlays • Detailed Breakdown</h3><p class="sub">The same model tiers available in the full dashboard. Real combined odds appear only if confirmed separately.</p></div></div>'+
   '<div class="parlay-grid">'+tiers.map(risk=>{const t=available.find(x=>x.risk===risk),cls=risk.toLowerCase();
    return '<div class="parlay"><div class="tier '+cls+'">'+risk+' <small>'+(t?t.legCount+' LEGS':'PENDING')+'</small></div>'+
    (t?t.legs.map(l=>'<div class="leg"><strong>'+esc(l.player)+'</strong><div class="sub">'+esc(l.team)+' '+esc(l.position||'')+'</div><div class="target">'+esc(l.target)+'</div>'+
@@ -253,7 +254,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   finally{if(String(state.selected)===String(gameId)){state.liveLoading=false;if(state.selectedData&&state.detailTab==='live')renderGame(state.selectedData)}}
  }
  function renderGame(d){
-  if(!d||d.status!=='CURRENT'){$('#match-content').innerHTML='<div style="margin-top:18px">'+
+  if(!d||!['CURRENT','LAST_SAVED'].includes(d.status)){$('#match-content').innerHTML='<div style="margin-top:18px">'+
    noData('Prediction update pending',d?.message||'Predictions are not ready for this matchup.')+'</div>';return}
   const tabs='<div class="market-tabs details-tabs">'+views.map(([key,label])=>
    '<button type="button" class="chip '+(state.detailTab===key?'active':'')+'" data-view="'+key+'">'+label+'</button>').join('')+'</div>';
@@ -268,7 +269,8 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   if(state.detailTab==='sgps')body=renderParlays(d);
   if(state.detailTab==='ai')body=showAi(d);
   if(state.detailTab==='live')body=showLive(d);
-  $('#match-content').innerHTML=tabs+'<div class="detail-body">'+body+'</div>';
+  const warning=d.status==='LAST_SAVED'?'<div class="bookquote" style="border:1px solid #ba8550;background:#342923;color:#ffe1b3"><b>Older saved predictions — not current betting information</b><div>'+esc(d.message)+'</div><div class="small">'+esc(fmtStamp(d.updatedAt))+'</div></div>':'';
+  $('#match-content').innerHTML=warning+tabs+'<div class="detail-body">'+body+'</div>';
  }
  async function loadSavedAi(date,gameId){
   state.aiLoading=true;state.aiData=null; if(state.selectedData)renderGame(state.selectedData);
