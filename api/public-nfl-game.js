@@ -25,7 +25,7 @@ export default async function handler(req,res){
    signal:AbortSignal.timeout(7000)});
   if(!response.ok)throw Error('snapshot_read_unavailable');
   const snap=await response.json();
-  const safe=publicNflGameView(snap,{date,gameId});
+  const safe=publicNflGameView(snap,{date,gameId,includeLastSaved:true});
   if(!safe.ok)return res.status(200).json({ok:true,date,gameId,status:'REVIEW',
     message:'Game predictions could not be validated.',
     categories:{td:[],passing:[],rushing:[],receiving:[],receptions:[]},
