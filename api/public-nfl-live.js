@@ -10,7 +10,7 @@ export function publicLiveTouchdowns(body,gameId){
   touchdowns:(Array.isArray(body.touchdowns)?body.touchdowns:[]).slice(0,24)
    .filter(x=>x?.name&&x?.text)
    .map(x=>({name:String(x.name).slice(0,90),
-    description:String(x.text).replace(/https?:\/\/\S+/gi,'').slice(0,220),
+    description:String(x.text).replace(new RegExp('https?:[^ ]+','gi'),'').slice(0,220),
     period:Number.isInteger(x.period)?x.period:null,
     clock:String(x.clock||'').slice(0,16),
     star:x.star===true}))};
