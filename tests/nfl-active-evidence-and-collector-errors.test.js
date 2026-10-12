@@ -8,8 +8,10 @@ const source=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8
 const collector=readFileSync(new URL('../api/nfl-health.js',import.meta.url),'utf8');
 test('active NFL market response preserves actual same-game injury and role evidence',()=>{
  const i=source.indexOf('const response={ok:true,gameId,date,scope:');
- const j=source.indexOf('return res.status(200).json(response);',i);
+ const j=source.indexOf('return res.status(200).json(publicResponse);',i);
  assert.ok(i>0&&j>i);
+ assert.ok(source.slice(i,j).includes('const publicResponse=nflPublicMarketResponse(response);'));
+ assert.ok(source.slice(i,j).includes('writeResponseSnapshot(responseKey,publicResponse)'));
  const active=source.slice(i,j);
  assert.ok(active.includes('injuryEligibilityChecked:eligibility.checked===true'));
  assert.ok(active.includes('dayAheadRoleChecks:dayAheadRoles?.counters||null'));

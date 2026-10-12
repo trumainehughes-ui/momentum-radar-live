@@ -22,7 +22,8 @@ test('NLF game screen never calls individual prop candidates verified SGP ticket
 
 test('degraded feed never revives old sportsbook price snapshots',()=>{
  assert.ok(api.includes('MARKET_SNAPSHOT_TTL=15*60*1000'));
- assert.ok(api.includes('await Promise.race([writeResponseSnapshot(responseKey,response)'));
+ assert.ok(api.includes('await Promise.race([writeResponseSnapshot(responseKey,publicResponse)'));
+ assert.ok(api.includes('const publicResponse=nflPublicMarketResponse(response);'));
  assert.ok(!api.includes("X-Momentum-Cache','PERSISTENT_STALE"));
  assert.ok(!api.includes('STALE=6*60*60*1000'));
  assert.ok(!api.includes('MARKET_SNAPSHOT_TTL=24*60*60*1000'));
