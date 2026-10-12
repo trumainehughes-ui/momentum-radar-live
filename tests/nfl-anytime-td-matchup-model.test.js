@@ -77,7 +77,7 @@ test('active NFL matchup uses same ESPN stats, DVP and injury gates for TD, not 
  const code=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert.ok(!code.includes('const tdAnalytics=[];'));
- assert.ok(code.includes('out.td.push({...base,gamesPlayed:gp,rushingAttempts:u.rushingAttempts'));
+ assert.ok(code.includes('out.td.push({...base,gamesPlayed:gp,perGame:Number(((u.rushingAttempts+u.targets)/gp).toFixed(1))'));
  assert.ok(code.includes('buildNflAnytimeTdCandidates(statBoards.td,'));
  assert.ok(code.includes('gameId,home,away,dvp:ctx.dvp'));
  assert.ok(code.includes('roleFilter(eligibilityFilter(categories[cat]||[],eligibility),roles,cat)'));
