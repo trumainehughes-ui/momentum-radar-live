@@ -157,7 +157,7 @@ test('global professional probability and bankroll rules apply to all AI game pr
  const code=readFileSync(new URL('../api/ai-analysis.js',import.meta.url),'utf8');
  assert.ok(code.includes('const system = SHARP_GLOBAL_POLICY'));
  assert.ok(code.includes('const nbaPregameSystem = SHARP_GLOBAL_POLICY'));
- for(const text of ['Data Gathering','cross-verify','probability','risk','Closing']){
+ for(const text of ['Data Gathering','Cross-Verification','probability','risk','Closing']){
   assert.ok(SHARP_GLOBAL_POLICY.toLowerCase().includes(text.toLowerCase()),text);
  }
  assert.ok(code.includes("if(mode==='sharp')"));
