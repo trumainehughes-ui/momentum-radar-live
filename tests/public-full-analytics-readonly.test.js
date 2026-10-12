@@ -128,6 +128,35 @@ test('public results history is archived and sanitized; all admin URLs stay priv
  assert.ok(!JSON.stringify(d).includes('SECRET'));
  assert.ok(!JSON.stringify(d).includes('history'));
 });
+test('public AI analysis presents immediate real model evidence while saved Groq review is pending',()=>{
+ const html=readFileSync(new URL('../picks.html',import.meta.url),'utf8');
+ assert.ok(html.includes('AI-Assisted Model Brief'));
+ assert.ok(html.includes('Top Anytime TD opportunities'));
+ assert.ok(html.includes('Top yardage and reception candidates'));
+ assert.ok(html.includes('observed rush/target opportunities per game'));
+ assert.ok(html.includes('experimental model estimates, not sportsbook probabilities'));
+ const aiStart=html.indexOf('function showAi(d)');
+ const aiEnd=html.indexOf('function showLive(d)');
+ assert.ok(aiStart>0&&aiEnd>aiStart);
+ assert.ok(html.slice(aiStart,aiEnd).includes('return intro+modelBrief+review+insight;'));
+ assert.ok(!html.slice(aiStart,aiEnd).includes('/api/ai-analysis'));
+});
+test('public site auto-refresh reads saved responses only and retains matchup tab selection',()=>{
+ const html=readFileSync(new URL('../picks.html',import.meta.url),'utf8');
+ const refreshStart=html.indexOf('async function refreshReadOnlyPredictions()');
+ const refreshEnd=html.indexOf("$('#refresh').addEventListener",refreshStart);
+ assert.ok(refreshStart>0&&refreshEnd>refreshStart);
+ const code=html.slice(refreshStart,refreshEnd);
+ assert.ok(code.includes('/api/public-nfl-game?'));
+ assert.ok(code.includes('/api/public-nfl-rankings?'));
+ assert.ok(code.includes('5*60*1000'));
+ assert.ok(code.includes('state.selectedData=d'));
+ assert.ok(code.includes('if(document.hidden'));
+ assert.ok(!code.includes('/api/nfl-markets'));
+ assert.ok(!code.includes('/api/ai-analysis'));
+ assert.ok(!code.includes('/api/nfl-health'));
+ assert.ok(!code.includes('loadSlate('));
+});
 test('public site has all core dashboard read-only modules, with syntactically valid JS',()=>{
  const html=readFileSync(new URL('../picks.html',import.meta.url),'utf8');
  for(const value of ['AI Game Analyzer','Matchup Edge','Injuries','Anytime TD',
