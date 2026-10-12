@@ -18,7 +18,7 @@ const leg=(cat,id,target,team='BUF')=>({
 });
 const small=[leg('passing','1',225),leg('rushing','2',65),
  leg('receiving','3',75,'LAR'),leg('td','11','Anytime TD')];
-const medium=[...small,leg('receptions','4',5)];
+const medium=[...small.map(x=>({...x})),leg('receptions','4',5)];
 const nuke=[leg('passing','1',300),leg('rushing','2',100),
  leg('receiving','3',110,'LAR'),leg('receptions','4',8),
  leg('td','11','Anytime TD')];
@@ -38,7 +38,7 @@ function sample(){
    {risk:'Medium',legs:medium,requiredLegs:5,tierAssessment:{compositionOk:true}},
    {risk:'Nuke',legs:nuke,requiredLegs:5,tierAssessment:{compositionOk:true}}
   ],DraftKings:[{book:'DraftKings',risk:'Small',legs:small,requiredLegs:4,
-   actualSgpOdds:250,combinedBookQuoteVerified:true,
+   actualSgpOdds:2500,combinedBookQuoteVerified:true,
    publishable:true,bookVerificationPending:false,
    quotedAt:new Date(now-80_000).toISOString()}],FanDuel:[]}
  }};
@@ -55,7 +55,7 @@ test('public game view returns only consumer player forecasts and qualified tier
  assert.equal(v.parlays[0].legs.at(-1).target,'Anytime TD');
  assert.equal(v.parlays[0].combinedOddsVerified,false);
  assert.equal(v.bookmakerTicketPlaced,false);
- assert.equal(v.verifiedQuotes[0].americanOdds,250);
+ assert.equal(v.verifiedQuotes[0].americanOdds,2500);
  const shown=JSON.stringify(v);
  for(const secret of ['quoteRequest','bookOutcomeId','SECRET_PROVIDER_EVENT',
   'secret-key','quotaRemaining','injuryEvidence','source','providerEventId',
