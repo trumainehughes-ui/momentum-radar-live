@@ -720,6 +720,9 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
    chooseNflCheckpointQuotes(candidates,{gameId,
     stage:String(req.query.checkpointStage||''),max:3}):
    candidates.slice(0,6);
+  // Candidate eligibility is not actual provider spend: signed checkpoints
+  // deliberately cap attempts at three across both sportsbooks.
+  oddsDebug.authorizedQuoteAttempts=quoteCandidates.length;
   await Promise.all(quoteCandidates.map(async({book,bookmaker,risk,candidate})=>{
    const key=bookmaker+'_'+risk+'QuoteStatus';
    try{

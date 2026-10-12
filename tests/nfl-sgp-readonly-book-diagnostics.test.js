@@ -48,12 +48,50 @@ test('signed rows but incomplete native tiers do not claim verified prices',()=>
 });
 test('quote candidate attempts with no provider-verified response are unquoted',()=>{
  const raw={ok:true,oddsDebug:{propLineChangeType:'player_inactive',
-  providerNativeRows:12,authorizedQuoteCandidates:2},
+  providerNativeRows:12,authorizedQuoteCandidates:2,authorizedQuoteAttempts:2},
   validation:{sgpEligibleMarketRows:10},sgps:{DraftKings:[],FanDuel:[]}};
  const d=nflSavedBookQuoteDiagnostics(raw,{fresh:true});
  assert.equal(d.status,'BOOK_QUOTE_ATTEMPTED_UNVERIFIED');
  assert.equal(d.quoteAttempts,2);
  assert.equal(d.books[0].risks[2].quoted,false);
+});
+test('signed checkpoint reports three actual attempts, not six eligible quotes',()=>{
+ const raw={ok:true,gameId,oddsDebug:{
+  propLineChangeType:'scheduled_checkpoint',providerNativeRows:24,
+  authorizedQuoteCandidates:6,authorizedQuoteAttempts:3,
+  draftkings_SmallQuoteStatus:'quote_provider_rejected',
+  fanduel_MediumQuoteStatus:'BOOK_QUOTE_NOT_VERIFIED',
+  draftkings_NukeQuoteStatus:'RAW SECRET: never publish',
+  rawMessage:'PRIVATE_API_TOKEN'},validation:{sgpEligibleMarketRows:18},
+  sgps:{DraftKings:[{risk:'Small',legs:[{bookOutcomeId:'SECRET-ID'}],
+   quoteEligibility:'READY_FOR_AUTHORIZED_QUOTE'}],FanDuel:[]}};
+ const d=nflSavedBookQuoteDiagnostics(raw,{fresh:true});
+ assert.equal(d.eligibleQuoteCandidates,6);
+ assert.equal(d.quoteAttempts,3);
+ assert.equal(d.status,'BOOK_QUOTE_ATTEMPTED_UNVERIFIED');
+ assert.equal(d.books[0].risks[0].quoteAttemptOutcome,'quote_provider_rejected');
+ assert.equal(d.books[1].risks[1].quoteAttemptOutcome,'BOOK_QUOTE_NOT_VERIFIED');
+ assert.equal(d.books[0].risks[2].quoteAttemptOutcome,null);
+ for(const secret of ['SECRET-ID','PRIVATE_API_TOKEN','RAW SECRET'])
+  assert.ok(!JSON.stringify(d).includes(secret));
+});
+test('no attempt count evidence is unknown; eligible cards alone never certify a quote attempt',()=>{
+ const raw={ok:true,gameId,oddsDebug:{
+  propLineChangeType:'player_inactive',providerNativeRows:10,
+  authorizedQuoteCandidates:4},sgps:{DraftKings:[],FanDuel:[]}};
+ let d=nflSavedBookQuoteDiagnostics(raw,{fresh:true});
+ assert.equal(d.status,'QUOTE_ATTEMPT_EVIDENCE_UNAVAILABLE');
+ assert.equal(d.quoteAttempts,null);
+ assert.equal(d.eligibleQuoteCandidates,4);
+ raw.oddsDebug.authorizedQuoteAttempts=0;
+ d=nflSavedBookQuoteDiagnostics(raw,{fresh:true});
+ assert.equal(d.status,'QUOTE_NOT_ATTEMPTED');
+ assert.equal(d.quoteAttempts,0);
+ const code=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
+ assert.ok(code.includes('oddsDebug.authorizedQuoteCandidates=candidates.length'));
+ assert.ok(code.includes('oddsDebug.authorizedQuoteAttempts=quoteCandidates.length'));
+ assert.ok(code.indexOf('oddsDebug.authorizedQuoteAttempts=quoteCandidates.length')<
+  code.indexOf('await Promise.all(quoteCandidates.map'));
 });
 test('reported bookmaker success is accepted only from the strict snapshot quote verifier',()=>{
  const raw={ok:true,gameId,oddsDebug:{
