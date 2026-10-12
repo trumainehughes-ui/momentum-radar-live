@@ -59,6 +59,29 @@ test('public read-only game includes matchups, positional DVP, injuries and rich
  for(const key of ['TEST_SECRET','bookOutcomeId','sourceUrl','privateAudit','apiKey',
   'providerEventId','oddsDebug'])assert.ok(!serialized.includes(key),key);
 });
+test('last saved mode preserves model evidence visibly but never stale prices',()=>{
+ const x=structuredClone(game);
+ x.at=now-48*60_000;
+ const conservative=publicNflGameView(x,{date,gameId:id,now});
+ assert.equal(conservative.status,'STALE');
+ assert.equal(conservative.categories.rushing.length,0);
+ const publicView=publicNflGameView(x,{date,gameId:id,now,includeLastSaved:true});
+ assert.equal(publicView.status,'LAST_SAVED');
+ assert.equal(publicView.categories.rushing[0].projection,95);
+ assert.equal(publicView.categories.rushing[0].bookOffer,null);
+ assert.equal(publicView.verifiedQuotes.length,0);
+ assert.equal(publicView.inactivesVerified,false);
+ assert.equal(publicView.updatedDataCurrent,false);
+ assert.match(publicView.message,/OLDER MODEL SNAPSHOT/);
+ const tooOld=structuredClone(x);
+ tooOld.at=now-37*60*60_000;
+ assert.equal(publicNflGameView(tooOld,{date,gameId:id,now,includeLastSaved:true}).status,'STALE');
+ const api=readFileSync(new URL('../api/public-nfl-game.js',import.meta.url),'utf8');
+ const html=readFileSync(new URL('../picks.html',import.meta.url),'utf8');
+ assert.ok(api.includes('includeLastSaved:true'));
+ assert.ok(html.includes("['CURRENT','LAST_SAVED'].includes(d.status)"));
+ assert.ok(html.includes('Older saved predictions — not current betting information'));
+});
 test('old book prices and questionable player projections remain hidden',()=>{
  const old=structuredClone(game);
  old.body.categories.rushing[0].bestBook.checkedAt=new Date(now-25*60_000).toISOString();
