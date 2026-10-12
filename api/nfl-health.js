@@ -87,9 +87,9 @@ export function historySnap(g,m,prior=null){
     officialInactivesVerified:false},
   checkedAt:new Date().toISOString(),game:g,picks,sgps,verifiedIndividualOffers,
   injuryEvidence:m.validation?.injuryEvidence||[],
-  matchupEvidence:m.outcomePrediction||null,
-  offenseDefense:m.outcomePrediction||null,
-  modelVersion:'nfl-2026-matchup-revalidation-v1',
+  matchupEvidence:m.matchupEvidence||m.outcomePrediction||null,
+  offenseDefense:m.matchupEvidence||m.outcomePrediction||null,
+  modelVersion:'nfl-2026-bilateral-matchup-review-v1',
   propCategories:['td','passing','rushing','receiving','receptions']};
 }
 async function autoLock(base,games){
