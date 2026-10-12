@@ -79,6 +79,9 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
 <section class="section" aria-label="Choose a league"><div class="section-head"><div><h2>Explore matchups</h2><p class="sub">Choose a league, then select a game.</p></div><div class="controls"><input id="day" class="datebox" type="date" aria-label="Choose game date"><button id="today" class="soft" type="button">Upcoming</button></div></div><div class="chips" id="leagues"><button type="button" class="chip active" data-league="nfl">🏈 NFL</button><button type="button" class="chip" data-league="nba">🏀 NBA</button></div><p id="date-caption" class="sub" style="margin:16px 0 11px" aria-live="polite">Loading scheduled games…</p><div id="games" class="game-grid"><div class="empty loading grid-span">Loading matchups…</div></div></section>
 <section class="section" id="game-section"><div class="panel"><div class="details-top"><div><div class="eyebrow">Matchup breakdown</div><div id="match-title" class="matchup">Select a game</div><p id="match-subtitle" class="sub">Model forecasts are screened before appearing here.</p></div><div id="freshness" class="fresh"></div></div><div id="match-content"><div class="empty" style="margin-top:18px">Choose a matchup above to view the player outlook and parlay tiers.</div></div></div></section>
 <section class="section" id="rankings-section"><div class="section-head"><div><h2>Players to watch</h2><p class="sub">Ranked model projections from games on the selected NFL slate.</p></div></div><div class="market-tabs" id="rank-tabs"><button type="button" class="chip active" data-rank="td">Anytime TD</button><button type="button" class="chip" data-rank="passing">Passing</button><button type="button" class="chip" data-rank="rushing">Rushing</button><button type="button" class="chip" data-rank="receiving">Receiving</button><button type="button" class="chip" data-rank="receptions">Receptions</button></div><div class="players-grid" id="rankings"><div class="empty grid-span">Waiting for today's saved rankings…</div></div></section>
+<section class="section" id="extra-section"><div class="section-head"><div><h2>Beyond the matchup</h2><p class="sub">Best of the slate, scoring activity, and past results.</p></div></div>
+<div class="market-tabs" id="extra-tabs"><button type="button" class="chip active" data-extra="best">🏆 Best of Slate</button><button type="button" class="chip" data-extra="history">🗂️ NFL Results History</button></div>
+<div id="extra-content"><div class="empty">Ranked game data will appear after the selected slate loads.</div></div></section>
 </main>
 <footer><div class="container footer-wrap"><div><b style="color:#edf5f9">Momentum Radar</b><div>Independent sports insights. Model-generated projections are estimates, not guarantees or confirmed sportsbook bets. Combined parlay odds appear only when explicitly verified and may change before placement.</div></div><div>For informational use only. Bet responsibly where legal. 21+ where required.</div></div></footer>
 <script>
@@ -86,7 +89,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  'use strict';
  const $=s=>document.querySelector(s);
  const labels={td:'Anytime TD',passing:'Passing yards',rushing:'Rushing yards',receiving:'Receiving yards',receptions:'Receptions'};
- const state={league:'nfl',date:'',games:[],selected:'',rank:'td',rankings:null,loading:0,rankLoading:0,selectedData:null,detailTab:'overview',propTab:'passing',aiData:null,aiLoading:false};
+ const state={league:'nfl',date:'',games:[],selected:'',rank:'td',rankings:null,loading:0,rankLoading:0,selectedData:null,detailTab:'overview',propTab:'passing',aiData:null,aiLoading:false,liveData:null,liveLoading:false,extra:'best',historyData:null};
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const fmtTime=v=>{const n=Date.parse(v||'');return Number.isFinite(n)?new Intl.DateTimeFormat(undefined,{weekday:'short',hour:'numeric',minute:'2-digit'}).format(new Date(n)):'Time TBD'};
  const fmtStamp=v=>{const n=Date.parse(v||'');return Number.isFinite(n)?'Updated '+new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(n)):'Awaiting updates'};
@@ -99,7 +102,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  function renderOdds(offers){if(!Array.isArray(offers)||!offers.length)return '';
  return '<div class="bookquote"><b>Verified combined sportsbook quote</b><div>'+offers.map(q=>esc(q.book)+' '+esc(q.risk)+' '+(Number(q.americanOdds)>0?'+':'')+esc(q.americanOdds)).join(' • ')+'</div><div class="sub">Prices may change; a quote is not a placed wager.</div></div>'}
 
- const views=[['overview','Overview'],['td','Anytime TD'],['props','Player Props'],['matchup','Matchup Edge'],['injuries','Injuries'],['sgps','SGPs'],['ai','✨ AI Game Analyzer']];
+ const views=[['overview','Overview'],['td','Anytime TD'],['props','Player Props'],['matchup','Matchup Edge'],['injuries','Injuries'],['sgps','SGPs'],['ai','✨ AI Game Analyzer'],['live','📊 Live TD Tracker']];
  const rankMetricNames={passYards:'Passing yards',rushYards:'Rushing yards',recYards:'Receiving yards',passTD:'Passing TDs',rushTD:'Rushing TDs',recTD:'Receiving TDs',receptions:'Receptions',targets:'Targets'};
  function renderOdds(offers){if(!Array.isArray(offers)||!offers.length)return '';
   return '<div class="bookquote"><b>Verified combined sportsbook quotes</b><div>'+
@@ -229,6 +232,26 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
      'No publishable injury observations; that is not confirmation of healthy rosters.')+'</p>';
   return intro+review+insight;
  }
+ function showLive(d){
+  const l=state.liveData;
+  if(state.liveLoading)return '<div class="empty loading">Checking current touchdown results…</div>';
+  if(!l)return '<div class="empty">Open Live TD Tracker to load scorers for this matchup.</div>';
+  return '<h3>📊 Live Touchdown Tracker</h3>'+
+   '<p class="sub">Results from completed scoring plays. A ⭐ only appears for a verified locked pregame prediction.</p>'+
+   '<div class="players-grid" style="margin-top:16px">'+
+   (l.touchdowns?.length?l.touchdowns.map(x=>
+    '<div class="player"><div class="tiny">Quarter '+esc(x.period??'—')+' • '+esc(x.clock||'')+'</div><b>'+
+    (x.star?'⭐ ':'')+esc(x.name)+'</b><div class="small">'+esc(x.description)+'</div></div>').join(''):
+    noData('No touchdowns recorded yet','Check back during the game for scoring-play updates.'))+'</div>'+
+   '<div class="controls" style="margin-top:17px"><button class="soft" type="button" data-refresh-live="1">↻ Update results</button></div>';
+ }
+ async function loadPublicLive(gameId){
+  state.liveLoading=true;state.liveData=null;if(state.selectedData)renderGame(state.selectedData);
+  try{const d=await getJson('/api/public-nfl-live?'+new URLSearchParams({gameId}));
+   if(String(state.selected)!==String(gameId))return;state.liveData=d;
+  }catch{if(String(state.selected)===String(gameId))state.liveData={touchdowns:[]}}
+  finally{if(String(state.selected)===String(gameId)){state.liveLoading=false;if(state.selectedData&&state.detailTab==='live')renderGame(state.selectedData)}}
+ }
  function renderGame(d){
   if(!d||d.status!=='CURRENT'){$('#match-content').innerHTML='<div style="margin-top:18px">'+
    noData('Prediction update pending',d?.message||'Predictions are not ready for this matchup.')+'</div>';return}
@@ -244,6 +267,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   if(state.detailTab==='injuries')body=showInjuries(d);
   if(state.detailTab==='sgps')body=renderParlays(d);
   if(state.detailTab==='ai')body=showAi(d);
+  if(state.detailTab==='live')body=showLive(d);
   $('#match-content').innerHTML=tabs+'<div class="detail-body">'+body+'</div>';
  }
  async function loadSavedAi(date,gameId){
@@ -254,7 +278,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   }catch{if(String(state.selected)===String(gameId))state.aiData={status:'REVIEW_PENDING',message:'AI report is temporarily unavailable.'}}
   finally{if(String(state.selected)===String(gameId)){state.aiLoading=false;if(state.detailTab==='ai'&&state.selectedData)renderGame(state.selectedData)}}
  }
- async function openGame(id){const g=state.games.find(x=>String(x.gameId)===String(id));if(!g)return;state.selected=String(id);state.selectedData=null;state.aiData=null;state.detailTab='overview';renderGames();const token=++state.loading;
+ async function openGame(id){const g=state.games.find(x=>String(x.gameId)===String(id));if(!g)return;state.selected=String(id);state.selectedData=null;state.aiData=null;state.liveData=null;state.detailTab='overview';renderGames();const token=++state.loading;
  $('#match-title').textContent=(g.away?.name||'Away')+' @ '+(g.home?.name||'Home');
  $('#match-subtitle').textContent=fmtTime(g.kickoff)+' • '+statusLabel(g)+' • Predictions are estimates';
  $('#freshness').textContent='';$('#match-content').innerHTML='<div class="empty loading" style="margin-top:18px">Loading saved predictions…</div>';
@@ -263,14 +287,48 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  try{const d=await getJson('/api/public-nfl-game?'+new URLSearchParams({date:state.date,gameId:String(id)}));if(token!==state.loading)return;
  $('#freshness').textContent=fmtStamp(d.updatedAt);state.selectedData=d;renderGame(d)}
  catch{if(token===state.loading)$('#match-content').innerHTML='<div class="empty" style="margin-top:18px">Predictions are temporarily unavailable. Try refreshing shortly.</div>'}}
+function renderExtras(){
+ const box=$('#extra-content');if(!box)return;
+ if(state.league!=='nfl'){box.innerHTML=noData('NFL analysis only','More sports categories will appear as the corresponding predictions are saved.');return}
+ if(state.extra==='history'){
+  const rows=state.historyData?.archive||[];
+  box.innerHTML=rows.length?'<div class="players-grid">'+rows.map(x=>
+   '<div class="player"><div class="tiny">Final result</div><b>'+esc(x.score)+'</b>'+
+   '<div class="small">Player picks: '+esc(x.playerHits)+' / '+esc(x.playerTotal)+' hit • SGPs: '+
+   esc(x.sgpHits)+' / '+esc(x.sgpTotal)+' hit</div>'+
+   '<div class="small">'+['Small','Medium','Nuke'].map(t=>t+': '+(x.tiers?.[t]?.hits??0)+' / '+(x.tiers?.[t]?.total??0)).join(' • ')+'</div></div>').join('')+'</div>':
+   noData('History is waiting','Finished games appear after saved pregame selections have been graded and archived.');return;
+ }
+ const all=['td','passing','rushing','receiving','receptions']
+  .flatMap(cat=>(state.rankings?.categories?.[cat]||[]).map(x=>({...x,cat})));
+ const best=new Map();
+ for(const p of all){if(!p.gameId)continue;
+  const prev=best.get(p.gameId),score=11-Number(p.rank||10);
+  if(!prev||score>prev.score)best.set(p.gameId,{...p,score});
+ }
+ const rows=[...best.values()].sort((a,b)=>b.score-a.score).slice(0,16);
+ box.innerHTML=rows.length?'<p class="sub">One leading model category candidate per NFL matchup, selected from available ranked boards. This is not a sportsbook-quoted multi-game parlay.</p>'+
+  '<div class="players-grid" style="margin-top:15px">'+rows.map(p=>
+   '<div class="player"><div class="tiny">'+esc(p.team)+' vs '+esc(p.opponent)+'</div><b>'+esc(p.name)+'</b>'+
+   '<div class="stat">'+(p.cat==='td'?esc(p.modelChancePct)+'% TD chance':
+    esc(p.projection)+' '+(p.cat==='receptions'?'receptions':'yards'))+'</div>'+
+   '<div class="small">'+esc(labels[p.cat])+' • model estimate only</div></div>').join('')+'</div>':
+   noData('Slate selections pending','Ranked player candidates will appear after scheduled game analysis.');
+}
+async function loadHistory(){
+ $('#extra-content').innerHTML='<div class="empty loading">Loading finished NFL results…</div>';
+ try{const d=await getJson('/api/public-nfl-history');state.historyData=d;}
+ catch{state.historyData={archive:[]}}
+ if(state.extra==='history')renderExtras();
+}
  function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?.[state.rank]||[];
  box.innerHTML=rows.length?rows.slice(0,8).map((x,i)=>'<div class="rank-card"><div class="rank-head"><div class="rank-index">#'+(i+1)+'</div><div><strong>'+esc(x.name)+'</strong><div class="sub">'+esc(x.team)+' vs '+esc(x.opponent)+'</div></div></div><div class="pick">'+(state.rank==='td'?esc(x.modelChancePct)+'% TD chance':esc(x.projection)+' '+(state.rank==='receptions'?'receptions':'yards'))+'</div><div class="tiny" style="margin-top:8px">Model estimate</div></div>').join(''):
  noData('No screened rankings for this category.','Model rankings appear after the scheduled predictions have been saved.')}
  async function loadRanks(){const token=++state.rankLoading;state.rankings=null;$('#rankings').innerHTML='<div class="empty loading grid-span">Loading rankings…</div>';
  if(state.league!=='nfl')return;
- try{const d=await getJson('/api/public-nfl-rankings?'+new URLSearchParams({date:state.date}));if(token!==state.rankLoading)return;state.rankings=d;renderRanks()}catch{if(token===state.rankLoading)$('#rankings').innerHTML=noData('Rankings unavailable','Check again after the next saved update.')}}
+ try{const d=await getJson('/api/public-nfl-rankings?'+new URLSearchParams({date:state.date}));if(token!==state.rankLoading)return;state.rankings=d;renderRanks();renderExtras()}catch{if(token===state.rankLoading)$('#rankings').innerHTML=noData('Rankings unavailable','Check again after the next saved update.')}}
  async function loadSlate(upcoming){++state.loading;++state.rankLoading;state.selected='';state.games=[];$('#games').innerHTML='<div class="empty loading grid-span">Loading scheduled matchups…</div>';
- $('#match-title').textContent='Select a game';$('#match-content').innerHTML='<div class="empty" style="margin-top:18px">Choose a matchup to explore the picks.</div>';$('#rankings-section').style.display=state.league==='nfl'?'':'none';
+ $('#match-title').textContent='Select a game';$('#match-content').innerHTML='<div class="empty" style="margin-top:18px">Choose a matchup to explore the picks.</div>';$('#rankings-section').style.display=state.league==='nfl'?'':'none';$('#extra-section').style.display=state.league==='nfl'?'':'none';
  const base=state.league==='nfl'?'/api/nfl-schedule':'/api/nba-slate';
  const q=(!upcoming&&state.date)?'?'+new URLSearchParams({date:state.date}):'';
  try{const d=await getJson(base+q);state.date=d.date||state.date;$('#day').value=state.date;$('#date-caption').textContent=state.league.toUpperCase()+' • '+(d.games?.length||0)+' scheduled matchups • '+state.date;
@@ -282,18 +340,21 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  $('#match-content').addEventListener('click',e=>{
   const b=e.target.closest('[data-view]'),p=e.target.closest('[data-prop]');
   if(p&&state.selectedData){state.propTab=p.dataset.prop;renderGame(state.selectedData);return}
+  if(e.target.closest('[data-refresh-live]')&&state.selected)return loadPublicLive(state.selected);
   if(!b||!state.selectedData)return;
   const view=b.dataset.view;
   if(!views.some(x=>x[0]===view))return;
   state.detailTab=view;
   renderGame(state.selectedData);
   if(view==='ai'&&!state.aiData&&!state.aiLoading)loadSavedAi(state.date,state.selected);
+  if(view==='live'&&!state.liveData&&!state.liveLoading)loadPublicLive(state.selected);
  });
  $('#leagues').addEventListener('click',e=>{const b=e.target.closest('[data-league]');if(!b||state.league===b.dataset.league)return;
  state.league=b.dataset.league;document.querySelectorAll('[data-league]').forEach(el=>el.classList.toggle('active',el===b));state.date='';$('#day').value='';loadSlate(true)});
  $('#rank-tabs').addEventListener('click',e=>{const b=e.target.closest('[data-rank]');if(!b)return;state.rank=b.dataset.rank;document.querySelectorAll('[data-rank]').forEach(el=>el.classList.toggle('active',el===b));renderRanks()});
  $('#day').addEventListener('change',()=>{state.date=$('#day').value;if(state.date)loadSlate(false)});
  $('#today').addEventListener('click',()=>{state.date='';$('#day').value='';loadSlate(true)});
+ $('#extra-tabs').addEventListener('click',e=>{const b=e.target.closest('[data-extra]');if(!b)return;state.extra=b.dataset.extra;document.querySelectorAll('[data-extra]').forEach(x=>x.classList.toggle('active',x===b));renderExtras();if(state.extra==='history'&&!state.historyData)loadHistory()});
  $('#refresh').addEventListener('click',()=>loadSlate(false));
  loadSlate(true);
 })();
