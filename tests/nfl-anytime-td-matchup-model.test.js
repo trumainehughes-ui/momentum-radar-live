@@ -73,6 +73,13 @@ test('pregame AI reviewer receives only same-game model TD evidence, not prices'
  assert.equal(r.anytimeTdModel[0].sportsbookPriceVerified,false);
  assert.ok(!JSON.stringify(r).includes('PRIVATE-OUTCOME-ID'));
 });
+test('active NFL game handler declares public references outside a line comment before reading them',()=>{
+ const code=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
+ const declaration=code.match(/^const publicRefs=gameId\?/m);
+ assert.ok(declaration,'game-specific public refs must have a live declaration');
+ assert.ok(code.indexOf('const publicRefs=')<code.indexOf('for(const r of publicRefs)'));
+ assert.ok(!code.includes('box scores.const publicRefs='));
+});
 test('active NFL matchup uses same ESPN stats, DVP and injury gates for TD, not a second paid provider',()=>{
  const code=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
