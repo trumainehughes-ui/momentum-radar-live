@@ -64,6 +64,45 @@ test('threshold absent is not magically converted to a valid line',()=>{
  assert.equal(d.tiers[0].retargeted,0);
  assert.equal(d.status,'COMPARISON_INCOMPLETE');
 });
+test('a newly added player with missing yardage does NOT count as a verified added leg',()=>{
+ const next=structuredClone(first);
+ next.sgps[0].legs.push(leg('22','rushing',null));
+ const d=nflModelSgpRevisionAudit(first,next,{changedFields:['INJURIES']});
+ assert.equal(d.status,'COMPARISON_INCOMPLETE');
+ assert.equal(d.tiers[0].status,'TARGETS_UNVERIFIED');
+ assert.equal(d.tiers[0].added,0);
+ assert.equal(d.tiers[0].removed,0);
+ assert.equal(d.tiers[0].retargeted,0);
+ assert.deepEqual(d.changedEvidence,['INJURIES']);
+ assert.equal(nflSafeSgpRevisionAudit(d).sportsbookQuoted,false);
+});
+test('unknown old targets block an otherwise valid player replacement claim',()=>{
+ const old=structuredClone(first),next=structuredClone(first);
+ old.sgps[0].legs[0].threshold=null;
+ next.sgps[0].legs[0]=leg('42','passing',250);
+ const d=nflModelSgpRevisionAudit(old,next);
+ assert.equal(d.status,'COMPARISON_INCOMPLETE');
+ assert.equal(d.tiers[0].status,'TARGETS_UNVERIFIED');
+ assert.equal(d.tiers[0].added,0);
+ assert.equal(d.tiers[0].removed,0);
+});
+test('five-yard model increments and integer count markets fail closed if malformed',()=>{
+ for(const [cat,bad] of [['passing',221],['rushing',67.5],
+  ['receiving',86],['receptions',3.5],['td',2]]){
+  const next=structuredClone(first);
+  next.sgps[0].legs.push(leg('99',cat,bad));
+  const d=nflModelSgpRevisionAudit(first,next);
+  assert.equal(d.tiers[0].status,'TARGETS_UNVERIFIED',cat);
+  assert.equal(d.tiers[0].added,0,cat);
+  assert.equal(d.status,'COMPARISON_INCOMPLETE',cat);
+ }
+ const invalidFirst=structuredClone(first);
+ invalidFirst.sgps[1].legs[2].threshold=78;
+ const d=nflModelSgpRevisionAudit(null,invalidFirst);
+ assert.equal(d.status,'COMPARISON_INCOMPLETE');
+ assert.equal(d.tiers[1].status,'TARGETS_UNVERIFIED');
+ assert.equal(d.tiers[1].added,0);
+});
 test('unmatched id, duplicate or missing identity fail closed',()=>{
  const broken=structuredClone(first);
  broken.sgps[0].legs[0].playerID='';
