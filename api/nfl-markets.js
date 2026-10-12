@@ -10,6 +10,7 @@ import {evaluateNflBookQuoteReadiness} from '../lib/nfl-book-quote-readiness.js'
 import {mergeAuthorizedPropLineRows,nflAuthorizedBookSgpRows} from '../lib/nfl-propline-authorized-merge.js';
 import {shouldServeCachedNflMarkets,signedNflCollectorLock} from '../lib/nfl-market-response-cache.js';
 import {chooseNflCheckpointQuotes} from '../lib/nfl-checkpoint-quote-selection.js';
+import {nflProfessionalBilateralReview} from '../lib/nfl-professional-bilateral-review.js';
 import {nflCurrentGameDepthChartQbs,nflProjectedDepthChartQbEligible} from '../lib/nfl-depthchart-qb1.js';
 import {nflCurrentRosterAthletes} from '../lib/nfl-roster-evidence.js';
 import {nflGameInjuryEvidence,nflInjuryBlocks} from '../lib/nfl-injury-evidence.js';
@@ -725,7 +726,14 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
  const activeBookMarketCounts=Object.fromEntries(['DraftKings','FanDuel'].map(book=>[
   book,sgpRows.filter(m=>bookFor(m,book)).length
  ]));
+ const professionalReview=nflProfessionalBilateralReview({
+  gameId,home,away,dvp:ctx.dvp,
+  modelCards:sgpResponse.Analytics,
+  injuryChecked:eligibility.checked===true,
+  blockedPlayerCount:Math.max(eligibility.blockedIds.size,eligibility.blockedNames.size)
+ });
  const response={ok:true,gameId,date,scope:'game',home,away,provider,categories,
+  matchupEvidence:professionalReview,
   sgps:sgpResponse,marketRows:(directRows||[]).length,
   degraded:!hasCompleteBookLegCandidate,
   analyticsAvailable:Object.values(categories).some(v=>Array.isArray(v)&&v.length>0),
