@@ -217,6 +217,28 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     (ai.status==='HISTORICAL_AI_REVIEW'?' • Historical review':'')+'</div><p style="line-height:1.7;white-space:pre-wrap">'+esc(ai.analysis)+'</p></div>':
     '<div class="empty" style="margin:16px 0"><strong>AI review waiting for the next validated analysis</strong>'+
      '<div>'+esc(ai?.message||'No saved AI narrative has been generated for this game yet.')+'</div></div>';
+  const tdCandidates=(d.categories?.td||[]).slice(0,6);
+  const modelBrief='<div class="section-head" style="margin-top:20px"><div><h3>AI-Assisted Model Brief</h3>'+
+   '<p class="sub">Automatic, evidence-based breakdown from screened player forecasts — available now, without an extra AI request. TD chances are experimental model estimates, not sportsbook probabilities.</p></div></div>'+
+   '<h3 style="font-size:15px;margin:16px 0 10px">Top Anytime TD opportunities</h3>'+
+   '<div class="players-grid">'+(tdCandidates.length?tdCandidates.map(x=>
+    '<div class="player"><div class="tiny">'+esc(x.team)+' • '+esc(x.position)+'</div>'+
+    '<b>'+esc(x.name)+'</b><div class="stat">'+esc(x.modelChancePct)+'%</div>'+
+    '<div class="small">'+esc(x.opportunitiesPerGame??'—')+' observed rush/target opportunities per game'+
+    (x.historicalTouchdowns!=null?' • '+esc(x.historicalTouchdowns)+' recorded TDs':'')+
+    (x.opponentTdRank!=null?' • Opponent positional TD allowance rank #'+esc(x.opponentTdRank):'')+'</div>'+
+    (x.projectionNote?'<div class="small">'+esc(x.projectionNote)+'</div>':'')+
+    '</div>').join(''):
+    noData('TD model analysis pending','Wait for the current roster and scoring-opportunity evidence.'))+'</div>'+
+   '<h3 style="font-size:15px;margin:23px 0 10px">Top yardage and reception candidates</h3>'+
+   '<div class="players-grid">'+['passing','rushing','receiving','receptions'].flatMap(cat=>
+    (d.categories?.[cat]||[]).slice(0,2).map(x=>
+    '<div class="player"><div class="tiny">'+esc(labels[cat])+' • '+esc(x.team)+'</div>'+
+    '<b>'+esc(x.name)+'</b><div class="stat">'+esc(x.projection)+' '+
+    (cat==='receptions'?'receptions':'yards')+'</div>'+
+    (x.avgPerGame!=null?'<div class="small">Observed average: '+esc(x.avgPerGame)+' per game</div>':'')+
+    (x.projectionNote?'<div class="small">'+esc(x.projectionNote)+'</div>':'')+
+    '</div>')).join('')+'</div>';
   const insight='<div class="section-head" style="margin-top:22px"><h3>Matchup Intelligence</h3></div>'+
    (match.length?match.map(x=>'<div class="leg"><strong>'+esc(x.offense)+' offense against '+esc(x.defense)+' defense</strong>'+
     '<div class="small">Offense sample '+esc(x.offenseGames??'—')+' games • Defense sample '+esc(x.defenseGames??'—')+' games</div>'+
@@ -231,7 +253,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    '<p class="sub">'+(d.injuries?.length?
      esc(d.injuries.slice(0,8).map(x=>x.name+' ('+x.team+' '+x.status+')').join(' • ')):
      'No publishable injury observations; that is not confirmation of healthy rosters.')+'</p>';
-  return intro+review+insight;
+  return intro+modelBrief+review+insight;
  }
  function showLive(d){
   const l=state.liveData;
@@ -357,6 +379,28 @@ async function loadHistory(){
  $('#day').addEventListener('change',()=>{state.date=$('#day').value;if(state.date)loadSlate(false)});
  $('#today').addEventListener('click',()=>{state.date='';$('#day').value='';loadSlate(true)});
  $('#extra-tabs').addEventListener('click',e=>{const b=e.target.closest('[data-extra]');if(!b)return;state.extra=b.dataset.extra;document.querySelectorAll('[data-extra]').forEach(x=>x.classList.toggle('active',x===b));renderExtras();if(state.extra==='history'&&!state.historyData)loadHistory()});
+ async function refreshReadOnlyPredictions(){
+  // Public polls read saved snapshots only. No calls to the market builder,
+  // Groq inference or privileged collector/write routes.
+  if(document.hidden||state.league!=='nfl'||!state.date)return;
+  const date=state.date,id=state.selected;
+  if(id){
+   try{const d=await getJson('/api/public-nfl-game?'+new URLSearchParams({date,gameId:id}));
+    if(state.league==='nfl'&&state.date===date&&String(state.selected)===String(id)){
+     state.selectedData=d;$('#freshness').textContent=fmtStamp(d.updatedAt);
+     renderGame(d);
+    }
+   }catch{/* Preserve the existing card and its last-update label. */}
+  }
+  try{
+   const ranked=await getJson('/api/public-nfl-rankings?'+new URLSearchParams({date}));
+   if(state.league==='nfl'&&state.date===date){state.rankings=ranked;renderRanks();renderExtras()}
+  }catch{/* No new dataset is safer than clearing an already displayed one. */}
+  if(state.detailTab==='ai'&&id&&state.selected===id&&!state.aiLoading)
+   loadSavedAi(date,id);
+ }
+ // Automatic 5-minute public revalidation never generates new bookmaker or AI calls.
+ setInterval(refreshReadOnlyPredictions,5*60*1000);
  $('#refresh').addEventListener('click',()=>loadSlate(false));
  loadSlate(true);
 })();
