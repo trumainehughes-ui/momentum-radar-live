@@ -102,6 +102,7 @@ test('Blob model snapshot matching uses exact selected day and current market sc
  assert.ok(api.includes("const CACHE_SCHEMA='v92-strict-nuke-profit-20261011'"));
  assert.ok(api.includes("+'-nuke-roster-adaptive-1-game-identity-2'"));
  assert.ok(api.includes("+'-day-ahead-roles-v5-teamid-depthchart'"));
+ assert.ok(api.includes("+'-public-quote-scrub-v1'"));
 });
 test('all four top-ten buttons load read-only slate rows, not metadata-only markets',()=>{
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
@@ -139,6 +140,27 @@ test('verified individually priced touchdown rows can populate Top 10 without in
  assert.equal(out.categories.td[0].bestBook.book,'FanDuel');
  assert.equal(out.tdMarketVerificationRequired,true);
 });
+test('injury-screened TD model candidates rank across different NFL games without fabricated bookmaker odds',()=>{
+ const good=(id,game,percent)=>person(id,game,'td','Anytime TD',{
+  name:'Touchdown Model '+id,team:'BUF',modelTdPercent:percent,
+  modelOnly:true,tdModelStatus:'ESPN_MATCHUP_MODEL',
+  evidence:{games:5,opportunitiesPerGame:12,touchdowns:2},
+  analyticsOnly:true,books:[],bestBook:null
+ });
+ const p=snap('401872989','td',[
+  good('23','401872989',43),
+  good('24','401872989',58),
+  {...good('25','401872989',75)},
+  {...good('26','401872989',40),evidence:{games:1,opportunitiesPerGame:12}},
+  {...good('27','401872989',60),injuryStatus:'OUT'}
+ ]);
+ const q=snap('401872990','td',[good('28','401872990',64)]);
+ const out=buildNflSlateRankings([p,q],{date,now});
+ assert.deepEqual(out.categories.td.map(x=>x.playerID),['28','24','23']);
+ assert.ok(out.categories.td.every(x=>x.bestBook===null&&x.analyticsOnly===true));
+ assert.equal(out.tdModelCandidatesAllowed,true);
+ assert.equal(out.tdMarketVerificationRequired,true);
+});
 test('unverified roster/injury evidence cannot populate even model-only rankings',()=>{
  const games=[snap('401872989','rushing',[
   person('1','401872989','rushing',95)
@@ -152,7 +174,7 @@ test('Anytime TD empty state is an honest verification warning, not an endless l
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  const lib=readFileSync(new URL('../lib/nfl-slate-rankings.js',import.meta.url),'utf8');
  assert.ok(html.includes('No individually verified DraftKings/FanDuel Anytime TD markets'));
- assert.ok(html.includes('No verified Anytime TD market yet.'));
+ assert.ok(html.includes('No screened Anytime TD model yet; sportsbook odds unverified.'));
  assert.ok(html.includes('Oldest saved snapshot:'));
  assert.ok(lib.includes("'td','passing','rushing','receiving','receptions'"));
  const out=buildNflSlateRankings([

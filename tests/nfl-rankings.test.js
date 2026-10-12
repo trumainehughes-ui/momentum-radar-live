@@ -139,7 +139,8 @@ test('five-yard model lines are distinct from exact sportsbook over unders',()=>
 });
 
 test('front-end uses model yardage lines on home preview game player cards parlays and multigame',()=>{
-  assert.match(html,/\$\{'Projected: '\+nflProjection\(x,k\)\}/);
+  assert.ok(html.includes("'Projected: '+nflProjection(x,k)"));
+  assert.ok(html.includes("'Model TD chance: '+Math.round(Number(x.modelTdPercent))+'%'"));
   assert.match(html,/\$\{'Model: '\+nflProjection\(x,cat\)\}/);
   assert.match(html,/nflModelLine\(x,x.cat\)/);
   assert.match(html,/const target=nflModelLine\(x,cat\)/);
