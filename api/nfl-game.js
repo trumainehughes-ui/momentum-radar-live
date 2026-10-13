@@ -1,5 +1,5 @@
 import { gradeHistory, parlayStatus } from '../lib/nfl-results.js';
-import {nflGameInjuryEvidence,nflInjuryBlocks} from '../lib/nfl-injury-evidence.js';
+import {nflGameInjuryEvidence,nflInjuryBlocks,nflInjuryRecommendationHold} from '../lib/nfl-injury-evidence.js';
 import {nflWeeklyForGame} from '../lib/nfl-injury-weekly-loader.js';
 import {nflCanonTeam} from '../lib/nfl-official-injury-feed.js';
 import {nflCurrentRosterAthletes} from '../lib/nfl-roster-evidence.js';
@@ -138,7 +138,9 @@ export default async function handler(req,res){
       String(x.playerId)===hold.playerId||normalizeName(x.name)===normalizeName(hold.name)))
       scopedInjuries.push({...hold,section:'RESERVE',
        evidenceTier:'TEAM_OFFICIAL_TRANSACTION'});
-   const blockers=scopedInjuries.filter(x=>nflInjuryBlocks(x.status));const gameRoleBlockers=[];if(String(gameId)==='401872966'){gameRoleBlockers.push({team:'NYG',playerId:'4689114',name:'Jaxson Dart',position:'QB',injury:'Knee',status:'IR',rawStatus:'Season-ending regular-season injury',source:'New York Giants official starter update'});}for(const x of gameRoleBlockers)if(!blockers.some(b=>String(b.playerId)===String(x.playerId)))blockers.push(x);const questionableIds=new Set(scopedInjuries.filter(x=>x.status==="QUESTIONABLE").map(x=>x.playerId));
+   // Listed injured players may never be selected by SGPs until a verified
+   // clearance arrives. No game-day model can override an IR transaction.
+   const blockers=scopedInjuries.filter(nflInjuryRecommendationHold);const gameRoleBlockers=[];if(String(gameId)==='401872966'){gameRoleBlockers.push({team:'NYG',playerId:'4689114',name:'Jaxson Dart',position:'QB',injury:'Knee',status:'IR',rawStatus:'Season-ending regular-season injury',source:'New York Giants official starter update'});}for(const x of gameRoleBlockers)if(!blockers.some(b=>String(b.playerId)===String(x.playerId)))blockers.push(x);const questionableIds=new Set(scopedInjuries.filter(x=>x.status==="QUESTIONABLE").map(x=>x.playerId));
   const teams=competitors.map(c=>({id:String(c.team?.id||""),abbr:nflCanonTeam(c.team?.abbreviation),name:c.team?.displayName,homeAway:c.homeAway}));
   if(String(req.query.mode||'')==='history-grade'){const locked=await readHistory(gameId),stats=finalStats(summary),final=String(comp.status?.type?.state||'').toLowerCase()==='post'||/final/i.test(String(comp.status?.type?.description||'')),score=competitors.map(c=>({team:c.team?.abbreviation||'',homeAway:c.homeAway,score:hnum(c.score)})),picks=(locked?.picks||[]).map(p=>({...p,grade:gradeHistory(p,stats)})),sgps=(locked?.sgps||[]).map(s=>{const legs=(s.legs||[]).map(p=>({...p,grade:gradeHistory(p,stats)}));return{...s,legs,legsHit:legs.filter(x=>x.grade.status==='HIT').length,legsTotal:legs.length,status:parlayStatus(legs),hit:parlayStatus(legs)==='HIT'}});return res.status(200).json({ok:true,gameId,final,teams:score,picks,sgps,lockedAt:locked?.lockedAt||null,gradedAt:new Date().toISOString()})}
   // Hard game-day availability overrides for authoritative official/NFL transaction states that can lag ESPN summary injury payloads.
