@@ -43,6 +43,25 @@ test('public mirrors exact shared sharp engine while refusing uncalibrated +EV',
   'sourceUrl','providerId','apiKey','modelVersionCertified'])
   assert.ok(!json.includes(key),key);
 });
+test('Sharp public model-first view shows estimated hit chance instead of misleading REVIEW banner',()=>{
+ const fixture=saved();
+ fixture.categories.passing=[{name:'Sample QB',team:'LAR',projection:320,
+  hitProbabilityPct:51,hitTarget:320,gameSample:6}];
+ const result=publicSharpReview(fixture,{sport:'nfl',now:Date.parse(iso)});
+ assert.equal(result.candidates[0].quantitativeAngle.estimatedHitChancePct,56);
+ assert.equal(result.candidates[0].quantitativeAngle.hitTarget,'Anytime TD');
+ assert.equal(result.candidates[1].quantitativeAngle.estimatedHitChancePct,51);
+ assert.equal(result.candidates[1].quantitativeAngle.hitTarget,320);
+ assert.equal(result.candidates[1].status,'WAIT');
+ assert.equal(result.candidates[1].bankroll.units,0);
+ const html=readFileSync(new URL('../picks.html',import.meta.url),'utf8');
+ assert.ok(html.includes('Sharp Insights • Player Chances & Sportsbook Checks'));
+ assert.ok(html.includes('Estimated hit chance •'));
+ assert.ok(html.includes('Sportsbook verification pending'));
+ assert.ok(html.includes('Why is this bet not verified?'));
+ assert.ok(!html.includes('Market verification status: '));
+ assert.ok(!html.includes('>+EV Verdict: '+String.fromCharCode(39)));
+});
 test('last saved and missing analyses cannot publish a fresh price or +EV',()=>{
  const s=saved('LAST_SAVED');
  const r=publicSharpReview(s,{sport:'nfl'});
