@@ -394,7 +394,7 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
     nukeEvidence.distinctYardageMarkets+' yardage markets.'};
  const nukeHasStat=Boolean(nukeWithEvidence?.legs?.some(x=>x.cat!=='td'));return[{...make('Small',4),payoutTarget:sgpPayoutLabel('Small'),targetOddsBand:SGP_ODDS_BANDS.Small},{...make('Medium',5),payoutTarget:sgpPayoutLabel('Medium'),targetOddsBand:SGP_ODDS_BANDS.Medium},{...(nukeHasStat?nukeWithEvidence:{...nukeWithEvidence,legs:[],marketMix:[],reason:nukeWithEvidence.reason}),payoutTarget:sgpPayoutLabel('Nuke'),targetOddsBand:SGP_ODDS_BANDS.Nuke}];
 }
-async function gameRoleGate(gameId,base){if(!gameId)return{checked:false,roles:new Map()};try{const r=await timedFetch(base+'/api/nfl-game?gameId='+encodeURIComponent(gameId)+'&ts='+Date.now(),{cache:'no-store'});if(!r.ok)return{checked:false,roles:new Map()};const d=await r.json(),m=new Map();for(const x of d.playerProjections||[]){if(x.playerId)m.set(String(x.playerId),x);if(x.name)m.set('name:'+norm(x.name),x)}return{checked:true,roles:m,players:d.playerProjections||[],source:d.source||null}}catch{return{checked:false,roles:new Map()}}}
+async function gameRoleGate(gameId,base){if(!gameId)return{checked:false,roles:new Map()};try{const r=await timedFetch(base+'/api/nfl-game?gameId='+encodeURIComponent(gameId)+'&ts='+Date.now(),{cache:'no-store'});if(!r.ok)return{checked:false,roles:new Map()};const d=await r.json(),m=new Map();for(const x of d.playerProjections||[]){if(x.playerId)m.set(String(x.playerId),x);if(x.name)m.set('name:'+norm(x.name),x)}return{checked:true,roles:m,players:d.playerProjections||[],source:d.source||null,gameScopedStarters:d.gameScopedStarters||null}}catch{return{checked:false,roles:new Map()}}}
 function roleFor(gate,x){const roles=gate?.roles||new Map();return roles.get(String(x.playerID||x.playerId||''))||roles.get('name:'+norm(x.name))||null}
 function analyticsUsageEligible(x,r,cat){
  const pos=String(x.position||r?.position||'').toUpperCase(),u=x.usagePerGame||{},pg=Number(x.gamesPlayed)||Number(x.evidence?.games)||0,per=Number(x.perGame)||0,tgt=Number(u.targets)||Number(x.evidence?.targets)||0,rec=Number(u.receptions)||0,rush=Number(u.rushYards)||0,recv=Number(u.recYards)||0;
@@ -856,6 +856,10 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
     (dayAheadRoles?.counters?.projectedDepthChartQb1||0),
    depthChartQb1Count:dayAheadRoles?.counters?.projectedDepthChartQb1||0,
    conditionalRolesNotConfirmedStarters:true,
+   gameScopedStarterSource:roles.gameScopedStarters?.checked===true?
+    'ESPN_CORE_GAME_ROSTER':'UNAVAILABLE',
+   gameScopedStarterCounts:roles.gameScopedStarters?.checked===true?
+    roles.gameScopedStarters.starterCounts||{}:{},
    currentRosterRequired:true,wrongTeamRowsBlocked:true,
    finalPregameCheckMinutes:30
   },oddsDebug,fetchedAt:new Date().toISOString()};

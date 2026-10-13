@@ -114,7 +114,7 @@ test('NBA collector persists explicit not-confirmed starting five and book avail
  const model=readFileSync(new URL('../lib/nba-pregame-model.js',import.meta.url),'utf8');
  assert.match(nba,/result\.pregameVerification=sportResearchVerificationStatus/);
  assert.match(nba,/injurySourceAvailable:injurySectionPresent/);
- assert.match(nba,/startersConfirmed:false,bookOffers:\[\]/);
+ assert.match(nba,/startersConfirmed:eventStarters.startersConfirmed===true/);
  assert.match(model,/starterVerificationStatus:'UNCONFIRMED'/);
  assert.match(model,/FanDuel:'NO_VERIFIED_GAME_PROP'/);
  assert.match(model,/DraftKings:'NO_VERIFIED_GAME_PROP'/);
@@ -128,6 +128,10 @@ test('read-only public page reports same injury, starter and sportsbook gate wit
  assert.ok(html.includes('checks.DraftKings'));
  assert.ok(html.includes('checks.FanDuel'));
  assert.ok(api.includes('pregameChecks:{'));
+ assert.ok(api.includes('eventRosterStarterFlags:'));
+ assert.ok(api.includes("'ESPN_GAME_SCOPED_ROSTER'"));
+ assert.ok(html.includes('ESPN game-roster starter flags observed:'));
+ assert.ok(html.includes('not an official inactive report'));
  assert.ok(!html.includes('bookOutcomeId'));
  const script=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
  assert.ok(script);
