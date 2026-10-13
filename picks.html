@@ -108,6 +108,15 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   return '<div class="bookquote"><b>Verified combined sportsbook quotes</b><div>'+
    offers.map(q=>esc(q.book)+' '+esc(q.risk)+' '+(Number(q.americanOdds)>0?'+':'')+esc(q.americanOdds)).join(' • ')+
    '</div><div class="sub">Book-issued quote at the recorded time, not a wager or a live guaranteed offer.</div></div>'}
+ function hitChanceText(x,cat){
+  const good=x?.hitProbabilityPct!=null&&Number.isInteger(Number(x.hitProbabilityPct))&&
+   Number(x.hitProbabilityPct)>=1&&Number(x.hitProbabilityPct)<=99;
+  if(!good)return 'Hit probability pending — insufficient completed-game evidence';
+  const target=cat==='td'?'anytime touchdown':
+   x.hitTarget!=null?x.hitTarget+'+ '+(cat==='receptions'?'receptions':cat+' yards'):
+   x.target||labels[cat];
+  return 'Estimated hit probability: '+x.hitProbabilityPct+'% • '+target+' (uncalibrated model)';
+ }
  function renderParlays(d){const tiers=['Small','Medium','Nuke'];const available=d.parlays||[];
   return '<div class="bookquote" style="background:#392a1e;border:1px solid #b38854"><b>MODEL RESEARCH ONLY — NOT A VERIFIED SPORTSBOOK PARLAY</b><div class="small">Every player and exact prop market must exist at the selected book, pass the current roster/injury screen, and receive an actual book-issued combined quote. A missing FanDuel or DraftKings line invalidates that book\'s parlay; do not substitute a model projection.</div></div>'+
     (d.status==='LAST_SAVED'?'<div class="bookquote"><b>Archived model only:</b> These SGP legs may be outdated and are not live bookmaker tickets.</div>':'')+
@@ -116,6 +125,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    return '<div class="parlay"><div class="tier '+cls+'">'+risk+' <small>'+(t?t.legCount+' LEGS':'PENDING')+'</small></div>'+
    (t?t.legs.map(l=>'<div class="leg"><strong>'+esc(l.player)+'</strong><div class="sub">'+esc(l.team)+' '+esc(l.position||'')+'</div><div class="target">'+esc(l.target)+'</div>'+
     (l.projection!=null?'<div class="small">Projected: '+esc(l.projection)+'</div>':'')+
+    '<div class="small"><b>'+esc(hitChanceText(l,l.category))+'</b></div>'+
     (l.projectionNote?'<div class="small">'+esc(l.projectionNote)+'</div>':'')+'</div>').join('')+
     (t.explanation?'<p><b>Why these picks:</b> '+esc(t.explanation)+'</p>':'')+
     (t.matchupNotes?.length?'<details><summary class="small" style="cursor:pointer">See detailed leg analysis</summary>'+
@@ -141,7 +151,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    x.recentTrend?'Recent '+x.recentTrend.toLowerCase().replace('_',' '):''
   ].filter(Boolean);
   return '<div class="player"><div class="tiny">'+esc(x.team||'')+' • '+esc(x.position||'')+' • '+esc(labels[cat])+'</div><b>'+esc(x.name)+'</b>'+
-   '<div class="stat">'+stat+'</div><div class="small">'+esc(facts.join(' • '))+'</div>'+
+   '<div class="stat">'+stat+'</div><div class="small"><b>'+esc(hitChanceText(x,cat))+'</b></div><div class="small">'+esc(facts.join(' • '))+'</div>'+
    (!td&&x.suggestedTarget?'<div class="small"><b>Model target: '+esc(x.suggestedTarget)+'+ yards</b>'+
      (x.suggestedTargetChance!=null?' • estimated '+esc(x.suggestedTargetChance)+'%':'')+'</div>':'')+
    (Array.isArray(x.recentFive)&&x.recentFive.length?'<div class="small">Recent game results: '+esc(x.recentFive.join(' / '))+'</div>':'')+
@@ -237,6 +247,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     '<div class="player"><div class="tiny">'+esc(labels[cat])+' • '+esc(x.team)+'</div>'+
     '<b>'+esc(x.name)+'</b><div class="stat">'+esc(x.projection)+' '+
     (cat==='receptions'?'receptions':'yards')+'</div>'+
+    '<div class="small"><b>'+esc(hitChanceText(x,cat))+'</b></div>'+
     (x.avgPerGame!=null?'<div class="small">Observed average: '+esc(x.avgPerGame)+' per game</div>':'')+
     (x.projectionNote?'<div class="small">'+esc(x.projectionNote)+'</div>':'')+
     '</div>')).join('')+'</div>';
@@ -384,7 +395,7 @@ async function loadHistory(){
  if(state.extra==='history')renderExtras();
 }
  function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?.[state.rank]||[];
- box.innerHTML=rows.length?rows.slice(0,8).map((x,i)=>'<div class="rank-card"><div class="rank-head"><div class="rank-index">#'+(i+1)+'</div><div><strong>'+esc(x.name)+'</strong><div class="sub">'+esc(x.team)+' vs '+esc(x.opponent)+'</div></div></div><div class="pick">'+(state.rank==='td'?esc(x.modelChancePct)+'% TD chance':esc(x.projection)+' '+(state.rank==='receptions'?'receptions':'yards'))+'</div><div class="tiny" style="margin-top:8px">Model estimate</div></div>').join(''):
+ box.innerHTML=rows.length?rows.slice(0,8).map((x,i)=>'<div class="rank-card"><div class="rank-head"><div class="rank-index">#'+(i+1)+'</div><div><strong>'+esc(x.name)+'</strong><div class="sub">'+esc(x.team)+' vs '+esc(x.opponent)+'</div></div></div><div class="pick">'+(state.rank==='td'?esc(x.modelChancePct)+'% TD chance':esc(x.projection)+' '+(state.rank==='receptions'?'receptions':'yards'))+'</div><div class="small" style="margin-top:8px"><b>'+esc(hitChanceText(x,state.rank))+'</b></div><div class="tiny">Uncalibrated model estimate</div></div>').join(''):
  noData('No screened rankings for this category.','Model rankings appear after the scheduled predictions have been saved.')}
  async function loadRanks(){const token=++state.rankLoading;state.rankings=null;$('#rankings').innerHTML='<div class="empty loading grid-span">Loading rankings…</div>';
  if(state.league!=='nfl')return;
