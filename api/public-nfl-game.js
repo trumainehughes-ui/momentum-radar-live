@@ -1,7 +1,6 @@
 import {list} from '@vercel/blob';
 import {nflSgpSnapshotPath} from '../lib/nfl-sgp-snapshot-status.js';
 import {publicNflGameView} from '../lib/public-nfl-view.js';
-import {publicSharpReview} from '../lib/public-sharp-review.js';
 
 // Fan-facing saved prediction data ONLY. No paid odds, ESPN, AI, admin APIs,
 // market regeneration, mutations, or live sportsbook verification.
@@ -31,8 +30,7 @@ export default async function handler(req,res){
     message:'Game predictions could not be validated.',
     categories:{td:[],passing:[],rushing:[],receiving:[],receptions:[]},
     parlays:[],verifiedQuotes:[]});
-  return res.status(200).json({...safe,
-   sharpReview:publicSharpReview(safe,{sport:'nfl'})});
+  return res.status(200).json(safe);
  }catch{
   res.setHeader('Cache-Control','private, no-store');
   return res.status(503).json({ok:false,error:'public_predictions_temporarily_unavailable'});
