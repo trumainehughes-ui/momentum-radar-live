@@ -5,6 +5,7 @@ import {nbaPrepareEvidence} from '../lib/nba-pregame-model.js';
 import {pregameAiAudit} from '../lib/pregame-ai-review.js';
 import {sportsbookCoverageAudit} from '../lib/sportsbook-source-policy.js';
 import {sportResearchVerificationStatus} from '../lib/sport-sgp-verification-gate.js';
+import {fetchEspnEventStarters} from '../lib/espn-event-starter-evidence.js';
 import {nflRunCollectorBatch} from '../lib/nfl-collector-readiness.js';
 import {pregamePhase,pregameEvidenceAudit,pregameNeedsAiReview}
  from '../lib/pregame-revalidation.js';
@@ -12,7 +13,7 @@ import {selectedShardGames,collectorAuditReport,writeCollectorAudit}
  from '../lib/pregame-collector-shards.js';
 const PREFIX='momentum-pregame/v1/nba-';
 const MS=60_000,LOOKAHEAD=36*60*MS;
-export const NBA_PREGAME_MODEL_VERSION='v6-cross-sport-lineup-and-book-evidence';
+export const NBA_PREGAME_MODEL_VERSION='v7-game-scoped-starter-evidence';
 const path=id=>PREFIX+id+'.json';
 const DAY='America/New_York';
 const dateET=(when=new Date())=>{
@@ -126,10 +127,43 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   }
  }
  const evidence=await prepare({...game,injuries},{fetchJson});
+ // Event-specific ESPN roster flags supplement historical game usage.
+ // Do not mislabel them as official NBA inactives or sportsbook markets.
+ const eventStarters=observed?await fetchEspnEventStarters({
+  league:'nba',gameId:String(game.gameId),
+  competitors:observed?.header?.competitions?.[0]?.competitors,
+  now,fetchJson:url=>fetchJson(url,4500)}):
+  {checked:false,starters:[],startersConfirmed:false,teamsChecked:0,
+   reason:'SUMMARY_UNAVAILABLE',source:'ESPN_CORE_GAME_ROSTER'};
+ const starterIds=new Map(eventStarters.starters.map(p=>[p.playerId,p]));
+ const starterMatch=p=>{
+  const id=String(p?.playerId||p?.playerID||''),e=starterIds.get(id);
+  return Boolean(e&&String(e.team)===String(p?.team)&&
+   !injuries.some(i=>String(i.team)===String(p?.team)&&
+    String(i.name||'').toUpperCase().replace(/[^A-Z0-9]/g,'')===
+    String(p?.name||'').toUpperCase().replace(/[^A-Z0-9]/g,'')&&
+    /\b(?:OUT|DOUBTFUL|QUESTIONABLE|INACTIVE|SUSPENDED)\b/i.test(String(i.status||''))));
+ };
  // Old SGP-only comparisons missed same-player prop changes, injury
  // designations and defense-vs-position movements. Fingerprint all of them
  // on each scheduled collection instead.
- const result={...evidence,gameId:game.gameId,kickoff:game.kickoff,
+ const result={...evidence,
+  playerProjections:(evidence.playerProjections||[]).map(p=>({
+   ...p,starterVerified:starterMatch(p),
+   starterStatus:starterMatch(p)?'CONFIRMED_STARTER':'UNCONFIRMED',
+   starterSource:starterMatch(p)?'ESPN_CORE_GAME_ROSTER_STARTER_FLAG':null})),
+  sgps:(evidence.sgps||[]).map(card=>({...card,
+   legs:(card.legs||[]).map(p=>({
+    ...p,starterVerified:starterMatch(p),
+    starterStatus:starterMatch(p)?'CONFIRMED_STARTER':'UNCONFIRMED',
+    starterSource:starterMatch(p)?'ESPN_CORE_GAME_ROSTER_STARTER_FLAG':null}))})),
+  starterEvidence:{checked:eventStarters.checked,
+   startersConfirmed:eventStarters.startersConfirmed,
+   teamCounts:eventStarters.starterCounts||{},
+   source:eventStarters.source,
+   playerIds:(eventStarters.starters||[]).map(x=>x.playerId).sort(),
+   officialInactivesVerified:false},
+  gameId:game.gameId,kickoff:game.kickoff,
   home:game.home,away:game.away,
   checkedAt:new Date(now).toISOString(),
   injuryCheckedAt:injurySectionPresent?new Date(now).toISOString():null,
@@ -160,7 +194,8 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   sport:'nba',gameId:game.gameId,now,
   injuryCheckedAt:result.injuryCheckedAt,
   injurySourceAvailable:injurySectionPresent,
-  officialInactivesVerified:false,startersConfirmed:false,bookOffers:[]});
+  officialInactivesVerified:false,
+  startersConfirmed:eventStarters.startersConfirmed===true,bookOffers:[]});
  result.offenseDefenseStatus=result.offenseDefense?.status||'INSUFFICIENT_SAMPLES';
  // A failed data source must never overwrite an earlier populated model
  // without explaining the degradation. In either case, store audit metadata.
