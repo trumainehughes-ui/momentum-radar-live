@@ -269,39 +269,51 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  }
  function showSharp(d){
   const review=d.sharpReview;
-  const intro='<h3>📈 Sharp Intelligence • +EV Market Audit</h3>'+
-   '<p class="sub">The same risk and verification framework as Momentum Radar\'s developer Sharp Engine. Read-only, no live-bet actions or AI-credit usage. +EV requires independent current bookmaker prices and out-of-sample calibrated probability.</p>';
+  const intro='<h3>📈 Sharp Insights • Player Chances & Sportsbook Checks</h3>'+
+   '<p class="sub">See what the model estimates first. We only label a bet as verified +EV when current sportsbook prices and calibrated probabilities have both passed independent checks.</p>';
   if(!review||!Array.isArray(review.candidates))return intro+
-    noData('Sharp audit not available','Waiting for an approved read-only report from the selected game.');
-  const caution='<div class="bookquote"><b>Market verification status: '+esc(review.status)+'</b>'+
-   '<div class="small">'+esc(review.message)+'</div>'+
-   '<div class="small">Bankroll strategy: 0 units without a verified edge (1 unit = 1% of bankroll). Maximum possible recommendation under the shared policy: 0.5 units.</div></div>';
+   noData('Player insights not available','Waiting for an approved read-only game analysis.');
   const list=review.candidates.slice(0,30);
-  if(!list.length)return intro+caution+noData('No market candidates','Qualified player props have not been saved for this matchup.');
+  const caution='<p class="sub" style="margin:18px 0">'+
+   '<b>Sportsbook status: Not independently verified.</b> Player forecasts can still be useful, but no wager or +EV recommendation is available until the exact FanDuel/DraftKings prop and a validated probability are confirmed.'+
+   (d.status==='LAST_SAVED'?' <b>These are older saved projections, not current betting lines.</b>':'')+'</p>';
+  if(!list.length)return intro+caution+
+   noData('No verified player research yet','The current game has not produced screened model candidates.');
   return intro+caution+
    '<div class="players-grid" style="margin-top:18px">'+list.map(p=>{
     const m=p.marketContext||{},a=p.quantitativeAngle||{},ev=p.expectedValue||{},mm=p.marketMovement||{};
-    const forecast=a.estimatedTdChancePct!=null?
-     a.estimatedTdChancePct+'% model-estimated TD chance (uncalibrated)':
-     a.modelProjection!=null?a.modelProjection+' model projection':'Model forecast unavailable';
+    const pct=a.estimatedHitChancePct;
+    const estimated=pct!=null?esc(pct)+'%':'Pending';
+    const target=p.category==='td'?'Anytime TD':
+     a.hitTarget!=null?esc(a.hitTarget)+(p.category==='receptions'?'+ receptions':'+ '+p.category+' yards'):
+     esc(labels[p.category]||p.market);
     const market=m.displayOdds?
-     esc(m.book)+' '+esc(m.displayOdds)+
-     (m.line!=null?' at line '+esc(m.line):'')+
-     ' • break-even '+esc(m.impliedProbabilityPct)+'%':
-     'No independently verified market price';
+     'Observed '+esc(m.book)+' '+esc(m.displayOdds)+
+      (m.line!=null?' at line '+esc(m.line):'')+
+      ' • sportsbook break-even '+esc(m.impliedProbabilityPct)+'% (not independent +EV verification)':
+     'No independently verified FanDuel or DraftKings price attached';
+    const betStatus=m.displayOdds?
+     'A price has been observed, but book-to-book verification and model calibration remain incomplete.':
+     'This exact player prop has not been independently verified at the sportsbooks.';
     return '<div class="player"><div class="tiny">'+esc(p.team)+' • '+esc(labels[p.category]||p.market)+'</div>'+
      '<b>'+esc(p.name)+'</b>'+
-     '<div class="injstatus" style="margin:4px 0 12px">+EV Verdict: '+esc(p.status)+'</div>'+
-     '<div class="small"><b>Market Context:</b> '+market+'</div>'+
-     '<div class="small"><b>Quantitative Angle:</b> '+esc(forecast)+
-      (a.historicalSampleGames!=null?' • '+esc(a.historicalSampleGames)+' games sampled':'')+'</div>'+
-     '<div class="small"><b>Market Movement:</b> '+esc(mm.status||'UNAVAILABLE')+
-      ' • sharp/public money unavailable • CLV not established</div>'+
-     '<div class="small"><b>Expected Value:</b> '+esc(ev.reason||'Not established')+'</div>'+
-     '<div class="small"><b>Bankroll Strategy:</b> '+esc(p.bankroll?.units??0)+' units • no wager recommendation</div>'+
-     '</div>';
+     '<div class="stat">'+estimated+'</div>'+
+     '<div class="small"><b>Estimated hit chance • '+target+'</b> (uncalibrated model)</div>'+
+     '<div class="small" style="margin-top:13px"><b>Sportsbook verification pending</b></div>'+
+     '<div class="small">'+betStatus+'</div>'+
+     '<details style="margin-top:14px"><summary style="cursor:pointer;font-weight:750">Why is this bet not verified?</summary>'+
+      '<div class="small"><b>Market Context:</b> '+market+'</div>'+
+      '<div class="small"><b>Quantitative Angle:</b> '+estimated+' estimated chance for '+target+
+        (a.historicalSampleGames!=null?' • '+esc(a.historicalSampleGames)+' completed games sampled':'')+'</div>'+
+      '<div class="small"><b>Market Movement:</b> '+esc(mm.status||'UNAVAILABLE')+
+        ' • sharp/public money unavailable • CLV not established</div>'+
+      '<div class="small"><b>Expected Value:</b> '+esc(ev.reason||'Not established')+
+        ' • +EV Verdict: '+esc(p.status)+'</div>'+
+      '<div class="small"><b>Bankroll Strategy:</b> '+esc(p.bankroll?.units??0)+
+        ' units • no wager recommendation (1 unit = 1% of bankroll)</div>'+
+     '</details></div>';
    }).join('')+'</div>'+
-   '<p class="sub" style="margin-top:14px">Experimental projections are not calibrated betting probabilities. Recheck sportsbook lines and player availability before considering any wager. Never chase losses.</p>';
+   '<p class="sub" style="margin-top:14px">These percentages are uncalibrated model estimates, not guaranteed outcomes, verified sportsbook odds, or proof of positive EV. Never chase losses.</p>';
  }
  function showLive(d){
   const l=state.liveData;
