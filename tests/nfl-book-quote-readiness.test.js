@@ -85,7 +85,7 @@ test('FanDuel IDs cannot be accidentally quoted as DraftKings',()=>{
 test('production strictly gates every book candidate before signed change quote call',()=>{
  const src=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
  assert.ok(src.includes('evaluateNflBookQuoteReadiness(s,{book,gameId,now})'));
- assert.ok(src.includes('quoteEligibility:preflight.reason'));
+ assert.ok(src.includes('quoteEligibility:!preflight.eligible?preflight.reason'));
  assert.ok(src.includes('quoteSelectionCount:preflight.selectionCount'));
  assert.ok(src.includes('quoteRequest:safeQuote'));
  assert.ok(src.includes("s.quoteEligibility==='READY_FOR_AUTHORIZED_QUOTE'&&s.quoteRequest"));
