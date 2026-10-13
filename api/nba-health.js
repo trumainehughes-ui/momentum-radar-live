@@ -4,6 +4,7 @@ import {timingSafeEqual} from 'node:crypto';
 import {nbaPrepareEvidence} from '../lib/nba-pregame-model.js';
 import {pregameAiAudit} from '../lib/pregame-ai-review.js';
 import {sportsbookCoverageAudit} from '../lib/sportsbook-source-policy.js';
+import {sportResearchVerificationStatus} from '../lib/sport-sgp-verification-gate.js';
 import {nflRunCollectorBatch} from '../lib/nfl-collector-readiness.js';
 import {pregamePhase,pregameEvidenceAudit,pregameNeedsAiReview}
  from '../lib/pregame-revalidation.js';
@@ -11,7 +12,7 @@ import {selectedShardGames,collectorAuditReport,writeCollectorAudit}
  from '../lib/pregame-collector-shards.js';
 const PREFIX='momentum-pregame/v1/nba-';
 const MS=60_000,LOOKAHEAD=36*60*MS;
-export const NBA_PREGAME_MODEL_VERSION='v5-league-wide-matchup-baseline-revalidation';
+export const NBA_PREGAME_MODEL_VERSION='v6-cross-sport-lineup-and-book-evidence';
 const path=id=>PREFIX+id+'.json';
 const DAY='America/New_York';
 const dateET=(when=new Date())=>{
@@ -87,6 +88,7 @@ export function nbaPregameStatus(snapshot,{now=Date.now(),gameStatus='SCHEDULED'
  return{status:current?(ready.length?'MODEL_ONLY':'NOT_READY'):freshness.status,
   freshness:freshness.status,tiers:current?ready.map(x=>x.risk):[],
   checkedAt:snapshot.checkedAt,stage:snapshot.stage,revision:snapshot.revision,
+   pregameVerification:current?snapshot.pregameVerification||null:null,
   injuryCheckedAt:snapshot.injuryCheckedAt,injuryReportStatus:snapshot.injuryReportStatus||'UNKNOWN',
   sportsbookVerified:false,aiReviewed:current&&snapshot.aiReviewed===true,
   aiReviewStatus:current?snapshot.aiReview?.status||'PENDING':'STALE',
@@ -154,6 +156,11 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
  result.sportsbookCoverage=sportsbookCoverageAudit({sport:'nba',gameId:game.gameId,
   offers:[],attempts:[]});
  result.verifiedIndividualOffers=[];
+ result.pregameVerification=sportResearchVerificationStatus({
+  sport:'nba',gameId:game.gameId,now,
+  injuryCheckedAt:result.injuryCheckedAt,
+  injurySourceAvailable:injurySectionPresent,
+  officialInactivesVerified:false,startersConfirmed:false,bookOffers:[]});
  result.offenseDefenseStatus=result.offenseDefense?.status||'INSUFFICIENT_SAMPLES';
  // A failed data source must never overwrite an earlier populated model
  // without explaining the degradation. In either case, store audit metadata.
