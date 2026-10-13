@@ -86,7 +86,7 @@ test('production strictly gates every book candidate before signed change quote 
  const src=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
  assert.ok(src.includes('evaluateNflBookQuoteReadiness(s,{book,gameId,now})'));
  assert.ok(src.includes('quoteEligibility:!preflight.eligible?preflight.reason'));
- assert.ok(src.includes('quoteSelectionCount:preflight.selectionCount'));
+ assert.ok(src.includes('quoteSelectionCount:preflight.eligible&&lineup.ready?preflight.selectionCount:0'));
  assert.ok(src.includes('quoteRequest:safeQuote'));
  assert.ok(src.includes("s.quoteEligibility==='READY_FOR_AUTHORIZED_QUOTE'&&s.quoteRequest"));
  assert.ok(src.includes('if(authorizedChange&&gameId)'));
