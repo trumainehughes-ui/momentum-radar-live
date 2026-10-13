@@ -102,7 +102,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  function renderOdds(offers){if(!Array.isArray(offers)||!offers.length)return '';
  return '<div class="bookquote"><b>Verified combined sportsbook quote</b><div>'+offers.map(q=>esc(q.book)+' '+esc(q.risk)+' '+(Number(q.americanOdds)>0?'+':'')+esc(q.americanOdds)).join(' • ')+'</div><div class="sub">Prices may change; a quote is not a placed wager.</div></div>'}
 
- const views=[['overview','Overview'],['td','Anytime TD'],['props','Player Props'],['matchup','Matchup Edge'],['injuries','Injuries'],['sgps','SGPs'],['ai','✨ AI Game Analyzer'],['sharp','📈 Sharp +EV Audit'],['live','📊 Live TD Tracker']];
+ const views=[['overview','Overview'],['td','Anytime TD'],['props','Player Props'],['matchup','Matchup Edge'],['injuries','Injuries'],['sgps','SGPs'],['ai','✨ AI Game Analyzer'],['live','📊 Live TD Tracker']];
  const rankMetricNames={passYards:'Passing yards',rushYards:'Rushing yards',recYards:'Receiving yards',passTD:'Passing TDs',rushTD:'Rushing TDs',recTD:'Receiving TDs',receptions:'Receptions',targets:'Targets'};
  function renderOdds(offers){if(!Array.isArray(offers)||!offers.length)return '';
   return '<div class="bookquote"><b>Verified combined sportsbook quotes</b><div>'+
@@ -118,7 +118,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   return 'Estimated hit probability: '+x.hitProbabilityPct+'% • '+target+' (uncalibrated model)';
  }
  function renderParlays(d){const tiers=['Small','Medium','Nuke'];const available=d.parlays||[];
-  return '<div class="bookquote" style="background:#392a1e;border:1px solid #b38854"><b>MODEL RESEARCH ONLY — NOT A VERIFIED SPORTSBOOK PARLAY</b><div class="small">Every player and exact prop market must exist at the selected book, pass the current roster/injury screen, and receive an actual book-issued combined quote. A missing FanDuel or DraftKings line invalidates that book\'s parlay; do not substitute a model projection.</div></div>'+
+  return '<p class="sub" style="margin:12px 0"><b>Model parlay suggestions.</b> Sportsbook availability and combined odds are not confirmed unless a verified quote is shown.</p>'+
     (d.status==='LAST_SAVED'?'<div class="bookquote"><b>Archived model only:</b> These SGP legs may be outdated and are not live bookmaker tickets.</div>':'')+
    '<div class="section-head" style="margin-top:18px"><div><h3>Same Game Parlays • Detailed Breakdown</h3><p class="sub">The same model tiers available in the full dashboard. Real combined odds appear only if confirmed separately.</p></div></div>'+
   '<div class="parlay-grid">'+tiers.map(risk=>{const t=available.find(x=>x.risk===risk),cls=risk.toLowerCase();
@@ -130,7 +130,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     (t.explanation?'<p><b>Why these picks:</b> '+esc(t.explanation)+'</p>':'')+
     (t.matchupNotes?.length?'<details><summary class="small" style="cursor:pointer">See detailed leg analysis</summary>'+
     t.matchupNotes.map(x=>'<p>'+esc(x)+'</p>').join('')+'</details>':'')+
-    '<p><b>NOT BOOK-VERIFIED:</b> Analysis-only parlay concept. Availability and combined odds have not been confirmed by FanDuel or DraftKings.</p>':
+    '<p class="sub">Model suggestion · Check the actual player prop and price at your sportsbook.</p>':
     '<p>Not enough screened player props for this tier. It will appear after the next eligible update.</p>')+'</div>'
   }).join('')+'</div>'+renderOdds(d.verifiedQuotes)}
  function offerHtml(x){const o=x.bookOffer;if(!o)return '';
@@ -265,43 +265,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    '<p class="sub">'+(d.injuries?.length?
      esc(d.injuries.slice(0,8).map(x=>x.name+' ('+x.team+' '+x.status+')').join(' • ')):
      'No publishable injury observations; that is not confirmation of healthy rosters.')+'</p>';
-  return intro+modelBrief+review+insight+'<div class="controls" style="margin-top:18px"><button type="button" class="soft" data-view="sharp">📈 Open Sharp +EV Audit →</button></div>';
- }
- function showSharp(d){
-  const review=d.sharpReview;
-  const intro='<h3>📈 Sharp Intelligence • +EV Market Audit</h3>'+
-   '<p class="sub">The same risk and verification framework as Momentum Radar\'s developer Sharp Engine. Read-only, no live-bet actions or AI-credit usage. +EV requires independent current bookmaker prices and out-of-sample calibrated probability.</p>';
-  if(!review||!Array.isArray(review.candidates))return intro+
-    noData('Sharp audit not available','Waiting for an approved read-only report from the selected game.');
-  const caution='<div class="bookquote"><b>Market verification status: '+esc(review.status)+'</b>'+
-   '<div class="small">'+esc(review.message)+'</div>'+
-   '<div class="small">Bankroll strategy: 0 units without a verified edge (1 unit = 1% of bankroll). Maximum possible recommendation under the shared policy: 0.5 units.</div></div>';
-  const list=review.candidates.slice(0,30);
-  if(!list.length)return intro+caution+noData('No market candidates','Qualified player props have not been saved for this matchup.');
-  return intro+caution+
-   '<div class="players-grid" style="margin-top:18px">'+list.map(p=>{
-    const m=p.marketContext||{},a=p.quantitativeAngle||{},ev=p.expectedValue||{},mm=p.marketMovement||{};
-    const forecast=a.estimatedTdChancePct!=null?
-     a.estimatedTdChancePct+'% model-estimated TD chance (uncalibrated)':
-     a.modelProjection!=null?a.modelProjection+' model projection':'Model forecast unavailable';
-    const market=m.displayOdds?
-     esc(m.book)+' '+esc(m.displayOdds)+
-     (m.line!=null?' at line '+esc(m.line):'')+
-     ' • break-even '+esc(m.impliedProbabilityPct)+'%':
-     'No independently verified market price';
-    return '<div class="player"><div class="tiny">'+esc(p.team)+' • '+esc(labels[p.category]||p.market)+'</div>'+
-     '<b>'+esc(p.name)+'</b>'+
-     '<div class="injstatus" style="margin:4px 0 12px">+EV Verdict: '+esc(p.status)+'</div>'+
-     '<div class="small"><b>Market Context:</b> '+market+'</div>'+
-     '<div class="small"><b>Quantitative Angle:</b> '+esc(forecast)+
-      (a.historicalSampleGames!=null?' • '+esc(a.historicalSampleGames)+' games sampled':'')+'</div>'+
-     '<div class="small"><b>Market Movement:</b> '+esc(mm.status||'UNAVAILABLE')+
-      ' • sharp/public money unavailable • CLV not established</div>'+
-     '<div class="small"><b>Expected Value:</b> '+esc(ev.reason||'Not established')+'</div>'+
-     '<div class="small"><b>Bankroll Strategy:</b> '+esc(p.bankroll?.units??0)+' units • no wager recommendation</div>'+
-     '</div>';
-   }).join('')+'</div>'+
-   '<p class="sub" style="margin-top:14px">Experimental projections are not calibrated betting probabilities. Recheck sportsbook lines and player availability before considering any wager. Never chase losses.</p>';
+  return intro+modelBrief+review+insight;
  }
  function showLive(d){
   const l=state.liveData;
@@ -338,7 +302,6 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   if(state.detailTab==='injuries')body=showInjuries(d);
   if(state.detailTab==='sgps')body=renderParlays(d);
   if(state.detailTab==='ai')body=showAi(d);
-  if(state.detailTab==='sharp')body=showSharp(d);
   if(state.detailTab==='live')body=showLive(d);
   const warning=d.status==='LAST_SAVED'?'<div class="bookquote" style="border:1px solid #ba8550;background:#342923;color:#ffe1b3"><b>Older saved predictions — not current betting information</b><div>'+esc(d.message)+'</div><div class="small">'+esc(fmtStamp(d.updatedAt))+'</div></div>':'';
   $('#match-content').innerHTML=warning+tabs+'<div class="detail-body">'+body+'</div>';
