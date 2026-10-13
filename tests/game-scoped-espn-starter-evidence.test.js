@@ -120,7 +120,7 @@ test('NBA detected lineup changes invalidate cached model reviews at final check
 test('NFL game role signals preserve original published checkedAt instead of faking verification time',()=>{
  const src=readFileSync(new URL('../api/nfl-game.js',import.meta.url),'utf8');
  assert.ok(src.includes("league:'nfl',gameId,competitors"));
- assert.ok(src.includes("p._roleSignal?.checkedAt||null"));
+ assert.ok(src.includes("x._roleSignal?.checkedAt||null"));
  assert.ok(src.includes("now-checked>12*60*60_000"));
  assert.ok(src.includes("officialInactivesVerified:false"));
 });
