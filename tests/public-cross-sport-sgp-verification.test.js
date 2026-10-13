@@ -128,6 +128,10 @@ test('read-only public page reports same injury, starter and sportsbook gate wit
  assert.ok(html.includes('checks.DraftKings'));
  assert.ok(html.includes('checks.FanDuel'));
  assert.ok(api.includes('pregameChecks:{'));
+ assert.ok(api.includes('eventRosterStarterFlags:'));
+ assert.ok(api.includes("'ESPN_GAME_SCOPED_ROSTER'"));
+ assert.ok(html.includes('ESPN game-roster starter flags observed:'));
+ assert.ok(html.includes('not an official inactive report'));
  assert.ok(!html.includes('bookOutcomeId'));
  const script=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
  assert.ok(script);
