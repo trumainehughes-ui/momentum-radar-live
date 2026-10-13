@@ -79,11 +79,13 @@ test('old saved public player cards and entire impacted tier are rejected even i
  assert.deepEqual(result.parlays.map(x=>x.risk),['Medium']);
  assert.equal(result.parlays[0].legs[0].player,'Eligible Receiver');
  const asText=JSON.stringify(result);
- assert.ok(!asText.includes('Terrance Ferguson'));
+ assert.ok(result.injuries.some(x=>x.name==='Terrance Ferguson'&&x.status==='IR'));
+ assert.ok(!JSON.stringify(result.parlays).includes('Terrance Ferguson'));
  const stale=publicNflGameView(s,{date,gameId,now:now+25*60000,
   includeLastSaved:true});
  assert.equal(stale.status,'LAST_SAVED');
- assert.ok(!JSON.stringify(stale).includes('Terrance Ferguson'));
+ assert.ok(!JSON.stringify(stale.parlays).includes('Terrance Ferguson'));
+ assert.ok(stale.injuries.some(x=>x.name==='Terrance Ferguson'&&x.status==='IR'));
 });
 test('FanDuel lacks exact Ferguson receptions offer, so model statistics cannot qualify a book-specific SGP',()=>{
  const card={risk:'Small',tierAssessment:{compositionOk:true},

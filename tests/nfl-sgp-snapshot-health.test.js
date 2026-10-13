@@ -27,7 +27,7 @@ const sample=(at=now-60_000)=>({at,body:{
 test('snapshot path exactly matches production cache naming without charging any provider',()=>{
  const source=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
  assert.ok(source.includes("const CACHE_SCHEMA='v92-strict-nuke-profit-20261011'+'-nuke-roster-adaptive-1-game-identity-2'+'-day-ahead-roles-v5-teamid-depthchart'"));
- assert.equal(NFL_SGP_SNAPSHOT_SCHEMA,'v92-strict-nuke-profit-20261011-nuke-roster-adaptive-1-game-identity-2-day-ahead-roles-v5-teamid-depthchart-public-quote-scrub-v1-official-reserve-holds-v1-model-hit-chance-v1');
+ assert.equal(NFL_SGP_SNAPSHOT_SCHEMA,'v92-strict-nuke-profit-20261011-nuke-roster-adaptive-1-game-identity-2-day-ahead-roles-v5-teamid-depthchart-public-quote-scrub-v1-official-reserve-holds-v1-model-hit-chance-v1-injury-list-hardgate-v1');
  assert.equal(nflSgpSnapshotPath(date,gameId),
   'momentum-nfl-markets/v2/'+NFL_SGP_SNAPSHOT_SCHEMA+'-2026-10-11-401872981.json');
  for(const [d,id] of [['2026-02-30',gameId],['2026-13-99',gameId],
