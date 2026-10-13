@@ -124,8 +124,15 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    ' • Official inactives: '+(checks.officialInactivesVerified===true?'confirmed':'not confirmed')+
    ' • DraftKings props: '+(checks.DraftKings||'not verified')+
    ' • FanDuel props: '+(checks.FanDuel||'not verified');
+  const flags=checks.eventRosterStarterFlags;
+  const eventStarterText=flags&&typeof flags==='object'?
+   'ESPN game-roster starter flags observed: '+
+   Object.entries(flags).map(([team,n])=>team+' '+n).join(', ')+
+   '. These flags are not an official inactive report.':
+   'ESPN game-specific starter flags unavailable or outdated.';
   return '<div class="bookquote"><b>Pregame roster & sportsbook checks</b><div class="small">'+
-    esc(checkText)+'</div><div class="small">Research-only until the player is eligible, the exact market is available at the chosen sportsbook, and the book issues a combined SGP quote.</div></div>'+
+    esc(checkText)+'</div><div class="small">'+esc(eventStarterText)+
+    '</div><div class="small">Research-only until the player is eligible, the exact market is available at the chosen sportsbook, and the book issues a combined SGP quote.</div></div>'+
    '<div class="bookquote" style="background:#392a1e;border:1px solid #b38854"><b>MODEL RESEARCH ONLY — NOT A VERIFIED SPORTSBOOK PARLAY</b><div class="small">Every player and exact prop market must exist at the selected book, pass the current roster/injury screen, and receive an actual book-issued combined quote. A missing FanDuel or DraftKings line invalidates that book\'s parlay; do not substitute a model projection.</div></div>'+
     (d.status==='LAST_SAVED'?'<div class="bookquote"><b>Archived model only:</b> These SGP legs may be outdated and are not live bookmaker tickets.</div>':'')+
    '<div class="section-head" style="margin-top:18px"><div><h3>Same Game Parlays • Detailed Breakdown</h3><p class="sub">The same model tiers available in the full dashboard. Real combined odds appear only if confirmed separately.</p></div></div>'+
