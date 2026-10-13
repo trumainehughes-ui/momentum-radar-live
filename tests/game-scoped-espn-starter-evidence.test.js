@@ -87,7 +87,7 @@ test('NBA collector marks real starter flags but never treats them as NBA offici
   prepare:async()=>({status:'MODEL_ONLY',playerProjections:[
    {playerId:'1234500',team:'NY',name:'Eligible Starter',category:'points',projection:18},
    {playerId:'1234999',team:'NY',name:'Old Boxscore Player',category:'points',projection:20}],
-   sgps:[{risk:'Small',status:'MODEL_CANDIDATE',legs:[
+   sgps:[{risk:'Small',status:'MODEL_CANDIDATE',publishable:false,legs:[
     {playerId:'1234500',team:'NY',name:'Eligible Starter',category:'points',threshold:15},
     {playerId:'1234999',team:'NY',name:'Old Boxscore Player',category:'points',threshold:20}]}]}),
   write:async v=>{saved=v;},
