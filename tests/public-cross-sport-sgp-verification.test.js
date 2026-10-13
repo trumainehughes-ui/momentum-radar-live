@@ -114,7 +114,7 @@ test('NBA collector persists explicit not-confirmed starting five and book avail
  const model=readFileSync(new URL('../lib/nba-pregame-model.js',import.meta.url),'utf8');
  assert.match(nba,/result\.pregameVerification=sportResearchVerificationStatus/);
  assert.match(nba,/injurySourceAvailable:injurySectionPresent/);
- assert.match(nba,/startersConfirmed:false,bookOffers:\[\]/);
+ assert.match(nba,/startersConfirmed:eventStarters.startersConfirmed===true/);
  assert.match(model,/starterVerificationStatus:'UNCONFIRMED'/);
  assert.match(model,/FanDuel:'NO_VERIFIED_GAME_PROP'/);
  assert.match(model,/DraftKings:'NO_VERIFIED_GAME_PROP'/);
