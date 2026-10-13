@@ -1,4 +1,5 @@
 import {list} from '@vercel/blob';
+import {estimateNflHitChance} from '../lib/nfl-model-hit-chance.js';
 import {buildNflSlateRankings,nflSlateSnapshotPrefix,nflSlateSnapshotPathValid}
  from '../lib/nfl-slate-rankings.js';
 
@@ -10,12 +11,14 @@ function publicRow(x,cat){
  if(cat==='td'){
   if(x?.tdModelStatus!=='ESPN_MATCHUP_MODEL'||
      !Number.isFinite(Number(x?.modelTdPercent)))return null;
-  return{...base,modelChancePct:Math.round(Number(x.modelTdPercent))};
+  return{...base,modelChancePct:Math.round(Number(x.modelTdPercent)),
+   hitProbabilityPct:estimateNflHitChance(x,cat)?.percent??null};
  }
  const n=Number(x?.projection);
  if(!Number.isFinite(n)||n<=0)return null;
+ const hit=estimateNflHitChance(x,cat);
  return{...base,projection:cat==='receptions'?Math.round(n*10)/10:
-  Math.round(n/5)*5};
+  Math.round(n/5)*5,hitProbabilityPct:hit?.percent??null,hitTarget:hit?.target??null};
 }
 export default async function handler(req,res){
  res.setHeader('Cache-Control','public, s-maxage=90, must-revalidate');
