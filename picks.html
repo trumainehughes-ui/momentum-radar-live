@@ -118,7 +118,15 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   return 'Estimated hit probability: '+x.hitProbabilityPct+'% • '+target+' (uncalibrated model)';
  }
  function renderParlays(d){const tiers=['Small','Medium','Nuke'];const available=d.parlays||[];
-  return '<div class="bookquote" style="background:#392a1e;border:1px solid #b38854"><b>MODEL RESEARCH ONLY — NOT A VERIFIED SPORTSBOOK PARLAY</b><div class="small">Every player and exact prop market must exist at the selected book, pass the current roster/injury screen, and receive an actual book-issued combined quote. A missing FanDuel or DraftKings line invalidates that book\'s parlay; do not substitute a model projection.</div></div>'+
+  const checks=d.pregameChecks||{};
+  const checkText='Injury report: '+(checks.injuryReport||'recheck needed')+
+   ' • Starters: '+(checks.startingLineups||'unconfirmed')+
+   ' • Official inactives: '+(checks.officialInactivesVerified===true?'confirmed':'not confirmed')+
+   ' • DraftKings props: '+(checks.DraftKings||'not verified')+
+   ' • FanDuel props: '+(checks.FanDuel||'not verified');
+  return '<div class="bookquote"><b>Pregame roster & sportsbook checks</b><div class="small">'+
+    esc(checkText)+'</div><div class="small">Research-only until the player is eligible, the exact market is available at the chosen sportsbook, and the book issues a combined SGP quote.</div></div>'+
+   '<div class="bookquote" style="background:#392a1e;border:1px solid #b38854"><b>MODEL RESEARCH ONLY — NOT A VERIFIED SPORTSBOOK PARLAY</b><div class="small">Every player and exact prop market must exist at the selected book, pass the current roster/injury screen, and receive an actual book-issued combined quote. A missing FanDuel or DraftKings line invalidates that book\'s parlay; do not substitute a model projection.</div></div>'+
     (d.status==='LAST_SAVED'?'<div class="bookquote"><b>Archived model only:</b> These SGP legs may be outdated and are not live bookmaker tickets.</div>':'')+
    '<div class="section-head" style="margin-top:18px"><div><h3>Same Game Parlays • Detailed Breakdown</h3><p class="sub">The same model tiers available in the full dashboard. Real combined odds appear only if confirmed separately.</p></div></div>'+
   '<div class="parlay-grid">'+tiers.map(risk=>{const t=available.find(x=>x.risk===risk),cls=risk.toLowerCase();

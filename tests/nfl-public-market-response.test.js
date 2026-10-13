@@ -65,7 +65,7 @@ test('NFL active response is scrubbed after quote calls and before public JSON a
  const save=code.indexOf('writeResponseSnapshot(responseKey,publicResponse)');
  const send=code.indexOf('return res.status(200).json(publicResponse);');
  assert.ok(quote>0&&redact>quote&&save>redact&&send>save);
- assert.ok(code.includes('quoteRequest:preflight.quoteRequest'));
+ assert.ok(code.includes('quoteRequest:safeQuote'));
  assert.ok(code.includes('candidate.quoteRequest.legs.length'));
  assert.ok(code.includes("'-public-quote-scrub-v1'"));
  assert.ok(NFL_SGP_SNAPSHOT_SCHEMA.endsWith('-public-quote-scrub-v1-official-reserve-holds-v1-model-hit-chance-v1'));
