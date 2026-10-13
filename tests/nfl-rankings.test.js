@@ -65,13 +65,13 @@ test('passing ranking shows model-estimated 235+ hit chance, never a Momentum ra
   const out=show({rank:2,name:'Example Quarterback',projection:235,momentumScore:84,
    gamesPlayed:4,perGame:220,hitChance:{target:235,percent:51,calibrated:false,modelOnly:true}},'passing');
   assert.match(out,/Model-estimated hit chance/);
-  assert.match(out,/235\\+ passing yards/);
+  assert.match(out,/235\+ passing yards/);
   assert.match(out,/51%/);
-  assert.doesNotMatch(out,/84\\/100|84%|Momentum rating/);
+  assert.doesNotMatch(out,/84\/100|84%|Momentum rating/);
   const unavailable=show({rank:2,name:'Example Quarterback',projection:235,momentumScore:84,
    gamesPlayed:2,perGame:220},'passing');
   assert.match(unavailable,/Pending/);
-  assert.doesNotMatch(unavailable,/84%|84\\/100/);
+  assert.doesNotMatch(unavailable,/84%|84\/100/);
 });
 test('rushing targets use 5-yard steps but projections remain precise',()=>{
   for(const [projection,expected] of [[124,100],[94,75],[78,60],[69,55]]){
