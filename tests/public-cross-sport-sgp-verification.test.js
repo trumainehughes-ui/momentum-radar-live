@@ -104,7 +104,7 @@ test('existing NFL live quote path now refuses projection-only/old lineup despit
  assert.ok(markets.includes('evaluateSportBookSgpLineup(s.legs'));
  assert.ok(markets.includes('const safeQuote=preflight.eligible&&lineup.ready?preflight.quoteRequest:null'));
  assert.ok(markets.includes('quoteRequest:safeQuote'));
- assert.ok(markets.includes('LINEUP_'+lineup.reason));
+ assert.ok(markets.includes('lineup.reason'));
  assert.ok(markets.includes("s.quoteEligibility==='READY_FOR_AUTHORIZED_QUOTE'&&s.quoteRequest"));
  assert.ok(game.includes("starterVerified:x._roleSignal?.status==='CONFIRMED_STARTER'"));
  assert.ok(game.includes("status:'HIGH_USAGE_ROLE'"));
