@@ -71,6 +71,22 @@ test('legacy AI narrative lacking review fingerprints does not become current au
   currentMarket:market,requireMarketAgreement:true});
  assert.equal(x.status,'REVIEW_PENDING');
 });
+test('an already-regenerated legacy AI review can display only if newer than identical current market evidence',()=>{
+ const history=snap(newLegs),market=marketOf(newLegs,[]);
+ history.aiReview.checkedAt=new Date(now-30_000).toISOString();
+ delete history.aiReview.modelSelectionDigest;
+ delete history.aiReview.injurySelectionDigest;
+ const exact=nflAiReviewMarketAgreement(history,market,{date,gameId,now});
+ assert.equal(exact.ok,true);
+ const shown=publicAiSummary(history,{date,gameId,now,
+  currentMarket:market,requireMarketAgreement:true});
+ assert.equal(shown.status,'SAVED_AI_REVIEW');
+ const changedLine=marketOf(newLegs.map((x,i)=>i===0?{...x,
+  analyticsThreshold:5}:x));
+ assert.equal(nflAiReviewMarketAgreement(history,changedLine,{date,gameId,now}).ok,false);
+ const advancedMarket=marketOf(newLegs,[],now-10_000);
+ assert.equal(nflAiReviewMarketAgreement(history,advancedMarket,{date,gameId,now}).ok,false);
+});
 test('stale, mismatched and unavailable market snapshots invalidate AI narrative',()=>{
  const history=snap(newLegs);
  for(const market of [
