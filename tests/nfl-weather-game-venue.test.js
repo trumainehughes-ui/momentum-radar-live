@@ -13,3 +13,12 @@ test('retractable roof needs confirmed status and evidence',()=>{
  assert.throws(()=>validateTrustedGameVenue({gameId:base.gameId,venue:{...base,retractableRoof:true},now}),/retractable_roof_evidence_missing/);
 });
 test('stale or distant kickoff is rejected',()=>assert.throws(()=>validateTrustedGameVenue({gameId:base.gameId,venue:base,now:Date.parse('2026-12-15T15:00:00Z')}),/kickoff_outside_review_window/));
+
+test('unapproved schedule source cannot masquerade as NFL game metadata',()=>{
+ assert.throws(()=>validateTrustedGameVenue({gameId:base.gameId,venue:{...base,scheduleSource:'https://evil.example/fixture'},now}),/schedule_source_not_allowlisted/);
+ assert.throws(()=>validateTrustedGameVenue({gameId:base.gameId,venue:{...base,scheduleSource:'https://www.nfl.com.evil.example/game'},now}),/schedule_source_not_allowlisted/);
+});
+test('retractable roof evidence must be from an allowlisted HTTPS source',()=>{
+ const venue={...base,retractableRoof:true,roofEvidence:'https://evil.example/roof'};
+ assert.throws(()=>validateTrustedGameVenue({gameId:base.gameId,venue,now}),/untrusted_roof_evidence_source/);
+});
