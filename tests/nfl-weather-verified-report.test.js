@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {buildVerifiedNflWeatherReport} from '../lib/nfl-weather-verified-report.js';
 const gameId='401234567',kickoffAt='2026-10-18T20:00:00Z';
 const venue={gameId,stadiumId:'stadium-verified',espnVenueId:'1234',scheduleSource:'https://www.nfl.com/schedules/',roofStatus:'closed',kickoffAt,awayTeam:'DEN',homeTeam:'KC',stadiumEvidence:{url:'https://www.nfl.com/stadiums/',stadiumId:'stadium-verified',checkedAt:'2026-10-15T16:00:00Z',verificationMethod:'fetched_source',verificationStatus:'verified',sourceGameId:gameId}};
-const summary={header:{id:gameId,competitions:[{id:gameId,venue:{id:'1234'},date:kickoffAt,competitors:[{team:{abbreviation:'DEN'}},{team:{abbreviation:'KC'}}]}]}};
+const summary={header:{id:gameId,competitions:[{id:gameId,venue:{id:'1234'},status:{type:{state:'pre',name:'STATUS_SCHEDULED'}},date:kickoffAt,competitors:[{team:{abbreviation:'DEN'}},{team:{abbreviation:'KC'}}]}]}};
 test('verified indoor game produces advisory without NWS or paid API calls',async()=>{
  let nwsCalls=0;
  const r=await buildVerifiedNflWeatherReport({gameId,registryJson:JSON.stringify({[gameId]:venue}),scheduleFetcher:async()=>({ok:true,json:async()=>summary}),weatherFetcher:async()=>{nwsCalls++;throw Error('unexpected NWS call')}});
