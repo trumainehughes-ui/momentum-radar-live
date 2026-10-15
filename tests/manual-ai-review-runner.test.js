@@ -10,3 +10,7 @@ test('validated AI remains advisory only',async()=>{const r=await runManualEvide
 test('provider outage does not publish selections',async()=>{const r=await runManualEvidenceAiReview({...input(),reviewAi:async()=>{throw Error('provider down')}});assert.equal(r.status,'AI_UNAVAILABLE');assert.equal(r.canPublish,false)});
 
 test('empty model candidates do not invoke AI',async()=>{let calls=0;const a=input();a.snapshot.sgps=[];a.reviewAi=async()=>{calls++};const r=await runManualEvidenceAiReview(a);assert.equal(r.status,'NO_ELIGIBLE_CANDIDATES');assert.equal(calls,0)});
+
+test('future-dated evidence cannot trigger AI',async()=>{let calls=0;const a=input();a.snapshot.checkedAt='2026-10-15T12:01:00Z';a.reviewAi=async()=>{calls++};const r=await runManualEvidenceAiReview(a);assert.equal(r.status,'STALE_EVIDENCE');assert.equal(calls,0);assert.equal(r.canPublish,false)});
+test('snapshot without a trustworthy timestamp cannot trigger AI',async()=>{let calls=0;const a=input();delete a.snapshot.checkedAt;a.reviewAi=async()=>{calls++};const r=await runManualEvidenceAiReview(a);assert.equal(r.status,'STALE_EVIDENCE');assert.equal(calls,0)});
+test('review cannot change authoritative player thresholds',async()=>{const r=await runManualEvidenceAiReview({...input(),reviewAi:async p=>({gameId:p.gameId,evidenceDigest:p.evidenceDigest,summary:'raise points',thresholdChanges:[{playerId:'p1',threshold:25}]})});assert.equal(r.status,'REVIEW_REJECTED');assert.equal(r.reason,'ai_attempted_authoritative_mutation');assert.equal(r.canPublish,false)});
