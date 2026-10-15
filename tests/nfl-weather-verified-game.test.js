@@ -35,3 +35,12 @@ test('source URL alone is not sufficient stadium verification',async()=>{
 test('ESPN stadium mismatch blocks weather report',async()=>{
  await assert.rejects(()=>resolve({...venue,espnVenueId:'9999'}),/schedule_stadium_identity_mismatch/);
 });
+
+test('outdoor coordinates must match source attestation',async()=>{
+ const outdoor={...venue,roofStatus:'outdoor',latitude:39.74,longitude:-104.99,venueSource:'https://www.nfl.com/stadiums/',stadiumEvidence:{...venue.stadiumEvidence,coordinates:{latitude:40.5,longitude:-105.3}}};
+ await assert.rejects(()=>resolve(outdoor),/stadium_coordinates_evidence_mismatch/);
+});
+test('outdoor coordinates without source attestation fail closed',async()=>{
+ const outdoor={...venue,roofStatus:'outdoor',latitude:39.74,longitude:-104.99,venueSource:'https://www.nfl.com/stadiums/'};
+ await assert.rejects(()=>resolve(outdoor),/stadium_coordinates_not_attested/);
+});
