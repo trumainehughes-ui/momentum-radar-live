@@ -1,0 +1,18 @@
+name: Manual AI Refresh Tests
+on:
+  pull_request:
+    paths:
+      - 'lib/manual-ai-refresh.js'
+      - 'tests/manual-ai-refresh.test.js'
+      - '.github/workflows/manual-ai-refresh-tests.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci
+      - run: npm test
