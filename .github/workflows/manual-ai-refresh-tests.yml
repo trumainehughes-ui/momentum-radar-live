@@ -3,7 +3,12 @@ on:
   pull_request:
     paths:
       - 'lib/manual-ai-refresh.js'
-      - 'tests/manual-ai-refresh.test.js'
+      - 'lib/manual-ai-*.js'
+      - 'lib/manual-sgp-validation.js'
+      - 'lib/manual-refresh-summary.js'
+      - 'tests/manual-ai-*.test.js'
+      - 'tests/manual-sgp-validation.test.js'
+      - 'tests/manual-refresh-summary.test.js'
       - '.github/workflows/manual-ai-refresh-tests.yml'
   workflow_dispatch:
 jobs:
