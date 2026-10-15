@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {reviewNflStadiumWeather} from '../lib/nfl-weather-review.js';
 const now=Date.parse('2026-10-18T18:00:00Z');
-const venue={roofStatus:'outdoor',latitude:39.7,longitude:-105,kickoffAt:'2026-10-18T20:00:00Z'};
+const venue={roofStatus:'outdoor',latitude:39.7,longitude:-105,venueSource:'verified stadium reference',kickoffAt:'2026-10-18T20:00:00Z'};
 const points={properties:{forecastHourly:'https://api.weather.gov/gridpoints/BOU/61,62/forecast/hourly'}};
 const hourly={properties:{periods:[{startTime:'2026-10-18T20:00:00Z',endTime:'2026-10-18T21:00:00Z',windSpeed:'22 mph',temperature:40,probabilityOfPrecipitation:{value:55}}]}};
 test('NWS forecast flows into weather severity and AI advisory without sportsbook calls',async()=>{
