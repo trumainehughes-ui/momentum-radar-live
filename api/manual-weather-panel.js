@@ -2,6 +2,7 @@
 // Not exposed to the public site and never changes SGPs or sportsbook lines.
 import {timingSafeEqual} from 'node:crypto';
 import {reviewNflStadiumWeather} from '../lib/nfl-weather-review.js';
+import {resolveServerWeatherVenue} from '../lib/nfl-weather-trusted-venue.js';
 import {renderNflWeatherImpactPanel} from '../lib/nfl-weather-panel.js';
 export default async function handler(req,res){
  res.setHeader('Cache-Control','private, no-store');
@@ -17,7 +18,8 @@ export default async function handler(req,res){
  if(!body||typeof body!=='object'||Array.isArray(body)||JSON.stringify(body).length>4000)
   return res.status(400).json({ok:false,error:'invalid_payload'});
  try{
-  const result=await reviewNflStadiumWeather({gameId:body.gameId,venue:body.venue});
+  const trustedVenue=resolveServerWeatherVenue({gameId:body.gameId,requestVenue:body.venue});
+  const result=await reviewNflStadiumWeather({gameId:body.gameId,venue:trustedVenue});
   const html=renderNflWeatherImpactPanel({assessment:result.assessment,explanation:result.explanation,players:[]});
   res.setHeader('Content-Type','text/html; charset=utf-8');
   return res.status(200).send(html);
