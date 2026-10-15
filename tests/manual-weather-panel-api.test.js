@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+process.env.NFL_WEATHER_VENUES_JSON=JSON.stringify({'401234567':{roofStatus:'closed',kickoffAt:'2026-10-18T20:00:00Z'}});
 import handler from '../api/manual-weather-panel.js';
 async function invoke(method,body,token){
  const req={method,body,headers:{'x-manual-review-secret':token}};
