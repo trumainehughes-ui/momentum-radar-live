@@ -18,6 +18,7 @@ export default async function handler(req,res){
  if(!body||typeof body!=='object'||Array.isArray(body)||JSON.stringify(body).length>4000)
   return res.status(400).json({ok:false,error:'invalid_payload'});
  try{
+  if(!/^\d{7,12}$/.test(String(body.gameId||'')))return res.status(400).json({ok:false,error:'invalid_game'});
   const {venue:trustedVenue}=await resolveVerifiedNflWeatherGame({gameId:body.gameId});
   const result=await reviewNflStadiumWeather({gameId:body.gameId,venue:trustedVenue});
   const html=renderNflWeatherImpactPanel({assessment:result.assessment,explanation:result.explanation,players:[]});
