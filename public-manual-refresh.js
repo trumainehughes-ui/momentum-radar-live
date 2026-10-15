@@ -23,7 +23,8 @@
    const result=await response.json();
    if(!response.ok)throw Error(result.error||'cached_review_failed');
    status.textContent='Cached '+sport+' review: '+(result.updatedAt||'timestamp unavailable')+
-    '. '+result.tiers.length+' stored SGP tier(s). No AI rebuild, new injury check, odds refresh or paid sports API call.';
+    '. '+result.tiers.length+' stored SGP tier(s). '+(result.stale?'STALE DATA — not suitable for live betting. ':'')+
+    'No AI rebuild, new injury check, odds refresh or paid sports API call.';
   }catch(e){status.textContent='Cached review unavailable: '+String(e.message||e)+'. Existing selections unchanged.'}
   finally{button.disabled=false}
  });
