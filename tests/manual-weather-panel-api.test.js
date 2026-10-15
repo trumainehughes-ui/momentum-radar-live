@@ -11,12 +11,12 @@ async function invoke(method,body,token){
 }
 test('weather HTML preview requires admin authentication',async()=>{
  const old=process.env.MANUAL_AI_REVIEW_SECRET;process.env.MANUAL_AI_REVIEW_SECRET='preview-secret';
- try{assert.equal((await invoke('POST',{gameId:'401234567',venue:{gameId:'401234567',stadiumId:'stadium-verified',scheduleSource:'https://www.nfl.com/schedules/2026/reg18/',roofStatus:'closed',kickoffAt:'2026-10-18T20:00:00Z'}},'bad')).code,401)}
+ try{assert.equal((await invoke('POST',{gameId:'401234567'},'bad')).code,401)}
  finally{if(old===undefined)delete process.env.MANUAL_AI_REVIEW_SECRET;else process.env.MANUAL_AI_REVIEW_SECRET=old}
 });
 test('closed-roof weather panel returns safe read-only HTML',async()=>{
  const old=process.env.MANUAL_AI_REVIEW_SECRET;process.env.MANUAL_AI_REVIEW_SECRET='preview-secret';
- try{const r=await invoke('POST',{gameId:'401234567',venue:{gameId:'401234567',stadiumId:'stadium-verified',scheduleSource:'https://www.nfl.com/schedules/2026/reg18/',roofStatus:'closed',kickoffAt:'2026-10-18T20:00:00Z'}},'preview-secret');
+ try{const r=await invoke('POST',{gameId:'401234567'},'preview-secret');
  assert.equal(r.code,200);assert.match(r.body,/Weather Impact/);assert.match(r.body,/INDOOR/);assert.match(r.headers['Content-Security-Policy'],/default-src 'none'/)}
  finally{if(old===undefined)delete process.env.MANUAL_AI_REVIEW_SECRET;else process.env.MANUAL_AI_REVIEW_SECRET=old}
 });
