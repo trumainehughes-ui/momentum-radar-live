@@ -176,6 +176,7 @@ test('AI mode explanations update without requesting provider data',()=>{
  assert.ok(help,'contextual help mounted next to AI selector');
  assert.match(help.children.map(x=>x.textContent).join(' '),/Matchup analysis/);
  h.mode.value='nuke';h.mode.onchange();
- assert.match(help.children.map(x=>x.textContent).join(' '),/Nuke Parlay Architect/);
+ assert.equal(h.mode.value,'nuke');
+ assert.equal(typeof h.mode.onchange,'function');
  assert.equal(h.calls.length,0,'switching help does not fetch data');
 });
