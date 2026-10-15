@@ -2,6 +2,7 @@
 // sportsbook-market snapshot. Never equate MODEL_CANDIDATE with a book quote.
 import {readCollectorAudits} from '../lib/pregame-collector-shards.js';
 import {nflSgpReadinessFromBlob} from '../lib/nfl-sgp-snapshot-status.js';
+import {nflEasternDate} from '../lib/nfl-collector-readiness.js';
 export default async function handler(req,res){
  res.setHeader('Cache-Control','public, s-maxage=30, must-revalidate');
  if(req.method!=='GET')return res.status(405).json({ok:false,error:'method_not_allowed'});
@@ -13,6 +14,13 @@ export default async function handler(req,res){
     Math.floor(parsed/86400000)<today-2||Math.floor(parsed/86400000)>today+30)
   return res.status(400).json({ok:false,error:'date_outside_monitoring_window'});
  try{
+  const base='https://'+String(process.env.VERCEL_PROJECT_PRODUCTION_URL||'momentum-radar-live.vercel.app');
+  const response=await fetch(base+'/api/nfl-schedule?date='+date,{cache:'no-store',signal:AbortSignal.timeout(8000)});
+  if(!response.ok)return res.status(503).json({ok:false,error:'schedule_unavailable'});
+  const schedule=await response.json();
+  const game=(schedule.games||[]).find(g=>String(g.gameId)===gameId);
+  if(!game||nflEasternDate(new Date(game.kickoff))!==date)
+   return res.status(422).json({ok:false,error:'game_not_on_requested_eastern_date',gameId,date});
   const [audits,market]=await Promise.all([
    readCollectorAudits('nfl'),nflSgpReadinessFromBlob({date,gameId})
   ]);
