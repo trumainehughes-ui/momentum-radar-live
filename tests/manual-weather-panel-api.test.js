@@ -21,3 +21,12 @@ test('closed-roof weather panel returns safe read-only HTML',async()=>{
  finally{if(old===undefined)delete process.env.MANUAL_AI_REVIEW_SECRET;else process.env.MANUAL_AI_REVIEW_SECRET=old}
 });
 test('GET cannot retrieve weather HTML',async()=>assert.equal((await invoke('GET',{},'')).code,405));
+
+test('caller cannot override server-owned stadium roof',async()=>{
+ const old=process.env.MANUAL_AI_REVIEW_SECRET;process.env.MANUAL_AI_REVIEW_SECRET='preview-secret';
+ try{
+  const r=await invoke('POST',{gameId:'401234567',venue:{roofStatus:'outdoor',latitude:39.7,longitude:-105.0,venueSource:'fake'}},'preview-secret');
+  assert.equal(r.code,200);
+  assert.match(r.body,/INDOOR/);
+ }finally{if(old===undefined)delete process.env.MANUAL_AI_REVIEW_SECRET;else process.env.MANUAL_AI_REVIEW_SECRET=old}
+});
