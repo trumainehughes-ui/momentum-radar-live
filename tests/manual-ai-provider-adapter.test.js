@@ -19,3 +19,17 @@ test('invalid evidence digest cannot be submitted',async()=>{
  const adapter=createManualAiAdapter({endpoint:'https://example.test/api/ai-analysis',fetcher:async()=>{throw Error('should not call')}});
  await assert.rejects(adapter({...request,evidenceDigest:'wrong'}),/invalid_ai_review_request/);
 });
+
+test('oversized evidence fails before the AI endpoint is contacted',async()=>{
+ let calls=0;
+ const adapter=createManualAiAdapter({endpoint:'https://example.test/api/ai-analysis',fetcher:async()=>{calls++;throw Error('unexpected network request')}});
+ await assert.rejects(adapter({...request,data:{gameId:'401234567',padding:'x'.repeat(36000)}}),/ai_evidence_payload_too_large/);
+ assert.equal(calls,0);
+});
+test('evidence at normal size still reaches the AI endpoint',async()=>{
+ let calls=0;
+ const adapter=createManualAiAdapter({endpoint:'https://example.test/api/ai-analysis',fetcher:async()=>{calls++;return{ok:true,json:async()=>({ok:true,aiAvailable:true,analysis:'Read-only assessment'})}}});
+ const result=await adapter({...request,data:{gameId:'401234567',notes:'x'.repeat(1000)}});
+ assert.equal(calls,1);
+ assert.equal(result.summary,'Read-only assessment');
+});
