@@ -201,5 +201,6 @@
   document.querySelectorAll('[data-nbatab]').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.nbatab)));
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+ window.momentumSelectedNbaGame=()=>selected;
  window.momentumNbaOpen=()=>{if(!data&&!loading)load();};
 })();
