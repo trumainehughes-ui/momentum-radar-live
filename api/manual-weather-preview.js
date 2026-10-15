@@ -13,8 +13,8 @@ export default async function handler(req,res){
  const body=req.body;
  if(!body||typeof body!=='object'||Array.isArray(body)||JSON.stringify(body).length>4000)
   return res.status(400).json({ok:false,error:'invalid_payload'});
- const {gameId,venue}=body;
- if(!/^\d{7,12}$/.test(String(gameId||''))||!venue||typeof venue!=='object'||Array.isArray(venue))
+ const {gameId}=body;
+ if(!/^\d{7,12}$/.test(String(gameId||'')))
   return res.status(400).json({ok:false,error:'invalid_game'});
  try{
   const {venue:trustedVenue}=await resolveVerifiedNflWeatherGame({gameId});
