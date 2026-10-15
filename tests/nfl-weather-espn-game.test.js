@@ -22,3 +22,10 @@ test('server fetch targets ESPN summary for the exact game ID',async()=>{
 test('server fetch fails closed when upstream game identity is wrong',async()=>{
  await assert.rejects(()=>fetchVerifiedEspnNflGame({gameId:'401234568',fetcher:async()=>({ok:true,json:async()=>summary})}),/schedule_game_id_mismatch/);
 });
+
+test('ESPN header and competition may not disagree even if one ID matches',()=>{
+ const wrongCompetition=structuredClone(summary);wrongCompetition.header.competitions[0].id='401234568';
+ assert.throws(()=>verifyEspnNflGameSummary({gameId:id,summary:wrongCompetition}),/schedule_game_id_mismatch/);
+ const wrongHeader=structuredClone(summary);wrongHeader.header.id='401234568';
+ assert.throws(()=>verifyEspnNflGameSummary({gameId:id,summary:wrongHeader}),/schedule_game_id_mismatch/);
+});
