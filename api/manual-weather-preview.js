@@ -1,7 +1,6 @@
 // Admin-only preview of kickoff weather. No sportsbook API usage or SGP publication.
 import {timingSafeEqual} from 'node:crypto';
-import {reviewNflStadiumWeather} from '../lib/nfl-weather-review.js';
-import {resolveVerifiedNflWeatherGame} from '../lib/nfl-weather-verified-game.js';
+import {buildVerifiedNflWeatherReport} from '../lib/nfl-weather-verified-report.js';
 export default async function handler(req,res){
  res.setHeader('Cache-Control','private, no-store');
  if(req.method!=='POST')return res.status(405).json({ok:false,error:'method_not_allowed'});
@@ -17,8 +16,7 @@ export default async function handler(req,res){
  if(!/^\d{7,12}$/.test(String(gameId||'')))
   return res.status(400).json({ok:false,error:'invalid_game'});
  try{
-  const {venue:trustedVenue}=await resolveVerifiedNflWeatherGame({gameId});
-  const report=await reviewNflStadiumWeather({gameId,venue:trustedVenue});
+  const report=await buildVerifiedNflWeatherReport({gameId});
   return res.status(200).json({ok:true,...report});
  }catch{
   return res.status(503).json({ok:false,error:'weather_review_unavailable',paidSportsApiCalls:0,publicationBlocked:true});
