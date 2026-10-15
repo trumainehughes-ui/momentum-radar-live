@@ -27,7 +27,9 @@ export default async function handler(req,res){
   if(!source.ok)throw Error('snapshot_read_failed');
   const snapshot=await source.json();
   if(String(snapshot.gameId)!==gameId)return res.status(409).json({ok:false,error:'snapshot_identity_mismatch'});
-  const game=snapshot.game;
+  const game=sport==='NBA'&&snapshot.home?.abbr&&snapshot.away?.abbr?
+   {gameId,home:snapshot.home,away:snapshot.away,kickoff:snapshot.kickoff}:
+   snapshot.game;
   if(!game||String(game.gameId)!==gameId)
    return res.status(409).json({ok:false,error:'game_metadata_missing'});
   // Restrict internal AI destination to this deployment, never a user-supplied URL.
