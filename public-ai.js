@@ -157,6 +157,37 @@
   const panel=document.createElement('section');panel.id='momentumAiPanel';panel.className='momentumAiPanel';
   panel.innerHTML='<h3>Momentum Radar AI <small style="font-size:11px;color:#b3edff">Beta</small></h3><p class="momentumAiNote">The analysis follows the game you opened. NFL model data and ESPN injury reports are described separately from sportsbook-verified odds.</p><div id="momentumAiGameName" class="momentumAiGameName" aria-live="polite">Open a matchup to view analysis</div><div class="momentumAiActions"><select id="momentumAiMode" aria-label="Analysis type"><option value="matchup">Matchup analysis</option><option value="injury">Injury / lineup impact</option><option value="parlay">SGP review</option><option value="results">Results review</option><option value="guardian">Data Quality Guardian</option><option value="nuke">Nuke Parlay Architect</option><option value="opportunity">Injury & Opportunity Radar</option><option value="value">Prop Value Detector</option><option value="sharp">Sharp +EV Audit (all sports)</option><option value="simulation">Game Script Simulator</option><option value="learning">Postgame Learning Lab</option></select><button id="momentumAiRun" type="button">Refresh analysis</button></div><div id="momentumAiOutput" role="status" aria-live="polite">Tap AI Analysis above to analyze this matchup.</div>';
   root.prepend(panel);
+  // Contextual help follows the selected AI mode without making any API calls.
+  const aiHelp={
+   matchup:['Matchup analysis','Compares offensive strengths, opposing defensive tendencies and available player projections.','Start here to understand why a matchup may favor certain roles; check the source timestamps and injuries.'],
+   injury:['Injury / lineup impact','Reviews reported injuries and possible workload changes for teammates and opponents.','Check official inactives before kickoff; questionable does not mean out.'],
+   parlay:['SGP review','Reviews model-generated same-game combinations, leg eligibility and available sportsbook verification.','Check every leg, book-specific limit and the sportsbook-issued combined price. Model-only is not a bettable quote.'],
+   results:['Results review','Explains observed game results alongside earlier analysis when records exist.','Use after games to distinguish correct predictions from misses and incomplete data.'],
+   guardian:['Data Quality Guardian','Looks for stale, missing, conflicting or unverified inputs.','Use before trusting any AI recommendation; flagged data should reduce confidence, not be guessed.'],
+   nuke:['Nuke Parlay Architect','Evaluates high-risk SGP candidate combinations aiming above +10000 odds.','Review player eligibility, yardage ceilings and leg diversity. Target odds are not confirmed payouts.'],
+   opportunity:['Injury & Opportunity Radar','Highlights how roster changes may create extra snaps, touches or targets for eligible players.','Compare the expected role change against official status and the current market.'],
+   value:['Prop Value Detector','Compares model projections with available player prop thresholds to identify possible differences.','Treat apparent value as provisional until the exact sportsbook line and price are verified.'],
+   sharp:['Sharp +EV Audit (all sports)','Examines price versus estimated probability when both inputs are available; +EV means positive estimated expected value.','A model edge is uncertain, not guaranteed profit. Check market freshness, vig and whether actual prices were supplied.'],
+   simulation:['Game Script Simulator','Explores possible game flows such as a team leading early or playing from behind.','Use scenarios to understand how passing, rushing and player usage could shift; they are not predictions of certainty.'],
+   learning:['Postgame Learning Lab','Reviews previous model calls against observed outcomes to identify patterns and weaknesses.','Use after results are final; missing or ungradable outcomes should not count as wins.']
+  };
+  const modeSelect=document.getElementById('momentumAiMode');
+  const help=document.createElement('div');help.id='momentumAiModeHelp';
+  help.className='momentumAiNote';help.style.cssText='margin:10px 0;padding:12px;border:1px solid #31586d;border-radius:10px;background:#102330;color:#e3f1fa;line-height:1.55;font-size:13px';
+  help.setAttribute('aria-live','polite');
+  const explain=()=>{
+   const [title,what,how]=aiHelp[modeSelect.value]||aiHelp.matchup;
+   help.replaceChildren();
+   const heading=document.createElement('strong');heading.textContent=title;help.appendChild(heading);
+   for(const [label,value] of [['What it does: ',what],['How to use it: ',how]]){
+    const line=document.createElement('div');line.style.marginTop='6px';
+    const bold=document.createElement('strong');bold.textContent=label;line.appendChild(bold);
+    line.appendChild(document.createTextNode(value));help.appendChild(line);
+   }
+  };
+  modeSelect.addEventListener('change',explain);
+  document.querySelector('#momentumAiPanel .momentumAiActions').after(help);
+  explain();
   document.getElementById('momentumAiRun').onclick=async()=>{
    const out=document.getElementById('momentumAiOutput'),button=document.getElementById('momentumAiRun');
    if(button.disabled)return;
