@@ -44,3 +44,8 @@ test('outdoor coordinates without source attestation fail closed',async()=>{
  const outdoor={...venue,roofStatus:'outdoor',latitude:39.74,longitude:-104.99,venueSource:'https://www.nfl.com/stadiums/'};
  await assert.rejects(()=>resolve(outdoor),/stadium_coordinates_not_attested/);
 });
+
+test('stale or future-dated stadium source evidence cannot be used',async()=>{
+ await assert.rejects(()=>resolve({...venue,stadiumEvidence:{...venue.stadiumEvidence,checkedAt:'2026-01-01T00:00:00Z'}}),/stadium_evidence_stale_or_future/);
+ await assert.rejects(()=>resolve({...venue,stadiumEvidence:{...venue.stadiumEvidence,checkedAt:'2030-01-01T00:00:00Z'}}),/stadium_evidence_stale_or_future/);
+});
