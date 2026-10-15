@@ -18,3 +18,20 @@ test('review cannot change authoritative player thresholds',async()=>{const r=aw
 test('AI cannot cite a player absent from source evidence',async()=>{const r=await runManualEvidenceAiReview({...input(),reviewAi:async p=>({gameId:p.gameId,evidenceDigest:p.evidenceDigest,summary:'review',flaggedPlayerIds:['unknown-player']})});assert.equal(r.status,'REVIEW_REJECTED');assert.equal(r.reason,'unrecognized_player_reference');assert.equal(r.canPublish,false)});
 test('AI cannot substitute another game identity',async()=>{const r=await runManualEvidenceAiReview({...input(),reviewAi:async p=>({gameId:'401999999',evidenceDigest:p.evidenceDigest,summary:'review'})});assert.equal(r.status,'REVIEW_REJECTED');assert.equal(r.reason,'evidence_digest_mismatch');assert.equal(r.canPublish,false)});
 test('accepted review cannot publish or charge sports-data APIs',async()=>{const r=await runManualEvidenceAiReview({...input(),reviewAi:async p=>({gameId:p.gameId,evidenceDigest:p.evidenceDigest,summary:'review'})});assert.equal(r.status,'AI_REVIEWED');assert.equal(r.canPublish,false);assert.equal(r.paidSportsApiCalls,0);assert.equal(r.advisoryOnly,true)});
+
+test('successful advisory review leaves the authoritative cached snapshot unchanged',async()=>{
+ const args=input();
+ const before=structuredClone(args.snapshot);
+ const result=await runManualEvidenceAiReview({...args,reviewAi:async p=>({gameId:p.gameId,evidenceDigest:p.evidenceDigest,summary:'Read-only assessment'})});
+ assert.equal(result.status,'AI_REVIEWED');
+ assert.equal(result.canPublish,false);
+ assert.deepEqual(args.snapshot,before);
+});
+test('rejected AI mutation attempt leaves the cached snapshot unchanged',async()=>{
+ const args=input();
+ const before=structuredClone(args.snapshot);
+ const result=await runManualEvidenceAiReview({...args,reviewAi:async p=>({gameId:p.gameId,evidenceDigest:p.evidenceDigest,thresholdChanges:[{playerId:'p1',threshold:999}]})});
+ assert.equal(result.status,'REVIEW_REJECTED');
+ assert.equal(result.canPublish,false);
+ assert.deepEqual(args.snapshot,before);
+});
