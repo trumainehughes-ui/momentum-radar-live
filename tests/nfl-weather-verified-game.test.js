@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {resolveVerifiedNflWeatherGame} from '../lib/nfl-weather-verified-game.js';
 const id='401234567',kickoff='2026-10-18T20:00:00Z';
-const venue={gameId:id,stadiumId:'stadium-verified',scheduleSource:'https://www.nfl.com/schedules/',kickoffAt:kickoff,roofStatus:'closed',stadiumEvidence:{url:'https://www.nfl.com/stadiums/',stadiumId:'stadium-verified',checkedAt:'2026-10-15T16:00:00Z'},awayTeam:'DEN',homeTeam:'KC'};
+const venue={gameId:id,stadiumId:'stadium-verified',scheduleSource:'https://www.nfl.com/schedules/',kickoffAt:kickoff,roofStatus:'closed',stadiumEvidence:{url:'https://www.nfl.com/stadiums/',stadiumId:'stadium-verified',checkedAt:'2026-10-15T16:00:00Z',verificationMethod:'fetched_source',verificationStatus:'verified',sourceGameId:'401234567'},awayTeam:'DEN',homeTeam:'KC'};
 const summary={header:{id,competitions:[{id,date:kickoff,competitors:[{team:{abbreviation:'DEN'}},{team:{abbreviation:'KC'}}]}]}};
 const fetcher=async()=>({ok:true,json:async()=>summary});
 const resolve=(record=venue,fetch=fetcher)=>resolveVerifiedNflWeatherGame({gameId:id,registryJson:JSON.stringify({[id]:record}),fetcher:fetch});
@@ -26,4 +26,8 @@ test('unattested stadium cannot proceed to ESPN schedule fetch',async()=>{
 });
 test('placeholder stadium cannot be treated as verified',async()=>{
  await assert.rejects(()=>resolve({...venue,stadiumId:'test-indoor-stadium'}),/placeholder_stadium_not_allowed/);
+});
+
+test('source URL alone is not sufficient stadium verification',async()=>{
+ await assert.rejects(()=>resolve({...venue,stadiumEvidence:{url:'https://www.nfl.com/stadiums/',stadiumId:'stadium-verified',checkedAt:'2026-10-15T16:00:00Z'}}),/stadium_evidence_not_verified/);
 });
