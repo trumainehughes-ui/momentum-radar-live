@@ -11,3 +11,10 @@ test('kickoff misaligned forecast is blocked',()=>{const r=evaluateNflWeather({.
 test('calm conditions do not trigger inclement weather SGP',()=>{const r=evaluateNflWeather({...base,forecast:{...base.forecast,windMph:4,gustMph:6}});assert.equal(r.severity,'low');assert.equal(r.weatherSgpEligible,false)});
 test('extreme gusts trigger high weather review',()=>{const r=evaluateNflWeather({...base,forecast:{...base.forecast,windMph:8,gustMph:32}});assert.equal(r.severity,'high')});
 test('missing source or forecast wind fails closed',()=>{for(const forecast of [{...base.forecast,source:''},{...base.forecast,windMph:null}])assert.equal(evaluateNflWeather({...base,forecast}).status,'FORECAST_UNVERIFIED')});
+
+test('forecast period must include kickoff if supplied',()=>{
+ const before={...base.forecast,forecastPeriodStart:'2026-10-15T18:00:00Z',forecastPeriodEnd:'2026-10-15T19:00:00Z'};
+ assert.equal(evaluateNflWeather({...base,forecast:before}).status,'FORECAST_UNVERIFIED');
+ const containing={...before,forecastPeriodEnd:'2026-10-15T21:00:00Z'};
+ assert.equal(evaluateNflWeather({...base,forecast:containing}).status,'FORECAST_REVIEWED');
+});
