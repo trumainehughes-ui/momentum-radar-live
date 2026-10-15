@@ -14,7 +14,7 @@ export function authorizedManualReview(req,secret){
 export default async function handler(req,res){
  res.setHeader('Cache-Control','private, no-store');
  if(req.method!=='POST')return res.status(405).json({ok:false,error:'method_not_allowed'});
- if(!authorizedManualReview(req,process.env.CRON_SECRET))
+ if(!authorizedManualReview(req,process.env.MANUAL_AI_REVIEW_SECRET))
   return res.status(401).json({ok:false,error:'unauthorized'});
  const sport=String(req.body?.sport||'').toUpperCase(),gameId=String(req.body?.gameId||'');
  if(!PREFIX[sport]||!/^\d{7,12}$/.test(gameId))
