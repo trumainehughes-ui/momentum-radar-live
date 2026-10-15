@@ -23,3 +23,12 @@ test('closed-roof weather preview is advisory and has no sportsbook calls',async
  finally{if(old===undefined)delete process.env.MANUAL_AI_REVIEW_SECRET;else process.env.MANUAL_AI_REVIEW_SECRET=old}
 });
 test('GET is disallowed on weather preview',async()=>assert.equal((await invoke('GET',{},'')).code,405));
+
+test('caller cannot override server-owned stadium roof',async()=>{
+ const old=process.env.MANUAL_AI_REVIEW_SECRET;process.env.MANUAL_AI_REVIEW_SECRET='weather-secret';
+ try{
+  const r=await invoke('POST',{gameId:'401234567',venue:{roofStatus:'outdoor',latitude:39.7,longitude:-105.0,venueSource:'fake'}},'weather-secret');
+  assert.equal(r.code,200);
+  assert.equal(r.body.assessment.status,'INDOOR');
+ }finally{if(old===undefined)delete process.env.MANUAL_AI_REVIEW_SECRET;else process.env.MANUAL_AI_REVIEW_SECRET=old}
+});
