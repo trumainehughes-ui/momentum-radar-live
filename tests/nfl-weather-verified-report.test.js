@@ -14,3 +14,10 @@ test('unverified ESPN stadium prevents any NWS calls',async()=>{
  await assert.rejects(()=>buildVerifiedNflWeatherReport({gameId,registryJson:JSON.stringify({[gameId]:venue}),scheduleFetcher:async()=>({ok:true,json:async()=>({...summary,header:{...summary.header,competitions:[{...summary.header.competitions[0],venue:{id:'9999'}}]}})}),weatherFetcher:async()=>{nwsCalls++;throw Error('unexpected')}}),/schedule_stadium_identity_mismatch/);
  assert.equal(nwsCalls,0);
 });
+
+test('weather report rejects a kickoff moved beyond allowed schedule drift',async()=>{
+ let weatherCalls=0;
+ const moved=structuredClone(summary);moved.header.competitions[0].date='2026-10-18T21:00:00Z';
+ await assert.rejects(()=>buildVerifiedNflWeatherReport({gameId,registryJson:JSON.stringify({[gameId]:venue}),scheduleFetcher:async()=>({ok:true,json:async()=>moved}),weatherFetcher:async()=>{weatherCalls++;throw Error('unexpected')}}),/schedule_venue_kickoff_mismatch/);
+ assert.equal(weatherCalls,0);
+});
