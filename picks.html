@@ -141,27 +141,32 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   return '<div class="small">Verified individual '+esc(o.book)+' line'+
    (o.line!=null?' '+esc(o.line):'')+' • '+(Number(o.odds)>0?'+':'')+esc(o.odds)+
    ' • '+esc(fmtStamp(o.checkedAt))+'</div>';}
- function renderPlayer(x,cat){const td=cat==='td',pct=Number(x.modelChancePct);
-  const stat=td?esc(pct)+'%':esc(x.projection)+' '+(cat==='receptions'?'receptions':'yards');
-  const facts=td?[
-   x.opportunitiesPerGame!=null?x.opportunitiesPerGame+' rush/target opportunities per game':'',
-   x.historicalTouchdowns!=null?x.historicalTouchdowns+' recorded TDs':'',
-   x.opponentTdRank!=null?'Opposing defense #'+x.opponentTdRank+' most positional TDs allowed':'',
-   x.offenseTdRank!=null?'Offensive TD rank #'+x.offenseTdRank:''
-  ].filter(Boolean):[
-   x.avgPerGame!=null?'Season '+x.avgPerGame+' per game':'',
-   x.gameSample?'Sample: '+x.gameSample+' games':'',
-   x.range?'Historical range '+x.range.floor+'–'+x.range.ceiling:'',
-   x.recentTrend?'Recent '+x.recentTrend.toLowerCase().replace('_',' '):''
-  ].filter(Boolean);
-  return '<div class="player"><div class="tiny">'+esc(x.team||'')+' • '+esc(x.position||'')+' • '+esc(labels[cat])+'</div><b>'+esc(x.name)+'</b>'+
-   '<div class="stat">'+stat+'</div><div class="small"><b>'+esc(hitChanceText(x,cat))+'</b></div><div class="small">'+esc(facts.join(' • '))+'</div>'+
-   (!td&&x.suggestedTarget?'<div class="small"><b>Model target: '+esc(x.suggestedTarget)+'+ yards</b>'+
-     (x.suggestedTargetChance!=null?' • estimated '+esc(x.suggestedTargetChance)+'%':'')+'</div>':'')+
-   (Array.isArray(x.recentFive)&&x.recentFive.length?'<div class="small">Recent game results: '+esc(x.recentFive.join(' / '))+'</div>':'')+
-   (td&&x.recentTouchdowns?.length?'<div class="small">Recent TD history: '+esc(x.recentTouchdowns.join(' / '))+'</div>':'')+
-   (x.projectionNote?'<div class="small">'+esc(x.projectionNote)+'</div>':'')+
-   offerHtml(x)+'<div class="tiny" style="margin-top:12px">Model '+(td?'estimated touchdown chance':'projection')+' • not a guaranteed outcome</div></div>'}
+ function publicWhy(x,cat){
+  if(x.projectionNote){
+   const note=String(x.projectionNote).replace(/(?:ESPN|DraftKings|FanDuel|API|model status|source ID|provider ID|verified market rows)[^.!?]*(?:[.!?]|$)/gi,'').trim();
+   if(note&&note.length<210)return note;
+  }
+  if(cat==='td'){
+   const parts=[];
+   if(x.opportunitiesPerGame!=null)parts.push('regular scoring opportunities ('+x.opportunitiesPerGame+' touches or targets per game)');
+   if(x.historicalTouchdowns!=null)parts.push(x.historicalTouchdowns+' recent touchdowns');
+   if(x.opponentTdRank!=null)parts.push('the opposing defense’s touchdown matchup');
+   return parts.length?'Selected for '+parts.join(', ')+'.':'Selected based on scoring opportunities and the matchup.';
+  }
+  const parts=[];
+  if(x.avgPerGame!=null)parts.push('averaging '+x.avgPerGame+' '+(cat==='receptions'?'catches':'yards')+' per game');
+  if(x.recentTrend&&x.recentTrend!=='FLAT')parts.push('recent '+String(x.recentTrend).toLowerCase()+' form');
+  return parts.length?'Selected based on '+parts.join(' and ')+'.':'Selected based on recent performance and the opponent matchup.';
+ }
+ function renderPlayer(x,cat){
+  const td=cat==='td',pct=Number(x.modelChancePct);
+  const projected=td?'Anytime touchdown':esc(x.suggestedTarget??x.projection)+' '+(cat==='receptions'?'receptions':'yards');
+  const chance=td?(Number.isFinite(pct)?pct+'%':'Estimate unavailable'):esc(hitChanceText(x,cat));
+  return '<div class="player"><div class="tiny">'+esc(x.team||'')+' • '+esc(labels[cat])+'</div><b>'+esc(x.name)+'</b>'+
+   '<div class="stat">'+projected+'</div><div class="small"><b>Estimated chance: '+chance+'</b></div>'+
+   '<div class="small"><b>Why AI picked this player:</b> '+esc(publicWhy(x,cat))+'</div>'+
+   '<div class="tiny" style="margin-top:12px">Model estimate • not guaranteed</div></div>';
+ }
  function playerGroup(d,cat,count=10){const rows=(d.categories?.[cat]||[]).slice(0,count);
   return '<div class="players-grid">'+(rows.length?rows.map(x=>renderPlayer(x,cat)).join(''):
    noData('No screened '+labels[cat].toLowerCase()+' players',
@@ -234,27 +239,13 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
      '<div>'+esc(ai?.message||'No saved AI narrative has been generated for this game yet.')+'</div></div>';
   const tdCandidates=(d.categories?.td||[]).slice(0,6);
   const modelBrief='<div class="section-head" style="margin-top:20px"><div><h3>AI Matchup Highlights</h3>'+
-   '<p class="sub">See which players stand out and why. Percentages are estimates, not guaranteed outcomes.</p></div></div>'+
+   '<p class="sub">Key players, estimated chances and why they stand out.</p></div></div>'+
    '<h3 style="font-size:15px;margin:16px 0 10px">Top Anytime TD opportunities</h3>'+
-   '<div class="players-grid">'+(tdCandidates.length?tdCandidates.map(x=>
-    '<div class="player"><div class="tiny">'+esc(x.team)+' • '+esc(x.position)+'</div>'+
-    '<b>'+esc(x.name)+'</b><div class="stat">'+esc(x.modelChancePct)+'%</div>'+
-    '<div class="small">'+esc(x.opportunitiesPerGame??'—')+' observed rush/target opportunities per game'+
-    (x.historicalTouchdowns!=null?' • '+esc(x.historicalTouchdowns)+' recorded TDs':'')+
-    (x.opponentTdRank!=null?' • Opponent positional TD allowance rank #'+esc(x.opponentTdRank):'')+'</div>'+
-    (x.projectionNote?'<div class="small">'+esc(x.projectionNote)+'</div>':'')+
-    '</div>').join(''):
-    noData('TD model analysis pending','Wait for the current roster and scoring-opportunity evidence.'))+'</div>'+
+   '<div class="players-grid">'+(tdCandidates.length?tdCandidates.map(x=>renderPlayer(x,'td')).join(''):
+    noData('No touchdown picks yet','Check back for updated player predictions.'))+'</div>'+
    '<h3 style="font-size:15px;margin:23px 0 10px">Top yardage and reception candidates</h3>'+
    '<div class="players-grid">'+['passing','rushing','receiving','receptions'].flatMap(cat=>
-    (d.categories?.[cat]||[]).slice(0,2).map(x=>
-    '<div class="player"><div class="tiny">'+esc(labels[cat])+' • '+esc(x.team)+'</div>'+
-    '<b>'+esc(x.name)+'</b><div class="stat">'+esc(x.projection)+' '+
-    (cat==='receptions'?'receptions':'yards')+'</div>'+
-    '<div class="small"><b>'+esc(hitChanceText(x,cat))+'</b></div>'+
-    (x.avgPerGame!=null?'<div class="small">Observed average: '+esc(x.avgPerGame)+' per game</div>':'')+
-    (x.projectionNote?'<div class="small">'+esc(x.projectionNote)+'</div>':'')+
-    '</div>')).join('')+'</div>';
+    (d.categories?.[cat]||[]).slice(0,2).map(x=>renderPlayer(x,cat))).join('')+'</div>';
   const insight='<div class="section-head" style="margin-top:22px"><h3>Matchup Intelligence</h3></div>'+
    (match.length?match.map(x=>'<div class="leg"><strong>'+esc(x.offense)+' offense against '+esc(x.defense)+' defense</strong>'+
     '<div class="small">Offense sample '+esc(x.offenseGames??'—')+' games • Defense sample '+esc(x.defenseGames??'—')+' games</div>'+
