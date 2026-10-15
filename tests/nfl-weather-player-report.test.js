@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {buildNflWeatherPlayerReport} from '../lib/nfl-weather-player-report.js';
+const now=Date.parse('2026-10-15T18:00:00Z');
+const base={gameId:'401234567',playerId:'qb1',playerName:'Test QB',stat:'passingYards',venue:{roofStatus:'outdoor',kickoffAt:'2026-10-15T20:00:00Z'},forecast:{source:'NWS',checkedAt:'2026-10-15T17:00:00Z',validAt:'2026-10-15T20:00:00Z',windMph:20,temperatureF:35},now};
+const historyRows=Array.from({length:8},(_,i)=>({playerId:'qb1',gameId:'past'+i,roofStatus:'outdoor',statsSource:'NFL game log',weatherSource:'NOAA observation',observedAt:'2025-11-01T18:20:00Z',kickoffAt:'2025-11-01T18:00:00Z',passingYards:200+i*10,windMph:20,temperatureF:30,precipitationInches:0}));
+test('player report displays observed wind split but cannot publish props',()=>{const r=buildNflWeatherPlayerReport({...base,historyRows});assert.equal(r.historicalComparison.games,8);assert.equal(r.historicalComparison.average,235);assert.equal(r.historicalComparison.condition,'windy');assert.equal(r.verifiedPlayerProp,false);assert.equal(r.canPublish,false)});
+test('insufficient historical sample produces clear user message',()=>{const r=buildNflWeatherPlayerReport({...base,historyRows:historyRows.slice(0,2)});assert.match(r.displayMessage,/too small/);assert.equal(r.playerAdjustmentsAllowed,false)});
+test('missing forecast blocks historical weather condition selection',()=>{const r=buildNflWeatherPlayerReport({...base,historyRows,forecast:{...base.forecast,source:''}});assert.equal(r.historicalComparison,null);assert.equal(r.weatherStatus,'FORECAST_UNVERIFIED')});
+test('wind transition band does not imply a matching weather bucket',()=>{const r=buildNflWeatherPlayerReport({...base,historyRows,forecast:{...base.forecast,windMph:12}});assert.equal(r.historicalComparison,null);assert.match(r.displayMessage,/transitional/)});
