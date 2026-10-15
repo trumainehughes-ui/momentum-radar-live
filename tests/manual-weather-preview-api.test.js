@@ -6,7 +6,7 @@ async function invoke(method,body,token){
  const req={method,body,headers:{'x-manual-review-secret':token}};
  const res={setHeader(){},status(code){this.code=code;return this},json(body){this.body=body;return this}};
  const previous=globalThis.fetch;
- globalThis.fetch=async()=>({ok:true,json:async()=>({header:{id:'401234567',competitions:[{id:'401234567',venue:{id:'1234'},date:'2026-10-18T20:00:00Z',competitors:[{team:{abbreviation:'DEN'}},{team:{abbreviation:'KC'}}]}]}})});
+ globalThis.fetch=async()=>({ok:true,json:async()=>({header:{id:'401234567',competitions:[{id:'401234567',venue:{id:'1234'},status:{type:{state:'pre',name:'STATUS_SCHEDULED'}},date:'2026-10-18T20:00:00Z',competitors:[{team:{abbreviation:'DEN'}},{team:{abbreviation:'KC'}}]}]}})});
  try{await handler(req,res)}finally{globalThis.fetch=previous}return res;
 }
 test('kickoff weather preview requires separate manual admin credential',async()=>{
