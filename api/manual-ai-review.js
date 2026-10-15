@@ -3,6 +3,7 @@ import {list} from '@vercel/blob';
 import {timingSafeEqual} from 'node:crypto';
 import {runManualEvidenceAiReview} from '../lib/manual-ai-review-runner.js';
 import {createManualAiAdapter} from '../lib/manual-ai-provider-adapter.js';
+import {manualReviewGame} from '../lib/manual-review-game.js';
 const PREFIX={NFL:'momentum-history/v1/nfl-',NBA:'momentum-pregame/v1/nba-'};
 export function authorizedManualReview(req,secret){
  if(!secret)return false;
@@ -27,11 +28,9 @@ export default async function handler(req,res){
   if(!source.ok)throw Error('snapshot_read_failed');
   const snapshot=await source.json();
   if(String(snapshot.gameId)!==gameId)return res.status(409).json({ok:false,error:'snapshot_identity_mismatch'});
-  const game=sport==='NBA'&&snapshot.home?.abbr&&snapshot.away?.abbr?
-   {gameId,home:snapshot.home,away:snapshot.away,kickoff:snapshot.kickoff}:
-   snapshot.game;
-  if(!game||String(game.gameId)!==gameId)
-   return res.status(409).json({ok:false,error:'game_metadata_missing'});
+  let game;
+  try{game=manualReviewGame(sport,gameId,snapshot)}
+  catch{return res.status(409).json({ok:false,error:'game_metadata_missing'})}
   // Restrict internal AI destination to this deployment, never a user-supplied URL.
   const host=String(process.env.VERCEL_URL||'');
   if(!/^[a-z0-9-]+\.vercel\.app$/.test(host))throw Error('trusted_deployment_host_missing');
