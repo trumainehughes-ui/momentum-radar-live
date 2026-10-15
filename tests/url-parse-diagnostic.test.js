@@ -13,7 +13,7 @@ for (const moduleName of modules) {
       env: {...process.env, NODE_NO_WARNINGS: '0'}
     });
     assert.equal(result.status, 0, 'Import failed: '+result.stderr);
-    const traces = result.stderr.match(/DEP0169[\\s\\S]*?(?=\\n\\(node:|$)/g) || [];
+    const traces = result.stderr.includes('DEP0169') ? [result.stderr] : [];
     if (traces.length) console.log(moduleName+' deprecation stack:', traces.join('\\n'));
     assert.equal(traces.length, 0, moduleName+' triggers url.parse() deprecation; inspect stack above');
   });
