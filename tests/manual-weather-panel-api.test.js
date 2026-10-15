@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-process.env.NFL_WEATHER_VENUES_JSON=JSON.stringify({'401234567':{gameId:'401234567',stadiumId:'stadium-verified',scheduleSource:'https://www.nfl.com/schedules/2026/reg18/',roofStatus:'closed',kickoffAt:'2026-10-18T20:00:00Z',awayTeam:'DEN',homeTeam:'KC',stadiumEvidence:{url:'https://www.nfl.com/stadiums/',stadiumId:'stadium-verified',checkedAt:'2026-10-15T16:00:00Z',verificationMethod:'fetched_source',verificationStatus:'verified',sourceGameId:'401234567'}}});
+process.env.NFL_WEATHER_VENUES_JSON=JSON.stringify({'401234567':{gameId:'401234567',stadiumId:'stadium-verified',espnVenueId:'1234',scheduleSource:'https://www.nfl.com/schedules/2026/reg18/',roofStatus:'closed',kickoffAt:'2026-10-18T20:00:00Z',awayTeam:'DEN',homeTeam:'KC',stadiumEvidence:{url:'https://www.nfl.com/stadiums/',stadiumId:'stadium-verified',espnVenueId:'1234',checkedAt:'2026-10-15T16:00:00Z',verificationMethod:'fetched_source',verificationStatus:'verified',sourceGameId:'401234567'}}});
 import handler from '../api/manual-weather-panel.js';
 async function invoke(method,body,token){
  const req={method,body,headers:{'x-manual-review-secret':token}};
  const res={headers:{},setHeader(k,v){this.headers[k]=v},status(code){this.code=code;return this},json(body){this.body=body;return this},send(body){this.body=body;return this}};
  const previous=globalThis.fetch;
- globalThis.fetch=async()=>({ok:true,json:async()=>({header:{id:'401234567',competitions:[{id:'401234567',date:'2026-10-18T20:00:00Z',competitors:[{team:{abbreviation:'DEN'}},{team:{abbreviation:'KC'}}]}]}})});
+ globalThis.fetch=async()=>({ok:true,json:async()=>({header:{id:'401234567',competitions:[{id:'401234567',venue:{id:'1234'},date:'2026-10-18T20:00:00Z',competitors:[{team:{abbreviation:'DEN'}},{team:{abbreviation:'KC'}}]}]}})});
  try{await handler(req,res)}finally{globalThis.fetch=previous}return res;
 }
 test('weather HTML preview requires admin authentication',async()=>{
