@@ -10,3 +10,5 @@ test('snapshot identity mismatch is rejected',()=>assert.throws(()=>summarizeMan
 test('invalid game ids are rejected',()=>assert.throws(()=>summarizeManualSnapshot({sport:'NBA',gameId:'oops',snapshot:{}}),/invalid_game/));
 
 test('snapshot without a game identity is rejected',()=>assert.throws(()=>summarizeManualSnapshot({sport:'NBA',gameId:'401234568',snapshot:{}}),/snapshot_identity_mismatch/));
+
+test('future-dated cached evidence is marked stale',()=>{const r=summarizeManualSnapshot({sport:'NFL',gameId:'401234567',snapshot:{gameId:'401234567',checkedAt:new Date(Date.now()+60000).toISOString(),sgps:[]}});assert.equal(r.stale,true);assert.equal(r.publicationBlocked,true)});
