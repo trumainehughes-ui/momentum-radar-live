@@ -118,7 +118,8 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   const quotes=(d.verifiedQuotes||[]).filter(q=>q&&['DraftKings','FanDuel'].includes(q.book)&&
    ['Small','Medium','Nuke'].includes(q.risk)&&Number.isFinite(Number(q.americanOdds))&&
    Number(q.americanOdds)!==0);
-  const ready=d.inactivesVerified===true&&quotes.length>0;
+  // An unverified inactives check must not promote a saved quote to a ticket.
+  const ready=d.inactivesVerified===true&&d.updatedDataCurrent===true&&quotes.length>0;
   const models=(Array.isArray(d.parlays)?d.parlays:[]).filter(c=>
    ['Small','Medium','Nuke'].includes(c?.risk)&&c.mode==='MODEL_ONLY'&&
    Array.isArray(c.legs)&&c.legs.length>=2);
