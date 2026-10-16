@@ -31,6 +31,12 @@ test('readiness shows OIDC configured but does not imply actual Blob read/write 
  assert.equal(d.storage.validated,false);
  assert.equal(d.nfl.collectorReady,true);
  assert.equal(d.nba.collectorReady,true);
+ assert.equal(d.nfl.paidCheckpointConfigured,false);
+ assert.equal(d.nfl.paidCheckpointVerified,false);
+ const withProvider=pregameReadiness({BLOB_STORE_ID:'store_abc',VERCEL:'1',CRON_SECRET:'not-shared',PLAYER_PROPS_API_KEY:'not-shared-provider'});
+ assert.equal(withProvider.nfl.paidCheckpointConfigured,true);
+ assert.equal(withProvider.nfl.paidCheckpointVerified,false);
+ assert.ok(!JSON.stringify(withProvider).includes('not-shared-provider'));
  assert.equal(d.readinessScope,'CONFIGURATION_ONLY');
  assert.equal(d.cronExecutionVerified,false);
  assert.equal(d.blobReadWriteVerified,false);
