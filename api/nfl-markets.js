@@ -783,8 +783,14 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
    }
   }
   oddsDebug.authorizedQuoteCandidates=candidates.length;
-  const origin=process.env.VERCEL_PROJECT_PRODUCTION_URL?
-   'https://'+process.env.VERCEL_PROJECT_PRODUCTION_URL:'https://momentum-radar-live.vercel.app';
+  // Internal quote requests must remain in the current deployment.
+  // Never route a preview's authorized token or quote spend into production.
+  const deploymentHost=String(process.env.VERCEL_URL||'').toLowerCase();
+  const productionHost=String(process.env.VERCEL_PROJECT_PRODUCTION_URL||'').toLowerCase();
+  const trustedHost=/^momentum-radar-live-[a-z0-9-]+\\.vercel\\.app$/.test(deploymentHost)||
+   deploymentHost==='momentum-radar-live.vercel.app'?deploymentHost:
+   productionHost==='momentum-radar-live.vercel.app'?productionHost:'';
+  const origin=trustedHost?'https://'+trustedHost:null;
   // No more than 3 correlated quote requests in a scheduled checkpoint
   // (plus at most two market lookups). Material injury changes retain six.
   const quoteCandidates=changeType==='scheduled_checkpoint'?
@@ -793,8 +799,9 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
    candidates.slice(0,6);
   // Candidate eligibility is not actual provider spend: signed checkpoints
   // deliberately cap attempts at three across both sportsbooks.
-  oddsDebug.authorizedQuoteAttempts=quoteCandidates.length;
-  await Promise.all(quoteCandidates.map(async({book,bookmaker,risk,candidate})=>{
+  oddsDebug.authorizedQuoteAttempts=origin?quoteCandidates.length:0;
+  if(!origin)oddsDebug.quoteOriginStatus='NO_TRUSTED_SAME_DEPLOYMENT_ORIGIN';
+  await Promise.all((origin?quoteCandidates:[]).map(async({book,bookmaker,risk,candidate})=>{
    const key=bookmaker+'_'+risk+'QuoteStatus';
    try{
     const quoteRes=await timedFetch(origin+'/api/prop-line-sgp-quote',{
