@@ -46,6 +46,10 @@ export default async function handler(req,res){
   const categories=Object.fromEntries(cats.map(cat=>[cat,
    (ranked.categories?.[cat]||[]).map(x=>publicRow(x,cat)).filter(Boolean)]));
   return res.status(200).json({ok:true,date,categories,
+   categoryGameCounts:ranked.categoryGameCounts||{},
+   gamesWithProjections:ranked.gamesWithProjections||0,
+   verifiedTdOffers:ranked.verifiedTdOffers||0,
+   rankingScope:'SAVED_GAME_SNAPSHOTS_ONLY',
    updatedAt:ranked.newestSnapshotAt||null,modelOnly:true});
  }catch{
   res.setHeader('Cache-Control','private, no-store');
