@@ -31,6 +31,10 @@ test('readiness shows OIDC configured but does not imply actual Blob read/write 
  assert.equal(d.storage.validated,false);
  assert.equal(d.nfl.collectorReady,true);
  assert.equal(d.nba.collectorReady,true);
+ assert.equal(d.readinessScope,'CONFIGURATION_ONLY');
+ assert.equal(d.cronExecutionVerified,false);
+ assert.equal(d.blobReadWriteVerified,false);
+ assert.equal(d.sportsbookCollectionVerified,false);
  assert.ok(!JSON.stringify(d).includes('not-shared'));
 });
 test('readiness distinguishes missing cron credentials from missing Blob storage',()=>{
