@@ -79,6 +79,37 @@ test('NFL collector OIDC passes preflight and preserves public auth protection',
   assert.equal(calls.length,2);
  }finally{globalThis.fetch=oldFetch;reset()}
 });
+test('NFL preview collector uses its own deployment and refuses production fallback',async()=>{
+ const oldFetch=globalThis.fetch;
+ const calls=[];
+ set('CRON_SECRET','test-cron');
+ set('BLOB_READ_WRITE_TOKEN',null);
+ set('BLOB_STORE_ID','store_fake');
+ set('VERCEL','1');
+ set('VERCEL_ENV','preview');
+ set('VERCEL_URL','momentum-radar-live-preview123-trumainehughes-6743.vercel.app');
+ set('VERCEL_PROJECT_PRODUCTION_URL','momentum-radar-live.vercel.app');
+ globalThis.fetch=async url=>{
+  calls.push(String(url));
+  return {ok:true,json:async()=>({ok:true,games:[],week:1})};
+ };
+ try{
+  const req={method:'GET',query:{cron:'1'},headers:{authorization:'Bearer test-cron'}};
+  const preview=res();
+  await nflCollector(req,preview);
+  assert.equal(preview.statusCode,503,'empty schedule still blocks collection');
+  assert.equal(preview.body.blocking[0],'games');
+  assert.equal(calls.length,2);
+  assert.ok(calls.every(url=>url.startsWith('https://momentum-radar-live-preview123-trumainehughes-6743.vercel.app/')));
+  calls.length=0;
+  set('VERCEL_URL','momentum-radar-live.vercel.app');
+  const refused=res();
+  await nflCollector(req,refused);
+  assert.equal(refused.statusCode,503);
+  assert.equal(refused.body.error,'trusted_deployment_origin_unavailable');
+  assert.equal(calls.length,0,'preview must not contact production');
+ }finally{globalThis.fetch=oldFetch;reset()}
+});
 test('three authenticated daily collectors no longer hardcode BLOB_READ_WRITE_TOKEN',()=>{
  for(const path of ['api/nba-health.js','api/nfl-health.js','api/bdl-refresh.js']){
   const code=readFileSync(new URL('../'+path,import.meta.url),'utf8');
