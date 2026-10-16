@@ -4,7 +4,12 @@ import {blobStorageReadiness} from '../lib/blob-storage-config.js';
 export function pregameReadiness(env={}){
  const cron=Boolean(env.CRON_SECRET),storage=blobStorageReadiness(env);
  const available=cron&&storage.configured;
+ // A configured cron secret is necessary but does not prove that scheduled
+ // functions executed, Blob writes succeeded, or sportsbook data arrived.
  return{ok:true,status:available?'CONFIGURED':'BLOCKED',storage,
+  readinessScope:'CONFIGURATION_ONLY',
+  cronExecutionVerified:false,blobReadWriteVerified:false,
+  sportsbookCollectionVerified:false,
   leagueWidePolicy:{registeredSports:['nfl','nba'],futureSportAdaptersRequired:true,
    coverage:'Every qualified scheduled game, not just popular/selected matchups',
    lookaheadHours:{nfl:30,nba:36},cronIntervalMinutes:15,
