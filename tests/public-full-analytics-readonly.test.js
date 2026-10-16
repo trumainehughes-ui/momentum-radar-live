@@ -53,6 +53,9 @@ test('public read-only game includes matchups, positional DVP, injuries and rich
  // exact market and game provenance cannot qualify as a verified offer.
  assert.equal(d.categories.rushing[0].bookOffer,null);
  assert.equal(d.categories.rushing[0].modelOnly,true);
+ assert.equal(d.pregameChecks.offerEvidence.status,'NO_SOURCE_VERIFIED_INDIVIDUAL_OFFERS');
+ assert.equal(d.pregameChecks.offerEvidence.verifiedIndividualCount,0);
+ assert.equal(d.pregameChecks.offerEvidence.verifiedCombinedCount,0);
  assert.equal(d.matchup.sides.length,2);
  assert.equal(d.matchup.sides[0].positions[0].metrics[0].defenseRank,4);
  assert.equal(d.projectedScore.scores[0].points,24);
@@ -72,6 +75,8 @@ test('last saved mode preserves model evidence visibly but never stale prices',(
  assert.equal(publicView.categories.rushing[0].projection,95);
  assert.equal(publicView.categories.rushing[0].bookOffer,null);
  assert.equal(publicView.verifiedQuotes.length,0);
+ assert.equal(publicView.pregameChecks.offerEvidence.status,'EXPIRED');
+ assert.equal(publicView.pregameChecks.offerEvidence.verifiedIndividualCount,0);
  assert.equal(publicView.inactivesVerified,false);
  assert.equal(publicView.updatedDataCurrent,false);
  assert.match(publicView.message,/OLDER MODEL SNAPSHOT/);
@@ -137,6 +142,8 @@ test('public AI analysis presents immediate real model evidence while saved Groq
  assert.ok(html.includes('Top yardage and reception candidates'));
  assert.ok(html.includes('observed rush/target opportunities per game'));
  assert.ok(html.includes('experimental model estimates, not sportsbook probabilities'));
+ assert.ok(html.includes('Source-verified individual offers:'));
+ assert.ok(html.includes('Correlated SGP quotes:'));
  const aiStart=html.indexOf('function showAi(d)');
  const aiEnd=html.indexOf('function showLive(d)');
  assert.ok(aiStart>0&&aiEnd>aiStart);
