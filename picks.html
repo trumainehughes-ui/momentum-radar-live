@@ -416,8 +416,13 @@ async function loadHistory(){
  if(state.extra==='history')renderExtras();
 }
  function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?.[state.rank]||[];
- box.innerHTML=rows.length?rows.slice(0,8).map((x,i)=>'<div class="rank-card"><div class="rank-head"><div class="rank-index">#'+(i+1)+'</div><div><strong>'+esc(x.name)+'</strong><div class="sub">'+esc(x.team)+' vs '+esc(x.opponent)+'</div></div></div><div class="pick">'+(state.rank==='td'?esc(x.modelChancePct)+'% TD chance':esc(x.projection)+' '+(state.rank==='receptions'?'receptions':'yards'))+'</div><div class="small" style="margin-top:8px"><b>'+esc(hitChanceText(x,state.rank))+'</b></div><div class="tiny">Uncalibrated model estimate</div></div>').join(''):
- noData('No screened rankings for this category.','Model rankings appear after the scheduled predictions have been saved.')}
+ const scheduled=state.games?.length||0;
+ const covered=Number(state.rankings?.categoryGameCounts?.[state.rank]??0);
+ const coverageNote=scheduled>covered?
+  '<div class="sub" style="margin-bottom:12px">PRELIMINARY MODEL WATCHLIST: '+esc(covered)+' of '+esc(scheduled)+' scheduled matchups contributed '+esc(labels[state.rank]||state.rank)+' estimates. This is not a complete NFL-wide Top 10 and not a list of sportsbook quotes.</div>':'';
+
+ box.innerHTML=coverageNote+(rows.length?rows.slice(0,8).map((x,i)=>'<div class="rank-card"><div class="rank-head"><div class="rank-index">#'+(i+1)+'</div><div><strong>'+esc(x.name)+'</strong><div class="sub">'+esc(x.team)+' vs '+esc(x.opponent)+'</div></div></div><div class="pick">'+(state.rank==='td'?esc(x.modelChancePct)+'% TD chance':esc(x.projection)+' '+(state.rank==='receptions'?'receptions':'yards'))+'</div><div class="small" style="margin-top:8px"><b>'+esc(hitChanceText(x,state.rank))+'</b></div><div class="tiny">Uncalibrated model estimate</div></div>').join(''):
+ noData('No screened rankings for this category.','Model rankings appear after the scheduled predictions have been saved.'))}
  async function loadRanks(){const token=++state.rankLoading;state.rankings=null;$('#rankings').innerHTML='<div class="empty loading grid-span">Loading rankings…</div>';
  if(state.league!=='nfl')return;
  try{const d=await getJson('/api/public-nfl-rankings?'+new URLSearchParams({date:state.date}));if(token!==state.rankLoading)return;state.rankings=d;renderRanks();renderExtras()}catch{if(token===state.rankLoading)$('#rankings').innerHTML=noData('Rankings unavailable','Check again after the next saved update.')}}
