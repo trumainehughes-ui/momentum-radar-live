@@ -152,17 +152,21 @@ function buildBookSgp(rows,book,ctx){
  const nukePool=basePool.map(x=>{if(!['passing','receiving','rushing','receptions'].includes(x.cat)||!Number.isFinite(+x.bookOffer?.line))return x;const avg=Number(x.predictiveProjection??x.projection??x.perGame)||+x.bookOffer.line,modelTarget=analyticsLine(x,x.cat,'Nuke',ctx),step=x.cat==='receptions'?1:5,minimum=x.cat==='receptions'?Math.floor(avg)+1:Math.ceil((avg+0.0001)/step)*step,target=Number.isFinite(modelTarget)?Math.max(minimum,modelTarget):minimum,g=groups.get(x.playerID+'|'+x.cat)||[],higher=g.filter(v=>Number.isFinite(+v.bookOffer?.line)&&+v.bookOffer.line>+x.bookOffer.line&&+v.bookOffer.line>=minimum*.92).sort((a,b)=>Math.abs(+a.bookOffer.line-target)-Math.abs(+b.bookOffer.line-target));const pick=higher.find(v=>+v.bookOffer.line>=target);if(!pick)return{...x,nukeTarget:target,nukeJuiced:false,nukeAboveProjection:false,nukeRejectedReason:'No '+book+' alternate reaches Momentum Nuke target '+target+' above projection '+avg};return{...pick,nukeTarget:target,nukeJuiced:+pick.bookOffer?.line>+x.bookOffer.line,nukeAboveProjection:+pick.bookOffer?.line>avg,nukeMeetsModelTarget:+pick.bookOffer?.line>=target}}).sort((a,b)=>{const aj=a.nukeJuiced?1:0,bj=b.nukeJuiced?1:0;return bj-aj||(Number(b.momentumScore)||0)-(Number(a.momentumScore)||0)});
  const make=(risk,count,offset)=>{let source=risk==='Nuke'?nukePool:basePool;if(risk==='Nuke'){source=source.filter(x=>x.cat==='td'||x.nukeAboveProjection===true);const juiced=source.filter(x=>x.nukeJuiced||x.cat==='td'),standard=source.filter(x=>!x.nukeJuiced&&x.cat!=='td');source=juiced.concat(standard)}const legs=[],used=new Set(),usedCats=new Set(),rotated=source.slice(offset).concat(source.slice(0,offset));const add=x=>{if(!x||used.has(x.playerID))return false;used.add(x.playerID);usedCats.add(x.cat);legs.push(x);return true};const mix=fillNflSgpMarketMix({risk,count,pool:rotated,legs,add});const complete=mix.filled;if(!complete)return{book,risk,legs:[],estimatedOdds:null,momentumScore:null,sgpScore:null,correlation:sgpCorrelation([]),marketMix:[],verifiedAt:new Date().toISOString(),requiredLegs:count,verifiedLegs:legs.length,reason:'No fully qualified '+book+' '+risk+' model candidate is available right now ('+legs.length+'/'+count+' eligible legs).'};const juicedCount=legs.filter(x=>x.nukeJuiced).length;if(risk==='Nuke'&&juicedCount<2)return{book,risk,legs:[],estimatedOdds:null,juicedLegs:juicedCount,nukeCeilingVerified:false,momentumScore:null,sgpScore:null,correlation:sgpCorrelation([]),marketMix:[],verifiedAt:new Date().toISOString(),requiredLegs:count,verifiedLegs:0,reason:'No model-estimated Nuke candidate is shown because fewer than two data-supported juiced alternate lines are currently available at '+book+'. The Data Model Nuke remains available separately.'};const tierAssessment=assessNflSgpTier({risk,legs,requiredLegs:count});if(!tierAssessment.compositionOk)return{book,risk,legs:[],estimatedOdds:null,verifiedLegs:0,requiredLegs:count,reason:tierAssessment.reason,tierAssessment};const est=parlayPrice(legs,book);if(!Number.isFinite(est))return{book,risk,legs:[],estimatedOdds:null,nukeCeilingVerified:false,requiredLegs:count,verifiedLegs:0,reason:'Incomplete fresh individual bookmaker odds for this candidate.'};const avg=Math.round(legs.reduce((s,x)=>s+x.momentumScore,0)/legs.length),corr=sgpCorrelation(legs),combined=Math.max(1,Math.min(99,Math.round(avg*.8+corr.score*.2))),juicedLegs=legs.filter(x=>x.nukeJuiced).length,nukeCeilingVerified=risk!=='Nuke'||juicedLegs>=2;return{book,risk,legs,tierAssessment,estimatedOdds:est,estimateMethod:'INDEPENDENT_LEG_MULTIPLICATION',estimateConfidence:'UNCALIBRATED_SAME_GAME_CORRELATION',estimateToleranceGuaranteed:false,estimatedProfitForTenDollars:est>0?Math.round(est)/10:null,juicedLegs,nukeCeilingVerified,momentumScore:avg,sgpScore:combined,correlation:corr,marketMix:[...usedCats],verifiedAt:new Date().toISOString(),requiredLegs:count,verifiedLegs:legs.length,reason:risk==='Nuke'?'Nuke prioritizes the highest-confidence data-supported ceiling and uses a candidate juiced alternate line only when market evidence supports one near that ceiling; every leg remains sportsbook-listed. Correlation is scored separately and contributes 20% of the SGP score.':'Individual prop legs were observed for '+book+'; the correlated combined SGP price is unverified. Correlation is scored separately and contributes 20% of the SGP score.'}};
  const findTier=(risk,count,offset=0)=>{
-  let best=null;
+  const band=SGP_ODDS_BANDS[risk],target=(band.min+band.max)/2;
+  let best=null,bestDistance=Infinity;
   for(let o=0;o<Math.min(basePool.length,5);o++){
-   const s=make(risk,count,offset+o);
-   if(s?.legs?.length!==count||s.tierAssessment?.compositionOk!==true)continue;
-   if(sgpOddsInBand(risk,s.estimatedOdds))
-    return {...s,payoutTarget:sgpPayoutLabel(risk),payoutBandVerified:false,estimatedPayoutTargetInBand:true};
-   if(!best||Math.abs(Number(s.estimatedOdds)-SGP_ODDS_BANDS[risk].min)<
-     Math.abs(Number(best.estimatedOdds)-SGP_ODDS_BANDS[risk].min))best=s;
+   const candidate=make(risk,count,offset+o);
+   if(candidate?.legs?.length!==count||candidate.tierAssessment?.compositionOk!==true)continue;
+   const odds=Number(candidate.estimatedOdds);
+   if(!Number.isFinite(odds))continue;
+   // Prefer a valid estimate inside the requested tier, closest to its midpoint.
+   // An outside-tier candidate remains research-only, never a priced ticket.
+   const inBand=sgpOddsInBand(risk,odds);
+   const distance=(inBand?0:1e9)+Math.abs(odds-target);
+   if(distance<bestDistance){best=candidate;bestDistance=distance;}
   }
   return best?{...best,payoutTarget:sgpPayoutLabel(risk),payoutBandVerified:false,
-   estimatedPayoutTargetInBand:false}:null;
+   estimatedPayoutTargetInBand:sgpOddsInBand(risk,best.estimatedOdds)}:null;
  };
  const dynamicNuke=()=>{
   let best=null;
