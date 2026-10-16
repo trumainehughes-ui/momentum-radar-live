@@ -555,13 +555,19 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
  let events=[],provider='Analytics / ESPN',directRows=null,oddsDebug={attempted:false,stage:'model_primary'};
  const signedPropLineRows=[];
  let authorizedChange=false,verifiedToken='';
+ // Privileged early slate priming skips all paid sportsbook integrations.
+ // A public ?modelOnly=1 alone is not authorized to bypass normal policy.
+ const modelOnlyPrimer=String(req.query?.modelOnly||'')==='1'&&
+  Boolean(process.env.CRON_SECRET)&&
+  String(req.headers?.authorization||'')==='Bearer '+process.env.CRON_SECRET;
  const sgoFlag=String(process.env.SPORTSGAMEODDS_ENABLED||'').toLowerCase();
- const sgoEnabled=Boolean(process.env.SPORTSGAMEODDS_API_KEY)&&sgoFlag!=='false';
+ const sgoEnabled=Boolean(process.env.SPORTSGAMEODDS_API_KEY)&&sgoFlag!=='false'&&!modelOnlyPrimer;
  oddsDebug.primaryConfigured=Boolean(process.env.THE_ODDS_API_KEY);oddsDebug.reserveConfigured=sgoEnabled;oddsDebug.requestedGameId=gameId||null;if(!gameId)oddsDebug.note='League slate uses ESPN analytics only; reserve sportsbook API is not queried.';
  if(gameId&&home&&away){
+  if(modelOnlyPrimer)oddsDebug.stage='ESPN_MODEL_ONLY_SUNDAY_PRIMER';
   // Ordinary reads try the configured market provider only. The SGO reserve
   // budget is never touched by routine UI polls or manual "Refresh" clicks.
-  try{
+  if(!modelOnlyPrimer)try{
    requestStage='primary_book_provider';const alt=await oddsApiFallback(date,home,away,gameId);
    if(Array.isArray(alt)&&alt.length){directRows=alt;provider='The Odds API';oddsDebug.stage='primary_market_ready'}
    else oddsDebug.stage='primary_market_unavailable';

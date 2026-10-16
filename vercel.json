@@ -43,6 +43,14 @@
     {
       "path": "/api/nba-health?shard=1",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/nfl-sunday-td-prime?shard=0",
+      "schedule": "0 16 * * 5"
+    },
+    {
+      "path": "/api/nfl-sunday-td-prime?shard=1",
+      "schedule": "15 16 * * 5"
     }
   ],
   "functions": {
@@ -50,6 +58,9 @@
       "maxDuration": 300
     },
     "api/nfl-health.js": {
+      "maxDuration": 300
+    },
+    "api/nfl-sunday-td-prime.js": {
       "maxDuration": 300
     },
     "api/nfl-game.js": {
