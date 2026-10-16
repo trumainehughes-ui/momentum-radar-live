@@ -122,7 +122,10 @@ test('all four top-ten buttons load read-only slate rows, not metadata-only mark
 test('verified individually priced touchdown rows can populate Top 10 without invented TD percentages',()=>{
  const td=(id,confidence,book,odds)=>person(id,'401872989','td','Anytime TD',{
   confidence,verifiedAt:'2026-10-11T19:48:00Z',
-  bestBook:{book,odds},analyticsOnly:false
+  provider:'The Odds API',marketName:'player_anytime_td',
+  bestBook:{book,odds,sourceProvider:'The Odds API',
+   checkedAt:'2026-10-11T19:48:00Z',available:true},
+  analyticsOnly:false
  });
  const p=snap('401872989','td',[
   td('1',65,'DraftKings',145),
@@ -131,7 +134,10 @@ test('verified individually priced touchdown rows can populate Top 10 without in
   td('4',70,'DraftKings',0),
   td('5',72,'DraftKings',null),
   {...td('6',69,'DraftKings',200),verifiedAt:null},
-  {...td('7',90,'DraftKings',190),injuryStatus:'INACTIVE'}
+  {...td('7',90,'DraftKings',190),injuryStatus:'INACTIVE'},
+  {...td('8',98,'DraftKings',300),bestBook:{book:'DraftKings',odds:300,
+   available:true,checkedAt:'2026-10-11T19:48:00Z'}},
+  {...td('9',97,'FanDuel',220),provider:'SportsGameOdds'}
  ]);
  const out=buildNflSlateRankings([p],{date,now});
  assert.deepEqual(out.categories.td.map(x=>x.playerID),['2','1']);
@@ -139,6 +145,8 @@ test('verified individually priced touchdown rows can populate Top 10 without in
  assert.equal(out.categories.td[0].projection,'Anytime TD');
  assert.equal(out.categories.td[0].bestBook.book,'FanDuel');
  assert.equal(out.tdMarketVerificationRequired,true);
+ assert.equal(out.verifiedTdOffers,2);
+ assert.equal(out.categoryGameCounts.td,1);
 });
 test('injury-screened TD model candidates rank across different NFL games without fabricated bookmaker odds',()=>{
  const good=(id,game,percent)=>person(id,game,'td','Anytime TD',{
@@ -159,6 +167,9 @@ test('injury-screened TD model candidates rank across different NFL games withou
  assert.deepEqual(out.categories.td.map(x=>x.playerID),['28','24','23']);
  assert.ok(out.categories.td.every(x=>x.bestBook===null&&x.analyticsOnly===true));
  assert.equal(out.tdModelCandidatesAllowed,true);
+ assert.equal(out.verifiedTdOffers,0);
+ assert.equal(out.categoryGameCounts.td,2);
+ assert.ok(out.categories.td.every(x=>x.verifiedIndividualOffer===false));
  assert.equal(out.tdMarketVerificationRequired,true);
 });
 test('unverified roster/injury evidence cannot populate even model-only rankings',()=>{

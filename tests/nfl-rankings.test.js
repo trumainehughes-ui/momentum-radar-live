@@ -45,7 +45,7 @@ test('rushing rankings show explicit five-yard target and model percentage, not 
   assert.match(out,/Model-only .* line not verified/);
 });
 test('verified sportsbook line retains original half-yard value and price',()=>{
-  const out=show({...fixture(),projection:95,
+  const out=show({...fixture(),projection:95,verifiedIndividualOffer:true,
     bestBook:{book:'DraftKings',line:88.5,odds:-110},
     rushingChance:{modelTargetYards:75,estimatedPercent:68,marketBook:'DraftKings',marketOverPercent:57,historySample:4,variationYards:29}});
   assert.match(out,/Suggested model target: 75\+/);

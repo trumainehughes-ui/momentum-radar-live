@@ -181,3 +181,17 @@ test('public site has all core dashboard read-only modules, with syntactically v
   'GROQ_API_KEY','CRON_SECRET','sourceUrl:','apiKey:'])
   assert.ok(!html.includes(prohibited),prohibited);
 });
+
+test('preliminary NFL Top 10 coverage and real book verification stay consistent across owner and public site',()=>{
+ const owner=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const publicHtml=readFileSync(new URL('../picks.html',import.meta.url),'utf8');
+ const publicApi=readFileSync(new URL('../api/public-nfl-rankings.js',import.meta.url),'utf8');
+ const ranks=readFileSync(new URL('../lib/nfl-slate-rankings.js',import.meta.url),'utf8');
+ assert.ok(owner.includes('PRELIMINARY • Only '));
+ assert.ok(owner.includes('Anytime TD — Model Watchlist'));
+ assert.ok(owner.includes('x.verifiedIndividualOffer===true'));
+ assert.ok(publicHtml.includes('PRELIMINARY MODEL WATCHLIST'));
+ assert.ok(publicApi.includes('categoryGameCounts:ranked.categoryGameCounts'));
+ assert.ok(ranks.includes('nflBookOfferEligible(row,b,b.book,now)'));
+ assert.ok(ranks.includes('categoryGameCounts:Object.fromEntries'));
+});
