@@ -799,9 +799,12 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
    candidates.slice(0,6);
   // Candidate eligibility is not actual provider spend: signed checkpoints
   // deliberately cap attempts at three across both sportsbooks.
-  oddsDebug.authorizedQuoteAttempts=origin?quoteCandidates.length:0;
-  if(!origin)oddsDebug.quoteOriginStatus='NO_TRUSTED_SAME_DEPLOYMENT_ORIGIN';
-  await Promise.all((origin?quoteCandidates:[]).map(async({book,bookmaker,risk,candidate})=>{
+  if(!origin){
+   oddsDebug.quoteOriginStatus='NO_TRUSTED_SAME_DEPLOYMENT_ORIGIN';
+   quoteCandidates.length=0;
+  }
+  oddsDebug.authorizedQuoteAttempts=quoteCandidates.length;
+  await Promise.all(quoteCandidates.map(async({book,bookmaker,risk,candidate})=>{
    const key=bookmaker+'_'+risk+'QuoteStatus';
    try{
     const quoteRes=await timedFetch(origin+'/api/prop-line-sgp-quote',{
