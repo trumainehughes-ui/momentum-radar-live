@@ -194,7 +194,7 @@ test('preliminary NFL Top 10 coverage and real book verification stay consistent
  assert.ok(publicHtml.includes('SUNDAY TOP 10 — ANYTIME TD SCORING CANDIDATES'));
  assert.ok(owner.includes('x.verifiedIndividualOffer===true'));
  assert.ok(publicHtml.includes('PRELIMINARY MODEL WATCHLIST'));
- assert.ok(publicHtml.includes('Scheduled collection starts when each matchup enters the 30-hour pregame window'));
+ assert.ok(publicHtml.includes("Friday's scheduled Sunday-slate primer prepares roster/injury-screened Anytime TD scorer estimates"));
  const health=readFileSync(new URL('../api/nfl-health.js',import.meta.url),'utf8');
  assert.ok(health.includes('collectionForecast=nflCollectionForecast(games)'));
  assert.ok(publicApi.includes('categoryGameCounts:ranked.categoryGameCounts'));
