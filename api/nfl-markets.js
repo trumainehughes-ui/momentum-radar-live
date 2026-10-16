@@ -579,7 +579,13 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
   oddsDebug.propLineChangeType=authorizedChange?changeType:null;
   if(process.env.PLAYER_PROPS_API_KEY&&authorizedChange){
    try{
-    const trustedPropOrigin=process.env.VERCEL_PROJECT_PRODUCTION_URL?'https://'+process.env.VERCEL_PROJECT_PRODUCTION_URL:'https://momentum-radar-live.vercel.app';
+    const propDeploymentHost=String(process.env.VERCEL_URL||'').toLowerCase();
+    const propProductionHost=String(process.env.VERCEL_PROJECT_PRODUCTION_URL||'').toLowerCase();
+    const propTrustedHost=/^momentum-radar-live-[a-z0-9-]+\\.vercel\\.app$/.test(propDeploymentHost)||
+     propDeploymentHost==='momentum-radar-live.vercel.app'?propDeploymentHost:
+     propProductionHost==='momentum-radar-live.vercel.app'?propProductionHost:'';
+    if(!propTrustedHost)throw Error('untrusted_prop_line_origin');
+    const trustedPropOrigin='https://'+propTrustedHost;
     const propUrl=trustedPropOrigin+'/api/prop-line-markets?league=nfl&date='+date+'&gameId='+encodeURIComponent(gameId);
     const propResult=await Promise.race([(async()=>{const r=await timedFetch(propUrl,{cache:'no-store',headers:{Authorization:'Bearer '+process.env.CRON_SECRET,'x-momentum-change-token':verifiedToken}});return r.ok?await r.json():{ok:false,providerUnavailable:true}})(),new Promise(resolve=>setTimeout(()=>resolve({ok:false,providerUnavailable:true}),6000))]);
     // Never convert an unavailable provider response or unmatched event into
