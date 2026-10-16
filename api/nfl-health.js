@@ -160,7 +160,7 @@ async function autoLock(base,games){
   // A fresh market build recalculates TD, pass/rush/receiving/receptions and
   // all SGPs using current roster/injury/opponent evidence. Store the reasons
   // instead of silently reusing yesterday's AI review when any pick changes.
-  if(!snap.sgps.length){
+  if(!snap.sgps.length&&!snap.picks.some(p=>p.category==='td'&&p.tdModelStatus==='ESPN_MATCHUP_MODEL')){
    snap.aiReview={status:'SKIPPED',reason:'No qualified new SGP legs to review'};
   }else if(pregameNeedsAiReview({stage:snap.lockStage,
     changedFields:audit.changedFields,
