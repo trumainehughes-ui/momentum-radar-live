@@ -583,7 +583,7 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
     const propProductionHost=String(process.env.VERCEL_PROJECT_PRODUCTION_URL||'').toLowerCase();
     const propTrustedHost=/^momentum-radar-live-[a-z0-9-]+\.vercel\.app$/.test(propDeploymentHost)||
      propDeploymentHost==='momentum-radar-live.vercel.app'?propDeploymentHost:
-     propProductionHost==='momentum-radar-live.vercel.app'?propProductionHost:'';
+     process.env.VERCEL_ENV==='production'&&propProductionHost==='momentum-radar-live.vercel.app'?propProductionHost:'';
     if(!propTrustedHost)throw Error('untrusted_prop_line_origin');
     const trustedPropOrigin='https://'+propTrustedHost;
     const propUrl=trustedPropOrigin+'/api/prop-line-markets?league=nfl&date='+date+'&gameId='+encodeURIComponent(gameId);
@@ -795,7 +795,7 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
   const productionHost=String(process.env.VERCEL_PROJECT_PRODUCTION_URL||'').toLowerCase();
   const trustedHost=/^momentum-radar-live-[a-z0-9-]+\.vercel\.app$/.test(deploymentHost)||
    deploymentHost==='momentum-radar-live.vercel.app'?deploymentHost:
-   productionHost==='momentum-radar-live.vercel.app'?productionHost:'';
+   process.env.VERCEL_ENV==='production'&&productionHost==='momentum-radar-live.vercel.app'?productionHost:'';
   const origin=trustedHost?'https://'+trustedHost:null;
   // No more than 3 correlated quote requests in a scheduled checkpoint
   // (plus at most two market lookups). Material injury changes retain six.
