@@ -217,7 +217,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  }
  function showInjuries(d){
   const xs=d.injuries||[];
-  return '<p class="sub">'+(d.inactivesVerified?'Official inactive status recorded.':
+  return '<h3>Pregame roster & sportsbook checks</h3><p class="sub">'+(d.inactivesVerified?'Official inactive status recorded.':
    'Reported injury observations; final official game-day inactives are NOT confirmed.')+
    (d.injuryCheckedAt?' • '+esc(fmtStamp(d.injuryCheckedAt)):'')+'</p>'+
    '<div class="players-grid" style="margin-top:18px">'+
@@ -230,7 +230,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  }
  function showAi(d){
   const ai=state.aiData,match=d.matchup?.sides||[];
-  const intro='<h3>✨ AI Game Analyzer</h3><p class="sub">Explore the matchup, key players and potential opportunities in one easy-to-read game breakdown.</p>';
+  const intro='<h3>✨ AI Game Analyzer</h3><p class="sub">AI-Assisted Model Brief — matchup and player estimates, separate from any saved AI narrative. Explore the matchup, key players and potential opportunities in one easy-to-read game breakdown.</p>';
   const review=state.aiLoading?'<div class="empty loading" style="margin:16px 0">Loading saved AI review…</div>':
    ai?.status==='SAVED_AI_REVIEW'||ai?.status==='HISTORICAL_AI_REVIEW'?
     '<div class="bookquote"><b>Saved AI analysis</b><div class="small">'+esc(fmtStamp(ai.generatedAt))+
@@ -269,7 +269,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   if(!review||!Array.isArray(review.candidates))return intro+
    noData('Player insights not available','Waiting for an approved read-only game analysis.');
   const list=review.candidates.slice(0,30);
-  const caution='<p class="sub" style="margin:18px 0">'+
+  const caution='<p class="sub" style="margin:18px 0"><b>Why is this bet not verified?</b> A projected hit chance alone does not prove that an exact sportsbook selection is offered or that a combined SGP price is confirmed. '+
    '<b>Analysis only — betting value not confirmed.</b> These estimates are for comparing players, not confirmed betting recommendations.'+
    (d.status==='LAST_SAVED'?' <b>These are older saved projections, not current betting lines.</b>':'')+'</p>';
   if(!list.length)return intro+caution+
