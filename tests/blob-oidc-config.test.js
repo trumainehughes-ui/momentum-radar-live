@@ -60,6 +60,8 @@ test('NFL collector OIDC passes preflight and preserves public auth protection',
  set('BLOB_READ_WRITE_TOKEN',null);
  set('BLOB_STORE_ID','store_fake');
  set('VERCEL','1');
+ set('VERCEL_ENV','production');
+ set('VERCEL_PROJECT_PRODUCTION_URL','momentum-radar-live.vercel.app');
  globalThis.fetch=async url=>{
   calls.push(String(url));
   return {ok:true,json:async()=>({ok:true,games:[],week:1})};
