@@ -33,6 +33,13 @@ test('all 12 Sunday matchups and UTC-Monday Sunday-night game are counted as mod
  assert.deepEqual(out.missingGameIds,[]);
  assert.ok(out.games.some(g=>g.gameId==='401873007'&&g.phase==='EARLY_PREVIEW'));
 });
+test('missing per-game provenance schema cannot be mistaken for all twelve games missing',()=>{
+ const now=Date.parse('2026-10-16T22:50:00Z');
+ assert.throws(()=>nflSundayTdReadiness({date,games,rankings:{
+  date,categories:{td:Array.from({length:10},()=>({}))},
+  categoryGameCounts:{td:12}
+ },now}),/per_game_model_snapshot_provenance_unavailable/);
+});
 test('a missing matchup is explicitly named even if a top-ten card still shows ten names',()=>{
  const now=Date.parse('2026-10-16T22:50:00Z');
  const out=nflSundayTdReadiness({date,games,rankings:ranked(
