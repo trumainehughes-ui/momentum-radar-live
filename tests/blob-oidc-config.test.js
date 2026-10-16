@@ -33,6 +33,19 @@ test('readiness shows OIDC configured but does not imply actual Blob read/write 
  assert.equal(d.nba.collectorReady,true);
  assert.ok(!JSON.stringify(d).includes('not-shared'));
 });
+test('readiness distinguishes missing cron credentials from missing Blob storage',()=>{
+ const preview=pregameReadiness({BLOB_STORE_ID:'store_abc',VERCEL:'1'});
+ assert.equal(preview.status,'BLOCKED');
+ assert.deepEqual(preview.blockers,['CRON_SECRET_MISSING']);
+ assert.match(preview.nextStep,/CRON_SECRET/);
+ const missingStore=pregameReadiness({CRON_SECRET:'private'});
+ assert.deepEqual(missingStore.blockers,['BLOB_STORAGE_NOT_CONFIGURED']);
+ const neither=pregameReadiness({});
+ assert.deepEqual(neither.blockers,['CRON_SECRET_MISSING','BLOB_STORAGE_NOT_CONFIGURED']);
+ const configured=pregameReadiness({BLOB_STORE_ID:'store_abc',VERCEL:'1',CRON_SECRET:'private'});
+ assert.deepEqual(configured.blockers,[]);
+ assert.ok(!JSON.stringify(configured).includes('private'));
+});
 test('NBA collector OIDC passes storage preflight on Vercel and fails only if source is unavailable',async()=>{
  const oldFetch=globalThis.fetch;
  let calls=[];
