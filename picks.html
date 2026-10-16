@@ -127,7 +127,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    '<div class="section-head"><div><h3>Model SGP Research</h3>'+
    '<p class="sub">MODEL RESEARCH ONLY — NOT A VERIFIED SPORTSBOOK PARLAY. No combined odds are claimed.</p></div></div>'+
    models.map(c=>'<div class="bookquote"><b>'+esc(c.risk)+' • '+esc(c.legCount)+' model legs</b>'+
-    '<div class="sub">'+c.legs.map(l=>esc(l.player)+' — '+esc(l.target)).join(' • ')+'</div>'+
+    '<div class="sub">'+c.legs.map(l=>esc(l.player)+' — '+esc(l.target)+' ('+esc(hitChanceText(l,l.category))+')').join(' • ')+'</div>'+
     (c.explanation?'<div class="sub">'+esc(c.explanation)+'</div>':'')+'</div>').join(''):'';
   const verified=ready?
    '<div class="section-head"><div><h3>Verified Same Game Parlays</h3>'+
