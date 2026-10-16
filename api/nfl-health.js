@@ -204,7 +204,7 @@ export default async function handler(req,res){
  // This also ensures injury detector and game collector use the same release.
  const deploymentHost=String(process.env.VERCEL_URL||'').toLowerCase();
  const productionHost=String(process.env.VERCEL_PROJECT_PRODUCTION_URL||'').toLowerCase();
- const previewHost=/^momentum-radar-live-[a-z0-9-]+\\.vercel\\.app$/.test(deploymentHost)?
+ const previewHost=/^momentum-radar-live-[a-z0-9-]+\.vercel\.app$/.test(deploymentHost)?
   deploymentHost:'';
  const trustedHost=process.env.VERCEL_ENV==='production'?
   (productionHost==='momentum-radar-live.vercel.app'?productionHost:
