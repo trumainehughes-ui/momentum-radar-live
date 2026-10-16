@@ -191,6 +191,9 @@ test('preliminary NFL Top 10 coverage and real book verification stay consistent
  assert.ok(owner.includes('Anytime TD — Model Watchlist'));
  assert.ok(owner.includes('x.verifiedIndividualOffer===true'));
  assert.ok(publicHtml.includes('PRELIMINARY MODEL WATCHLIST'));
+ assert.ok(publicHtml.includes('Scheduled collection starts when each matchup enters the 30-hour pregame window'));
+ const health=readFileSync(new URL('../api/nfl-health.js',import.meta.url),'utf8');
+ assert.ok(health.includes('collectionForecast=nflCollectionForecast(games)'));
  assert.ok(publicApi.includes('categoryGameCounts:ranked.categoryGameCounts'));
  assert.ok(ranks.includes('nflBookOfferEligible(row,b,b.book,now)'));
  assert.ok(ranks.includes('categoryGameCounts:Object.fromEntries'));
