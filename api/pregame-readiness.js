@@ -24,7 +24,10 @@ export function pregameReadiness(env={}){
    dayAheadPolicy:'ESPN completed game baseline + current rosters + capped opponent defense context; not book-quoted',
    sportsbookOddsVerified:false},
   ballDontLieFree:{dailyCacheReady:available,paidStatsOrPropEndpointsUsed:false},
+  blockers:[...(!cron?['CRON_SECRET_MISSING']:[]),
+   ...(!storage.configured?['BLOB_STORAGE_NOT_CONFIGURED']:[])],
   nextStep:available?'Check the next scheduled collector run and saved snapshot.':
+   !cron?'Configure CRON_SECRET for this deployment environment before enabling authenticated scheduled collection.':
    'Ensure the existing Vercel Blob store is attached. Either modern BLOB_STORE_ID with Vercel OIDC or a legacy BLOB_READ_WRITE_TOKEN is supported.'};
 }
 export default function handler(req,res){
