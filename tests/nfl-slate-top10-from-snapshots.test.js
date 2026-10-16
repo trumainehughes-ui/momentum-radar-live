@@ -267,3 +267,27 @@ test('TD scorer sample reliability beats marginally higher raw percentage from t
  assert.deepEqual(rank.categories.td.map(x=>x.playerID),['2','1']);
  assert.ok(rank.categories.td[0].tdRankScore>rank.categories.td[1].tdRankScore);
 });
+
+
+test('Sunday TD standings reject questionable, PUP, NFI and probable player-level status without an injury detail row',()=>{
+ const gameId='401873177';
+ const entry=(id,field,status)=>person(String(id),gameId,'td','Anytime TD',{
+  name:'Candidate '+id,team:'BUF',position:'RB',
+  modelOnly:true,tdModelStatus:'ESPN_MATCHUP_MODEL',modelTdPercent:68-id,
+  evidence:{games:6,opportunitiesPerGame:12,touchdowns:5},
+  ...(field?{[field]:status}:{})
+ });
+ const rows=[
+  entry(1,'injuryStatus','Questionable'),
+  entry(2,'starterStatus','PUP'),
+  entry(3,'availability','NFI'),
+  entry(4,'injuryStatus','Probable'),
+  entry(5,'availability','ACTIVE'),
+  entry(6,'availability','INACTIVE'),
+  entry(7,'injuryStatus','Injured Reserve')
+ ];
+ const result=buildNflSlateRankings([snap(gameId,'td',rows)],{date,now});
+ assert.deepEqual(result.categories.td.map(x=>x.playerID),['5']);
+ assert.equal(result.verifiedTdOffers,0);
+ assert.equal(result.categoryGameCounts.td,1);
+});
