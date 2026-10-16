@@ -99,9 +99,6 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  function teamLine(team){const ab=team?.abbr||'TBD',name=team?.name||ab;return '<div class="team"><span class="team-crest">'+esc(ab)+'</span><span>'+esc(name)+'</span></div>'}
  function renderGames(){const box=$('#games');if(!state.games.length){box.innerHTML=noData('No games listed for this date.','Choose another date or try Upcoming.');return}
  box.innerHTML=state.games.map(g=>'<button class="game-card '+(String(g.gameId)===String(state.selected)?'selected':'')+'" type="button" data-game="'+esc(g.gameId)+'" aria-label="Open '+esc(g.away?.name)+' at '+esc(g.home?.name)+'"><div class="game-head"><span>'+esc(state.league.toUpperCase())+' • '+esc('Week '+(g.week||'Matchup'))+'</span><span class="game-status">'+esc(statusLabel(g))+'</span></div>'+teamLine(g.away)+teamLine(g.home)+'<div class="game-meta">'+esc(fmtTime(g.kickoff))+(g.venue?' • '+esc(g.venue):'')+'</div></button>').join('')}
- function renderOdds(offers){if(!Array.isArray(offers)||!offers.length)return '';
- return '<div class="bookquote"><b>Verified combined sportsbook quote</b><div>'+offers.map(q=>esc(q.book)+' '+esc(q.risk)+' '+(Number(q.americanOdds)>0?'+':'')+esc(q.americanOdds)).join(' • ')+'</div><div class="sub">Prices may change; a quote is not a placed wager.</div></div>'}
-
  const views=[['overview','Overview'],['td','Anytime TD'],['props','Player Props'],['matchup','Matchup Edge'],['injuries','Injuries'],['sgps','SGPs'],['ai','✨ AI Game Analyzer'],['sharp','📈 Sharp +EV Audit'],['live','📊 Live TD Tracker']];
  const rankMetricNames={passYards:'Passing yards',rushYards:'Rushing yards',recYards:'Receiving yards',passTD:'Passing TDs',rushTD:'Rushing TDs',recTD:'Receiving TDs',receptions:'Receptions',targets:'Targets'};
  function renderOdds(offers){if(!Array.isArray(offers)||!offers.length)return '';
