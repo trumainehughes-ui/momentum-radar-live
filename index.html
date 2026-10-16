@@ -318,6 +318,9 @@ const reviewHtml=professionalReview?
  (x.positions||[]).filter(p=>['QB','RB','WR','TE'].includes(p.position)).slice(0,4).flatMap(p=>(p.metrics||[]).filter(m=>m.offenseProducedPerGame!==null&&m.defenseAllowedPerGame!==null).slice(0,1).map(m=>
  nflEscape(p.position)+': '+nflEscape(m.offenseProducedPerGame)+' produced vs '+nflEscape(m.defenseAllowedPerGame)+' allowed per game')).join(' • ')+'</div></div>').join('')+
  '<div class="note" style="margin-top:10px"><b>Risk overview:</b> Small, Medium and Nuke carry increasing risk. Check the selections before placing a bet.</div>'+
+ reviewTiers.map(x=>'<div class="nflMarketLine"><b>'+nflEscape(x.risk||x.tier||'SGP tier')+
+ '</b> • '+nflEscape(x.status||'PENDING')+
+ '<div class="note">'+nflEscape((x.holdReasons||[]).join(', ')||'Model review only; no verified combined sportsbook price')+'</div></div>').join('')+
  '<div class="note"><b>Player availability:</b> '+(d.validation?.injuryEligibilityChecked?nflEscape(d.validation?.blockedPlayerCount||0)+' players require injury or eligibility review.':'Player availability is still being checked.')+'</div></div>':
  '<div class="card" style="grid-column:1/-1"><b>Matchup &amp; SGP Risk Audit</b><div class="note">Matchup comparison is not ready yet. Check player availability and sportsbook odds before betting.</div></div>';
 const sgpStatusUrl='/api/nfl-sgp-status?date='+encodeURIComponent(nflData?.date||'')+
