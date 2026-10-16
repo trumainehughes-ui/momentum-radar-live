@@ -117,26 +117,19 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    x.target||labels[cat];
   return 'Estimated hit probability: '+x.hitProbabilityPct+'% • '+target+' (uncalibrated model)';
  }
- function renderParlays(d){const tiers=['Small','Medium','Nuke'];const available=d.parlays||[];
-  const checks=d.pregameChecks||{};
-  const eligible=checks.officialInactivesVerified===true;
-  const hasQuotes=Array.isArray(d.verifiedQuotes)&&d.verifiedQuotes.length>0;
-  return '<div class="bookquote"><b>Parlay status: '+(hasQuotes&&eligible?'Check current sportsbook odds':'Model suggestions only')+'</b>'+
-   '<div class="small">'+(hasQuotes&&eligible?'Some sportsbook quotes are available. Confirm each selection and price before placing a bet.':'These combinations are ideas, not confirmed sportsbook bets. Player availability and combined odds still need checking.')+'</div></div>'+
-   (d.status==='LAST_SAVED'?'<div class="bookquote"><b>Saved analysis:</b> These picks may be outdated.</div>':'')+
-   '<div class="section-head" style="margin-top:18px"><div><h3>Same Game Parlay Ideas</h3><p class="sub">Explore Small, Medium and Nuke combinations. Higher potential payouts mean higher risk.</p></div></div>'+
-  '<div class="parlay-grid">'+tiers.map(risk=>{const t=available.find(x=>x.risk===risk),cls=risk.toLowerCase();
-   return '<div class="parlay"><div class="tier '+cls+'">'+risk+' <small>'+(t?t.legCount+' LEGS':'PENDING')+'</small></div>'+
-   (t?t.legs.map(l=>'<div class="leg"><strong>'+esc(l.player)+'</strong><div class="sub">'+esc(l.team)+' '+esc(l.position||'')+'</div><div class="target">'+esc(l.target)+'</div>'+
-    (l.projection!=null?'<div class="small">Projected: '+esc(l.projection)+'</div>':'')+
-    '<div class="small"><b>'+esc(hitChanceText(l,l.category))+'</b></div>'+
-    (l.projectionNote?'<div class="small">'+esc(l.projectionNote)+'</div>':'')+'</div>').join('')+
-    (t.explanation?'<p><b>Why these picks:</b> '+esc(t.explanation)+'</p>':'')+
-    (t.matchupNotes?.length?'<details><summary class="small" style="cursor:pointer">See detailed leg analysis</summary>'+
-    t.matchupNotes.map(x=>'<p>'+esc(x)+'</p>').join('')+'</details>':'')+
-    '<p><b>NOT BOOK-VERIFIED:</b> Analysis-only parlay concept. Availability and combined odds have not been confirmed by FanDuel or DraftKings.</p>':
-    '<p>Not enough screened player props for this tier. It will appear after the next eligible update.</p>')+'</div>'
-  }).join('')+'</div>'+renderOdds(d.verifiedQuotes)}
+ function renderParlays(d){
+  // Public SGPs fail closed: a model leg is never a sportsbook offer.
+  // Quotes are only published after the upstream verifier confirms the
+  // book-issued combined price and every exact eligible leg.
+  const quotes=(d.verifiedQuotes||[]).filter(q=>q&&['DraftKings','FanDuel'].includes(q.book)&&
+   ['Small','Medium','Nuke'].includes(q.risk)&&Number.isFinite(Number(q.americanOdds)));
+  const ready=d.inactivesVerified===true&&quotes.length>0;
+  if(!ready)return '<div class="empty"><strong>No sportsbook-verified parlays available yet.</strong>'+
+   '<div>We only display parlays when the players, exact selections and combined odds are confirmed. Check back after the next update.</div></div>';
+  return '<div class="section-head"><div><h3>Verified Same Game Parlays</h3>'+
+   '<p class="sub">Review the current selections and prices at your sportsbook before betting.</p></div></div>'+
+   renderOdds(quotes);
+ }
  function offerHtml(x){const o=x.bookOffer;if(!o)return '';
   return '<div class="small">Verified individual '+esc(o.book)+' line'+
    (o.line!=null?' '+esc(o.line):'')+' • '+(Number(o.odds)>0?'+':'')+esc(o.odds)+
