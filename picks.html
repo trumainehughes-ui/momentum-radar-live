@@ -418,10 +418,12 @@ async function loadHistory(){
  function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?.[state.rank]||[];
  const scheduled=state.games?.length||0;
  const covered=Number(state.rankings?.categoryGameCounts?.[state.rank]??0);
- const coverageNote=scheduled>covered?
-  '<div class="sub" style="margin-bottom:12px">PRELIMINARY MODEL WATCHLIST: '+esc(covered)+' of '+esc(scheduled)+' scheduled matchups contributed '+esc(labels[state.rank]||state.rank)+' estimates. This is not a complete NFL-wide Top 10 and not a list of sportsbook quotes.</div>':'';
+ const coverageNote=scheduled>covered||(state.rank==='td'&&rows.length<10)?
+  '<div class="sub" style="margin-bottom:12px">PRELIMINARY MODEL WATCHLIST: '+esc(covered)+' of '+esc(scheduled)+' scheduled matchups contributed '+esc(labels[state.rank]||state.rank)+' estimates. This is not yet a complete Sunday Top 10. Final ranking is based on player TD history, opportunity volume, opponent defense, sample reliability and injury clearance—not sportsbook prices.</div>':'';
 
- box.innerHTML=coverageNote+(rows.length?rows.slice(0,8).map((x,i)=>'<div class="rank-card"><div class="rank-head"><div class="rank-index">#'+(i+1)+'</div><div><strong>'+esc(x.name)+'</strong><div class="sub">'+esc(x.team)+' vs '+esc(x.opponent)+'</div></div></div><div class="pick">'+(state.rank==='td'?esc(x.modelChancePct)+'% TD chance':esc(x.projection)+' '+(state.rank==='receptions'?'receptions':'yards'))+'</div><div class="small" style="margin-top:8px"><b>'+esc(hitChanceText(x,state.rank))+'</b></div><div class="tiny">Uncalibrated model estimate</div></div>').join(''):
+ const fullTd=state.rank==='td'&&scheduled>0&&covered===scheduled&&rows.length===10;
+ const title=fullTd?'<div class="sub" style="margin-bottom:10px"><b>SUNDAY TOP 10 — ANYTIME TD SCORING CANDIDATES</b> • Model-ranked, not guaranteed winners or bookmaker prices</div>':'';
+ box.innerHTML=title+coverageNote+(rows.length?rows.slice(0,10).map((x,i)=>'<div class="rank-card"><div class="rank-head"><div class="rank-index">#'+(i+1)+'</div><div><strong>'+esc(x.name)+'</strong><div class="sub">'+esc(x.team)+' vs '+esc(x.opponent)+'</div></div></div><div class="pick">'+(state.rank==='td'?esc(x.modelChancePct)+'% TD chance':esc(x.projection)+' '+(state.rank==='receptions'?'receptions':'yards'))+'</div><div class="small" style="margin-top:8px"><b>'+esc(hitChanceText(x,state.rank))+'</b></div><div class="tiny">Uncalibrated model estimate</div></div>').join(''):
  noData('No screened rankings for this category.','Model rankings appear after the scheduled predictions have been saved.'))}
  async function loadRanks(){const token=++state.rankLoading;state.rankings=null;$('#rankings').innerHTML='<div class="empty loading grid-span">Loading rankings…</div>';
  if(state.league!=='nfl')return;
