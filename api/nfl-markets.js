@@ -634,7 +634,28 @@ const publicRefs=gameId?manualAtlNoTonightSgps(date,home,away)?.[0]?.publicMarke
 if(gameId&&categories.td.length===0){const seen=new Set();categories.td=publicRefs.filter(r=>String(r.market||'').toLowerCase().includes('anytime td')).map(r=>{const rr=roleFor(roles,{name:r.player})||null,key=norm(r.player);if(seen.has(key))return null;seen.add(key);return{name:r.player,playerID:rr?.playerId||key,team:rr?.team||'',position:rr?.position||'',eventID:gameId,category:'td',projection:'Anytime TD',projectionUnit:'touchdown',projectionMethod:'Momentum Radar TD matchup model + verified public sportsbook market',analyticsOnly:false,confidence:60,reason:'Verified current-game anytime touchdown market; final confidence is adjusted by role, usage, matchup and injury eligibility.'}}).filter(Boolean)}
 const publicRefByPlayerCat=new Map();
 for(const r of publicRefs){const mk=String(r.market||'').toLowerCase();let cat=mk.includes('passing yard')?'passing':mk.includes('rushing yard')?'rushing':mk.includes('receiving yard')?'receiving':mk.includes('reception')?'receptions':mk.includes('anytime td')?'td':'';if(!cat)continue;const key=norm(r.player)+'|'+cat,arr=publicRefByPlayerCat.get(key)||[];arr.push(r);publicRefByPlayerCat.set(key,arr)}
-function publicOfferFor(name,cat){const a=publicRefByPlayerCat.get(norm(name)+'|'+cat)||[];if(!a.length)return null;const r=a.find(x=>/^\d+(\.\d+)?$/.test(String(x.line)))||a[0],n=Number(String(r.line).replace('+',''));return{book:r.book,line:Number.isFinite(n)?n:null,odds:Number(String(r.odds).replace('+','')),source:'public sportsbook',verified:true}}
+function publicOfferFor(name,cat){
+ // Historical/public research references are NOT live sportsbook offers.
+ // Do not elevate them to verified selections without a fresh event-scoped
+ // observation, source URL, timestamp, and exact market identity.
+ const refs=publicRefByPlayerCat.get(norm(name)+'|'+cat)||[];
+ const now=Date.now();
+ const r=refs.find(x=>{
+  const checked=Date.parse(x.checkedAt||x.observedAt||'');
+  const url=String(x.sourceUrl||'');
+  return ['DraftKings','FanDuel'].includes(x.book)&&
+   String(x.gameId||'')===String(gameId)&&
+   Number.isFinite(checked)&&checked<=now&&now-checked<=15*60_000&&
+   /^https:\/\/(?:sportsbook\.draftkings\.com|sportsbook\.fanduel\.com)\//.test(url)&&
+   Number.isFinite(Number(x.odds))&&Number(x.odds)!==0&&
+   (cat==='td'||Number.isFinite(Number(x.line)));
+ });
+ if(!r)return null;
+ return{book:r.book,line:cat==='td'?null:Number(r.line),
+  odds:Number(r.odds),checkedAt:r.checkedAt||r.observedAt,
+  sourceUrl:r.sourceUrl,market:cat,available:true,verified:true};
+}
+
 requestStage='historical_stats';const statBoards=await statBoardsPromise;
  // Day-ahead verified-roster usage enables *provisional* non-QB model-only
  // SGP legs for games absent from old hardcoded starter evidence.
