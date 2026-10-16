@@ -581,7 +581,7 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
    try{
     const propDeploymentHost=String(process.env.VERCEL_URL||'').toLowerCase();
     const propProductionHost=String(process.env.VERCEL_PROJECT_PRODUCTION_URL||'').toLowerCase();
-    const propTrustedHost=/^momentum-radar-live-[a-z0-9-]+\\.vercel\\.app$/.test(propDeploymentHost)||
+    const propTrustedHost=/^momentum-radar-live-[a-z0-9-]+\.vercel\.app$/.test(propDeploymentHost)||
      propDeploymentHost==='momentum-radar-live.vercel.app'?propDeploymentHost:
      propProductionHost==='momentum-radar-live.vercel.app'?propProductionHost:'';
     if(!propTrustedHost)throw Error('untrusted_prop_line_origin');
@@ -793,7 +793,7 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
   // Never route a preview's authorized token or quote spend into production.
   const deploymentHost=String(process.env.VERCEL_URL||'').toLowerCase();
   const productionHost=String(process.env.VERCEL_PROJECT_PRODUCTION_URL||'').toLowerCase();
-  const trustedHost=/^momentum-radar-live-[a-z0-9-]+\\.vercel\\.app$/.test(deploymentHost)||
+  const trustedHost=/^momentum-radar-live-[a-z0-9-]+\.vercel\.app$/.test(deploymentHost)||
    deploymentHost==='momentum-radar-live.vercel.app'?deploymentHost:
    productionHost==='momentum-radar-live.vercel.app'?productionHost:'';
   const origin=trustedHost?'https://'+trustedHost:null;
