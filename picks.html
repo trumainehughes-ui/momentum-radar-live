@@ -115,17 +115,26 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   return 'Estimated hit probability: '+x.hitProbabilityPct+'% • '+target+' (uncalibrated model)';
  }
  function renderParlays(d){
-  // Public SGPs fail closed: a model leg is never a sportsbook offer.
-  // Quotes are only published after the upstream verifier confirms the
-  // book-issued combined price and every exact eligible leg.
   const quotes=(d.verifiedQuotes||[]).filter(q=>q&&['DraftKings','FanDuel'].includes(q.book)&&
-   ['Small','Medium','Nuke'].includes(q.risk)&&Number.isFinite(Number(q.americanOdds)));
+   ['Small','Medium','Nuke'].includes(q.risk)&&Number.isFinite(Number(q.americanOdds))&&
+   Number(q.americanOdds)!==0);
   const ready=d.inactivesVerified===true&&quotes.length>0;
-  if(!ready)return '<div class="empty"><strong>No sportsbook-verified parlays available yet.</strong>'+
-   '<div>We only display parlays when the players, exact selections and combined odds are confirmed. Check back after the next update.</div></div>';
-  return '<div class="section-head"><div><h3>Verified Same Game Parlays</h3>'+
+  const models=(Array.isArray(d.parlays)?d.parlays:[]).filter(c=>
+   ['Small','Medium','Nuke'].includes(c?.risk)&&c.mode==='MODEL_ONLY'&&
+   Array.isArray(c.legs)&&c.legs.length>=2);
+  const research=models.length?
+   '<div class="section-head"><div><h3>Model SGP Research</h3>'+
+   '<p class="sub">MODEL RESEARCH ONLY — NOT A VERIFIED SPORTSBOOK PARLAY. No combined odds are claimed.</p></div></div>'+
+   models.map(c=>'<div class="bookquote"><b>'+esc(c.risk)+' • '+esc(c.legCount)+' model legs</b>'+
+    '<div class="sub">'+c.legs.map(l=>esc(l.player)+' — '+esc(l.target)).join(' • ')+'</div>'+
+    (c.explanation?'<div class="sub">'+esc(c.explanation)+'</div>':'')+'</div>').join(''):'';
+  const verified=ready?
+   '<div class="section-head"><div><h3>Verified Same Game Parlays</h3>'+
    '<p class="sub">Review the current selections and prices at your sportsbook before betting.</p></div></div>'+
-   renderOdds(quotes);
+   renderOdds(quotes):
+   '<div class="empty"><strong>No sportsbook-verified parlays available yet.</strong>'+
+   '<div>Sportsbook verification pending. Exact selections, active players and combined odds must be confirmed before a parlay is offered.</div></div>';
+  return research+verified;
  }
  function offerHtml(x){const o=x.bookOffer;if(!o)return '';
   return '<div class="small">Verified individual '+esc(o.book)+' line'+
