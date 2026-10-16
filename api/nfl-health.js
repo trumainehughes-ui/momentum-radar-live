@@ -8,6 +8,7 @@ import {selectedShardGames,collectorAuditReport,writeCollectorAudit}
  from '../lib/pregame-collector-shards.js';
 import {checkNflScheduledInjuryChanges} from '../lib/nfl-scheduled-injury-watch.js';
 import {runNflScheduledBookCheckpoint} from '../lib/nfl-scheduled-book-checkpoint.js';
+import {nflCollectionForecast} from '../lib/nfl-slate-collection-forecast.js';
 import {nflModelSgpRevisionAudit,nflSafeSgpRevisionAudit} from '../lib/nfl-model-sgp-revision-audit.js';
 import {
  nflEasternDate,nflAddDate,nflCollectorDueGames,nflTierReadiness,
@@ -231,6 +232,7 @@ export default async function handler(req,res){
   // /api/nfl-schedule explicitly delegates sportsbook markets to the
   // separate /api/nfl-markets route; "markets.available=false" there does
   // NOT prove that the market route is down.
+  const collectionForecast=nflCollectionForecast(games);
   const allDue=nflCollectorDueGames(games),
    assigned=cron?selectedShardGames(allDue,shard):[];
   const startedAt=new Date().toISOString();
@@ -245,6 +247,7 @@ export default async function handler(req,res){
   return res.status(blocking.length?503:200).json({
    ok:!blocking.length,date:today,datesChecked:dates,
    shard,shardsTotal:2,totalScheduledGames:games.length,
+   collectionForecast,
    week:schedules.find(x=>x.week)?.week||null,games:games.length,
    markets:{status:'SEPARATE_SERVICE',verifiedByHealth:false},
    playbook:{configured:Boolean(process.env.PLAYBOOK_API_KEY)},
