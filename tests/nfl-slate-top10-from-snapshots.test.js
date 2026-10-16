@@ -119,7 +119,7 @@ test('all four top-ten buttons load read-only slate rows, not metadata-only mark
  assert.ok(!route.includes('THE_ODDS_API_KEY'));
 });
 
-test('verified individually priced touchdown rows can populate Top 10 without invented TD percentages',()=>{
+test('sportsbook-only touchdown prices cannot populate the scoring prediction Top 10',()=>{
  const td=(id,confidence,book,odds)=>person(id,'401872989','td','Anytime TD',{
   confidence,verifiedAt:'2026-10-11T19:48:00Z',
   provider:'The Odds API',marketName:'player_anytime_td',
@@ -140,13 +140,13 @@ test('verified individually priced touchdown rows can populate Top 10 without in
   {...td('9',97,'FanDuel',220),provider:'SportsGameOdds'}
  ]);
  const out=buildNflSlateRankings([p],{date,now});
- assert.deepEqual(out.categories.td.map(x=>x.playerID),['2','1']);
- assert.deepEqual(out.categories.td.map(x=>x.rank),[1,2]);
- assert.equal(out.categories.td[0].projection,'Anytime TD');
- assert.equal(out.categories.td[0].bestBook.book,'FanDuel');
+ assert.deepEqual(out.categories.td,[]);
+ assert.equal(out.tdRankedScorers,0);
+ assert.equal(out.tdRankingMethod,'ESPN_HISTORICAL_TD_USAGE_OPPONENT_DVP_SAMPLE_ADJUSTED');
+ assert.equal(out.categories.td[0],undefined);
  assert.equal(out.tdMarketVerificationRequired,true);
- assert.equal(out.verifiedTdOffers,2);
- assert.equal(out.categoryGameCounts.td,1);
+ assert.equal(out.verifiedTdOffers,0);
+ assert.equal(out.categoryGameCounts.td,0);
 });
 test('injury-screened TD model candidates rank across different NFL games without fabricated bookmaker odds',()=>{
  const good=(id,game,percent)=>person(id,game,'td','Anytime TD',{
@@ -218,4 +218,52 @@ test('expired saved player-book odds are removed from model rankings, and expire
  assert.deepEqual(result.categories.rushing[0].books,[]);
  assert.deepEqual(result.categories.rushing[0].sportsbooks,{});
  assert.deepEqual(result.categories.td,[]);
+});
+
+test('Sunday scorer Top 10 selects the ten highest qualified candidates across twelve matchups',()=>{
+ const scores=Array.from({length:12},(_,i)=>{
+  const gid=String(401873100+i);
+  const player=person('td-'+i,gid,'td','Anytime TD',{
+   name:'Scorer '+i,team:'ATL',opponent:'CHI',position:'RB',
+   modelOnly:true,tdModelStatus:'ESPN_MATCHUP_MODEL',
+   modelTdPercent:35+2*i,confidence:71,
+   evidence:{games:6,opportunitiesPerGame:12,touchdowns:3},
+   bestBook:null,books:[]});
+  const game=snap(gid,'td',[player]);
+  game.body.home='CHI';game.body.away='ATL';
+  return game;
+ });
+ const result=buildNflSlateRankings(scores,{date,now});
+ assert.equal(result.categoryGameCounts.td,12);
+ assert.equal(result.tdRankedScorers,10);
+ assert.equal(result.verifiedTdOffers,0);
+ assert.equal(result.categories.td[0].name,'Scorer 11');
+ assert.equal(result.categories.td[9].name,'Scorer 2');
+ assert.equal(new Set(result.categories.td.map(x=>x.gameId)).size,10);
+ assert.ok(result.categories.td.every(x=>x.scorerPrediction&&x.bestBook===null));
+ assert.ok(result.categories.td.every(x=>x.rank>=1&&x.rank<=10));
+});
+test('current weekly injury holds remove otherwise high-ranked Sunday touchdown candidates',()=>{
+ const gid='401873199';
+ const make=(id,pct)=>person(id,gid,'td','Anytime TD',{
+  name:'Scoring Player '+id,team:'ATL',opponent:'CHI',position:'RB',
+  modelOnly:true,tdModelStatus:'ESPN_MATCHUP_MODEL',modelTdPercent:pct,
+  evidence:{games:5,opportunitiesPerGame:12,touchdowns:3}});
+ const snapshot=snap(gid,'td',[make('1',70),make('2',55),make('3',46)],
+  {home:'CHI',away:'ATL',validation:{injuryEligibilityChecked:true,
+   injuryEvidence:[{playerId:'1',name:'Scoring Player 1',team:'ATL',
+    status:'QUESTIONABLE',section:'WEEKLY'}]}});
+ const ranked=buildNflSlateRankings([snapshot],{date,now});
+ assert.deepEqual(ranked.categories.td.map(x=>x.playerID),['2','3']);
+ const unrelated=snap(gid,'td',[make('2',55)],{home:'CHI',away:'HOU'});
+ assert.equal(buildNflSlateRankings([unrelated],{date,now}).categories.td.length,0);
+});
+test('TD scorer sample reliability beats marginally higher raw percentage from two games',()=>{
+ const gid='401873198';
+ const td=(id,pct,games)=>person(id,gid,'td','Anytime TD',{
+  team:'ATL',position:'RB',modelOnly:true,tdModelStatus:'ESPN_MATCHUP_MODEL',
+  modelTdPercent:pct,evidence:{games,opportunitiesPerGame:12,touchdowns:2}});
+ const rank=buildNflSlateRankings([snap(gid,'td',[td('1',50,2),td('2',49,8)])],{date,now});
+ assert.deepEqual(rank.categories.td.map(x=>x.playerID),['2','1']);
+ assert.ok(rank.categories.td[0].tdRankScore>rank.categories.td[1].tdRankScore);
 });

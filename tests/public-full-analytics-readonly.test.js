@@ -188,7 +188,10 @@ test('preliminary NFL Top 10 coverage and real book verification stay consistent
  const publicApi=readFileSync(new URL('../api/public-nfl-rankings.js',import.meta.url),'utf8');
  const ranks=readFileSync(new URL('../lib/nfl-slate-rankings.js',import.meta.url),'utf8');
  assert.ok(owner.includes('PRELIMINARY • Only '));
- assert.ok(owner.includes('Anytime TD — Model Watchlist'));
+ assert.ok(owner.includes('Sunday Top 10 — Anytime TD Scorers'));
+ assert.ok(owner.includes("nflRenderRankPanel('td',{background:true})"));
+ assert.ok(publicHtml.includes('rows.slice(0,10)'));
+ assert.ok(publicHtml.includes('SUNDAY TOP 10 — ANYTIME TD SCORING CANDIDATES'));
  assert.ok(owner.includes('x.verifiedIndividualOffer===true'));
  assert.ok(publicHtml.includes('PRELIMINARY MODEL WATCHLIST'));
  assert.ok(publicHtml.includes('Scheduled collection starts when each matchup enters the 30-hour pregame window'));

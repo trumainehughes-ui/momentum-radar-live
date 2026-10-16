@@ -374,21 +374,43 @@ async function loadNFLMulti(){
 }
 async function loadNFLHistory(){const box=$('#nflHistoryBoard');if(!box)return;box.innerHTML='<div class="msg">Loading completed results…</div>';try{const r=await fetch('/api/nfl-game?mode=history-list&ts='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('history');const d=await r.json(),locks=d.history||[],archive=d.archive||[];const graded=await Promise.all(locks.map(async x=>{try{const q=await fetch('/api/nfl-game?mode=history-grade&gameId='+encodeURIComponent(x.gameId)+'&ts='+Date.now(),{cache:'no-store'});return q.ok?q.json():null}catch{return null}})),finals=graded.filter(x=>x?.final),archiveHtml=archive.length?'<details class="card historyCompact"><summary><div><div class="rank">ARCHIVE</div><div class="name">Older graded games</div><div class="pick">'+archive.length+' compact summaries preserved</div></div><span class="tinyBtn">Open archive</span></summary><div class="historyDetails">'+archive.map(x=>{const tiers=x.tiers||{},tierText=['Small','Medium','Nuke'].filter(k=>tiers[k]?.total).map(k=>k+' '+tiers[k].hits+'/'+tiers[k].total).join(' • ');return '<div class="nflMarketLine"><b>'+nflEscape(x.score||x.gameId)+'</b><div class="historyNumbers">'+(x.playerTotal?'Player picks '+x.playerHits+'/'+x.playerTotal+' • ':'')+'SGPs '+x.sgpHits+'/'+x.sgpTotal+(tierText?' • '+nflEscape(tierText):'')+'</div></div>'}).join('')+'</div></details>':'';box.innerHTML=(finals.length?finals.map(nflHistoryCard).join(''):'<div class="msg">No completed games from the last 24 hours.</div>')+archiveHtml}catch{box.innerHTML='<div class="msg">History is temporarily unavailable.</div>'}}
 
-function nflNav(tab){document.querySelectorAll('[data-nfltab]').forEach(b=>b.classList.toggle('active',b.dataset.nfltab===tab));nflClose();$('#nflLivePanel').style.display=(tab==='tracker'||tab==='overview')?'block':'none';$('#nflRankPanel').style.display='none';$('#nflMultiPanel').style.display=tab==='multigame'?'block':'none';$('#nflHistoryPanel').style.display=tab==='history'?'block':'none';if(tab==='multigame'){loadNFLMulti();setTimeout(()=>$('#nflMultiPanel')?.scrollIntoView({behavior:'smooth',block:'start'}),50);return}if(tab==='history'){loadNFLHistory();setTimeout(()=>$('#nflHistoryPanel')?.scrollIntoView({behavior:'smooth',block:'start'}),50);return}if(tab==='tracker'){setTimeout(()=>$('#nflLivePanel')?.scrollIntoView({behavior:'smooth',block:'start'}),50);return}if(tab==='gameday'||tab==='overview'){setTimeout(()=>$('#nflHome')?.scrollIntoView({behavior:'smooth',block:'start'}),50);return}if(nflLabels[tab]){$('#nflHome').style.display='none';$('#nflRankPanel').style.display='block';$('#nflRankTitle').textContent='Top 10 — '+nflLabels[tab];$('#nflRankBoard').innerHTML='<div class="msg">Loading Top 10 slate analytics…</div>';loadNFLRanks(tab).then(rows=>{
- const meta=nflMarketData;
- const covered=Number(meta?.categoryGameCounts?.[tab]??meta?.injuryScreenedGames??0);
- const scheduled=Array.isArray(nflData?.games)?nflData.games.filter(g=>g.status==='SCHEDULED').length:0;
- const partial=scheduled>covered;
- const modelTd=tab==='td'&&!rows.some(x=>x.verifiedIndividualOffer===true);
- if(tab==='td')$('#nflRankTitle').textContent=modelTd?'Anytime TD — Model Watchlist':'Anytime TD — Ranked Offers & Research';
- const preface=partial?'PRELIMINARY • Only '+covered+' of '+scheduled+' scheduled NFL matchups have eligible saved '+nflLabels[tab]+' projections. The ranking is NOT a complete slate Top 10. ':'';
- const notice=meta?.source==='PREVIOUSLY_SAVED_GAME_ANALYTICS'
-  ?'<div class="note" style="margin-bottom:12px">'+nflEscape(preface)+(tab==='td'?'Uncalibrated model TD estimates are research, not confirmed touchdown odds. Verified DraftKings/FanDuel prices appear only with source-backed offers.':'Saved pregame ESPN model projections, not live player stats.')+' • Oldest saved snapshot: '+nflEscape(meta.oldestSnapshotAt?new Date(meta.oldestSnapshotAt).toLocaleString():'unavailable')+'</div>':'';
- $('#nflRankBoard').innerHTML=rows?.length?notice+rows.map(x=>nflRankCard(x,tab)).join('')
-  :'<div class="msg">'+(meta?.gamesWithProjections===0?
+// Ranking is model-led across the selected slate. Missing individual book odds
+// never prevent a model scorer from appearing in Sunday's Top 10.
+async function nflRenderRankPanel(tab,{background=false}={}){
+ const date=nflData?.date,box=$('#nflRankBoard');if(!date||!box)return;
+ if(!background)box.innerHTML='<div class="msg">Loading Top 10 slate analytics…</div>';
+ try{
+  const rows=await loadNFLRanks(tab);
+  if(nflData?.date!==date||$('#nflRankPanel')?.style.display!=='block'||!document.querySelector('[data-nfltab="'+tab+'"].active'))return;
+  const meta=nflMarketData;
+  const covered=Number(meta?.categoryGameCounts?.[tab]??meta?.injuryScreenedGames??0);
+  const scheduled=Array.isArray(nflData.games)?nflData.games.filter(g=>g.status==='SCHEDULED').length:0;
+  const partial=scheduled>covered||(tab==='td'&&rows.length<10);
+  const isSunday=new Date(date+'T12:00:00Z').getUTCDay()===0;
+  if(tab==='td')$('#nflRankTitle').textContent=partial?'Anytime TD — Preliminary Scorer Rankings':
+   (isSunday?'Sunday Top 10 — Anytime TD Scorers':'NFL Top 10 — Anytime TD Scorers');
+  const preface=partial?'PRELIMINARY • Only '+covered+' of '+scheduled+' scheduled games have qualified saved '+nflLabels[tab]+' projections. Not yet a complete Top 10. ':
+   'Full scheduled-slate candidate coverage: '+covered+' of '+scheduled+' games. ';
+  const notice=meta?.source==='PREVIOUSLY_SAVED_GAME_ANALYTICS'?
+   '<div class="note" style="margin-bottom:12px">'+nflEscape(preface)+(tab==='td'?
+   'Top scoring candidates are ranked by the ESPN matchup TD model, usage, opponent defense, injury clearance and sample reliability. Bookmaker prices are optional and separately verified. Percentages are uncalibrated estimates.':
+   'Saved pregame ESPN model projections, not live player stats.')+
+   ' • Oldest saved snapshot: '+nflEscape(meta.oldestSnapshotAt?new Date(meta.oldestSnapshotAt).toLocaleString():'unavailable')+'</div>':'';
+  box.innerHTML=rows?.length?notice+rows.map(x=>nflRankCard(x,tab)).join(''):
+   notice+'<div class="msg">'+(meta?.gamesWithProjections===0?
     'No saved player projections are available for this game date yet.':
-    tab==='td'?'No individually verified DraftKings/FanDuel Anytime TD markets are available for this slate yet. Touchdown prices and probabilities are not guessed.':'No qualified players are available for this category yet.')+'</div>';
-}).catch(()=>{$('#nflRankBoard').innerHTML='<div class="msg">Slate analytics temporarily unavailable.</div>'});return}if(tab==='sgp'){$('#nflHome').style.display='block';setTimeout(()=>$('#nflHome')?.scrollIntoView({behavior:'smooth',block:'start'}),50)}}
+    tab==='td'?'No screened Anytime TD model yet; sportsbook odds unverified. No individually verified DraftKings/FanDuel Anytime TD markets are available.':
+    'No qualified players are available for this category yet.')+'</div>';
+ }catch{if(!background)box.innerHTML='<div class="msg">Slate analytics temporarily unavailable.</div>';}
+}
+if(typeof setInterval==='function')setInterval(()=>{
+ if(document.hidden||!nflData?.date||$('#nflRankPanel')?.style.display!=='block'||
+  !document.querySelector('[data-nfltab="td"].active'))return;
+ // Read-only Blob ranking refresh. No new odds/AI calls and no jump/scroll.
+ nflSlateRankCache.delete(nflData.date);
+ nflRenderRankPanel('td',{background:true});
+},5*60*1000);
+function nflNav(tab){document.querySelectorAll('[data-nfltab]').forEach(b=>b.classList.toggle('active',b.dataset.nfltab===tab));nflClose();$('#nflLivePanel').style.display=(tab==='tracker'||tab==='overview')?'block':'none';$('#nflRankPanel').style.display='none';$('#nflMultiPanel').style.display=tab==='multigame'?'block':'none';$('#nflHistoryPanel').style.display=tab==='history'?'block':'none';if(tab==='multigame'){loadNFLMulti();setTimeout(()=>$('#nflMultiPanel')?.scrollIntoView({behavior:'smooth',block:'start'}),50);return}if(tab==='history'){loadNFLHistory();setTimeout(()=>$('#nflHistoryPanel')?.scrollIntoView({behavior:'smooth',block:'start'}),50);return}if(tab==='tracker'){setTimeout(()=>$('#nflLivePanel')?.scrollIntoView({behavior:'smooth',block:'start'}),50);return}if(tab==='gameday'||tab==='overview'){setTimeout(()=>$('#nflHome')?.scrollIntoView({behavior:'smooth',block:'start'}),50);return}if(nflLabels[tab]){$('#nflHome').style.display='none';$('#nflRankPanel').style.display='block';$('#nflRankTitle').textContent='Top 10 — '+nflLabels[tab];$('#nflRankBoard').innerHTML='<div class="msg">Loading Top 10 slate analytics…</div>';nflRenderRankPanel(tab);return}if(tab==='sgp'){$('#nflHome').style.display='block';setTimeout(()=>$('#nflHome')?.scrollIntoView({behavior:'smooth',block:'start'}),50)}}
 document.querySelectorAll('[data-nfltab]').forEach(b=>b.onclick=()=>nflNav(b.dataset.nfltab));const nflHelp=$('#nflHelp'),nflGuide=$('#nflGuide');if(nflHelp&&nflGuide)nflHelp.onclick=()=>{const open=nflGuide.classList.toggle('open');nflHelp.textContent=open?'✕ Close Guide':'❓ How to Use Momentum Radar';if(open)nflGuide.scrollIntoView({behavior:'smooth',block:'nearest'})};
 async function refresh(){try{$('#status').textContent='Refreshing official MLB status…';const [r,s]=await Promise.all([api('rankings'),api('slate')]);rankings=r.rankings||{};slate=s;await updateTrackerSnapshot();await updateTrackerResults();renderTabs();renderQuick();renderHidden();renderHR();const up=(s.games||[]).filter(upcoming).length;$('#status').textContent=`Live • ${up} upcoming / ${(s.games||[]).length} games`;$('#fresh').textContent=`Official MLB game status refreshed ${new Date(s.fetchedAt||Date.now()).toLocaleTimeString()} • auto-refresh every 30 seconds • cache bypassed` }catch(e){$('#status').textContent='Refresh failed';$('#quick').innerHTML='<div class="msg">Could not refresh current MLB data.</div>'}}
 function nflChooseUpcomingDow(target){
