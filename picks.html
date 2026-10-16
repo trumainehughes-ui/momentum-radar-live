@@ -217,7 +217,14 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  }
  function showInjuries(d){
   const xs=d.injuries||[];
-  return '<h3>Pregame roster & sportsbook checks</h3><p class="sub">'+(d.inactivesVerified?'Official inactive status recorded.':
+  const checks=d.pregameChecks||{};
+  const summary='<div class="bookquote"><div class="small">Starting lineups: '+esc(checks.startingLineups||'UNCONFIRMED')+
+   ' • DraftKings: '+esc(checks.DraftKings||'NO_VERIFIED_GAME_PROP')+
+   ' • FanDuel: '+esc(checks.FanDuel||'NO_VERIFIED_GAME_PROP')+'</div>'+
+   '<div class="small">ESPN game-roster starter flags observed: '+
+   esc(checks.eventRosterStarterFlags?Object.entries(checks.eventRosterStarterFlags).map(([team,n])=>team+': '+n).join(', '):'not available')+
+   ' — roster flags are not an official inactive report.</div></div>';
+  return '<h3>Pregame roster & sportsbook checks</h3>'+summary+'<p class="sub">'+(d.inactivesVerified?'Official inactive status recorded.':
    'Reported injury observations; final official game-day inactives are NOT confirmed.')+
    (d.injuryCheckedAt?' • '+esc(fmtStamp(d.injuryCheckedAt)):'')+'</p>'+
    '<div class="players-grid" style="margin-top:18px">'+
