@@ -80,6 +80,18 @@ test('shared create-only budget admits at most 15 checkpoints per UTC day across
  assert.equal(store.puts.filter(x=>x.path.includes('/budget/')).length,NFL_CHECKPOINT_DAILY_SLOTS);
  assert.equal(NFL_CHECKPOINT_DAILY_SLOTS*(2+NFL_CHECKPOINT_MAX_QUOTES),75);
 });
+test('Sunday day-ahead and final checkpoints are budgeted on different UTC days',()=>{
+ const kickoff='2026-10-18T17:00:00Z',g={gameId:'401872999',kickoff,status:'SCHEDULED'};
+ const dayAhead=Date.parse('2026-10-17T18:00:00Z');
+ const final=Date.parse('2026-10-18T16:45:00Z');
+ assert.equal(nflPricingCheckpointStage(g,{now:dayAhead}),'DAY_AHEAD');
+ assert.equal(nflPricingCheckpointStage(g,{now:final}),'FINAL_T_MINUS_30');
+ assert.notEqual(new Date(dayAhead).toISOString().slice(0,10),
+  new Date(final).toISOString().slice(0,10));
+ // Twelve Sunday games need twelve Saturday reservations and twelve
+ // Sunday reservations, not 24 reservations on one UTC day.
+ assert.ok(12<=NFL_CHECKPOINT_DAILY_SLOTS);
+});
 test('checkpoint max three quotes spans both books and covers three tier names',()=>{
  const cards=['DraftKings','FanDuel'].flatMap(book=>
   ['Small','Medium','Nuke'].map(risk=>({book,risk})));
