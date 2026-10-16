@@ -125,7 +125,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    Array.isArray(c.legs)&&c.legs.length>=2);
   const research=models.length?
    '<div class="section-head"><div><h3>Model SGP Research</h3>'+
-   '<p class="sub">MODEL RESEARCH ONLY — NOT A VERIFIED SPORTSBOOK PARLAY. No combined odds are claimed.</p></div></div>'+
+   '<p class="sub">MODEL RESEARCH ONLY — NOT A VERIFIED SPORTSBOOK PARLAY. Day-before conditional model; player status, exact book lines and combined odds are not verified.</p></div></div>'+
    models.map(c=>'<div class="bookquote"><b>'+esc(c.risk)+' • '+esc(c.legCount)+' model legs</b>'+
     '<div class="sub">'+c.legs.map(l=>esc(l.player)+' — '+esc(l.target)+' ('+esc(hitChanceText(l,l.category))+')').join(' • ')+'</div>'+
     (c.explanation?'<div class="sub">'+esc(c.explanation)+'</div>':'')+'</div>').join(''):'';
@@ -248,7 +248,11 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   const modelBrief='<div class="section-head" style="margin-top:20px"><div><h3>AI Matchup Highlights</h3>'+
    '<p class="sub">Key players, estimated chances and why they stand out.</p></div></div>'+
    '<h3 style="font-size:15px;margin:16px 0 10px">Top Anytime TD opportunities</h3>'+
-   '<div class="players-grid">'+(tdCandidates.length?tdCandidates.map(x=>renderPlayer(x,'td')).join(''):
+   '<div class="players-grid">'+(tdCandidates.length?tdCandidates.map(x=>
+    renderPlayer(x,'td')+
+    (Number.isFinite(Number(x.opportunitiesPerGame))?
+     '<div class="small">Based on '+esc(x.opportunitiesPerGame)+' observed rush/target opportunities per game</div>':'')
+   ).join(''):
     noData('No touchdown picks yet','Check back for updated player predictions.'))+'</div>'+
    '<h3 style="font-size:15px;margin:23px 0 10px">Top yardage and reception candidates</h3>'+
    '<div class="players-grid">'+['passing','rushing','receiving','receptions'].flatMap(cat=>
