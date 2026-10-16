@@ -77,7 +77,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
 <main class="container">
 <section class="hero"><div><div class="eyebrow">Your game-day edge</div><h1>See the game <em>before it unfolds.</em></h1><p>Player projections, touchdown opportunities, matchup insights, and game parlays. One clear view, with none of the noise.</p></div><aside class="hero-stat" aria-label="Prediction coverage"><div class="small-label">Momentum at a glance</div><div class="number">GAME DAY</div><p>Explore player matchups and compare model picks before kickoff. Updated predictions appear when fresh, verified data is available.</p><div class="sparkline" aria-hidden="true"><i style="height:38%"></i><i style="height:63%"></i><i style="height:45%"></i><i style="height:76%"></i><i style="height:59%"></i><i style="height:98%"></i><i style="height:81%"></i></div></aside></section>
 <section class="section" aria-label="Choose a league"><div class="section-head"><div><h2>Explore matchups</h2><p class="sub">Choose a league, then select a game.</p></div><div class="controls"><input id="day" class="datebox" type="date" aria-label="Choose game date"><button id="today" class="soft" type="button">Upcoming</button></div></div><div class="chips" id="leagues"><button type="button" class="chip active" data-league="nfl">🏈 NFL</button><button type="button" class="chip" data-league="nba">🏀 NBA</button></div><p id="date-caption" class="sub" style="margin:16px 0 11px" aria-live="polite">Loading scheduled games…</p><div id="games" class="game-grid"><div class="empty loading grid-span">Loading matchups…</div></div></section>
-<section class="section" id="game-section"><div class="panel"><div class="details-top"><div><div class="eyebrow">Matchup breakdown</div><div id="match-title" class="matchup">Select a game</div><p id="match-subtitle" class="sub">Model forecasts are screened before appearing here.</p></div><div id="freshness" class="fresh"></div></div><div id="match-content"><div class="empty" style="margin-top:18px">Choose a matchup above to view the player outlook and parlay tiers.</div></div></div></section>
+<section class="section" id="game-section"><div class="panel"><div class="details-top"><div><div class="eyebrow">Matchup breakdown</div><div id="match-title" class="matchup">Select a game</div><p id="match-subtitle" class="sub">Model forecasts are screened before appearing here.</p></div><div id="freshness" class="fresh"></div></div><div id="match-content"><div class="empty" style="margin-top:18px">Choose a matchup above to view the player outlook and parlay tiers.</div></div><section id="public-weather-impact" class="panel" aria-label="NFL Weather Impact" style="margin-top:14px"><h3>🌦 Weather Impact</h3><p class="sub">Kickoff forecasts and historical player-weather comparisons will be shown after source verification. No weather-adjusted player props or SGPs are currently verified here.</p></section></div></section>
 <section class="section" id="rankings-section"><div class="section-head"><div><h2>Players to watch</h2><p class="sub">Ranked model projections from games on the selected NFL slate.</p></div></div><div class="market-tabs" id="rank-tabs"><button type="button" class="chip active" data-rank="td">Anytime TD</button><button type="button" class="chip" data-rank="passing">Passing</button><button type="button" class="chip" data-rank="rushing">Rushing</button><button type="button" class="chip" data-rank="receiving">Receiving</button><button type="button" class="chip" data-rank="receptions">Receptions</button></div><div class="players-grid" id="rankings"><div class="empty grid-span">Waiting for today's saved rankings…</div></div></section>
 <section class="section" id="extra-section"><div class="section-head"><div><h2>Beyond the matchup</h2><p class="sub">Best of the slate, scoring activity, and past results.</p></div></div>
 <div class="market-tabs" id="extra-tabs"><button type="button" class="chip active" data-extra="best">🏆 Best of Slate</button><button type="button" class="chip" data-extra="history">🗂️ NFL Results History</button></div>
@@ -99,9 +99,6 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  function teamLine(team){const ab=team?.abbr||'TBD',name=team?.name||ab;return '<div class="team"><span class="team-crest">'+esc(ab)+'</span><span>'+esc(name)+'</span></div>'}
  function renderGames(){const box=$('#games');if(!state.games.length){box.innerHTML=noData('No games listed for this date.','Choose another date or try Upcoming.');return}
  box.innerHTML=state.games.map(g=>'<button class="game-card '+(String(g.gameId)===String(state.selected)?'selected':'')+'" type="button" data-game="'+esc(g.gameId)+'" aria-label="Open '+esc(g.away?.name)+' at '+esc(g.home?.name)+'"><div class="game-head"><span>'+esc(state.league.toUpperCase())+' • '+esc('Week '+(g.week||'Matchup'))+'</span><span class="game-status">'+esc(statusLabel(g))+'</span></div>'+teamLine(g.away)+teamLine(g.home)+'<div class="game-meta">'+esc(fmtTime(g.kickoff))+(g.venue?' • '+esc(g.venue):'')+'</div></button>').join('')}
- function renderOdds(offers){if(!Array.isArray(offers)||!offers.length)return '';
- return '<div class="bookquote"><b>Verified combined sportsbook quote</b><div>'+offers.map(q=>esc(q.book)+' '+esc(q.risk)+' '+(Number(q.americanOdds)>0?'+':'')+esc(q.americanOdds)).join(' • ')+'</div><div class="sub">Prices may change; a quote is not a placed wager.</div></div>'}
-
  const views=[['overview','Overview'],['td','Anytime TD'],['props','Player Props'],['matchup','Matchup Edge'],['injuries','Injuries'],['sgps','SGPs'],['ai','✨ AI Game Analyzer'],['sharp','📈 Sharp +EV Audit'],['live','📊 Live TD Tracker']];
  const rankMetricNames={passYards:'Passing yards',rushYards:'Rushing yards',recYards:'Receiving yards',passTD:'Passing TDs',rushTD:'Rushing TDs',recTD:'Receiving TDs',receptions:'Receptions',targets:'Targets'};
  function renderOdds(offers){if(!Array.isArray(offers)||!offers.length)return '';
@@ -117,62 +114,59 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    x.target||labels[cat];
   return 'Estimated hit probability: '+x.hitProbabilityPct+'% • '+target+' (uncalibrated model)';
  }
- function renderParlays(d){const tiers=['Small','Medium','Nuke'];const available=d.parlays||[];
-  const checks=d.pregameChecks||{};
-  const checkText='Injury report: '+(checks.injuryReport||'recheck needed')+
-   ' • Starters: '+(checks.startingLineups||'unconfirmed')+
-   ' • Official inactives: '+(checks.officialInactivesVerified===true?'confirmed':'not confirmed')+
-   ' • DraftKings props: '+(checks.DraftKings||'not verified')+
-   ' • FanDuel props: '+(checks.FanDuel||'not verified');
-  const flags=checks.eventRosterStarterFlags;
-  const eventStarterText=flags&&typeof flags==='object'?
-   'ESPN game-roster starter flags observed: '+
-   Object.entries(flags).map(([team,n])=>team+' '+n).join(', ')+
-   '. These flags are not an official inactive report.':
-   'ESPN game-specific starter flags unavailable or outdated.';
-  return '<div class="bookquote"><b>Pregame roster & sportsbook checks</b><div class="small">'+
-    esc(checkText)+'</div><div class="small">'+esc(eventStarterText)+
-    '</div><div class="small">Research-only until the player is eligible, the exact market is available at the chosen sportsbook, and the book issues a combined SGP quote.</div></div>'+
-   '<div class="bookquote" style="background:#392a1e;border:1px solid #b38854"><b>MODEL RESEARCH ONLY — NOT A VERIFIED SPORTSBOOK PARLAY</b><div class="small">Every player and exact prop market must exist at the selected book, pass the current roster/injury screen, and receive an actual book-issued combined quote. A missing FanDuel or DraftKings line invalidates that book\'s parlay; do not substitute a model projection.</div></div>'+
-    (d.status==='LAST_SAVED'?'<div class="bookquote"><b>Archived model only:</b> These SGP legs may be outdated and are not live bookmaker tickets.</div>':'')+
-   '<div class="section-head" style="margin-top:18px"><div><h3>Same Game Parlays • Detailed Breakdown</h3><p class="sub">The same model tiers available in the full dashboard. Real combined odds appear only if confirmed separately.</p></div></div>'+
-  '<div class="parlay-grid">'+tiers.map(risk=>{const t=available.find(x=>x.risk===risk),cls=risk.toLowerCase();
-   return '<div class="parlay"><div class="tier '+cls+'">'+risk+' <small>'+(t?t.legCount+' LEGS':'PENDING')+'</small></div>'+
-   (t?t.legs.map(l=>'<div class="leg"><strong>'+esc(l.player)+'</strong><div class="sub">'+esc(l.team)+' '+esc(l.position||'')+'</div><div class="target">'+esc(l.target)+'</div>'+
-    (l.projection!=null?'<div class="small">Projected: '+esc(l.projection)+'</div>':'')+
-    '<div class="small"><b>'+esc(hitChanceText(l,l.category))+'</b></div>'+
-    (l.projectionNote?'<div class="small">'+esc(l.projectionNote)+'</div>':'')+'</div>').join('')+
-    (t.explanation?'<p><b>Why these picks:</b> '+esc(t.explanation)+'</p>':'')+
-    (t.matchupNotes?.length?'<details><summary class="small" style="cursor:pointer">See detailed leg analysis</summary>'+
-    t.matchupNotes.map(x=>'<p>'+esc(x)+'</p>').join('')+'</details>':'')+
-    '<p><b>NOT BOOK-VERIFIED:</b> Analysis-only parlay concept. Availability and combined odds have not been confirmed by FanDuel or DraftKings.</p>':
-    '<p>Not enough screened player props for this tier. It will appear after the next eligible update.</p>')+'</div>'
-  }).join('')+'</div>'+renderOdds(d.verifiedQuotes)}
+ function renderParlays(d){
+  const quotes=(d.verifiedQuotes||[]).filter(q=>q&&['DraftKings','FanDuel'].includes(q.book)&&
+   ['Small','Medium','Nuke'].includes(q.risk)&&Number.isFinite(Number(q.americanOdds))&&
+   Number(q.americanOdds)!==0);
+  // An unverified inactives check must not promote a saved quote to a ticket.
+  const ready=d.inactivesVerified===true&&d.updatedDataCurrent===true&&quotes.length>0;
+  const models=(Array.isArray(d.parlays)?d.parlays:[]).filter(c=>
+   ['Small','Medium','Nuke'].includes(c?.risk)&&c.mode==='MODEL_ONLY'&&
+   Array.isArray(c.legs)&&c.legs.length>=2);
+  const research=models.length?
+   '<div class="section-head"><div><h3>Model SGP Research</h3>'+
+   '<p class="sub">MODEL PICKS • COMBINED ODDS UNVERIFIED. MODEL RESEARCH ONLY — NOT A VERIFIED SPORTSBOOK PARLAY. Day-before conditional model; player status, exact book lines and combined odds are not verified. Hit chances are experimental model estimates, not sportsbook probabilities.</p></div></div>'+
+   models.map(c=>'<div class="bookquote"><b>'+esc(c.risk)+' • '+esc(c.legCount)+' model legs</b>'+
+    '<div class="sub">'+c.legs.map(l=>esc(l.player)+' — '+esc(l.target)+' ('+esc(hitChanceText(l,l.category))+')').join(' • ')+'</div>'+
+    (c.explanation?'<div class="sub">'+esc(c.explanation)+'</div>':'')+'</div>').join(''):'';
+  const verified=ready?
+   '<div class="section-head"><div><h3>Verified Same Game Parlays</h3>'+
+   '<p class="sub">Review the current selections and prices at your sportsbook before betting.</p></div></div>'+
+   renderOdds(quotes):
+   '<div class="empty"><strong>No sportsbook-verified parlays available yet.</strong>'+
+   '<div>Sportsbook verification pending. A missing FanDuel or DraftKings line invalidates the proposed sportsbook parlay. Exact selections, active players and combined odds must be confirmed before a parlay is offered.</div></div>';
+  return research+verified;
+ }
  function offerHtml(x){const o=x.bookOffer;if(!o)return '';
   return '<div class="small">Verified individual '+esc(o.book)+' line'+
    (o.line!=null?' '+esc(o.line):'')+' • '+(Number(o.odds)>0?'+':'')+esc(o.odds)+
    ' • '+esc(fmtStamp(o.checkedAt))+'</div>';}
- function renderPlayer(x,cat){const td=cat==='td',pct=Number(x.modelChancePct);
-  const stat=td?esc(pct)+'%':esc(x.projection)+' '+(cat==='receptions'?'receptions':'yards');
-  const facts=td?[
-   x.opportunitiesPerGame!=null?x.opportunitiesPerGame+' rush/target opportunities per game':'',
-   x.historicalTouchdowns!=null?x.historicalTouchdowns+' recorded TDs':'',
-   x.opponentTdRank!=null?'Opposing defense #'+x.opponentTdRank+' most positional TDs allowed':'',
-   x.offenseTdRank!=null?'Offensive TD rank #'+x.offenseTdRank:''
-  ].filter(Boolean):[
-   x.avgPerGame!=null?'Season '+x.avgPerGame+' per game':'',
-   x.gameSample?'Sample: '+x.gameSample+' games':'',
-   x.range?'Historical range '+x.range.floor+'–'+x.range.ceiling:'',
-   x.recentTrend?'Recent '+x.recentTrend.toLowerCase().replace('_',' '):''
-  ].filter(Boolean);
-  return '<div class="player"><div class="tiny">'+esc(x.team||'')+' • '+esc(x.position||'')+' • '+esc(labels[cat])+'</div><b>'+esc(x.name)+'</b>'+
-   '<div class="stat">'+stat+'</div><div class="small"><b>'+esc(hitChanceText(x,cat))+'</b></div><div class="small">'+esc(facts.join(' • '))+'</div>'+
-   (!td&&x.suggestedTarget?'<div class="small"><b>Model target: '+esc(x.suggestedTarget)+'+ yards</b>'+
-     (x.suggestedTargetChance!=null?' • estimated '+esc(x.suggestedTargetChance)+'%':'')+'</div>':'')+
-   (Array.isArray(x.recentFive)&&x.recentFive.length?'<div class="small">Recent game results: '+esc(x.recentFive.join(' / '))+'</div>':'')+
-   (td&&x.recentTouchdowns?.length?'<div class="small">Recent TD history: '+esc(x.recentTouchdowns.join(' / '))+'</div>':'')+
-   (x.projectionNote?'<div class="small">'+esc(x.projectionNote)+'</div>':'')+
-   offerHtml(x)+'<div class="tiny" style="margin-top:12px">Model '+(td?'estimated touchdown chance':'projection')+' • not a guaranteed outcome</div></div>'}
+ function publicWhy(x,cat){
+  if(x.projectionNote){
+   const note=String(x.projectionNote).replace(/(?:ESPN|DraftKings|FanDuel|API|model status|source ID|provider ID|verified market rows)[^.!?]*(?:[.!?]|$)/gi,'').trim();
+   if(note&&note.length<210)return note;
+  }
+  if(cat==='td'){
+   const parts=[];
+   if(x.opportunitiesPerGame!=null)parts.push('regular scoring opportunities ('+x.opportunitiesPerGame+' touches or targets per game)');
+   if(x.historicalTouchdowns!=null)parts.push(x.historicalTouchdowns+' recent touchdowns');
+   if(x.opponentTdRank!=null)parts.push('the opposing defense’s touchdown matchup');
+   return parts.length?'Selected for '+parts.join(', ')+'.':'Selected based on scoring opportunities and the matchup.';
+  }
+  const parts=[];
+  if(x.avgPerGame!=null)parts.push('averaging '+x.avgPerGame+' '+(cat==='receptions'?'catches':'yards')+' per game');
+  if(x.recentTrend&&x.recentTrend!=='FLAT')parts.push('recent '+String(x.recentTrend).toLowerCase()+' form');
+  return parts.length?'Selected based on '+parts.join(' and ')+'.':'Selected based on recent performance and the opponent matchup.';
+ }
+ function renderPlayer(x,cat){
+  const td=cat==='td',pct=Number(x.modelChancePct);
+  const projected=td?'Anytime touchdown':esc(x.suggestedTarget??x.projection)+' '+(cat==='receptions'?'receptions':'yards');
+  const chance=td?(Number.isFinite(pct)?pct+'%':'Estimate unavailable'):esc(hitChanceText(x,cat));
+  return '<div class="player"><div class="tiny">'+esc(x.team||'')+' • '+esc(labels[cat])+'</div><b>'+esc(x.name)+'</b>'+
+   '<div class="stat">'+projected+'</div><div class="small"><b>Estimated chance: '+chance+'</b></div>'+
+   '<div class="small"><b>Why AI picked this player:</b> '+esc(publicWhy(x,cat))+'</div>'+
+   '<div class="tiny" style="margin-top:12px">Model estimate • not guaranteed</div></div>';
+ }
  function playerGroup(d,cat,count=10){const rows=(d.categories?.[cat]||[]).slice(0,count);
   return '<div class="players-grid">'+(rows.length?rows.map(x=>renderPlayer(x,cat)).join(''):
    noData('No screened '+labels[cat].toLowerCase()+' players',
@@ -223,7 +217,14 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  }
  function showInjuries(d){
   const xs=d.injuries||[];
-  return '<p class="sub">'+(d.inactivesVerified?'Official inactive status recorded.':
+  const checks=d.pregameChecks||{};
+  const summary='<div class="bookquote"><div class="small">Starting lineups: '+esc(checks.startingLineups||'UNCONFIRMED')+
+   ' • DraftKings: '+esc(checks.DraftKings||'NO_VERIFIED_GAME_PROP')+
+   ' • FanDuel: '+esc(checks.FanDuel||'NO_VERIFIED_GAME_PROP')+'</div>'+
+   '<div class="small">ESPN game-roster starter flags observed: '+
+   esc(checks.eventRosterStarterFlags?Object.entries(checks.eventRosterStarterFlags).map(([team,n])=>team+': '+n).join(', '):'not available')+
+   ' — roster flags are not an official inactive report.</div></div>';
+  return '<h3>Pregame roster & sportsbook checks</h3>'+summary+'<p class="sub">'+(d.inactivesVerified?'Official inactive status recorded.':
    'Reported injury observations; final official game-day inactives are NOT confirmed.')+
    (d.injuryCheckedAt?' • '+esc(fmtStamp(d.injuryCheckedAt)):'')+'</p>'+
    '<div class="players-grid" style="margin-top:18px">'+
@@ -236,7 +237,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  }
  function showAi(d){
   const ai=state.aiData,match=d.matchup?.sides||[];
-  const intro='<h3>✨ AI Game Analyzer</h3><p class="sub">Read the same saved AI game-day review used by the analysis pipeline. No public visitor can edit predictions or rerun paid inference.</p>';
+  const intro='<h3>✨ AI Game Analyzer</h3><p class="sub">AI-Assisted Model Brief — matchup and player estimates, separate from any saved AI narrative. Explore the matchup, key players and potential opportunities in one easy-to-read game breakdown.</p>';
   const review=state.aiLoading?'<div class="empty loading" style="margin:16px 0">Loading saved AI review…</div>':
    ai?.status==='SAVED_AI_REVIEW'||ai?.status==='HISTORICAL_AI_REVIEW'?
     '<div class="bookquote"><b>Saved AI analysis</b><div class="small">'+esc(fmtStamp(ai.generatedAt))+
@@ -244,28 +245,18 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     '<div class="empty" style="margin:16px 0"><strong>AI review waiting for the next validated analysis</strong>'+
      '<div>'+esc(ai?.message||'No saved AI narrative has been generated for this game yet.')+'</div></div>';
   const tdCandidates=(d.categories?.td||[]).slice(0,6);
-  const modelBrief='<div class="section-head" style="margin-top:20px"><div><h3>AI-Assisted Model Brief</h3>'+
-   '<p class="sub">Automatic, evidence-based breakdown from screened player forecasts — available now, without an extra AI request. TD chances are experimental model estimates, not sportsbook probabilities.</p></div></div>'+
+  const modelBrief='<div class="section-head" style="margin-top:20px"><div><h3>AI Matchup Highlights</h3>'+
+   '<p class="sub">Key players, estimated chances and why they stand out.</p></div></div>'+
    '<h3 style="font-size:15px;margin:16px 0 10px">Top Anytime TD opportunities</h3>'+
    '<div class="players-grid">'+(tdCandidates.length?tdCandidates.map(x=>
-    '<div class="player"><div class="tiny">'+esc(x.team)+' • '+esc(x.position)+'</div>'+
-    '<b>'+esc(x.name)+'</b><div class="stat">'+esc(x.modelChancePct)+'%</div>'+
-    '<div class="small">'+esc(x.opportunitiesPerGame??'—')+' observed rush/target opportunities per game'+
-    (x.historicalTouchdowns!=null?' • '+esc(x.historicalTouchdowns)+' recorded TDs':'')+
-    (x.opponentTdRank!=null?' • Opponent positional TD allowance rank #'+esc(x.opponentTdRank):'')+'</div>'+
-    (x.projectionNote?'<div class="small">'+esc(x.projectionNote)+'</div>':'')+
-    '</div>').join(''):
-    noData('TD model analysis pending','Wait for the current roster and scoring-opportunity evidence.'))+'</div>'+
+    renderPlayer(x,'td')+
+    (Number.isFinite(Number(x.opportunitiesPerGame))?
+     '<div class="small">Based on '+esc(x.opportunitiesPerGame)+' observed rush/target opportunities per game</div>':'')
+   ).join(''):
+    noData('No touchdown picks yet','Check back for updated player predictions.'))+'</div>'+
    '<h3 style="font-size:15px;margin:23px 0 10px">Top yardage and reception candidates</h3>'+
    '<div class="players-grid">'+['passing','rushing','receiving','receptions'].flatMap(cat=>
-    (d.categories?.[cat]||[]).slice(0,2).map(x=>
-    '<div class="player"><div class="tiny">'+esc(labels[cat])+' • '+esc(x.team)+'</div>'+
-    '<b>'+esc(x.name)+'</b><div class="stat">'+esc(x.projection)+' '+
-    (cat==='receptions'?'receptions':'yards')+'</div>'+
-    '<div class="small"><b>'+esc(hitChanceText(x,cat))+'</b></div>'+
-    (x.avgPerGame!=null?'<div class="small">Observed average: '+esc(x.avgPerGame)+' per game</div>':'')+
-    (x.projectionNote?'<div class="small">'+esc(x.projectionNote)+'</div>':'')+
-    '</div>')).join('')+'</div>';
+    (d.categories?.[cat]||[]).slice(0,2).map(x=>renderPlayer(x,cat))).join('')+'</div>';
   const insight='<div class="section-head" style="margin-top:22px"><h3>Matchup Intelligence</h3></div>'+
    (match.length?match.map(x=>'<div class="leg"><strong>'+esc(x.offense)+' offense against '+esc(x.defense)+' defense</strong>'+
     '<div class="small">Offense sample '+esc(x.offenseGames??'—')+' games • Defense sample '+esc(x.defenseGames??'—')+' games</div>'+
@@ -285,12 +276,12 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  function showSharp(d){
   const review=d.sharpReview;
   const intro='<h3>📈 Sharp Insights • Player Chances & Sportsbook Checks</h3>'+
-   '<p class="sub">See what the model estimates first. We only label a bet as verified +EV when current sportsbook prices and calibrated probabilities have both passed independent checks.</p>';
+   '<p class="sub">Compare estimated player chances and spot potential opportunities. Verified betting value appears only when the required checks pass.</p>';
   if(!review||!Array.isArray(review.candidates))return intro+
    noData('Player insights not available','Waiting for an approved read-only game analysis.');
   const list=review.candidates.slice(0,30);
-  const caution='<p class="sub" style="margin:18px 0">'+
-   '<b>Sportsbook status: Not independently verified.</b> Player forecasts can still be useful, but no wager or +EV recommendation is available until the exact FanDuel/DraftKings prop and a validated probability are confirmed.'+
+  const caution='<p class="sub" style="margin:18px 0"><b>Why is this bet not verified?</b> A projected hit chance alone does not prove that an exact sportsbook selection is offered or that a combined SGP price is confirmed. '+
+   '<b>Analysis only — betting value not confirmed.</b> These estimates are for comparing players, not confirmed betting recommendations.'+
    (d.status==='LAST_SAVED'?' <b>These are older saved projections, not current betting lines.</b>':'')+'</p>';
   if(!list.length)return intro+caution+
    noData('No verified player research yet','The current game has not produced screened model candidates.');
@@ -309,14 +300,14 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
      'No independently verified FanDuel or DraftKings price attached';
     const betStatus=m.displayOdds?
      'A price has been observed, but book-to-book verification and model calibration remain incomplete.':
-     'This exact player prop has not been independently verified at the sportsbooks.';
+     'A current sportsbook price for this selection has not been confirmed.';
     return '<div class="player"><div class="tiny">'+esc(p.team)+' • '+esc(labels[p.category]||p.market)+'</div>'+
      '<b>'+esc(p.name)+'</b>'+
      '<div class="stat">'+estimated+'</div>'+
-     '<div class="small"><b>Estimated hit chance • '+target+'</b> (uncalibrated model)</div>'+
-     '<div class="small" style="margin-top:13px"><b>Sportsbook verification pending</b></div>'+
+     '<div class="small"><b>Estimated hit chance • '+target+'</b> (model estimate)</div>'+
+     '<div class="small" style="margin-top:13px"><b>Betting odds not confirmed</b></div>'+
      '<div class="small">'+betStatus+'</div>'+
-     '<details style="margin-top:14px"><summary style="cursor:pointer;font-weight:750">Why is this bet not verified?</summary>'+
+     '<details style="margin-top:14px"><summary style="cursor:pointer;font-weight:750">Why is this still an estimate?</summary>'+
       '<div class="small"><b>Market Context:</b> '+market+'</div>'+
       '<div class="small"><b>Quantitative Angle:</b> '+estimated+' estimated chance for '+target+
         (a.historicalSampleGames!=null?' • '+esc(a.historicalSampleGames)+' completed games sampled':'')+'</div>'+
@@ -328,7 +319,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
         ' units • no wager recommendation (1 unit = 1% of bankroll)</div>'+
      '</details></div>';
    }).join('')+'</div>'+
-   '<p class="sub" style="margin-top:14px">These percentages are uncalibrated model estimates, not guaranteed outcomes, verified sportsbook odds, or proof of positive EV. Never chase losses.</p>';
+   '<p class="sub" style="margin-top:14px">Percentages are estimates, not guarantees or confirmed sportsbook prices.</p>';
  }
  function showLive(d){
   const l=state.liveData;

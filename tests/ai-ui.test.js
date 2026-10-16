@@ -5,8 +5,16 @@ import vm from 'node:vm';
 const source=readFileSync(new URL('../public-ai.js',import.meta.url),'utf8');
 function harness(options={}){
  const nodes=new Map(),root={style:{display:'none'},prepend(panel){nodes.set(panel.id,panel)}};
- const button={disabled:false,onclick:null},output={textContent:''},mode={value:options.mode||'matchup'};
- const document={readyState:'complete',getElementById(id){return ({nflAiMount:root,momentumAiRun:button,momentumAiOutput:output,momentumAiMode:mode})[id]||nodes.get(id)||null},createElement(){return {id:'',className:'',innerHTML:''}}};
+ const button={disabled:false,onclick:null},output={textContent:''};
+ const actions={after(node){nodes.set(node.id,node)}};
+ const mode={value:options.mode||'matchup',addEventListener(event,fn){if(event==='change')this.onchange=fn}};
+ const makeNode=()=>({id:'',className:'',innerHTML:'',textContent:'',style:{},
+  children:[],setAttribute(){},replaceChildren(){this.children=[]},
+  appendChild(child){this.children.push(child)}});
+ const document={readyState:'complete',
+  getElementById(id){return ({nflAiMount:root,momentumAiRun:button,momentumAiOutput:output,momentumAiMode:mode})[id]||nodes.get(id)||null},
+  querySelector(selector){return selector==='#momentumAiPanel .momentumAiActions'?actions:null},
+  createElement:makeNode,createTextNode(text){return {textContent:text}}};
  const game=options.game||{gameId:'game-123',home:{name:'Home',abbr:'HOM'},away:{name:'Away',abbr:'AWY'},kickoff:'2026-10-11T18:00:00Z',week:5};
  const calls=[],payloads=[];
  const fetch=async(url,opts={})=>{
@@ -160,4 +168,15 @@ test('Groq capacity limit shows transparent app-data fallback, not empty analysi
 test('no selected game does not call any network route',async()=>{
  const h=harness();h.ctx.nflSelected=null;await h.button.onclick();
  assert.equal(h.calls.length,0);assert.match(h.output.textContent,/Choose an NFL game/);
+});
+
+test('AI mode explanations update without requesting provider data',()=>{
+ const h=harness();
+ const help=h.nodes.get('momentumAiModeHelp');
+ assert.ok(help,'contextual help mounted next to AI selector');
+ assert.match(help.children.map(x=>x.textContent).join(' '),/Matchup analysis/);
+ h.mode.value='nuke';h.mode.onchange();
+ assert.equal(h.mode.value,'nuke');
+ assert.equal(typeof h.mode.onchange,'function');
+ assert.equal(h.calls.length,0,'switching help does not fetch data');
 });

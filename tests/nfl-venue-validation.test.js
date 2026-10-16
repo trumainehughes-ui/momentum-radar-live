@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {validateNflVenue} from '../lib/nfl-venue-validation.js';
+import {reviewNflStadiumWeather} from '../lib/nfl-weather-review.js';
+const gameId='401234567',kickoffAt='2026-10-18T20:00:00Z';
+const venue={roofStatus:'outdoor',latitude:39.7,longitude:-105,kickoffAt,venueSource:'verified venue metadata'};
+test('source-backed outdoor venue retains precise coordinates',()=>{const v=validateNflVenue({gameId,venue});assert.equal(v.latitude,39.7);assert.equal(v.venueSource,'verified venue metadata')});
+test('outdoor venue without source or coordinates is rejected',()=>{assert.throws(()=>validateNflVenue({gameId,venue:{...venue,venueSource:''}}),/unverified_stadium_metadata/);assert.throws(()=>validateNflVenue({gameId,venue:{...venue,latitude:null}}),/invalid_stadium_coordinates/)});
+test('unknown roof status does not require invented coordinates',()=>{const v=validateNflVenue({gameId,venue:{roofStatus:'unknown',kickoffAt}});assert.equal(v.latitude,null)});
+test('unverified outdoor stadium never requests forecast',async()=>{let calls=0;const r=await reviewNflStadiumWeather({gameId,venue:{...venue,venueSource:''},fetcher:async()=>{calls++}});assert.equal(calls,0);assert.equal(r.assessment.status,'ROOF_UNCONFIRMED');assert.equal(r.publicationBlocked,true)});

@@ -31,7 +31,30 @@ test('readiness shows OIDC configured but does not imply actual Blob read/write 
  assert.equal(d.storage.validated,false);
  assert.equal(d.nfl.collectorReady,true);
  assert.equal(d.nba.collectorReady,true);
+ assert.equal(d.nfl.paidCheckpointConfigured,false);
+ assert.equal(d.nfl.paidCheckpointVerified,false);
+ const withProvider=pregameReadiness({BLOB_STORE_ID:'store_abc',VERCEL:'1',CRON_SECRET:'not-shared',PLAYER_PROPS_API_KEY:'not-shared-provider'});
+ assert.equal(withProvider.nfl.paidCheckpointConfigured,true);
+ assert.equal(withProvider.nfl.paidCheckpointVerified,false);
+ assert.ok(!JSON.stringify(withProvider).includes('not-shared-provider'));
+ assert.equal(d.readinessScope,'CONFIGURATION_ONLY');
+ assert.equal(d.cronExecutionVerified,false);
+ assert.equal(d.blobReadWriteVerified,false);
+ assert.equal(d.sportsbookCollectionVerified,false);
  assert.ok(!JSON.stringify(d).includes('not-shared'));
+});
+test('readiness distinguishes missing cron credentials from missing Blob storage',()=>{
+ const preview=pregameReadiness({BLOB_STORE_ID:'store_abc',VERCEL:'1'});
+ assert.equal(preview.status,'BLOCKED');
+ assert.deepEqual(preview.blockers,['CRON_SECRET_MISSING']);
+ assert.match(preview.nextStep,/CRON_SECRET/);
+ const missingStore=pregameReadiness({CRON_SECRET:'private'});
+ assert.deepEqual(missingStore.blockers,['BLOB_STORAGE_NOT_CONFIGURED']);
+ const neither=pregameReadiness({});
+ assert.deepEqual(neither.blockers,['CRON_SECRET_MISSING','BLOB_STORAGE_NOT_CONFIGURED']);
+ const configured=pregameReadiness({BLOB_STORE_ID:'store_abc',VERCEL:'1',CRON_SECRET:'private'});
+ assert.deepEqual(configured.blockers,[]);
+ assert.ok(!JSON.stringify(configured).includes('private'));
 });
 test('NBA collector OIDC passes storage preflight on Vercel and fails only if source is unavailable',async()=>{
  const oldFetch=globalThis.fetch;
@@ -60,6 +83,8 @@ test('NFL collector OIDC passes preflight and preserves public auth protection',
  set('BLOB_READ_WRITE_TOKEN',null);
  set('BLOB_STORE_ID','store_fake');
  set('VERCEL','1');
+ set('VERCEL_ENV','production');
+ set('VERCEL_PROJECT_PRODUCTION_URL','momentum-radar-live.vercel.app');
  globalThis.fetch=async url=>{
   calls.push(String(url));
   return {ok:true,json:async()=>({ok:true,games:[],week:1})};
@@ -75,6 +100,37 @@ test('NFL collector OIDC passes preflight and preserves public auth protection',
   assert.equal(authed.statusCode,503,'no ESPN games is not a storage error');
   assert.equal(authed.body.blocking[0],'games');
   assert.equal(calls.length,2);
+ }finally{globalThis.fetch=oldFetch;reset()}
+});
+test('NFL preview collector uses its own deployment and refuses production fallback',async()=>{
+ const oldFetch=globalThis.fetch;
+ const calls=[];
+ set('CRON_SECRET','test-cron');
+ set('BLOB_READ_WRITE_TOKEN',null);
+ set('BLOB_STORE_ID','store_fake');
+ set('VERCEL','1');
+ set('VERCEL_ENV','preview');
+ set('VERCEL_URL','momentum-radar-live-preview123-trumainehughes-6743.vercel.app');
+ set('VERCEL_PROJECT_PRODUCTION_URL','momentum-radar-live.vercel.app');
+ globalThis.fetch=async url=>{
+  calls.push(String(url));
+  return {ok:true,json:async()=>({ok:true,games:[],week:1})};
+ };
+ try{
+  const req={method:'GET',query:{cron:'1'},headers:{authorization:'Bearer test-cron'}};
+  const preview=res();
+  await nflCollector(req,preview);
+  assert.equal(preview.statusCode,503,'empty schedule still blocks collection');
+  assert.equal(preview.body.blocking[0],'games');
+  assert.equal(calls.length,2);
+  assert.ok(calls.every(url=>url.startsWith('https://momentum-radar-live-preview123-trumainehughes-6743.vercel.app/')));
+  calls.length=0;
+  set('VERCEL_URL','momentum-radar-live.vercel.app');
+  const refused=res();
+  await nflCollector(req,refused);
+  assert.equal(refused.statusCode,503);
+  assert.equal(refused.body.error,'trusted_deployment_origin_unavailable');
+  assert.equal(calls.length,0,'preview must not contact production');
  }finally{globalThis.fetch=oldFetch;reset()}
 });
 test('three authenticated daily collectors no longer hardcode BLOB_READ_WRITE_TOKEN',()=>{

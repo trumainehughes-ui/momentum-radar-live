@@ -1,0 +1,26 @@
+name: Manual AI Refresh Tests
+on:
+  pull_request:
+    paths:
+      - 'lib/manual-ai-refresh.js'
+      - 'lib/manual-ai-*.js'
+      - 'lib/manual-sgp-validation.js'
+      - 'lib/manual-refresh-summary.js'
+      - 'lib/manual-review-game.js'
+      - 'api/manual-ai-review.js'
+      - 'tests/manual-ai-*.test.js'
+      - 'tests/manual-sgp-validation.test.js'
+      - 'tests/manual-refresh-summary.test.js'
+      - 'tests/manual-review-game.test.js'
+      - '.github/workflows/manual-ai-refresh-tests.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-package-lock --ignore-scripts
+      - run: npm test

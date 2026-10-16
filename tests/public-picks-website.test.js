@@ -55,7 +55,11 @@ test('public game view returns only consumer player forecasts and qualified tier
  assert.equal(v.parlays[0].legs.at(-1).target,'Anytime TD');
  assert.equal(v.parlays[0].combinedOddsVerified,false);
  assert.equal(v.bookmakerTicketPlaced,false);
- assert.equal(v.verifiedQuotes[0].americanOdds,2500);
+ // A model-only fixture has no source URL, offer ID, or exact book legs.
+ // Its old combined price must never be represented as a verified quote.
+ assert.deepEqual(v.verifiedQuotes,[]);
+ assert.ok(v.categories.passing[0].modelOnly);
+ assert.equal(v.categories.passing[0].bookOffer,null);
  const shown=JSON.stringify(v);
  for(const secret of ['quoteRequest','bookOutcomeId','SECRET_PROVIDER_EVENT',
   'secret-key','quotaRemaining','injuryEvidence','source','providerEventId',

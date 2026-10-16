@@ -80,6 +80,37 @@ test('shared create-only budget admits at most 15 checkpoints per UTC day across
  assert.equal(store.puts.filter(x=>x.path.includes('/budget/')).length,NFL_CHECKPOINT_DAILY_SLOTS);
  assert.equal(NFL_CHECKPOINT_DAILY_SLOTS*(2+NFL_CHECKPOINT_MAX_QUOTES),75);
 });
+test('Sunday day-ahead and final checkpoints are budgeted on different UTC days',()=>{
+ const kickoff='2026-10-18T17:00:00Z',g={gameId:'401872999',kickoff,status:'SCHEDULED'};
+ const dayAhead=Date.parse('2026-10-17T18:00:00Z');
+ const final=Date.parse('2026-10-18T16:45:00Z');
+ assert.equal(nflPricingCheckpointStage(g,{now:dayAhead}),'DAY_AHEAD');
+ assert.equal(nflPricingCheckpointStage(g,{now:final}),'FINAL_T_MINUS_30');
+ assert.notEqual(new Date(dayAhead).toISOString().slice(0,10),
+  new Date(final).toISOString().slice(0,10));
+ // The Sunday-night game starts after midnight UTC on Monday, so the
+ // twelve final checkpoints are spread across two UTC budget days.
+ const sundayKickoffs=[
+  '2026-10-18T13:30:00Z',
+  ...Array(7).fill('2026-10-18T17:00:00Z'),
+  '2026-10-18T20:05:00Z',
+  ...Array(2).fill('2026-10-18T20:25:00Z'),
+  '2026-10-19T00:20:00Z'
+ ];
+ assert.equal(sundayKickoffs.length,12);
+ const byUtcDay=new Map();
+ for(const kickoff of sundayKickoffs){
+  const g={gameId:'401872999',kickoff,status:'SCHEDULED'};
+  const at=Date.parse(kickoff)-15*60000;
+  assert.equal(nflPricingCheckpointStage(g,{now:at}),'FINAL_T_MINUS_30');
+  const day=new Date(at).toISOString().slice(0,10);
+  byUtcDay.set(day,(byUtcDay.get(day)||0)+1);
+ }
+ assert.deepEqual(Object.fromEntries(byUtcDay),{
+  '2026-10-18':11,'2026-10-19':1
+ });
+ assert.ok([...byUtcDay.values()].every(count=>count<=NFL_CHECKPOINT_DAILY_SLOTS));
+});
 test('checkpoint max three quotes spans both books and covers three tier names',()=>{
  const cards=['DraftKings','FanDuel'].flatMap(book=>
   ['Small','Medium','Nuke'].map(risk=>({book,risk})));

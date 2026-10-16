@@ -202,8 +202,16 @@ export default async function handler(req,res){
   return res.status(400).json({ok:false,error:'invalid_collector_shard'});
  // Signed cron-to-function traffic must never use an untrusted Host header.
  // This also ensures injury detector and game collector use the same release.
- const base='https://'+String(process.env.VERCEL_PROJECT_PRODUCTION_URL||
-  'momentum-radar-live.vercel.app');
+ const deploymentHost=String(process.env.VERCEL_URL||'').toLowerCase();
+ const productionHost=String(process.env.VERCEL_PROJECT_PRODUCTION_URL||'').toLowerCase();
+ const previewHost=/^momentum-radar-live-[a-z0-9-]+\.vercel\.app$/.test(deploymentHost)?
+  deploymentHost:'';
+ const trustedHost=process.env.VERCEL_ENV==='production'?
+  (productionHost==='momentum-radar-live.vercel.app'?productionHost:
+   deploymentHost==='momentum-radar-live.vercel.app'?deploymentHost:''):
+  (process.env.VERCEL_ENV==='preview'?previewHost:'');
+ if(!trustedHost)return res.status(503).json({ok:false,error:'trusted_deployment_origin_unavailable'});
+ const base='https://'+trustedHost;
  try{
   const today=date&&/^\d{4}-\d{2}-\d{2}$/.test(date)?date:day(new Date());
   // Sunday and Monday are separate ESPN date scopes; on Sunday the cron must

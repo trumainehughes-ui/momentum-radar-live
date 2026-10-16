@@ -49,8 +49,10 @@ test('public read-only game includes matchups, positional DVP, injuries and rich
  assert.deepEqual(d.categories.rushing[0].recentFive,[80,90,65,120,100]);
  assert.equal(d.categories.rushing[0].suggestedTarget,75);
  assert.equal(d.categories.rushing[0].suggestedTargetChance,69);
- assert.equal(d.categories.rushing[0].bookOffer.book,'DraftKings');
- assert.equal(d.categories.rushing[0].bookOffer.odds,-110);
+ // A bookmaker name and price without selection identity, source URL,
+ // exact market and game provenance cannot qualify as a verified offer.
+ assert.equal(d.categories.rushing[0].bookOffer,null);
+ assert.equal(d.categories.rushing[0].modelOnly,true);
  assert.equal(d.matchup.sides.length,2);
  assert.equal(d.matchup.sides[0].positions[0].metrics[0].defenseRank,4);
  assert.equal(d.projectedScore.scores[0].points,24);

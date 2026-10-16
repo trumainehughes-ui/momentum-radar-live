@@ -150,19 +150,23 @@ function buildBookSgp(rows,book,ctx){
  const basePool=[];for(const g of groups.values()){const primary=g.find(x=>!String(x.marketName).includes('alternate'));basePool.push(primary||g.slice().sort((a,b)=>(+a.bookOffer?.line||0)-(+b.bookOffer?.line||0))[0])}
  basePool.sort((a,b)=>b.momentumScore-a.momentumScore);
  const nukePool=basePool.map(x=>{if(!['passing','receiving','rushing','receptions'].includes(x.cat)||!Number.isFinite(+x.bookOffer?.line))return x;const avg=Number(x.predictiveProjection??x.projection??x.perGame)||+x.bookOffer.line,modelTarget=analyticsLine(x,x.cat,'Nuke',ctx),step=x.cat==='receptions'?1:5,minimum=x.cat==='receptions'?Math.floor(avg)+1:Math.ceil((avg+0.0001)/step)*step,target=Number.isFinite(modelTarget)?Math.max(minimum,modelTarget):minimum,g=groups.get(x.playerID+'|'+x.cat)||[],higher=g.filter(v=>Number.isFinite(+v.bookOffer?.line)&&+v.bookOffer.line>+x.bookOffer.line&&+v.bookOffer.line>=minimum*.92).sort((a,b)=>Math.abs(+a.bookOffer.line-target)-Math.abs(+b.bookOffer.line-target));const pick=higher.find(v=>+v.bookOffer.line>=target);if(!pick)return{...x,nukeTarget:target,nukeJuiced:false,nukeAboveProjection:false,nukeRejectedReason:'No '+book+' alternate reaches Momentum Nuke target '+target+' above projection '+avg};return{...pick,nukeTarget:target,nukeJuiced:+pick.bookOffer?.line>+x.bookOffer.line,nukeAboveProjection:+pick.bookOffer?.line>avg,nukeMeetsModelTarget:+pick.bookOffer?.line>=target}}).sort((a,b)=>{const aj=a.nukeJuiced?1:0,bj=b.nukeJuiced?1:0;return bj-aj||(Number(b.momentumScore)||0)-(Number(a.momentumScore)||0)});
- const make=(risk,count,offset)=>{let source=risk==='Nuke'?nukePool:basePool;if(risk==='Nuke'){source=source.filter(x=>x.cat==='td'||x.nukeAboveProjection===true);const juiced=source.filter(x=>x.nukeJuiced||x.cat==='td'),standard=source.filter(x=>!x.nukeJuiced&&x.cat!=='td');source=juiced.concat(standard)}const legs=[],used=new Set(),usedCats=new Set(),rotated=source.slice(offset).concat(source.slice(0,offset));const add=x=>{if(!x||used.has(x.playerID))return false;used.add(x.playerID);usedCats.add(x.cat);legs.push(x);return true};const mix=fillNflSgpMarketMix({risk,count,pool:rotated,legs,add});const complete=mix.filled;if(!complete)return{book,risk,legs:[],estimatedOdds:null,momentumScore:null,sgpScore:null,correlation:sgpCorrelation([]),marketMix:[],verifiedAt:new Date().toISOString(),requiredLegs:count,verifiedLegs:legs.length,reason:'No fully qualified '+book+' '+risk+' model candidate is available right now ('+legs.length+'/'+count+' eligible legs).'};const juicedCount=legs.filter(x=>x.nukeJuiced).length;if(risk==='Nuke'&&juicedCount<2)return{book,risk,legs:[],estimatedOdds:null,juicedLegs:juicedCount,nukeCeilingVerified:false,momentumScore:null,sgpScore:null,correlation:sgpCorrelation([]),marketMix:[],verifiedAt:new Date().toISOString(),requiredLegs:count,verifiedLegs:0,reason:'No model-estimated Nuke candidate is shown because fewer than two data-supported juiced alternate lines are currently available at '+book+'. The Data Model Nuke remains available separately.'};const tierAssessment=assessNflSgpTier({risk,legs,requiredLegs:count});if(!tierAssessment.compositionOk)return{book,risk,legs:[],estimatedOdds:null,verifiedLegs:0,requiredLegs:count,reason:tierAssessment.reason,tierAssessment};const est=parlayPrice(legs,book);if(!Number.isFinite(est))return{book,risk,legs:[],estimatedOdds:null,nukeCeilingVerified:false,requiredLegs:count,verifiedLegs:0,reason:'Incomplete fresh individual bookmaker odds for this candidate.'};const avg=Math.round(legs.reduce((s,x)=>s+x.momentumScore,0)/legs.length),corr=sgpCorrelation(legs),combined=Math.max(1,Math.min(99,Math.round(avg*.8+corr.score*.2))),juicedLegs=legs.filter(x=>x.nukeJuiced).length,nukeCeilingVerified=risk!=='Nuke'||juicedLegs>=2;return{book,risk,legs,tierAssessment,estimatedOdds:est,juicedLegs,nukeCeilingVerified,momentumScore:avg,sgpScore:combined,correlation:corr,marketMix:[...usedCats],verifiedAt:new Date().toISOString(),requiredLegs:count,verifiedLegs:legs.length,reason:risk==='Nuke'?'Nuke prioritizes the highest-confidence data-supported ceiling and uses a candidate juiced alternate line only when market evidence supports one near that ceiling; every leg remains sportsbook-listed. Correlation is scored separately and contributes 20% of the SGP score.':'Individual prop legs were observed for '+book+'; the correlated combined SGP price is unverified. Correlation is scored separately and contributes 20% of the SGP score.'}};
+ const make=(risk,count,offset)=>{let source=risk==='Nuke'?nukePool:basePool;if(risk==='Nuke'){source=source.filter(x=>x.cat==='td'||x.nukeAboveProjection===true);const juiced=source.filter(x=>x.nukeJuiced||x.cat==='td'),standard=source.filter(x=>!x.nukeJuiced&&x.cat!=='td');source=juiced.concat(standard)}const legs=[],used=new Set(),usedCats=new Set(),rotated=source.slice(offset).concat(source.slice(0,offset));const add=x=>{if(!x||used.has(x.playerID))return false;used.add(x.playerID);usedCats.add(x.cat);legs.push(x);return true};const mix=fillNflSgpMarketMix({risk,count,pool:rotated,legs,add});const complete=mix.filled;if(!complete)return{book,risk,legs:[],estimatedOdds:null,momentumScore:null,sgpScore:null,correlation:sgpCorrelation([]),marketMix:[],verifiedAt:new Date().toISOString(),requiredLegs:count,verifiedLegs:legs.length,reason:'No fully qualified '+book+' '+risk+' model candidate is available right now ('+legs.length+'/'+count+' eligible legs).'};const juicedCount=legs.filter(x=>x.nukeJuiced).length;if(risk==='Nuke'&&juicedCount<2)return{book,risk,legs:[],estimatedOdds:null,juicedLegs:juicedCount,nukeCeilingVerified:false,momentumScore:null,sgpScore:null,correlation:sgpCorrelation([]),marketMix:[],verifiedAt:new Date().toISOString(),requiredLegs:count,verifiedLegs:0,reason:'No model-estimated Nuke candidate is shown because fewer than two data-supported juiced alternate lines are currently available at '+book+'. The Data Model Nuke remains available separately.'};const tierAssessment=assessNflSgpTier({risk,legs,requiredLegs:count});if(!tierAssessment.compositionOk)return{book,risk,legs:[],estimatedOdds:null,verifiedLegs:0,requiredLegs:count,reason:tierAssessment.reason,tierAssessment};const est=parlayPrice(legs,book);if(!Number.isFinite(est))return{book,risk,legs:[],estimatedOdds:null,nukeCeilingVerified:false,requiredLegs:count,verifiedLegs:0,reason:'Incomplete fresh individual bookmaker odds for this candidate.'};const avg=Math.round(legs.reduce((s,x)=>s+x.momentumScore,0)/legs.length),corr=sgpCorrelation(legs),combined=Math.max(1,Math.min(99,Math.round(avg*.8+corr.score*.2))),juicedLegs=legs.filter(x=>x.nukeJuiced).length,nukeCeilingVerified=risk!=='Nuke'||juicedLegs>=2;return{book,risk,legs,tierAssessment,estimatedOdds:est,estimateMethod:'INDEPENDENT_LEG_MULTIPLICATION',estimateConfidence:'UNCALIBRATED_SAME_GAME_CORRELATION',estimateToleranceGuaranteed:false,estimatedProfitForTenDollars:est>0?Math.round(est)/10:null,juicedLegs,nukeCeilingVerified,momentumScore:avg,sgpScore:combined,correlation:corr,marketMix:[...usedCats],verifiedAt:new Date().toISOString(),requiredLegs:count,verifiedLegs:legs.length,reason:risk==='Nuke'?'Nuke prioritizes the highest-confidence data-supported ceiling and uses a candidate juiced alternate line only when market evidence supports one near that ceiling; every leg remains sportsbook-listed. Correlation is scored separately and contributes 20% of the SGP score.':'Individual prop legs were observed for '+book+'; the correlated combined SGP price is unverified. Correlation is scored separately and contributes 20% of the SGP score.'}};
  const findTier=(risk,count,offset=0)=>{
-  let best=null;
+  const band=SGP_ODDS_BANDS[risk],target=(band.min+band.max)/2;
+  let best=null,bestDistance=Infinity;
   for(let o=0;o<Math.min(basePool.length,5);o++){
-   const s=make(risk,count,offset+o);
-   if(s?.legs?.length!==count||s.tierAssessment?.compositionOk!==true)continue;
-   if(sgpOddsInBand(risk,s.estimatedOdds))
-    return {...s,payoutTarget:sgpPayoutLabel(risk),payoutBandVerified:false,estimatedPayoutTargetInBand:true};
-   if(!best||Math.abs(Number(s.estimatedOdds)-SGP_ODDS_BANDS[risk].min)<
-     Math.abs(Number(best.estimatedOdds)-SGP_ODDS_BANDS[risk].min))best=s;
+   const candidate=make(risk,count,offset+o);
+   if(candidate?.legs?.length!==count||candidate.tierAssessment?.compositionOk!==true)continue;
+   const odds=Number(candidate.estimatedOdds);
+   if(!Number.isFinite(odds))continue;
+   // Prefer a valid estimate inside the requested tier, closest to its midpoint.
+   // An outside-tier candidate remains research-only, never a priced ticket.
+   const inBand=sgpOddsInBand(risk,odds);
+   const distance=(inBand?0:1e9)+Math.abs(odds-target);
+   if(distance<bestDistance){best=candidate;bestDistance=distance;}
   }
   return best?{...best,payoutTarget:sgpPayoutLabel(risk),payoutBandVerified:false,
-   estimatedPayoutTargetInBand:false}:null;
+   estimatedPayoutTargetInBand:sgpOddsInBand(risk,best.estimatedOdds)}:null;
  };
  const dynamicNuke=()=>{
   let best=null;
@@ -579,7 +583,13 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
   oddsDebug.propLineChangeType=authorizedChange?changeType:null;
   if(process.env.PLAYER_PROPS_API_KEY&&authorizedChange){
    try{
-    const trustedPropOrigin=process.env.VERCEL_PROJECT_PRODUCTION_URL?'https://'+process.env.VERCEL_PROJECT_PRODUCTION_URL:'https://momentum-radar-live.vercel.app';
+    const propDeploymentHost=String(process.env.VERCEL_URL||'').toLowerCase();
+    const propProductionHost=String(process.env.VERCEL_PROJECT_PRODUCTION_URL||'').toLowerCase();
+    const propTrustedHost=/^momentum-radar-live-[a-z0-9-]+\.vercel\.app$/.test(propDeploymentHost)||
+     propDeploymentHost==='momentum-radar-live.vercel.app'?propDeploymentHost:
+     process.env.VERCEL_ENV==='production'&&propProductionHost==='momentum-radar-live.vercel.app'?propProductionHost:'';
+    if(!propTrustedHost)throw Error('untrusted_prop_line_origin');
+    const trustedPropOrigin='https://'+propTrustedHost;
     const propUrl=trustedPropOrigin+'/api/prop-line-markets?league=nfl&date='+date+'&gameId='+encodeURIComponent(gameId);
     const propResult=await Promise.race([(async()=>{const r=await timedFetch(propUrl,{cache:'no-store',headers:{Authorization:'Bearer '+process.env.CRON_SECRET,'x-momentum-change-token':verifiedToken}});return r.ok?await r.json():{ok:false,providerUnavailable:true}})(),new Promise(resolve=>setTimeout(()=>resolve({ok:false,providerUnavailable:true}),6000))]);
     // Never convert an unavailable provider response or unmatched event into
@@ -634,7 +644,28 @@ const publicRefs=gameId?manualAtlNoTonightSgps(date,home,away)?.[0]?.publicMarke
 if(gameId&&categories.td.length===0){const seen=new Set();categories.td=publicRefs.filter(r=>String(r.market||'').toLowerCase().includes('anytime td')).map(r=>{const rr=roleFor(roles,{name:r.player})||null,key=norm(r.player);if(seen.has(key))return null;seen.add(key);return{name:r.player,playerID:rr?.playerId||key,team:rr?.team||'',position:rr?.position||'',eventID:gameId,category:'td',projection:'Anytime TD',projectionUnit:'touchdown',projectionMethod:'Momentum Radar TD matchup model + verified public sportsbook market',analyticsOnly:false,confidence:60,reason:'Verified current-game anytime touchdown market; final confidence is adjusted by role, usage, matchup and injury eligibility.'}}).filter(Boolean)}
 const publicRefByPlayerCat=new Map();
 for(const r of publicRefs){const mk=String(r.market||'').toLowerCase();let cat=mk.includes('passing yard')?'passing':mk.includes('rushing yard')?'rushing':mk.includes('receiving yard')?'receiving':mk.includes('reception')?'receptions':mk.includes('anytime td')?'td':'';if(!cat)continue;const key=norm(r.player)+'|'+cat,arr=publicRefByPlayerCat.get(key)||[];arr.push(r);publicRefByPlayerCat.set(key,arr)}
-function publicOfferFor(name,cat){const a=publicRefByPlayerCat.get(norm(name)+'|'+cat)||[];if(!a.length)return null;const r=a.find(x=>/^\d+(\.\d+)?$/.test(String(x.line)))||a[0],n=Number(String(r.line).replace('+',''));return{book:r.book,line:Number.isFinite(n)?n:null,odds:Number(String(r.odds).replace('+','')),source:'public sportsbook',verified:true}}
+function publicOfferFor(name,cat){
+ // Historical/public research references are NOT live sportsbook offers.
+ // Do not elevate them to verified selections without a fresh event-scoped
+ // observation, source URL, timestamp, and exact market identity.
+ const refs=publicRefByPlayerCat.get(norm(name)+'|'+cat)||[];
+ const now=Date.now();
+ const r=refs.find(x=>{
+  const checked=Date.parse(x.checkedAt||x.observedAt||'');
+  const url=String(x.sourceUrl||'');
+  return ['DraftKings','FanDuel'].includes(x.book)&&
+   String(x.gameId||'')===String(gameId)&&
+   Number.isFinite(checked)&&checked<=now&&now-checked<=15*60_000&&
+   /^https:\/\/(?:sportsbook\.draftkings\.com|sportsbook\.fanduel\.com)\//.test(url)&&
+   Number.isFinite(Number(x.odds))&&Number(x.odds)!==0&&
+   (cat==='td'||Number.isFinite(Number(x.line)));
+ });
+ if(!r)return null;
+ return{book:r.book,line:cat==='td'?null:Number(r.line),
+  odds:Number(r.odds),checkedAt:r.checkedAt||r.observedAt,
+  sourceUrl:r.sourceUrl,market:cat,available:true,verified:true};
+}
+
 requestStage='historical_stats';const statBoards=await statBoardsPromise;
  // Day-ahead verified-roster usage enables *provisional* non-QB model-only
  // SGP legs for games absent from old hardcoded starter evidence.
@@ -762,8 +793,14 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
    }
   }
   oddsDebug.authorizedQuoteCandidates=candidates.length;
-  const origin=process.env.VERCEL_PROJECT_PRODUCTION_URL?
-   'https://'+process.env.VERCEL_PROJECT_PRODUCTION_URL:'https://momentum-radar-live.vercel.app';
+  // Internal quote requests must remain in the current deployment.
+  // Never route a preview's authorized token or quote spend into production.
+  const deploymentHost=String(process.env.VERCEL_URL||'').toLowerCase();
+  const productionHost=String(process.env.VERCEL_PROJECT_PRODUCTION_URL||'').toLowerCase();
+  const trustedHost=/^momentum-radar-live-[a-z0-9-]+\.vercel\.app$/.test(deploymentHost)||
+   deploymentHost==='momentum-radar-live.vercel.app'?deploymentHost:
+   process.env.VERCEL_ENV==='production'&&productionHost==='momentum-radar-live.vercel.app'?productionHost:'';
+  const origin=trustedHost?'https://'+trustedHost:null;
   // No more than 3 correlated quote requests in a scheduled checkpoint
   // (plus at most two market lookups). Material injury changes retain six.
   const quoteCandidates=changeType==='scheduled_checkpoint'?
@@ -772,6 +809,10 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
    candidates.slice(0,6);
   // Candidate eligibility is not actual provider spend: signed checkpoints
   // deliberately cap attempts at three across both sportsbooks.
+  if(!origin){
+   oddsDebug.quoteOriginStatus='NO_TRUSTED_SAME_DEPLOYMENT_ORIGIN';
+   quoteCandidates.length=0;
+  }
   oddsDebug.authorizedQuoteAttempts=quoteCandidates.length;
   await Promise.all(quoteCandidates.map(async({book,bookmaker,risk,candidate})=>{
    const key=bookmaker+'_'+risk+'QuoteStatus';
