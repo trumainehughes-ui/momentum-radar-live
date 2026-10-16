@@ -3,6 +3,7 @@
 import {readCollectorAudits} from '../lib/pregame-collector-shards.js';
 import {nflSgpReadinessFromBlob} from '../lib/nfl-sgp-snapshot-status.js';
 import {nflEasternDate} from '../lib/nfl-collector-readiness.js';
+import {reconcileNflReadinessStatus} from '../lib/nfl-readiness-classification.js';
 export default async function handler(req,res){
  res.setHeader('Cache-Control','public, s-maxage=30, must-revalidate');
  if(req.method!=='GET')return res.status(405).json({ok:false,error:'method_not_allowed'});
@@ -32,10 +33,8 @@ export default async function handler(req,res){
   const latest=records.sort((a,b)=>Date.parse(b.checkedAt)-Date.parse(a.checkedAt))[0]||null;
   const marketStatus=market.result?.status||'UNKNOWN';
   const quoteVerified=market.result?.sportsbookCombinedOddsVerified===true;
-  const status=quoteVerified?'BOOK_QUOTED':
-   latest?.modelCoverage==='READY_3_OF_3'&&marketStatus==='PENDING_SNAPSHOT'?
-    'MODEL_READY_MARKET_SNAPSHOT_MISSING':
-   latest?.modelCoverage==='READY_3_OF_3'?'MODEL_ONLY':'NOT_READY';
+  const status=reconcileNflReadinessStatus({marketStatus,quoteVerified,
+   collectorCoverage:latest?.modelCoverage||null});
   return res.status(200).json({ok:true,gameId,date,status,
    collector:latest,market:{status:marketStatus,
     sportsbookCombinedOddsVerified:quoteVerified,

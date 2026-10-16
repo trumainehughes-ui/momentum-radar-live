@@ -5,7 +5,9 @@ test('NFL readiness reconciliation never treats collector models as verified boo
  const code=readFileSync(new URL('../api/nfl-readiness-reconcile.js',import.meta.url),'utf8');
  assert.match(code,/readCollectorAudits\('nfl'\)/);
  assert.match(code,/nflSgpReadinessFromBlob/);
- assert.match(code,/MODEL_READY_MARKET_SNAPSHOT_MISSING/);
+ assert.match(code,/reconcileNflReadinessStatus/);
+ const classifier=readFileSync(new URL('../lib/nfl-readiness-classification.js',import.meta.url),'utf8');
+ assert.match(classifier,/MODEL_READY_MARKET_SNAPSHOT_MISSING/);
  assert.match(code,/publishable:quoteVerified/);
  assert.doesNotMatch(code,/put\(|writeCollectorAudit|fetch\('https:\/\/api\.groq/);
 });
