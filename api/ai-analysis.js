@@ -1,7 +1,7 @@
 // Groq-powered explanation layer. Never treats generated text as verified game data.
 import {ADVISORY_MODES,generateAdvisory} from '../lib/ai-mechanics/ai-advisors.js';
 import {SHARP_GLOBAL_POLICY} from '../lib/ai-mechanics/sharp-engine.js';
-const ALLOWED = new Set(['matchup','injury','parlay','results','nbaPregame',...ADVISORY_MODES]);
+const ALLOWED = new Set(['matchup','injury','parlay','tdReview','results','nbaPregame',...ADVISORY_MODES]);
 const MODEL = 'openai/gpt-oss-20b';
 const BACKUP_MODEL = 'openai/gpt-4.1-mini';
 // Explicit fallback model: never route to an unspecified model or second predictor.
