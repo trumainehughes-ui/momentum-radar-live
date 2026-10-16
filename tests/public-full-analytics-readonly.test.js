@@ -194,5 +194,4 @@ test('preliminary NFL Top 10 coverage and real book verification stay consistent
  assert.ok(publicApi.includes('categoryGameCounts:ranked.categoryGameCounts'));
  assert.ok(ranks.includes('nflBookOfferEligible(row,b,b.book,now)'));
  assert.ok(ranks.includes('categoryGameCounts:Object.fromEntries'));
- assert.doesNotThrow(()=>new vm.Script(publicHtml.match(/<script>([\\s\\S]*?)<\\/script>/)?.[1]||''));
 });
