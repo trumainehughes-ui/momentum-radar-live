@@ -403,7 +403,7 @@ async function nflRenderRankPanel(tab,{background=false}={}){
     'No qualified players are available for this category yet.')+'</div>';
  }catch{if(!background)box.innerHTML='<div class="msg">Slate analytics temporarily unavailable.</div>';}
 }
-setInterval(()=>{
+if(typeof setInterval==='function')setInterval(()=>{
  if(document.hidden||!nflData?.date||$('#nflRankPanel')?.style.display!=='block'||
   !document.querySelector('[data-nfltab="td"].active'))return;
  // Read-only Blob ranking refresh. No new odds/AI calls and no jump/scroll.
