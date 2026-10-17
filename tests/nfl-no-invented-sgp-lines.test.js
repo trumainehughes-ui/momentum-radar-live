@@ -37,7 +37,8 @@ test('game dashboard no longer displays unobserved 135+ or any invented yardage 
  const start=main.indexOf('if(analyticsMode&&Number(d.validation?.sgpEligibleMarketRows||0)===0){');
  const end=main.indexOf('}else if(analyticsMode){',start);
  const section=main.slice(start,end);
- assert.ok(section.includes('Exact sportsbook selection pending'));
+ assert.ok(section.includes('const tiersHtml=sgpYardageHtml;'));
+ assert.ok(section.includes('Model research only')||section.includes('Combined odds not quoted'));
  assert.ok(!section.includes("String(p.target)+'+ '"));
  assert.ok(!section.includes('Unverified model target:'));
 });
