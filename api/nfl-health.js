@@ -57,7 +57,8 @@ export function historySnap(g,m,prior=null){
  // qualified book-specific candidates, but mark them unquoted and non-playable.
  for(const book of ['DraftKings','FanDuel'])for(const s of m.sgps?.[book]||[]){
   if(s.tierAssessment?.compositionOk===false||
-     !Array.isArray(s.legs)||s.legs.length!==s.requiredLegs)continue;
+     !Array.isArray(s.legs)||s.legs.length!==s.requiredLegs||
+     s.legs.some(x=>x.cat!=='td'&&(x.bookOffer?.line===null||x.bookOffer?.line===undefined||String(x.bookOffer.line).trim()===''||!Number.isFinite(Number(x.bookOffer.line)))))continue;
   sgps.push({...s,book,combinedBookQuoteVerified:false,actualSgpOdds:null,
    legs:s.legs.map(x=>({...x,category:x.cat,
     threshold:x.cat==='td'?1:(x.bookOffer?.line??null)}))});
