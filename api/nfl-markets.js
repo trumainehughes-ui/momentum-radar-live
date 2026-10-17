@@ -367,6 +367,9 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
   const mom=momentumScore({...x,cat,bookOffer:null},ctx),matchup=matchupAdjustedProjection(x,cat,ctx);
   pool.push({...x,cat,momentumScore:mom.score,momentumSignals:mom.signals,matchupProjection:matchup?.adjusted??null,matchupFactor:matchup?.factor??null,matchupDefenseRank:matchup?.defRank??null,matchupOffenseRank:matchup?.offRank??null});
  }
+ // Observability only: distinguish an empty projection pool from a failed
+ // composition or quote gate without weakening roster/injury safeguards.
+ const poolDiagnostics={eligibleRows:pool.length,uniqueAthletes:new Set(pool.map(x=>String(x.playerID||x.playerId||norm(x.name)))).size,byCategory:Object.fromEntries(['passing','rushing','receiving','receptions','td'].map(cat=>[cat,pool.filter(x=>x.cat===cat).length]))};
  const strength=(x,risk='Medium')=>{
   const pg=Math.max(.1,Number(x.perGame)||Number(x.projection)||.1),adj=Number(x.matchupProjection)||Number(x.projection)||0,usage=x.usagePerGame||{},opp=x.cat==='rushing'?Number(usage.rushYards)||pg:(x.cat==='receiving'||x.cat==='receptions')?(Number(usage.targets)||0)*8+(Number(usage.receptions)||0)*5+(Number(usage.recYards)||0):pg,ceil=Number(x.range?.ceiling)||adj,ceilingLift=(ceil-pg)/Math.max(1,pg),matchupLift=(adj-pg)/Math.max(1,pg);
   // Compare candidates at the actual tier target, not just raw production. Recent target hit rate is direct evidence.
