@@ -236,7 +236,9 @@ export default async function handler(req,res){
  const shard=Number(req.query?.shard??0);
  if(!Number.isInteger(shard)||shard<0||shard>1)
   return res.status(400).json({ok:false,error:'invalid_collector_shard'});
- const date=dateET(),tomorrow=addDay(date,1),dates=[date,tomorrow];
+ // Scan three calendar days so the day-ahead window catches the first
+ // regular-season games even when the slate has been dark for days.
+ const date=dateET(),dates=[date,addDay(date,1),addDay(date,2)];
  const schedules=await Promise.all(dates.map(async day=>{
   try{return await json('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates='+day.replaceAll('-','')+'&limit=100',12_000)}
   catch{return{events:[],sourceFailed:true}}
