@@ -2,7 +2,7 @@
 // Never fetch user-provided URLs, never place bets, never create a book quote.
 import {
  DKN_NFL_PROPS_URL,FANDUEL_NFL_PUBLIC_URL,publicBookResearchReport,
- matchPublicOffersToEligibleGamePlayers
+ matchPublicOffersToEligibleGamePlayers,publicNflOfferParticipationSignals
 } from '../lib/nfl-public-sportsbook-observer.js';
 
 const PUBLIC_SOURCE_TIMEOUT=6500;
@@ -69,6 +69,8 @@ export default async function handler(req,res){
    'NO_MATCHING_VETTED_PUBLIC_PROPS';
   report.excludedUnmatchedPublicRows=Math.max(0,observed-report.offers.length);
   report.playerIdentityScreened=rosterEvidenceReady;
+  report.participationSignals=publicNflOfferParticipationSignals(report.offers,{gameId,now:Date.now()});
+  report.participationPolicy='SUPPORTING_SIGNAL_ONLY_OFFICIAL_ROSTER_AND_INJURY_RULES_OVERRIDE';
   report.coverage={scope:'SELECTED_GAME',gameId,observedRows:observed,
    vettedRows:report.offers.length,excludedRows:report.excludedUnmatchedPublicRows,
    categories:[...new Set(report.offers.map(x=>x.category))].sort(),
