@@ -13,13 +13,14 @@ test('when verified market rows are zero, all three available model SGP tiers re
  assert.ok(code.includes("['Small','Medium','Nuke']"));
  assert.ok(code.includes('legs.map(p=>'));
  assert.ok(code.includes("nflEscape(p.player||p.name)"));
- assert.ok(code.includes("p.target"));
+ assert.ok(!code.includes("p.target"));
  assert.ok(code.includes('Projection candidates'));
+ assert.ok(!code.includes("String(p.target)+'+ '"));
  assert.ok(!code.includes('No sportsbook-selectable SGP can be generated'));
 });
 test('no exact sportsbook offers means no fake book prices or invented 135-yard alternatives',()=>{
  assert.ok(code.includes('Model research only • Not a selectable sportsbook parlay'));
- assert.ok(code.includes('No current exact DraftKings/FanDuel line verified for this leg'));
+ assert.ok(code.includes('No listed DraftKings/FanDuel line confirmed for this athlete and market'));
  assert.ok(code.includes('Combined odds not quoted'));
  assert.ok(!code.includes('actualSgpOdds'));
  assert.ok(!code.includes('135+'));

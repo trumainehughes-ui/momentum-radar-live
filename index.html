@@ -451,13 +451,12 @@ if(analyticsMode&&Number(d.validation?.sgpEligibleMarketRows||0)===0){
    '<div class="meta">'+legs.length+' player projections • 0 verified sportsbook lines • Combined odds not quoted</div>'+
    (legs.length?legs.map(p=>{
     const cat=String(p.category||p.cat||'');
-    const target=cat==='td'?'Anytime touchdown candidate':
-     p.target!==null&&p.target!==undefined&&Number.isFinite(Number(p.target))?
-      String(p.target)+'+ '+(cat==='receptions'?'receptions':cat+' yards'):
-      'Target unavailable';
+    // A model forecast is NOT a sportsbook prop. Never print its numeric
+    // threshold in a Small/Medium/Nuke parlay card without a matching
+    // observed sportsbook offer and exact market price.
     return '<div class="nflMarketLine"><b>'+nflEscape(p.player||p.name)+'</b>'+
-     '<div class="meta">'+nflEscape(catNames[cat])+' • Unverified model target: '+nflEscape(target)+'</div>'+
-     '<div class="note">No current exact DraftKings/FanDuel line verified for this leg.</div></div>';
+     '<div class="meta">'+nflEscape(catNames[cat])+' • Exact sportsbook selection pending</div>'+
+     '<div class="note">No listed DraftKings/FanDuel line confirmed for this athlete and market. No target has been substituted.</div></div>';
    }).join(''):'<div class="note">'+nflEscape(x.reason||'Insufficient screened player evidence.')+'</div>')+
    '<div class="refresh">Model research only • Not a selectable sportsbook parlay</div></div>';
  }).join('');

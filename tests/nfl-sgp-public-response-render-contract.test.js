@@ -33,9 +33,11 @@ test('the exact live public NFL market-response schema renders Small Medium and 
  assert.ok(page.includes('3 player projections'));
  assert.ok(page.includes('4 player projections'));
  assert.ok(!page.includes('0 player projections'));
- assert.ok(page.includes('Unverified model target: 70+ rushing yards'));
- assert.ok(page.includes('Unverified model target: 35+ receiving yards'));
- assert.ok(page.includes('Anytime touchdown candidate'));
+ assert.ok(!page.includes('70+ rushing yards'));
+ assert.ok(!page.includes('35+ receiving yards'));
+ assert.ok(page.includes('Exact sportsbook selection pending'));
+ assert.ok(page.includes('Anytime TD candidate'));
+ assert.ok(!page.includes('135+'));
  assert.ok(!page.includes('Actual combined')&&!page.includes('bookmaker-priced'));
 });
 test('game and team filters block stale or cross-matchup legs',()=>{
@@ -58,4 +60,19 @@ test('browser-observed exact-line matcher respects public API field names and do
  assert.ok(html.includes("leg.target==='Anytime TD'?null:Number(leg.target??leg.analyticsThreshold??leg.projection)"));
  assert.ok(html.includes('Target was already adjusted for the tier'));
  assert.ok(html.includes('No combined bookmaker quote has been obtained'));
+});
+
+test('135+ rushing yard projections cannot appear in Small Medium or Nuke without real sportsbook evidence',()=>{
+ const feed=[{risk:'Nuke',mode:'MODEL_ONLY',legs:[
+  {player:'Bijan Robinson',team:'ATL',category:'rushing',target:135,gameId:'401872999'},
+  {player:'Rome Odunze',team:'CHI',category:'receiving',target:65,gameId:'401872999'},
+  {player:'Kalif Raymond',team:'CHI',category:'receiving',target:60,gameId:'401872999'},
+  {player:"D'Andre Swift",team:'CHI',category:'td',target:'Anytime TD',gameId:'401872999'}]}];
+ const result=render(feed);
+ assert.ok(result.includes('Bijan Robinson'));
+ assert.ok(result.includes('4 player projections'));
+ assert.ok(!result.includes('135'));
+ assert.ok(!result.includes('65+'));
+ assert.ok(!result.includes('60+'));
+ assert.ok(result.includes('Exact sportsbook selection pending'));
 });
