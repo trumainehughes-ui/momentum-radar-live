@@ -515,15 +515,6 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
 function renderExtras(){
  const box=$('#extra-content');if(!box)return;
  if(state.league!=='nfl'){box.innerHTML=noData('NFL analysis only','More sports categories will appear as the corresponding predictions are saved.');return}
- if(state.extra==='history'){
-  const rows=state.historyData?.archive||[];
-  box.innerHTML=rows.length?'<div class="players-grid">'+rows.map(x=>
-   '<div class="player"><div class="tiny">Final result</div><b>'+esc(x.score)+'</b>'+
-   '<div class="small">Player picks: '+esc(x.playerHits)+' / '+esc(x.playerTotal)+' hit • SGPs: '+
-   esc(x.sgpHits)+' / '+esc(x.sgpTotal)+' hit</div>'+
-   '<div class="small">'+['Small','Medium','Nuke'].map(t=>t+': '+(x.tiers?.[t]?.hits??0)+' / '+(x.tiers?.[t]?.total??0)).join(' • ')+'</div></div>').join('')+'</div>':
-   noData('History is waiting','Finished games appear after saved pregame selections have been graded and archived.');return;
- }
  const all=['td','passing','rushing','receiving','receptions']
   .flatMap(cat=>(state.rankings?.categories?.[cat]||[]).map(x=>({...x,cat})));
  const best=new Map();
@@ -540,13 +531,7 @@ function renderExtras(){
    '<div class="small">'+esc(labels[p.cat])+' • model estimate only</div></div>').join('')+'</div>':
    noData('Slate selections pending','Ranked player candidates will appear after scheduled game analysis.');
 }
-async function loadHistory(){
- $('#extra-content').innerHTML='<div class="empty loading">Loading finished NFL results…</div>';
- try{const d=await getJson('/api/public-nfl-history');state.historyData=d;}
- catch{state.historyData={archive:[]}}
- if(state.extra==='history')renderExtras();
-}
- function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?.[state.rank]||[];
+function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?.[state.rank]||[];
  const scheduled=state.games?.length||0;
  const covered=Number(state.rankings?.categoryGameCounts?.[state.rank]??0);
  const coverageNote=scheduled>covered||(state.rank==='td'&&rows.length<10)?
@@ -560,7 +545,7 @@ async function loadHistory(){
  if(state.league!=='nfl')return;
  try{const d=await getJson('/api/public-nfl-rankings?'+new URLSearchParams({date:state.date}));if(token!==state.rankLoading)return;state.rankings=d;renderRanks();renderExtras()}catch{if(token===state.rankLoading)$('#rankings').innerHTML=noData('Rankings unavailable','Check again after the next saved update.')}}
  async function loadSlate(upcoming){++state.loading;++state.rankLoading;state.selected='';state.selectedData=null;state.aiData=null;state.liveData=null;state.games=[];renderGames();$('#games').innerHTML='<div class="empty loading grid-span">Loading scheduled matchups…</div>';
- $('#match-title').textContent='Select a game';$('#match-content').innerHTML='<div class="empty" style="margin-top:18px">Choose a matchup to explore the picks.</div>';$('#rankings-section').style.display=state.league==='nfl'?'':'none';$('#extra-section').style.display=state.league==='nfl'?'':'none';
+ $('#match-title').textContent='Select a game';$('#match-content').innerHTML='<div class="empty" style="margin-top:18px">Choose a matchup to explore the picks.</div>';renderNflModule();
  const base=state.league==='nfl'?'/api/nfl-schedule':'/api/nba-slate';
  const q=(!upcoming&&state.date)?'?'+new URLSearchParams({date:state.date}):'';
  try{const d=await getJson(base+q);state.date=d.date||state.date;$('#day').value=state.date;$('#date-caption').textContent=state.league.toUpperCase()+' • '+(d.games?.length||0)+' scheduled matchups • '+state.date;
@@ -581,12 +566,23 @@ async function loadHistory(){
   if(view==='ai'&&!state.aiData&&!state.aiLoading)loadSavedAi(state.date,state.selected);
   if(view==='live'&&!state.liveData&&!state.liveLoading)loadPublicLive(state.selected);
  });
- $('#leagues').addEventListener('click',e=>{const b=e.target.closest('[data-league]');if(!b||state.league===b.dataset.league)return;
- state.league=b.dataset.league;document.querySelectorAll('[data-league]').forEach(el=>el.classList.toggle('active',el===b));state.date='';$('#day').value='';loadSlate(true)});
- $('#rank-tabs').addEventListener('click',e=>{const b=e.target.closest('[data-rank]');if(!b)return;state.rank=b.dataset.rank;document.querySelectorAll('[data-rank]').forEach(el=>el.classList.toggle('active',el===b));renderRanks()});
+ $('#leagues').addEventListener('click',e=>{
+  const b=e.target.closest('[data-league]');if(!b)return;
+  if(state.league===b.dataset.league){
+   if(state.league==='nfl')$('#nfl-module-panel')?.scrollIntoView?.({behavior:'smooth',block:'start'});
+   return;
+  }
+  state.league=b.dataset.league;state.module='games';
+  document.querySelectorAll('[data-league]').forEach(el=>el.classList.toggle('active',el===b));
+  state.date='';$('#day').value='';loadSlate(true);
+ });
+ $('#nfl-module-tabs').addEventListener('click',e=>{
+  const b=e.target.closest('[data-nfl-module]');if(b)activateNflModule(b.dataset.nflModule);
+ });
+ $('#rank-tabs').addEventListener('click',e=>{const b=e.target.closest('[data-rank]');if(b)activateNflModule(b.dataset.rank)});
  $('#day').addEventListener('change',()=>{state.date=$('#day').value;if(state.date)loadSlate(false)});
  $('#today').addEventListener('click',()=>{state.date='';$('#day').value='';loadSlate(true)});
- $('#extra-tabs').addEventListener('click',e=>{const b=e.target.closest('[data-extra]');if(!b)return;state.extra=b.dataset.extra;document.querySelectorAll('[data-extra]').forEach(x=>x.classList.toggle('active',x===b));renderExtras();if(state.extra==='history'&&!state.historyData)loadHistory()});
+ 
  async function refreshReadOnlyPredictions(){
   // Public polls read saved snapshots only. No calls to the market builder,
   // Groq inference or privileged collector/write routes.
@@ -610,6 +606,12 @@ async function loadHistory(){
  // Automatic 5-minute public revalidation never generates new bookmaker or AI calls.
  setInterval(refreshReadOnlyPredictions,5*60*1000);
  $('#refresh').addEventListener('click',()=>loadSlate(false));
+ // Move the same public read-only ranking/Best-of-Slate DOM directly below
+ // the NFL tabs. No duplicate API requests or independent renderers.
+ const moduleContent=$('#nfl-module-content');
+ moduleContent.appendChild($('#rankings-section'));
+ moduleContent.appendChild($('#extra-section'));
+ renderNflModule();
  loadSlate(true);
 })();
 </script></body></html>
