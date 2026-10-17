@@ -42,7 +42,8 @@ function fixture(){
   renderRanks:()=>{calls.ranks++},
   renderExtras:()=>{calls.best++},
   renderGame:()=>{calls.game++},
-  loadPublicLive:()=>{calls.live++}
+  loadPublicLive:()=>{calls.live++},
+  loadPublicBookResearch:()=>{}
  };
  vm.runInNewContext(src+';this.renderNflModule=renderNflModule;this.activateNflModule=activateNflModule;',context);
  return{elements,tabs,calls,state,nav:context};
