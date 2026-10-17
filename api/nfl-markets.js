@@ -1020,7 +1020,8 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
    combinedBookQuoteVerified:false,actualSgpOdds:null,
    explanation:String(c.explanation?.summary||c.reason||'').slice(0,250),
    legs:c.legs.map(l=>({player:String(l.name||'').slice(0,90),
-    team:String(l.team||''),category:l.cat,target:l.analyticsThreshold,
+    team:String(l.team||''),category:l.cat,target:null,
+     marketSelectionStatus:'NO_EXACT_DRAFTKINGS_OR_FANDUEL_OFFER',
     gameId:String(l.eventID||l.gameId||'')}))}));
  response.sgps.mode=response.sgps.DraftKings.length||response.sgps.FanDuel.length?
   'VERIFIED_BOOK_SGPS_WITH_MODEL_RESEARCH':response.sgps.Analytics.length?'MODEL_ONLY_RESEARCH':'NO_VERIFIED_BOOK_SGPS';
