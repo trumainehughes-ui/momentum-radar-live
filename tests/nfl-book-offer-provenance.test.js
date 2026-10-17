@@ -44,3 +44,16 @@ test('active market builder has no provenance-bypassing default',()=>{
  assert.match(code,/nflBookOfferEligible\(m,offer,name\)/);
  assert.doesNotMatch(code,/if\(!checkedAt\|\|!sourceUrl\)return true/);
 });
+
+test('Odds API offer without its own line cannot inherit enclosing row threshold',()=>{
+ const native={...book,sourceProvider:'The Odds API',sourceUrl:null};
+ const oddsRow={...row,provider:'The Odds API',line:135};
+ assert.equal(nflBookOfferEligible(oddsRow,{...native,line:undefined},'DraftKings',now),false);
+ assert.equal(nflBookOfferEligible(oddsRow,{...native,line:null},'DraftKings',now),false);
+ assert.equal(nflBookOfferEligible(oddsRow,{...native,line:125},'DraftKings',now),true);
+});
+test('all book paths reject absent and nonnumeric threshold',()=>{
+ for(const line of [null,undefined,'', 'not-a-line']){
+  assert.equal(nflBookOfferEligible(row,{...book,line},'DraftKings',now),false);
+ }
+});
