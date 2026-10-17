@@ -10,4 +10,6 @@ test('NFL matchup UI exposes AI status and analysis navigation on every tab',()=
  assert.ok(ui.includes('Historical AI review'));
  assert.ok(ui.includes('data-view="ai">Open AI analysis'));
  assert.ok(ui.includes("tabs+aiStrip+'<div class=\"detail-body\">'"));
+ assert.ok(ui.includes("state.date===date){state.aiLoading=false"));
+ assert.ok(ui.includes("state.date===date)state.aiData="));
 });
