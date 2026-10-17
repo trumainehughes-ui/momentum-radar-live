@@ -20,3 +20,10 @@ test('cached NFL SGP response does not reference an undefined response or erase 
  assert.doesNotMatch(cached,/sgps\.Analytics=\[\]/);
  assert.match(cached,/sgps\.Analytics=\(Array\.isArray\(sgps\.Analytics\)/);
 });
+
+test('cached touchdown SGP legs do not require a numeric yardage threshold',()=>{
+ const src=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
+ const cached=src.split('function nflVerifiedOnlySgpResponse(body){')[1].split('async function readResponseSnapshot(')[0];
+ assert.match(cached,/l\.category==='td'/);
+ assert.match(cached,/l\.target!==null&&l\.target!==undefined/);
+});
