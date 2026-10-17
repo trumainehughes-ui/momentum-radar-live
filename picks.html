@@ -64,6 +64,11 @@ h2{font-size:26px;letter-spacing:-.035em;margin:0 0 5px}h3{font-size:18px;letter
 @media(max-width:570px){.game-expand-slot{scroll-margin-top:72px}.game-expand-slot #game-section>.panel{padding:15px}.game-expand-slot .market-tabs{gap:6px}.game-expand-slot .market-tabs .chip{padding:10px 12px}}
 .game-card:hover{transform:translateY(-2px)}.game-card.selected{border:1px solid #46dba4;box-shadow:inset 0 0 0 1px #46dba433,0 0 20px #43d5a416}
 .game-head{display:flex;justify-content:space-between;gap:10px;font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.07em}
+.game-spotlight{display:flex;align-items:center;flex-wrap:wrap;gap:7px 12px;margin:9px 0 12px;padding:9px 11px;border:1px solid #98764d;border-radius:10px;background:#392b1b;color:#ffe4b0;font-size:12px;line-height:1.4}
+.game-spotlight strong{font-weight:850;color:#ffdc8a}.game-spotlight .spotlight-evidence{color:#e3cda9}
+.game-spotlight-star{font-size:15px;vertical-align:middle;line-height:1;margin-left:6px}
+.game-spotlight-detail{margin:13px 0 4px}
+@media(max-width:570px){.game-spotlight{font-size:12px;padding:8px 10px}}
 .game-status{color:var(--green)}.team{display:flex;align-items:center;gap:10px;margin:13px 0;font-size:16px;font-weight:850}
 .team-crest{min-width:36px;height:36px;border:1px solid #3a6070;border-radius:11px;background:#1a3444;display:grid;place-items:center;font-size:12px;font-weight:900;color:#a7edff}
 .game-meta{border-top:1px solid #25414f;padding-top:12px;color:#a8bfcb;font-size:12px}
@@ -195,6 +200,22 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  function teamLine(team){const ab=team?.abbr||'TBD',name=team?.name||ab;return '<div class="team"><span class="team-crest">'+esc(ab)+'</span><span>'+esc(name)+'</span></div>'}
  // Move the one existing analytics panel into the tapped game's grid slot.
  // DOM moves preserve its tab listeners, AI state and periodic read-only refresh.
+ function validGameSpotlight(g){
+  const x=g?.spotlight;
+  return state.league==='nfl'&&x?.kind==='HIGH_TOTAL'&&
+   x.source==='ESPN_SCOREBOARD_MARKET_TOTAL'&&
+   typeof x.totalPoints==='number'&&Number.isFinite(x.totalPoints)&&
+   x.totalPoints>=25&&x.totalPoints<=90&&
+   Number.isInteger(x.rank)&&x.rank>=1&&x.rank<=4?x:null;
+ }
+ function gameSpotlightHtml(g,detail=false){
+  const x=validGameSpotlight(g);if(!x)return '';
+  return '<div class="game-spotlight'+(detail?' game-spotlight-detail':'')+'">'+
+   '<strong>⭐ High-scoring watch</strong>'+
+   '<span class="spotlight-evidence">ESPN game O/U '+esc(x.totalPoints)+' points</span>'+
+   (detail?'<span class="spotlight-evidence">Market total, not guaranteed scoring or a betting edge.</span>':'')+
+   '</div>';
+ }
  function renderGames(){
   const box=$('#games'),panel=$('#game-section'),home=$('#game-panel-home');
   if(panel)panel.remove();
@@ -203,14 +224,16 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   }else{
    box.innerHTML=state.games.map(g=>{
     const active=String(g.gameId)===String(state.selected);
+    const star=validGameSpotlight(g);
     const name=(g.away?.name||'Away')+' at '+(g.home?.name||'Home');
     const card='<button class="game-card '+(active?'selected':'')+
      '" type="button" data-game="'+esc(g.gameId)+
      '" aria-controls="game-section" aria-expanded="'+(active?'true':'false')+
      '" aria-label="'+(active?'Collapse':'Expand')+' game analytics for '+esc(name)+'">'+
      '<div class="game-head"><span>'+esc(state.league.toUpperCase())+' • '+
-      esc('Week '+(g.week||'Matchup'))+'</span><span class="game-status">'+
+      esc('Week '+(g.week||'Matchup'))+(star?'<span class="game-spotlight-star" aria-hidden="true">⭐</span>':'')+'</span><span class="game-status">'+
       esc(statusLabel(g))+'</span></div>'+teamLine(g.away)+teamLine(g.home)+
+     gameSpotlightHtml(g)+
      '<div class="game-meta">'+esc(fmtTime(g.kickoff))+
       (g.venue?' • '+esc(g.venue):'')+'</div>'+
      '<div class="game-open-hint"><span>'+(active?'Hide game analytics':'View game analytics')+
@@ -509,7 +532,8 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    '<div class="bookquote"><b>Projected game score</b><div>'+score.scores.map(x=>esc(x.team)+' '+esc(x.points)).join(' – ')+
    '</div><div class="small">Model estimate, not a final score.</div></div>':'';
   const td=(d.categories?.td||[]).slice(0,3);
-  return scoreHtml+
+  const game=state.games.find(g=>String(g.gameId)===String(state.selected));
+  return gameSpotlightHtml(game,true)+scoreHtml+
    '<div class="section-head" style="margin-top:22px"><div><h3>Anytime Touchdown Radar</h3><p class="sub">Game-specific model scoring probabilities</p></div>'+
    '<button class="soft" type="button" data-view="td">View all TD picks →</button></div>'+
    '<div class="players-grid">'+(td.length?td.map(x=>renderPlayer(x,'td')).join(''):
@@ -574,6 +598,8 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  function showAi(d){
   const ai=state.aiData,match=d.matchup?.sides||[];
   const intro='<h3>✨ AI Game Analyzer</h3><p class="sub">AI-Assisted Model Brief — matchup and player estimates, separate from any saved AI narrative. Explore the matchup, key players and potential opportunities in one easy-to-read game breakdown.</p>';
+  const game=state.games.find(g=>String(g.gameId)===String(state.selected));
+  const scoringContext=gameSpotlightHtml(game,true);
   const review=state.aiLoading?'<div class="empty loading" style="margin:16px 0">Loading saved AI review…</div>':
    ai?.status==='SAVED_AI_REVIEW'||ai?.status==='HISTORICAL_AI_REVIEW'?
     '<div class="bookquote"><b>Saved AI analysis</b><div class="small">'+esc(fmtStamp(ai.generatedAt))+
@@ -607,7 +633,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    '<p class="sub">'+(d.injuries?.length?
      esc(d.injuries.slice(0,8).map(x=>x.name+' ('+x.team+' '+x.status+')').join(' • ')):
      'No publishable injury observations; that is not confirmation of healthy rosters.')+'</p>';
-  return intro+modelBrief+review+insight+'<div class="controls" style="margin-top:18px"><button type="button" class="soft" data-view="sharp">📈 Open Sharp +EV Audit →</button></div>';
+  return intro+scoringContext+modelBrief+review+insight+'<div class="controls" style="margin-top:18px"><button type="button" class="soft" data-view="sharp">📈 Open Sharp +EV Audit →</button></div>';
  }
  function showSharp(d){
   const review=d.sharpReview;
