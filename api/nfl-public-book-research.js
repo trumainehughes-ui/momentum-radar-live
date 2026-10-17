@@ -69,6 +69,11 @@ export default async function handler(req,res){
    'NO_MATCHING_VETTED_PUBLIC_PROPS';
   report.excludedUnmatchedPublicRows=Math.max(0,observed-report.offers.length);
   report.playerIdentityScreened=rosterEvidenceReady;
+  report.coverage={scope:'SELECTED_GAME',gameId,observedRows:observed,
+   vettedRows:report.offers.length,excludedRows:report.excludedUnmatchedPublicRows,
+   categories:[...new Set(report.offers.map(x=>x.category))].sort(),
+   booksWithVettedRows:[...new Set(report.offers.map(x=>x.book))].sort(),
+   completeSportsbookMarketCoverage:false,combinedSgpQuoteVerified:false};
   res.setHeader('X-Momentum-Public-Market-Source',report.status);
   return res.status(200).json({...report,gameId,checkedAt:new Date().toISOString()});
  }catch{
