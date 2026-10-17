@@ -315,7 +315,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    esc(b.book)+': '+(b.observedOffers>0?
     esc(b.observedOffers)+' published offers observed':
     'current game prices could not be read')).join(' • ');
-  const cards=offers.map(x=>'<div class="player"><div class="tiny">DraftKings Network · '+
+  const cards=offers.map(x=>'<div class="player"><div class="tiny">'+esc(x.book||'Public sportsbook')+' · '+
     esc(labels[x.category]||x.category)+'</div><b>'+esc(x.player)+'</b>'+
     '<div class="stat">'+(Number(x.odds)>0?'+':'')+esc(x.odds)+'</div>'+
     '<div class="small">'+esc(x.market)+' · '+esc(fmtStamp(x.observedAt))+'</div></div>').join('');
