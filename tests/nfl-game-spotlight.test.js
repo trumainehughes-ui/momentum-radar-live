@@ -68,7 +68,7 @@ test('public NFL matchup list shows readable highlighted game card and never lab
   teamLine:x=>'<div>'+x.abbr+'</div>',statusLabel:()=> 'Pregame',
   $:key=>key==='#games'?box:key==='#game-section'?panel:
   key==='#game-panel-home'?{appendChild(){}}:null};
- vm.runInNewContext(script.slice(a,b),context);
+ vm.runInNewContext(script.slice(a,b)+';renderGames();',context);
  assert.equal((box.innerHTML.match(/class="game-spotlight"/g)||[]).length,4);
  assert.equal((box.innerHTML.match(/game-spotlight-star/g)||[]).length,4);
  assert.ok(box.innerHTML.includes('⭐ High-scoring watch'));
@@ -86,7 +86,7 @@ test('not-yet-source-backed NBA matchups never inherit NFL scoring stars',()=>{
  const context={state,esc:x=>String(x??''),fmtTime:()=> 'Tue 5:30 PM',
   teamLine:x=>'<div>'+x.abbr+'</div>',statusLabel:()=> 'Pregame',
   $:key=>key==='#games'?box:key==='#game-section'?panel:key==='#game-panel-home'?{appendChild(){}}:null};
- vm.runInNewContext(script.slice(a,b),context);
+ vm.runInNewContext(script.slice(a,b)+';renderGames();',context);
  assert.ok(!box.innerHTML.includes('High-scoring watch'));
 });
 test('source labeling reaches schedule API, AI policy and AI matchup analysis',()=>{
