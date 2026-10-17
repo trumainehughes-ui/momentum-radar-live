@@ -71,6 +71,13 @@ h2{font-size:26px;letter-spacing:-.035em;margin:0 0 5px}h3{font-size:18px;letter
 .details-top .matchup{font-size:24px;font-weight:900;letter-spacing:-.035em;margin:5px 0}.fresh{font-size:12px;color:var(--muted)}
 .market-tabs{display:flex;gap:7px;flex-wrap:wrap;margin:20px 0 17px}.market-tabs .chip{font-size:12px;border-radius:10px;padding:9px 13px}
 /* Readable public SGP slips: only player, prop type and target. */
+.nba-picks-list{display:grid;gap:12px;margin-top:14px}
+.nba-pick{background:#112936;border:1px solid #305462;border-radius:13px;padding:14px}
+.nba-pick-player{font-size:16px;font-weight:800;color:#f0f9fb}
+.nba-pick-line{display:flex;justify-content:space-between;gap:12px;color:#bfd2dc;margin-top:8px;font-size:13px;align-items:center}
+.nba-pick-line strong{color:#8cecc0;font-size:17px;white-space:nowrap}
+.nba-sgp-card{margin-top:13px}
+.nba-status-line{font-size:12px;color:#a7bec9;line-height:1.55;margin-top:14px}
 .sgp-slip-intro{margin:0 0 13px;color:#c5d9e2;font-size:13px;line-height:1.5}
 .sgp-slips{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:13px;margin:0 0 16px}
 .sgp-slip{min-width:0;background:#102733;border:1px solid #345463;border-radius:15px;overflow:hidden}
@@ -147,6 +154,21 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  <p id="nfl-module-message" class="nfl-module-message" aria-live="polite">Select a matchup below to open its overview and game analytics.</p>
  <div id="nfl-module-content" class="nfl-module-content"></div>
 </section>
+<section id="nba-module-panel" class="nfl-module-panel" aria-label="NBA public analysis navigation" hidden>
+ <div class="nfl-module-heading"><span class="nfl-module-icon" aria-hidden="true">🏀</span><div><h2>NBA</h2><p>Game-by-game props, injuries and parlay research.</p></div></div>
+ <p class="nfl-module-note">Model data appears after the verified NBA pregame collector completes.</p>
+ <nav id="nba-module-tabs" class="nfl-module-tabs" aria-label="Choose NBA analysis">
+  <button type="button" class="nfl-module-tab active" data-nba-module="overview" aria-pressed="true">📅 Game Day</button>
+  <button type="button" class="nfl-module-tab" data-nba-module="points" aria-pressed="false">Points</button>
+  <button type="button" class="nfl-module-tab" data-nba-module="rebounds" aria-pressed="false">Rebounds</button>
+  <button type="button" class="nfl-module-tab" data-nba-module="assists" aria-pressed="false">Assists</button>
+  <button type="button" class="nfl-module-tab" data-nba-module="threes" aria-pressed="false">3-Pointers</button>
+  <button type="button" class="nfl-module-tab" data-nba-module="pra" aria-pressed="false">PRA</button>
+  <button type="button" class="nfl-module-tab" data-nba-module="sgps" aria-pressed="false">🔗 Same Game Parlays</button>
+  <button type="button" class="nfl-module-tab" data-nba-module="injuries" aria-pressed="false">Injuries</button>
+ </nav>
+ <p id="nba-module-message" class="nfl-module-message">Select any NBA game below to see player props, injuries and available Small / Medium / Nuke model picks.</p>
+</section>
 <div id="game-day-board"><p id="date-caption" class="sub" style="margin:16px 0 11px" aria-live="polite">Loading scheduled games…</p><div id="games" class="game-grid"><div class="empty loading grid-span">Loading matchups…</div></div><div id="game-panel-home" hidden></div></div></section>
 <section class="section" id="game-section" hidden><div class="panel"><div class="details-top"><div><div class="eyebrow">Matchup breakdown</div><div id="match-title" class="matchup">Select a game</div><p id="match-subtitle" class="sub">Model forecasts are screened before appearing here.</p></div><div id="freshness" class="fresh"></div></div><div id="match-content"><div class="empty" style="margin-top:18px">Choose a matchup above to view the player outlook and parlay tiers.</div></div><section id="public-weather-impact" class="panel" aria-label="NFL Weather Impact" style="margin-top:14px"><h3>🌦 Kickoff Weather</h3><div id="public-weather-content" class="sub">Open a matchup to see its kickoff forecast.</div></section></div></section>
 <section class="section" id="rankings-section"><div class="section-head"><div><h2>Players to watch</h2><p class="sub">Ranked model projections from games on the selected NFL slate. Friday's scheduled Sunday-slate primer prepares roster/injury-screened Anytime TD scorer estimates for every scheduled matchup. The existing 30-hour and final pregame refreshes then update them; model TD estimates are not verified sportsbook odds.</p></div></div><div class="market-tabs" id="rank-tabs"><button type="button" class="chip active" data-rank="td">Anytime TD</button><button type="button" class="chip" data-rank="passing">Passing</button><button type="button" class="chip" data-rank="rushing">Rushing</button><button type="button" class="chip" data-rank="receiving">Receiving</button><button type="button" class="chip" data-rank="receptions">Receptions</button></div><div class="players-grid" id="rankings"><div class="empty grid-span">Waiting for today's saved rankings…</div></div></section>
@@ -159,7 +181,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  'use strict';
  const $=s=>document.querySelector(s);
  const labels={td:'Anytime TD',passing:'Passing yards',rushing:'Rushing yards',receiving:'Receiving yards',receptions:'Receptions'};
- const state={league:'nfl',module:'games',date:'',games:[],selected:'',rank:'td',rankings:null,loading:0,rankLoading:0,selectedData:null,detailTab:'overview',propTab:'passing',aiData:null,aiLoading:false,liveData:null,liveLoading:false,publicBookResearch:null,publicBookLoading:false,weatherData:null,weatherLoading:false};
+ const state={league:'nfl',module:'games',nbaTab:'overview',nbaData:null,nbaBookResearch:null,nbaBookLoading:false,date:'',games:[],selected:'',rank:'td',rankings:null,loading:0,rankLoading:0,selectedData:null,detailTab:'overview',propTab:'passing',aiData:null,aiLoading:false,liveData:null,liveLoading:false,publicBookResearch:null,publicBookLoading:false,weatherData:null,weatherLoading:false};
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const fmtTime=v=>{const n=Date.parse(v||'');return Number.isFinite(n)?new Intl.DateTimeFormat(undefined,{weekday:'short',hour:'numeric',minute:'2-digit'}).format(new Date(n)):'Time TBD'};
  const fmtStamp=v=>{const n=Date.parse(v||'');return Number.isFinite(n)?'Updated '+new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(n)):'Awaiting updates'};
@@ -204,6 +226,11 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   const nfl=state.league==='nfl',module=allowedModules.has(state.module)?state.module:'games';
   const ranking=nfl&&rankedModules.has(module);
   $('#nfl-module-panel').hidden=!nfl;
+  $('#nba-module-panel').hidden=nfl;
+  document.querySelectorAll('[data-nba-module]').forEach(b=>{
+   const active=!nfl&&b.dataset.nbaModule===state.nbaTab;
+   b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));
+  });
   $('#game-day-board').hidden=nfl&&!gameModules.has(module);
   $('#rankings-section').hidden=!ranking;
   $('#extra-section').hidden=!(nfl&&module==='best');
@@ -573,6 +600,133 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     if(state.detailTab==='live'){if(state.selectedData)renderGame(state.selectedData);
      else $('#match-content').innerHTML=showLive({});}}}
  }
+ // NBA uses the same single expandable matchup surface, with NBA-specific
+ // player stats and model-only SGPs. No NFL-style TD/yardage labels are reused.
+ const nbaNames={points:'Points',rebounds:'Rebounds',assists:'Assists',
+  threes:'Made 3-pointers',pra:'Points + Rebounds + Assists'};
+ const nbaViews=[['overview','Overview'],['points','Points'],['rebounds','Rebounds'],
+  ['assists','Assists'],['threes','3-Pointers'],['pra','PRA'],
+  ['sgps','SGPs'],['injuries','Injuries']];
+ function nbaCandidates(d,cat){
+  const seen=new Set(),xs=[];
+  for(const tier of Array.isArray(d?.sgps)?d.sgps:[]){
+   if(tier.status!=='MODEL_CANDIDATE'||!Array.isArray(tier.legs))continue;
+   for(const leg of tier.legs){
+    if(cat&&leg.category!==cat)continue;
+    if(!nbaNames[leg.category]||!leg.name||!Number.isFinite(Number(leg.threshold))||
+     leg.starterStatus==='OUT'||leg.starterStatus==='INACTIVE')continue;
+    const key=String(leg.playerId||leg.name)+'|'+leg.category+'|'+leg.threshold;
+    if(seen.has(key))continue;seen.add(key);xs.push(leg);
+   }
+  }
+  return xs.slice(0,80);
+ }
+ function nbaObservedPrice(leg){
+  const norm=v=>String(v||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const offers=Array.isArray(state.nbaBookResearch?.offers)?state.nbaBookResearch.offers:[];
+  const threshold=Number(leg.threshold);
+  return offers.find(o=>norm(o.player)===norm(leg.name)&&o.category===leg.category&&
+   o.verification==='PUBLIC_PAGE_OBSERVATION_ONLY'&&o.book==='DraftKings'&&
+   ((o.side==='AT_LEAST'&&Number(o.line)===threshold)||
+    (o.side==='OVER'&&Number(o.line)===threshold-0.5)))||null;
+ }
+ function nbaLegRow(leg){
+  const cat=nbaNames[leg.category]||'Player stat',num=Number(leg.threshold);
+  const value=Number.isFinite(num)&&num>0?num+'+':'Target pending';
+  const offer=nbaObservedPrice(leg);
+  const odds=offer?'<div class="market-observed">DraftKings Network '+
+   (Number(offer.odds)>0?'+':'')+esc(offer.odds)+
+   '<small>Public price observed '+esc(fmtStamp(offer.observedAt).replace(/^Updated /,''))+
+   ' · Can change</small></div>':'';
+  return '<div class="nba-pick"><div class="nba-pick-player">'+esc(leg.name)+'</div>'+
+   '<div class="nba-pick-line"><span>'+esc(cat)+'</span><strong>'+esc(value)+'</strong></div>'+
+   odds+'</div>';
+ }
+ function nbaModelBody(d){
+  const legs=nbaCandidates(d);
+  const nbaReadiness=d.pregameReadiness||{};
+  const pregame= d.status==='SCHEDULED';
+  if(!pregame){
+   const xs=Array.isArray(d.players)?d.players:[];
+   return '<h3>Game statistics</h3>'+
+    '<p class="sub">Completed box-score statistics are actual game results, not pregame picks.</p>'+
+    (xs.length?'<div class="nba-picks-list">'+xs.slice(0,30).map(p=>
+      '<div class="nba-pick"><b>'+esc(p.name)+'</b><div class="nba-pick-line">'+
+      esc(p.team)+' · Points '+esc(p.points??'—')+' · Rebounds '+esc(p.rebounds??'—')+
+      ' · Assists '+esc(p.assists??'—')+'</div></div>').join('')+'</div>':
+     noData('Box score is not ready','Try again as game results are recorded.'));
+  }
+  if(!legs.length){
+   return '<h3>NBA player selections</h3>'+
+    noData('Pregame models are being prepared',
+     nbaReadiness.reason||'The scheduled game has no current injury-screened model picks yet.');
+  }
+  const label=nbaReadiness.sampleSource==='PRIOR_SEASON'?
+   'Last-season baseline · Current rotations may differ':'Model research · Exact sportsbook markets require confirmation';
+  return '<h3>NBA player selections</h3><p class="sub">'+esc(label)+'</p>'+
+   '<div class="nba-picks-list">'+legs.slice(0,18).map(nbaLegRow).join('')+'</div>';
+ }
+ function nbaSgpBody(d){
+  const cards=(Array.isArray(d.sgps)?d.sgps:[]);
+  const html=['Small','Medium','Nuke'].map(name=>{
+   const c=cards.find(x=>x.risk===name);
+   if(!c||c.status!=='MODEL_CANDIDATE'||!Array.isArray(c.legs)||!c.legs.length)
+    return '<section class="sgp-slip nba-sgp-card"><div class="sgp-slip-head"><strong>'+
+     name+'</strong><span>Awaiting selections</span></div>'+
+     '<p class="sub" style="padding:14px">'+esc(c?.reason||d.pregameReadiness?.reason||
+      'No game-eligible model legs yet.')+'</p></section>';
+   return '<section class="sgp-slip nba-sgp-card"><div class="sgp-slip-head"><strong>'+
+    name+'</strong><span>'+esc(c.legs.length)+' legs</span></div>'+
+    '<div class="nba-picks-list" style="padding:12px">'+c.legs.map(nbaLegRow).join('')+
+    '</div></section>';
+  }).join('');
+  return '<h3>NBA Same Game Parlays</h3>'+
+   '<p class="sub">Player · NBA stat · target. These are model candidates, not sportsbook-issued SGPs.</p>'+
+   '<div class="sgp-slips">'+html+'</div>'+
+   '<p class="nba-status-line">Combined DraftKings/FanDuel SGP prices are not confirmed. Confirm exact legs and active lineups before betting.</p>';
+ }
+ function renderNbaGame(d){
+  const views=nbaViews,tabs='<div class="market-tabs details-tabs">'+
+   views.map(([key,label])=>'<button type="button" class="chip '+
+    (state.nbaTab===key?'active':'')+'" data-nba-view="'+key+'">'+esc(label)+'</button>').join('')+'</div>';
+  let body='';
+  if(state.nbaTab==='overview')body=nbaModelBody(d);
+  else if(nbaNames[state.nbaTab]){
+   const xs=nbaCandidates(d,state.nbaTab);
+   body='<h3>'+esc(nbaNames[state.nbaTab])+'</h3>'+
+    (xs.length?'<div class="nba-picks-list">'+xs.map(nbaLegRow).join('')+'</div>':
+     noData('No eligible '+nbaNames[state.nbaTab]+' model selections',
+      'The game collector has not published a current player projection for this category.'));
+  }else if(state.nbaTab==='sgps')body=nbaSgpBody(d);
+  else if(state.nbaTab==='injuries'){
+   const xs=(Array.isArray(d.injuries)?d.injuries:[]).slice(0,30);
+   body='<h3>NBA Injury Report</h3>'+
+    '<p class="sub">ESPN reported injuries, not an official starting-five confirmation.</p>'+
+    (xs.length?'<div class="nba-picks-list">'+xs.map(p=>
+     '<div class="nba-pick"><b>'+esc(p.name)+'</b><div class="small">'+
+      esc(p.team)+' · '+esc(p.status||'Status pending')+
+      (p.detail?' · '+esc(p.detail):'')+'</div></div>').join('')+'</div>':
+     noData('No reported injuries','This does not confirm every player is active.'));
+  }
+  $('#match-content').innerHTML=tabs+'<div class="detail-body">'+body+'</div>';
+ }
+ async function loadNbaPublicBook(date,gameId){
+  const key=String(gameId);
+  if(state.nbaBookLoading)return;
+  state.nbaBookLoading=true;
+  try{
+   const report=await getJson('/api/nba-public-book-research?'+new URLSearchParams({date,gameId:key}));
+   if(state.league==='nba'&&state.date===date&&String(state.selected)===key)
+    state.nbaBookResearch=report;
+  }catch{
+   if(state.league==='nba'&&state.date===date&&String(state.selected)===key)
+    state.nbaBookResearch={offers:[],status:'SOURCE_UNAVAILABLE'};
+  }finally{
+   if(state.league==='nba'&&state.date===date&&String(state.selected)===key){
+    state.nbaBookLoading=false;if(state.nbaData)renderNbaGame(state.nbaData);
+   }
+  }
+ }
  function renderGame(d){
   if(!d||!['CURRENT','LAST_SAVED'].includes(d.status)){$('#match-content').innerHTML='<div style="margin-top:18px">'+
    noData('Prediction update pending',d?.message||'Predictions are not ready for this matchup.')+'</div>';return}
@@ -607,21 +761,34 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   // A second tap collapses. Selecting another moves the same analytics panel.
   if(String(state.selected)===String(id)){
    ++state.loading;state.selected='';state.selectedData=null;state.aiData=null;
-   state.liveData=null;state.weatherData=null;state.weatherLoading=false;state.detailTab='overview';renderGames();renderWeather();return;
+   state.liveData=null;state.nbaData=null;state.nbaBookResearch=null;state.nbaBookLoading=false;state.weatherData=null;state.weatherLoading=false;state.detailTab='overview';renderGames();renderWeather();return;
   }
   const token=++state.loading;
   state.selected=String(id);state.selectedData=null;state.aiData=null;
-  state.liveData=null;state.publicBookResearch=null;state.publicBookLoading=false;state.weatherData=null;state.weatherLoading=false;state.detailTab=state.module==='sgps'?'sgps':state.module==='live'?'live':'overview';renderGames();
+  state.liveData=null;state.nbaData=null;state.nbaBookResearch=null;state.nbaBookLoading=false;state.publicBookResearch=null;state.publicBookLoading=false;state.weatherData=null;state.weatherLoading=false;state.detailTab=state.module==='sgps'?'sgps':state.module==='live'?'live':'overview';renderGames();
   if(scroll&&typeof requestAnimationFrame==='function')
    requestAnimationFrame(()=>{
     if(token===state.loading)
      $('#game-inline-slot')?.scrollIntoView?.({behavior:'smooth',block:'start'});
    });
+ $('#public-weather-impact').hidden=state.league==='nba';
  if(state.league==='nfl')loadPublicWeather(state.date,String(id));
  $('#match-title').textContent=(g.away?.name||'Away')+' @ '+(g.home?.name||'Home');
  $('#match-subtitle').textContent=fmtTime(g.kickoff)+' • '+statusLabel(g)+' • Predictions are estimates';
  $('#freshness').textContent='';$('#match-content').innerHTML='<div class="empty loading" style="margin-top:18px">Loading saved predictions…</div>';
- if(state.league==='nba'){$('#match-content').innerHTML='<div class="empty" style="margin-top:18px"><strong>NBA matchup preview</strong><div>Schedule and scores are available. Screened public player and parlay picks will appear here when NBA prediction snapshots are enabled.</div></div>';return}
+ if(state.league==='nba'){
+  $('#match-content').innerHTML='<div class="empty loading">Loading NBA game data…</div>';
+  try{
+   const report=await getJson('/api/nba-game?'+new URLSearchParams({gameId:String(id)}));
+   if(token!==state.loading||state.league!=='nba')return;
+   state.nbaData=report;$('#freshness').textContent=fmtStamp(
+    report.pregameReadiness?.checkedAt||report.fetchedAt);
+   renderNbaGame(report);loadNbaPublicBook(state.date,String(id));
+  }catch{if(token===state.loading)
+   $('#match-content').innerHTML=noData('NBA analysis temporarily unavailable',
+     'No unverified player data will be shown. Please refresh to retry.');}
+  return;
+ }
  if(g.status==='FINAL'||g.status==='LIVE'){
    if(state.detailTab==='live'){$('#match-content').innerHTML=showLive({});loadPublicLive(String(id));}
    else $('#match-content').innerHTML='<div class="empty" style="margin-top:18px">This game is '+esc(statusLabel(g).toLowerCase())+'. Pregame predictions are not presented as live betting lines.</div>';
@@ -662,7 +829,7 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
  async function loadRanks(){const token=++state.rankLoading;state.rankings=null;$('#rankings').innerHTML='<div class="empty loading grid-span">Loading rankings…</div>';
  if(state.league!=='nfl')return;
  try{const d=await getJson('/api/public-nfl-rankings?'+new URLSearchParams({date:state.date}));if(token!==state.rankLoading)return;state.rankings=d;renderRanks();renderExtras()}catch{if(token===state.rankLoading)$('#rankings').innerHTML=noData('Rankings unavailable','Check again after the next saved update.')}}
- async function loadSlate(upcoming){++state.loading;++state.rankLoading;state.selected='';state.selectedData=null;state.aiData=null;state.liveData=null;state.publicBookResearch=null;state.publicBookLoading=false;state.weatherData=null;state.weatherLoading=false;state.games=[];renderGames();renderWeather();$('#games').innerHTML='<div class="empty loading grid-span">Loading scheduled matchups…</div>';
+ async function loadSlate(upcoming){++state.loading;++state.rankLoading;state.selected='';state.selectedData=null;state.aiData=null;state.liveData=null;state.publicBookResearch=null;state.publicBookLoading=false;state.nbaData=null;state.nbaBookResearch=null;state.nbaBookLoading=false;state.weatherData=null;state.weatherLoading=false;state.games=[];renderGames();renderWeather();$('#games').innerHTML='<div class="empty loading grid-span">Loading scheduled matchups…</div>';
  $('#match-title').textContent='Select a game';$('#match-content').innerHTML='<div class="empty" style="margin-top:18px">Choose a matchup to explore the picks.</div>';renderNflModule();
  const base=state.league==='nfl'?'/api/nfl-schedule':'/api/nba-slate';
  const q=(!upcoming&&state.date)?'?'+new URLSearchParams({date:state.date}):'';
@@ -673,6 +840,10 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
  }catch{$('#date-caption').textContent='Unable to retrieve game schedule';$('#games').innerHTML=noData('Schedule temporarily unavailable','Refresh or try another date.')}}
  $('#games').addEventListener('click',e=>{const b=e.target.closest('[data-game]');if(b)openGame(b.dataset.game)});
  $('#match-content').addEventListener('click',e=>{
+  const nba=e.target.closest('[data-nba-view]');
+  if(nba&&state.league==='nba'&&state.nbaData){
+   state.nbaTab=nba.dataset.nbaView;renderNflModule();renderNbaGame(state.nbaData);return;
+  }
   const b=e.target.closest('[data-view]'),p=e.target.closest('[data-prop]');
   if(p&&state.selectedData){state.propTab=p.dataset.prop;renderGame(state.selectedData);return}
   if(e.target.closest('[data-refresh-live]')&&state.selected)return loadPublicLive(state.selected);
@@ -688,15 +859,21 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
  $('#leagues').addEventListener('click',e=>{
   const b=e.target.closest('[data-league]');if(!b)return;
   if(state.league===b.dataset.league){
-   if(state.league==='nfl')$('#nfl-module-panel')?.scrollIntoView?.({behavior:'smooth',block:'start'});
+   (state.league==='nfl'?$('#nfl-module-panel'):$('#nba-module-panel'))?.scrollIntoView?.({behavior:'smooth',block:'start'});
    return;
   }
-  state.league=b.dataset.league;state.module='games';
+  state.league=b.dataset.league;state.module='games';state.nbaTab='overview';
   document.querySelectorAll('[data-league]').forEach(el=>el.classList.toggle('active',el===b));
   state.date='';$('#day').value='';loadSlate(true);
  });
  $('#nfl-module-tabs').addEventListener('click',e=>{
   const b=e.target.closest('[data-nfl-module]');if(b)activateNflModule(b.dataset.nflModule);
+ });
+ $('#nba-module-tabs').addEventListener('click',e=>{
+  const b=e.target.closest('[data-nba-module]');
+  if(!b||state.league!=='nba')return;
+  state.nbaTab=b.dataset.nbaModule;renderNflModule();
+  if(state.nbaData)renderNbaGame(state.nbaData);
  });
  $('#rank-tabs').addEventListener('click',e=>{const b=e.target.closest('[data-rank]');if(b)activateNflModule(b.dataset.rank)});
  $('#day').addEventListener('change',()=>{state.date=$('#day').value;if(state.date)loadSlate(false)});
@@ -705,8 +882,21 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
  async function refreshReadOnlyPredictions(){
   // Public polls read saved snapshots only. No calls to the market builder,
   // Groq inference or privileged collector/write routes.
-  if(document.hidden||state.league!=='nfl'||!state.date)return;
+  if(document.hidden||!state.date)return;
   const date=state.date,id=state.selected;
+  if(state.league==='nba'){
+   if(!id)return;
+   try{
+    const d=await getJson('/api/nba-game?'+new URLSearchParams({gameId:id}));
+    if(state.league==='nba'&&state.date===date&&String(state.selected)===String(id)){
+     state.nbaData=d;$('#freshness').textContent=fmtStamp(
+      d.pregameReadiness?.checkedAt||d.fetchedAt);renderNbaGame(d);
+    }
+   }catch{/* Keep previously displayed NBA game data. */}
+   if(!state.nbaBookLoading)loadNbaPublicBook(date,id);
+   return;
+  }
+  if(state.league!=='nfl')return;
   if(id){
    try{const d=await getJson('/api/public-nfl-game?'+new URLSearchParams({date,gameId:id}));
     if(state.league==='nfl'&&state.date===date&&String(state.selected)===String(id)){

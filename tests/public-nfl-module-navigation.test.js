@@ -14,6 +14,7 @@ function fixture(){
  const src=script.slice(from,to);
  const elements={
   '#nfl-module-panel':{hidden:false},
+  '#nba-module-panel':{hidden:true},
   '#game-day-board':{hidden:false},
   '#rankings-section':{hidden:true},
   '#extra-section':{hidden:true},
@@ -38,7 +39,7 @@ function fixture(){
   labels:{td:'Anytime TD',passing:'Passing yards',rushing:'Rushing yards',
    receiving:'Receiving yards',receptions:'Receptions'},
   $:key=>elements[key],
-  document:{querySelectorAll:()=>tabs},
+  document:{querySelectorAll:sel=>sel==='[data-nba-module]'?[]:tabs},
   renderRanks:()=>{calls.ranks++},
   renderExtras:()=>{calls.best++},
   renderGame:()=>{calls.game++},
