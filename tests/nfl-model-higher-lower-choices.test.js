@@ -119,3 +119,28 @@ test('both views show model predictions BEFORE empty sportsbook cards and allow 
  assert.ok(boot.includes('installNflModelChoiceInteractions(document)'));
  assert.ok(boot.includes('buildNflModelChoiceBoard'));
 });
+
+test('higher/lower controls adjust the comparison without introducing a sportsbook bet',()=>{
+ const handlers={};
+ const root={addEventListener(type,fn){handlers[type]=fn}};
+ installNflModelChoiceInteractions(root);
+ const targetText={textContent:'115'},outcome={textContent:''};
+ const yes={dataset:{mrDirection:'higher'},attributes:{},setAttribute(k,v){this.attributes[k]=v}};
+ const no={dataset:{mrDirection:'lower'},attributes:{},setAttribute(k,v){this.attributes[k]=v}};
+ const card={dataset:{mrStep:'5',mrProjection:'115',mrTarget:'115',mrUnit:'yards'},
+  querySelector(q){return q==='[data-mr-target-label]'?targetText:outcome},
+  querySelectorAll(){return [yes,no]}};
+ const plus={dataset:{mrAdjust:'1'},closest(q){return q==='.mr-projection-choice'?card:{}},
+  hasAttribute(k){return k==='data-mr-adjust'}};
+ const higher={dataset:{mrDirection:'higher'},closest(q){return q==='.mr-projection-choice'?card:{}},
+  hasAttribute(){return false}};
+ handlers.click({target:plus});
+ assert.equal(targetText.textContent,'120');
+ assert.equal(card.dataset.mrTarget,'120');
+ handlers.click({target:higher});
+ assert.equal(yes.attributes['aria-pressed'],'true');
+ assert.equal(no.attributes['aria-pressed'],'false');
+ assert.match(outcome.textContent,/HIGHER than 120 yards/);
+ assert.match(outcome.textContent,/5 yards above the AI forecast/);
+ assert.match(outcome.textContent,/Personal comparison only/);
+});
