@@ -38,8 +38,8 @@ test('market primer requires signed token and does not use paid sportsbook APIs'
  const handler=readFileSync(new URL('../api/nfl-sunday-td-prime.js',import.meta.url),'utf8');
  assert.ok(market.includes("String(req.query?.modelOnly||'')==='1'"));
  assert.ok(market.includes("String(req.headers?.authorization||'')==='Bearer '+process.env.CRON_SECRET"));
- assert.ok(market.includes("if(!modelOnlyPrimer)try{"));
- assert.ok(market.includes("sgoFlag!=='false'&&!modelOnlyPrimer"));
+ assert.ok(market.includes("if(!modelOnlyPrimer&&!DIRECT_PUBLIC_ODDS_ONLY)try{"));
+ assert.ok(market.includes("sgoFlag!=='false'&&!modelOnlyPrimer&&!DIRECT_PUBLIC_ODDS_ONLY"));
  assert.ok(handler.includes("modelOnly=1"));
  assert.ok(handler.includes("!authorized(req,process.env.CRON_SECRET)"));
  assert.ok(handler.includes("process.env.VERCEL_ENV!=='production'"));
