@@ -364,7 +364,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   if(!offer)return '';
   const odds=Number(offer.odds);
   return '<div class="market-observed">DraftKings Network '+(odds>0?'+':'')+esc(odds)+
-   '<small>Public listing · '+esc(fmtStamp(offer.observedAt))+
+   '<small>Public listing · '+esc(fmtStamp(offer.observedAt).replace(/^Updated /,'Observed '))+
    ' · Price may change</small></div>';
  }
  function renderWeather(){
