@@ -133,7 +133,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  'use strict';
  const $=s=>document.querySelector(s);
  const labels={td:'Anytime TD',passing:'Passing yards',rushing:'Rushing yards',receiving:'Receiving yards',receptions:'Receptions'};
- const state={league:'nfl',date:'',games:[],selected:'',rank:'td',rankings:null,loading:0,rankLoading:0,selectedData:null,detailTab:'overview',propTab:'passing',aiData:null,aiLoading:false,liveData:null,liveLoading:false,extra:'best',historyData:null};
+ const state={league:'nfl',module:'games',date:'',games:[],selected:'',rank:'td',rankings:null,loading:0,rankLoading:0,selectedData:null,detailTab:'overview',propTab:'passing',aiData:null,aiLoading:false,liveData:null,liveLoading:false};
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const fmtTime=v=>{const n=Date.parse(v||'');return Number.isFinite(n)?new Intl.DateTimeFormat(undefined,{weekday:'short',hour:'numeric',minute:'2-digit'}).format(new Date(n)):'Time TBD'};
  const fmtStamp=v=>{const n=Date.parse(v||'');return Number.isFinite(n)?'Updated '+new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(n)):'Awaiting updates'};
@@ -169,6 +169,45 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   }
   const slot=$('#game-inline-slot');
   if(panel){(slot||home).appendChild(panel);panel.hidden=!slot;}
+ }
+ // Public NFL modules mirror production's consumer-facing navigation.
+ const rankedModules=new Set(['td','passing','rushing','receiving','receptions']);
+ const gameModules=new Set(['games','sgps','live']);
+ const allowedModules=new Set([...rankedModules,...gameModules,'best']);
+ function renderNflModule(){
+  const nfl=state.league==='nfl',module=allowedModules.has(state.module)?state.module:'games';
+  const ranking=nfl&&rankedModules.has(module);
+  $('#nfl-module-panel').hidden=!nfl;
+  $('#game-day-board').hidden=nfl&&!gameModules.has(module);
+  $('#rankings-section').hidden=!ranking;
+  $('#extra-section').hidden=!(nfl&&module==='best');
+  document.querySelectorAll('[data-nfl-module]').forEach(b=>{
+   const selected=nfl&&b.dataset.nflModule===module;
+   b.classList.toggle('active',selected);
+   b.setAttribute('aria-pressed',String(selected));
+  });
+  const note=$('#nfl-module-message');
+  note.hidden=!nfl||!gameModules.has(module);
+  if(nfl)note.textContent=module==='sgps'?
+   'Select a matchup below to see its Small, Medium and Nuke SGP research and any verified book quotes.':
+   module==='live'?'Select a matchup below to see its touchdown scoring tracker.':
+   'Select a matchup below to open all of its game analytics.';
+  if(ranking){
+   state.rank=module;
+   $('#rankings-section h2').textContent=
+    module==='td'?'⭐ Sunday Top 10 — Anytime TD Scorers':'NFL Top 10 — '+labels[module];
+   renderRanks();
+  }
+  if(nfl&&module==='best')renderExtras();
+  if(nfl&&state.selectedData&&(module==='sgps'||module==='live')){
+   state.detailTab=module==='sgps'?'sgps':'live';
+   renderGame(state.selectedData);
+   if(module==='live'&&!state.liveData&&!state.liveLoading)loadPublicLive(state.selected);
+  }
+ }
+ function activateNflModule(module){
+  if(state.league!=='nfl'||!allowedModules.has(module))return;
+  state.module=module;renderNflModule();
  }
  const views=[['overview','Overview'],['td','Anytime TD'],['props','Player Props'],['matchup','Matchup Edge'],['injuries','Injuries'],['sgps','SGPs'],['ai','✨ AI Game Analyzer'],['sharp','📈 Sharp +EV Audit'],['live','📊 Live TD Tracker']];
  const rankMetricNames={passYards:'Passing yards',rushYards:'Rushing yards',recYards:'Receiving yards',passTD:'Passing TDs',rushTD:'Rushing TDs',recTD:'Receiving TDs',receptions:'Receptions',targets:'Targets'};
@@ -413,7 +452,9 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   try{const d=await getJson('/api/public-nfl-live?'+new URLSearchParams({gameId}));
    if(String(state.selected)!==String(gameId))return;state.liveData=d;
   }catch{if(String(state.selected)===String(gameId))state.liveData={touchdowns:[]}}
-  finally{if(String(state.selected)===String(gameId)){state.liveLoading=false;if(state.selectedData&&state.detailTab==='live')renderGame(state.selectedData)}}
+  finally{if(String(state.selected)===String(gameId)){state.liveLoading=false;
+    if(state.detailTab==='live'){if(state.selectedData)renderGame(state.selectedData);
+     else $('#match-content').innerHTML=showLive({});}}}
  }
  function renderGame(d){
   if(!d||!['CURRENT','LAST_SAVED'].includes(d.status)){$('#match-content').innerHTML='<div style="margin-top:18px">'+
@@ -453,7 +494,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   }
   const token=++state.loading;
   state.selected=String(id);state.selectedData=null;state.aiData=null;
-  state.liveData=null;state.detailTab='overview';renderGames();
+  state.liveData=null;state.detailTab=state.module==='sgps'?'sgps':state.module==='live'?'live':'overview';renderGames();
   if(scroll&&typeof requestAnimationFrame==='function')
    requestAnimationFrame(()=>{
     if(token===state.loading)
@@ -463,9 +504,13 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  $('#match-subtitle').textContent=fmtTime(g.kickoff)+' • '+statusLabel(g)+' • Predictions are estimates';
  $('#freshness').textContent='';$('#match-content').innerHTML='<div class="empty loading" style="margin-top:18px">Loading saved predictions…</div>';
  if(state.league==='nba'){$('#match-content').innerHTML='<div class="empty" style="margin-top:18px"><strong>NBA matchup preview</strong><div>Schedule and scores are available. Screened public player and parlay picks will appear here when NBA prediction snapshots are enabled.</div></div>';return}
- if(g.status==='FINAL'||g.status==='LIVE'){$('#match-content').innerHTML='<div class="empty" style="margin-top:18px">This game is '+esc(statusLabel(g).toLowerCase())+'. Pregame predictions are not presented as live betting lines.</div>';return}
+ if(g.status==='FINAL'||g.status==='LIVE'){
+   if(state.detailTab==='live'){$('#match-content').innerHTML=showLive({});loadPublicLive(String(id));}
+   else $('#match-content').innerHTML='<div class="empty" style="margin-top:18px">This game is '+esc(statusLabel(g).toLowerCase())+'. Pregame predictions are not presented as live betting lines.</div>';
+   return;
+  }
  try{const d=await getJson('/api/public-nfl-game?'+new URLSearchParams({date:state.date,gameId:String(id)}));if(token!==state.loading)return;
- $('#freshness').textContent=(d.status==='LAST_SAVED'?'Model preview • ':'')+fmtStamp(d.updatedAt);state.selectedData=d;renderGame(d)}
+ $('#freshness').textContent=(d.status==='LAST_SAVED'?'Model preview • ':'')+fmtStamp(d.updatedAt);state.selectedData=d;renderGame(d);if(state.detailTab==='live'&&!state.liveData&&!state.liveLoading)loadPublicLive(String(id))}
  catch{if(token===state.loading)$('#match-content').innerHTML='<div class="empty" style="margin-top:18px">Predictions are temporarily unavailable. Try refreshing shortly.</div>'}}
 function renderExtras(){
  const box=$('#extra-content');if(!box)return;
