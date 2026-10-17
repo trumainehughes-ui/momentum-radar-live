@@ -67,7 +67,9 @@ test('the main matchup UI exposes manual DOM capture without reclassifying it as
  assert.ok(html.includes("validateBookPageUrl(event.data.url,book)"));
  assert.ok(html.includes("localStorage.setItem(CAPTURE_STORAGE_KEY,JSON.stringify(all))"));
  assert.ok(!html.includes('THE_ODDS_API_KEY'));
- assert.ok(!html.includes('CRON_SECRET'));
+ assert.ok(!html.includes('process.env.CRON_SECRET'));
+ assert.ok(html.includes('should never be your CRON_SECRET'));
+ assert.ok(html.includes('publishKey'));
 });
 
 test('mobile screenshot import runs local OCR, never uploads image to an odds API',()=>{
