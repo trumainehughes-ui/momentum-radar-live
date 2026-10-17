@@ -311,6 +311,8 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   if(state.publicBookLoading)return '<p class="sub">Checking publicly published DraftKings and FanDuel odds for this game…</p>';
   if(!d)return '<p class="sub">Public market observations are not loaded.</p>';
   const offers=Array.isArray(d.offers)?d.offers.slice(0,20):[];
+  const signals=Array.isArray(d.participationSignals)?d.participationSignals:[];
+  const signalNote=signals.length?'<p class="sub">Sportsbook participation evidence: '+signals.length+' game-matched player'+(signals.length===1?'':'s')+' with published props. Official injury and lineup reports still determine eligibility.</p>':'';
   const available=new Set(offers.map(x=>x.category));
   const missing=['passing','rushing','receiving','receptions'].filter(cat=>!available.has(cat));
   const coverageNote=missing.length?'<p class="sub">Still needed for diversified SGP construction: '+missing.map(cat=>esc(labels[cat]||cat)).join(', ')+'. These lines have not been observed for this game.</p>':'';
@@ -326,7 +328,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    '<p class="sub">'+summary+'</p>'+
    (cards?'<div class="players-grid" style="margin-top:14px">'+cards+'</div>':
      '<p class="sub">No matching price rows were readable automatically for this game.</p>')+
-   coverageNote+
+   signalNote+coverageNote+
    '<p class="sub">Source: published public listings, not authenticated current sportsbook selections or combined parlay odds. Availability and prices can change.</p>'+
    '<a href="https://dknetwork.draftkings.com/draftkings-sportsbook-player-props/" target="_blank" rel="noopener noreferrer">DraftKings public player props</a></div>';
  }
