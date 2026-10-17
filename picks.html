@@ -595,6 +595,133 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     if(state.detailTab==='live'){if(state.selectedData)renderGame(state.selectedData);
      else $('#match-content').innerHTML=showLive({});}}}
  }
+ // NBA uses the same single expandable matchup surface, with NBA-specific
+ // player stats and model-only SGPs. No NFL-style TD/yardage labels are reused.
+ const nbaNames={points:'Points',rebounds:'Rebounds',assists:'Assists',
+  threes:'Made 3-pointers',pra:'Points + Rebounds + Assists'};
+ const nbaViews=[['overview','Overview'],['points','Points'],['rebounds','Rebounds'],
+  ['assists','Assists'],['threes','3-Pointers'],['pra','PRA'],
+  ['sgps','SGPs'],['injuries','Injuries']];
+ function nbaCandidates(d,cat){
+  const seen=new Set(),xs=[];
+  for(const tier of Array.isArray(d?.sgps)?d.sgps:[]){
+   if(tier.status!=='MODEL_CANDIDATE'||!Array.isArray(tier.legs))continue;
+   for(const leg of tier.legs){
+    if(cat&&leg.category!==cat)continue;
+    if(!nbaNames[leg.category]||!leg.name||!Number.isFinite(Number(leg.threshold))||
+     leg.starterStatus==='OUT'||leg.starterStatus==='INACTIVE')continue;
+    const key=String(leg.playerId||leg.name)+'|'+leg.category+'|'+leg.threshold;
+    if(seen.has(key))continue;seen.add(key);xs.push(leg);
+   }
+  }
+  return xs.slice(0,80);
+ }
+ function nbaObservedPrice(leg){
+  const norm=v=>String(v||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const offers=Array.isArray(state.nbaBookResearch?.offers)?state.nbaBookResearch.offers:[];
+  const threshold=Number(leg.threshold);
+  return offers.find(o=>norm(o.player)===norm(leg.name)&&o.category===leg.category&&
+   o.verification==='PUBLIC_PAGE_OBSERVATION_ONLY'&&o.book==='DraftKings'&&
+   ((o.side==='AT_LEAST'&&Number(o.line)===threshold)||
+    (o.side==='OVER'&&Number(o.line)===threshold-0.5)))||null;
+ }
+ function nbaLegRow(leg){
+  const cat=nbaNames[leg.category]||'Player stat',num=Number(leg.threshold);
+  const value=Number.isFinite(num)&&num>0?num+'+':'Target pending';
+  const offer=nbaObservedPrice(leg);
+  const odds=offer?'<div class="market-observed">DraftKings Network '+
+   (Number(offer.odds)>0?'+':'')+esc(offer.odds)+
+   '<small>Public price observed '+esc(fmtStamp(offer.observedAt).replace(/^Updated /,''))+
+   ' · Can change</small></div>':'';
+  return '<div class="nba-pick"><div class="nba-pick-player">'+esc(leg.name)+'</div>'+
+   '<div class="nba-pick-line"><span>'+esc(cat)+'</span><strong>'+esc(value)+'</strong></div>'+
+   odds+'</div>';
+ }
+ function nbaModelBody(d){
+  const legs=nbaCandidates(d);
+  const nbaReadiness=d.pregameReadiness||{};
+  const pregame= d.status==='SCHEDULED';
+  if(!pregame){
+   const xs=Array.isArray(d.players)?d.players:[];
+   return '<h3>Game statistics</h3>'+
+    '<p class="sub">Completed box-score statistics are actual game results, not pregame picks.</p>'+
+    (xs.length?'<div class="nba-picks-list">'+xs.slice(0,30).map(p=>
+      '<div class="nba-pick"><b>'+esc(p.name)+'</b><div class="nba-pick-line">'+
+      esc(p.team)+' · Points '+esc(p.points??'—')+' · Rebounds '+esc(p.rebounds??'—')+
+      ' · Assists '+esc(p.assists??'—')+'</div></div>').join('')+'</div>':
+     noData('Box score is not ready','Try again as game results are recorded.'));
+  }
+  if(!legs.length){
+   return '<h3>NBA player selections</h3>'+
+    noData('Pregame models are being prepared',
+     nbaReadiness.reason||'The scheduled game has no current injury-screened model picks yet.');
+  }
+  const label=nbaReadiness.sampleSource==='PRIOR_SEASON'?
+   'Last-season baseline · Current rotations may differ':'Model research · Exact sportsbook markets require confirmation';
+  return '<h3>NBA player selections</h3><p class="sub">'+esc(label)+'</p>'+
+   '<div class="nba-picks-list">'+legs.slice(0,18).map(nbaLegRow).join('')+'</div>';
+ }
+ function nbaSgpBody(d){
+  const cards=(Array.isArray(d.sgps)?d.sgps:[]);
+  const html=['Small','Medium','Nuke'].map(name=>{
+   const c=cards.find(x=>x.risk===name);
+   if(!c||c.status!=='MODEL_CANDIDATE'||!Array.isArray(c.legs)||!c.legs.length)
+    return '<section class="sgp-slip nba-sgp-card"><div class="sgp-slip-head"><strong>'+
+     name+'</strong><span>Awaiting selections</span></div>'+
+     '<p class="sub" style="padding:14px">'+esc(c?.reason||d.pregameReadiness?.reason||
+      'No game-eligible model legs yet.')+'</p></section>';
+   return '<section class="sgp-slip nba-sgp-card"><div class="sgp-slip-head"><strong>'+
+    name+'</strong><span>'+esc(c.legs.length)+' legs</span></div>'+
+    '<div class="nba-picks-list" style="padding:12px">'+c.legs.map(nbaLegRow).join('')+
+    '</div></section>';
+  }).join('');
+  return '<h3>NBA Same Game Parlays</h3>'+
+   '<p class="sub">Player · NBA stat · target. These are model candidates, not sportsbook-issued SGPs.</p>'+
+   '<div class="sgp-slips">'+html+'</div>'+
+   '<p class="nba-status-line">Combined DraftKings/FanDuel SGP prices are not confirmed. Confirm exact legs and active lineups before betting.</p>';
+ }
+ function renderNbaGame(d){
+  const views=nbaViews,tabs='<div class="market-tabs details-tabs">'+
+   views.map(([key,label])=>'<button type="button" class="chip '+
+    (state.nbaTab===key?'active':'')+'" data-nba-view="'+key+'">'+esc(label)+'</button>').join('')+'</div>';
+  let body='';
+  if(state.nbaTab==='overview')body=nbaModelBody(d);
+  else if(nbaNames[state.nbaTab]){
+   const xs=nbaCandidates(d,state.nbaTab);
+   body='<h3>'+esc(nbaNames[state.nbaTab])+'</h3>'+
+    (xs.length?'<div class="nba-picks-list">'+xs.map(nbaLegRow).join('')+'</div>':
+     noData('No eligible '+nbaNames[state.nbaTab]+' model selections',
+      'The game collector has not published a current player projection for this category.'));
+  }else if(state.nbaTab==='sgps')body=nbaSgpBody(d);
+  else if(state.nbaTab==='injuries'){
+   const xs=(Array.isArray(d.injuries)?d.injuries:[]).slice(0,30);
+   body='<h3>NBA Injury Report</h3>'+
+    '<p class="sub">ESPN reported injuries, not an official starting-five confirmation.</p>'+
+    (xs.length?'<div class="nba-picks-list">'+xs.map(p=>
+     '<div class="nba-pick"><b>'+esc(p.name)+'</b><div class="small">'+
+      esc(p.team)+' · '+esc(p.status||'Status pending')+
+      (p.detail?' · '+esc(p.detail):'')+'</div></div>').join('')+'</div>':
+     noData('No reported injuries','This does not confirm every player is active.'));
+  }
+  $('#match-content').innerHTML=tabs+'<div class="detail-body">'+body+'</div>';
+ }
+ async function loadNbaPublicBook(date,gameId){
+  const key=String(gameId);
+  if(state.nbaBookLoading)return;
+  state.nbaBookLoading=true;
+  try{
+   const report=await getJson('/api/nba-public-book-research?'+new URLSearchParams({date,gameId:key}));
+   if(state.league==='nba'&&state.date===date&&String(state.selected)===key)
+    state.nbaBookResearch=report;
+  }catch{
+   if(state.league==='nba'&&state.date===date&&String(state.selected)===key)
+    state.nbaBookResearch={offers:[],status:'SOURCE_UNAVAILABLE'};
+  }finally{
+   if(state.league==='nba'&&state.date===date&&String(state.selected)===key){
+    state.nbaBookLoading=false;if(state.nbaData)renderNbaGame(state.nbaData);
+   }
+  }
+ }
  function renderGame(d){
   if(!d||!['CURRENT','LAST_SAVED'].includes(d.status)){$('#match-content').innerHTML='<div style="margin-top:18px">'+
    noData('Prediction update pending',d?.message||'Predictions are not ready for this matchup.')+'</div>';return}
