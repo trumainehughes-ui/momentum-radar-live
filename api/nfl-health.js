@@ -70,11 +70,12 @@ export function historySnap(g,m,prior=null){
    for(const book of ['DraftKings','FanDuel']){
     const offer=row.sportsbooks?.[book]||row.books?.find?.(x=>x.book===book);
     if(!offer?.sourceUrl||!offer?.checkedAt||!offer?.available)continue;
+    if(cat!=='td'&&(offer.line===null||offer.line===undefined||String(offer.line).trim()===''||!Number.isFinite(Number(offer.line))))continue;
     const n=Number(offer.odds);
     if(!Number.isFinite(n)||n===0)continue;
     verifiedIndividualOffers.push({book,sport:'NFL',gameId:g.gameId,
      playerId:String(row.playerID||row.playerId||''),market:cat,
-     line:String(offer.line??row.threshold??(cat==='td'?'yes':'')),
+     line:cat==='td'?'yes':String(offer.line),
      americanOdds:(n>0?'+':'')+String(n),checkedAt:offer.checkedAt,
      sourceUrl:offer.sourceUrl,available:true});
    }
