@@ -27,3 +27,13 @@ test('cached touchdown SGP legs do not require a numeric yardage threshold',()=>
  assert.match(cached,/l\.category==='td'/);
  assert.match(cached,/l\.target!==null&&l\.target!==undefined/);
 });
+
+test('model SGP publication requires checked current roster and injury holds',()=>{
+ const src=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
+ const publish=src.split('const safeTeams=new Set(')[1].split('response.sgps.mode=')[0];
+ assert.match(publish,/eligibility.checked===true/);
+ assert.match(publish,/eligibility.rosterById\?\.get\(id\)/);
+ assert.match(publish,/nflCanonTeam\(roster.team\)===nflCanonTeam\(l.team\)/);
+ assert.match(publish,/!eligibility.blockedIds.has\(id\)/);
+ assert.match(publish,/!eligibility.blockedNames.has\(norm\(l.name\)\)/);
+});
