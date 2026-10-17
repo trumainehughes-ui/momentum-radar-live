@@ -54,7 +54,7 @@ test('project model yardage choices even when no sportsbook market exists',()=>{
  assert.equal(bijan.target,115);
  assert.equal(bijan.step,5);
  assert.equal(bijan.starterStatus,'ROLE_PROJECTION_NOT_CONFIRMED');
- assert.equal(report.bookmakerSgpQuoteVerified,false);
+ assert.equal(report.combinedSgpQuoteVerified,false);
  assert.equal(report.sportsbookOddsVerified,false);
 });
 test('exclude officially OUT, IR, questionable, cross-game, and unconfirmed quarterback',()=>{
