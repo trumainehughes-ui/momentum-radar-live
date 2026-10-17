@@ -448,6 +448,19 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   }
   return tiers;
  }
+ async function loadCurrentNflSgpResearch(date,gameId,token){
+  try{
+   const m=await getJson('/api/nfl-markets?'+new URLSearchParams({date,gameId}));
+   if(token!==state.loading||!state.selectedData||String(state.selected)!==String(gameId))return;
+   const teams=new Set([String(state.selectedData.home).toUpperCase(),String(state.selectedData.away).toUpperCase()]);
+   const cards=Array.isArray(m.sgps?.Analytics)?m.sgps.Analytics:[];
+   state.selectedData.researchParlays=cards.filter(c=>['Small','Medium','Nuke'].includes(c?.risk)&&Array.isArray(c.legs)&&c.legs.length>=3&&c.legs.length<=(c.risk==='Nuke'?10:7)).map(c=>({
+    risk:c.risk,mode:'MODEL_ONLY',researchFromCurrentMarkets:true,researchFallback:true,
+    legs:c.legs.filter(l=>teams.has(String(l.team).toUpperCase())&&l.player&&l.category&&l.target!==undefined&&l.target!==null).map(l=>({player:l.player,team:l.team,category:l.category,target:l.category==='td'?'Anytime TD':String(l.target)+'+'}))
+   })).filter(c=>c.legs.length>=3);
+   renderGame(state.selectedData);
+  }catch{/* Keep saved snapshot and its explicit freshness warning. */}
+ }
  function renderParlays(d){
   const quotes=(d.verifiedQuotes||[]).filter(q=>q&&['DraftKings','FanDuel'].includes(q.book)&&
    ['Small','Medium','Nuke'].includes(q.risk)&&Number.isFinite(Number(q.americanOdds))&&
@@ -460,15 +473,13 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   // A public SGP slip must never combine teams from other matchups or
   // display saved stale selections as if they were actionable game picks.
   const matchupTeams=new Set([String(d.home||'').toUpperCase(),String(d.away||'').toUpperCase()]);
-  const candidateModels=Array.isArray(d.parlays)&&d.parlays.length?d.parlays:buildResearchSgpTiers(d);
+  const candidateModels=Array.isArray(d.researchParlays)&&d.researchParlays.length?d.researchParlays:(Array.isArray(d.parlays)&&d.parlays.length?d.parlays:buildResearchSgpTiers(d));
   const models=candidateModels.filter(c=>{
    if(!['Small','Medium','Nuke'].includes(c?.risk)||
       c.mode!=='MODEL_ONLY'||c.outdated===true||
-      d.status==='LAST_SAVED'||d.updatedDataCurrent===false||
+      (!c.researchFromCurrentMarkets&&(d.status==='LAST_SAVED'||d.updatedDataCurrent===false))||
       !Array.isArray(c.legs))return false;
-   const expected=c.risk==='Small'?4:c.risk==='Medium'?5:null;
-   if(expected!==null&&c.legs.length!==expected)return false;
-   if(c.risk==='Nuke'&&(c.legs.length<5||c.legs.length>7))return false;
+   if(c.legs.length<3||c.legs.length>(c.risk==='Nuke'?10:7))return false;
    const names=new Set();
    return matchupTeams.size===2&&matchupTeams.has(String(d.home||'').toUpperCase())&&
     matchupTeams.has(String(d.away||'').toUpperCase())&&
@@ -965,7 +976,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    return;
   }
  try{const d=await getJson('/api/public-nfl-game?'+new URLSearchParams({date:state.date,gameId:String(id)}));if(token!==state.loading)return;
- $('#freshness').textContent=(d.status==='LAST_SAVED'?'Model preview • ':'')+fmtStamp(d.updatedAt);state.selectedData=d;renderGame(d);if(d.status==='LAST_SAVED')loadNflRecheckStatus(state.date,String(id));if(state.detailTab==='live'&&!state.liveData&&!state.liveLoading)loadPublicLive(String(id));if(state.league==='nfl'&&!state.publicBookLoading)loadPublicBookResearch(state.date,String(id))}
+ $('#freshness').textContent=(d.status==='LAST_SAVED'?'Model preview • ':'')+fmtStamp(d.updatedAt);state.selectedData=d;renderGame(d);loadCurrentNflSgpResearch(state.date,String(id),token);if(d.status==='LAST_SAVED')loadNflRecheckStatus(state.date,String(id));if(state.detailTab==='live'&&!state.liveData&&!state.liveLoading)loadPublicLive(String(id));if(state.league==='nfl'&&!state.publicBookLoading)loadPublicBookResearch(state.date,String(id))}
  catch{if(token===state.loading)$('#match-content').innerHTML='<div class="empty" style="margin-top:18px">Predictions are temporarily unavailable. Try refreshing shortly.</div>'}}
 function renderExtras(){
  const box=$('#extra-content');if(!box)return;
