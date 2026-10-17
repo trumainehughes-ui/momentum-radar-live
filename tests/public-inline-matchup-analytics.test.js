@@ -6,7 +6,7 @@ import vm from 'node:vm';
 const html=readFileSync(new URL('../picks.html',import.meta.url),'utf8');
 const script=html.match(/<script>([\s\S]*?)<\/script>/)?.[1]||'';
 function renderHarness(){
- const start=script.indexOf('function renderGames(){');
+ const start=script.indexOf('function validGameSpotlight(g){');
  const end=script.indexOf('const views=',start);
  assert.ok(start>0&&end>start);
  const src=script.slice(start,end);
