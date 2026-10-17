@@ -12,7 +12,7 @@ function render(analytics,game={gameId:'401872999',
  home:{abbr:'ATL'},away:{abbr:'CHI'}}){
  const snippet=html.slice(start,end);
  const d={sgps:{Analytics:analytics}};
- const context={d,g:game,nflEscape:v=>String(v??'').replace(/[&<>"']/g,'')};
+ const context={d,g:game,nflEscape:v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))};
  return vm.runInNewContext('(function(){'+snippet+'return tiersHtml})()',context);
 }
 const small=[
@@ -27,7 +27,7 @@ const sample=[
 ];
 test('the exact live public NFL market-response schema renders Small Medium and Nuke instead of 0',()=>{
  const page=render(sample);
- for(const name of ['Rome Odunze','Bijan Robinson',"D'Andre Swift",'Drake London','Kyle Pitts'])
+ for(const name of ['Rome Odunze','Bijan Robinson','D&#39;Andre Swift','Drake London','Kyle Pitts'])
   assert.ok(page.includes(name),name);
  for(const tier of ['Small','Medium','Nuke'])assert.ok(page.includes(tier+' • Projection candidates'));
  assert.ok(page.includes('3 player projections'));
