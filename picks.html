@@ -443,9 +443,9 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
       '<div class="sgp-leg-selection"><span>'+esc(pick.label)+'</span><strong>'+
        esc(pick.target)+'</strong></div></li>';
     }).join('')+'</ol></section>').join('')+'</div>':
-   '<div class="empty">'+(d.status==='LAST_SAVED'?
-      'No eligible saved SGP tiers were available in the older matchup snapshot.':
-      'No complete model SGP tier was generated for this game yet. Individual public sportsbook prices are separate from combined SGP models.')+
+   '<div class="sgp-auto-check" role="status">'+
+     'SGP selections are being refreshed for this matchup. '+
+     'Current player eligibility and sportsbook pricing are checked separately.'+
      '</div>';
   const intro='<p class="sgp-slip-intro">Player selections for each parlay tier.</p>';
   const verification=ready&&!anyStale?
