@@ -62,7 +62,10 @@ export default async function handler(req,res){
    offers:matched,checkedAt,
    books:[{book:'DraftKings',sourceUrl:NBA_DKN_LISTINGS,status:dkStatus,
     observedOffers:matched.length},{book:'FanDuel',sourceUrl:NBA_FANDUEL_PUBLIC,
-    status:'NO_MACHINE_READABLE_PRICES_CONFIRMED',observedOffers:0}],
+    status:'JAVASCRIPT_RENDERED_STOREFRONT_NOT_PARSED',observedOffers:0}],
+   sourceHealth:{DraftKings:{state:dkStatus,verifiedPropRows:matched.length},
+    FanDuel:{state:'JAVASCRIPT_RENDERED_STOREFRONT_NOT_PARSED',verifiedPropRows:0,
+     requiresMachineReadableMarketFeed:true,noPriceInference:true}},
    verifiedCombinedSgpQuotes:0,
    note:'Public listings are not authenticated current bettable offers. No FanDuel or combined SGP prices have been inferred.'});
  }catch{return res.status(503).json({ok:false,error:'nba_public_market_source_unavailable'});}
