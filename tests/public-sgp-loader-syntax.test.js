@@ -10,6 +10,7 @@ test('public picks inline scripts parse as JavaScript',()=>{
 });
 test('live model candidates are fetched asynchronously and allow adaptive tiers',()=>{
  assert.match(html,/async function loadCurrentNflSgpResearch\(/);
+ assert.doesNotMatch(html,/async\\s+async\\s+function/);
  assert.match(html,/loadCurrentNflSgpResearch\(state\.date,String\(id\),token\)/);
  assert.doesNotMatch(html,/const expected=c\.risk==='Small'\?4/);
 });
