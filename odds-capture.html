@@ -40,6 +40,13 @@ a{color:#78c6ff}table{width:100%;border-collapse:collapse}th,td{padding:7px;bord
 <button id="save" type="button">Match and save exact displayed odds</button><div id="result" role="status"></div></section>
 <section class="card"><h2>3. Review captured markets</h2><div id="saved" class="small"></div>
 <a class="action" href="/" id="back">Return to Momentum Radar</a></section>
+<section class="card" id="publishing"><h2>4. Authorized publication to both Momentum Radar sites</h2>
+<p>Publish the exact saved sportsbook selections for this game so they appear on both the main and public sites, including other devices. Requires the dedicated Momentum Radar publishing key. These are user-observed lines, not independently verified or book-issued SGP prices.</p>
+<label for="publishKey">Dedicated sportsbook-observation publishing key</label>
+<input type="password" id="publishKey" autocomplete="off" placeholder="Enter dedicated publishing key only">
+<p class="small">This key stays in this page's temporary input. It is not saved to local storage and should never be your CRON_SECRET or sportsbook login. Public visitors cannot publish offers.</p>
+<button id="publish" type="button">Publish saved exact lines for this matchup</button>
+<div id="publishStatus" class="small" role="status"></div></section>
 <script type="module">
 import {parseVisibleBookCapture,validateBookPageUrl,currentLocalBookOffers,
  CAPTURE_STORAGE_KEY} from './lib/public-book-text-capture.js';
@@ -161,6 +168,31 @@ $('save').addEventListener('click',()=>{
   $('result').innerHTML='<div class="status">'+d.offers.length+' exact public-market observations saved locally for this game. No lines were inferred. Return to Momentum Radar to review them. The capture expires in 20 minutes and does not confirm a bookmaker SGP price.</div>';
   showSaved();
  }catch(e){$('result').innerHTML='<div class="status">Browser storage unavailable: '+esc(e.message)+'</div>'}
+});
+$('publish').addEventListener('click',async()=>{
+ const game=schedule.find(g=>String(g.gameId)===$('game').value);
+ const book=$('book').value;
+ const token=$('publishKey').value;
+ if(!game||!athletes.length){$('publishStatus').textContent='Choose the scheduled game and load its roster first.';return}
+ if(!token||token.length<24){$('publishStatus').textContent='A separate administrator publishing key is required.';return}
+ const offers=currentLocalBookOffers(storage(),game.gameId).filter(x=>
+  x.book===book&&x.date===$('date').value);
+ if(!offers.length){$('publishStatus').textContent='No fresh exact '+book+' offers saved for this game. Capture them first.';return}
+ $('publish').disabled=true;
+ $('publishStatus').textContent='Checking official game identity and publishing exact observed lines…';
+ try{
+  const response=await fetch('/api/nfl-published-book-observations',{
+   method:'POST',cache:'no-store',
+   headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+   body:JSON.stringify({date:$('date').value,gameId:game.gameId,book,offers})
+  });
+  const data=await response.json().catch(()=>({error:'unexpected_server_response'}));
+  $('publishStatus').textContent=response.ok&&data.ok?
+   data.published+' observed lines published for '+book+
+   '. Visible on both pages, with user-observed provenance and 20-minute expiry. Combined SGP odds remain unconfirmed.':
+   'Publication not completed: '+String(data.error||'HTTP '+response.status);
+ }catch(e){$('publishStatus').textContent='Publication request failed: '+String(e.message||e)}
+ finally{$('publishKey').value='';$('publish').disabled=false}
 });
 load();
 </script></body></html>
