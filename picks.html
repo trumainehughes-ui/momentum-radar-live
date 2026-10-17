@@ -643,6 +643,8 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
   }catch{/* No new dataset is safer than clearing an already displayed one. */}
   if(state.detailTab==='ai'&&id&&state.selected===id&&!state.aiLoading)
    loadSavedAi(date,id);
+  if(state.detailTab==='sgps'&&id&&state.selected===id&&!state.publicBookLoading)
+   loadPublicBookResearch(date,id);
  }
  // Automatic 5-minute public revalidation never generates new bookmaker or AI calls.
  setInterval(refreshReadOnlyPredictions,5*60*1000);
