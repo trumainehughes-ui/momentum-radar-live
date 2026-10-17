@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {parseDraftKingsNetworkNflProps,publicBookResearchReport,
- DKN_NFL_PROPS_URL} from '../lib/nfl-public-sportsbook-observer.js';
+ DKN_NFL_PROPS_URL,matchPublicOffersToEligibleGamePlayers} from '../lib/nfl-public-sportsbook-observer.js';
 
 const now=Date.parse('2026-10-17T00:50:00Z'),date='2026-10-18';
 const html=(rows)=>'<html><table><thead><tr><th>Event</th><th>Event Date</th>'+
@@ -73,4 +73,22 @@ test('public UI checks only signed scoped game source and retains verified SGP s
  assert.ok(ui.includes("return research+verified+renderPublicBookResearch()"));
  assert.ok(ui.includes('No sportsbook-verified parlays available yet.'));
  assert.ok(ui.includes('not authenticated current sportsbook selections'));
+});
+
+test('game/player identity gate drops other-team prices even when public listing mislabeled the matchup',()=>{
+ const offers=[
+ {book:'DraftKings',player:'Parker Washington',category:'td',odds:155},
+ {book:'DraftKings',player:'Nico Collins',category:'td',odds:160},
+ {book:'DraftKings',player:'Marvin Harrison Jr.',category:'td',odds:450}
+ ];
+ const game={ok:true,status:'CURRENT',date:'2026-10-18',gameId:'401872996',
+  categories:{td:[
+   {name:'Parker Washington',team:'JAX'},
+   {name:'Nico Collins',team:'HOU'},
+   {name:'Marvin Harrison Jr.',team:'ARI'}
+  ]}};
+ assert.deepEqual(matchPublicOffersToEligibleGamePlayers(offers,game,{home:'JAX',away:'HOU'})
+  .map(x=>x.player),['Parker Washington','Nico Collins']);
+ assert.deepEqual(matchPublicOffersToEligibleGamePlayers(offers,
+  {...game,status:'STALE'},{home:'JAX',away:'HOU'}),[]);
 });
