@@ -133,7 +133,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  'use strict';
  const $=s=>document.querySelector(s);
  const labels={td:'Anytime TD',passing:'Passing yards',rushing:'Rushing yards',receiving:'Receiving yards',receptions:'Receptions'};
- const state={league:'nfl',module:'games',date:'',games:[],selected:'',rank:'td',rankings:null,loading:0,rankLoading:0,selectedData:null,detailTab:'overview',propTab:'passing',aiData:null,aiLoading:false,liveData:null,liveLoading:false};
+ const state={league:'nfl',module:'games',date:'',games:[],selected:'',rank:'td',rankings:null,loading:0,rankLoading:0,selectedData:null,detailTab:'overview',propTab:'passing',aiData:null,aiLoading:false,liveData:null,liveLoading:false,publicBookResearch:null,publicBookLoading:false};
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const fmtTime=v=>{const n=Date.parse(v||'');return Number.isFinite(n)?new Intl.DateTimeFormat(undefined,{weekday:'short',hour:'numeric',minute:'2-digit'}).format(new Date(n)):'Time TBD'};
  const fmtStamp=v=>{const n=Date.parse(v||'');return Number.isFinite(n)?'Updated '+new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(n)):'Awaiting updates'};
@@ -203,6 +203,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    state.detailTab=module==='sgps'?'sgps':'live';
    renderGame(state.selectedData);
    if(module==='live'&&!state.liveData&&!state.liveLoading)loadPublicLive(state.selected);
+   if(module==='sgps'&&!state.publicBookResearch&&!state.publicBookLoading)loadPublicBookResearch(state.date,state.selected);
   }
  }
  function activateNflModule(module){
@@ -223,6 +224,45 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    x.hitTarget!=null?x.hitTarget+'+ '+(cat==='receptions'?'receptions':cat+' yards'):
    x.target||labels[cat];
   return 'Estimated hit probability: '+x.hitProbabilityPct+'% • '+target+' (uncalibrated model)';
+ }
+ function renderPublicBookResearch(){
+  const d=state.publicBookResearch;
+  if(state.publicBookLoading)return '<p class="sub">Checking publicly published DraftKings and FanDuel odds for this game…</p>';
+  if(!d)return '<p class="sub">Public market observations are not loaded.</p>';
+  const offers=Array.isArray(d.offers)?d.offers.slice(0,20):[];
+  const summary=(Array.isArray(d.books)?d.books:[]).map(b=>
+   esc(b.book)+': '+(b.observedOffers>0?
+    esc(b.observedOffers)+' published offers observed':
+    'current game prices could not be read')).join(' • ');
+  const cards=offers.map(x=>'<div class="player"><div class="tiny">DraftKings Network · '+
+    esc(labels[x.category]||x.category)+'</div><b>'+esc(x.player)+'</b>'+
+    '<div class="stat">'+(Number(x.odds)>0?'+':'')+esc(x.odds)+'</div>'+
+    '<div class="small">'+esc(x.market)+' · '+esc(fmtStamp(x.observedAt))+'</div></div>').join('');
+  return '<div class="panel" style="margin-top:18px"><h3>Public sportsbook market observations</h3>'+
+   '<p class="sub">'+summary+'</p>'+
+   (cards?'<div class="players-grid" style="margin-top:14px">'+cards+'</div>':
+     '<p class="sub">No matching price rows were readable automatically for this game.</p>')+
+   '<p class="sub">Source: published public listings, not authenticated current sportsbook selections or combined parlay odds. Availability and prices can change.</p>'+
+   '<a href="https://dknetwork.draftkings.com/draftkings-sportsbook-player-props/" target="_blank" rel="noopener noreferrer">DraftKings public player props</a></div>';
+ }
+ async function loadPublicBookResearch(date,gameId){
+  const key=String(gameId);
+  state.publicBookLoading=true;state.publicBookResearch=null;
+  if(state.selectedData&&state.detailTab==='sgps')renderGame(state.selectedData);
+  try{
+   const data=await getJson('/api/nfl-public-book-research?'+new URLSearchParams({date,gameId:key}));
+   if(state.date!==date||String(state.selected)!==key)return;
+   state.publicBookResearch=data;
+  }catch{
+   if(state.date===date&&String(state.selected)===key)
+    state.publicBookResearch={offers:[],books:[{book:'DraftKings',status:'UNAVAILABLE'},
+     {book:'FanDuel',status:'UNAVAILABLE'}]};
+  }finally{
+   if(state.date===date&&String(state.selected)===key){
+    state.publicBookLoading=false;
+    if(state.selectedData&&state.detailTab==='sgps')renderGame(state.selectedData);
+   }
+  }
  }
  function renderParlays(d){
   const quotes=(d.verifiedQuotes||[]).filter(q=>q&&['DraftKings','FanDuel'].includes(q.book)&&
@@ -245,7 +285,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    renderOdds(quotes):
    '<div class="empty"><strong>No sportsbook-verified parlays available yet.</strong>'+
    '<div>Sportsbook verification pending. A missing FanDuel or DraftKings line invalidates the proposed sportsbook parlay. Exact selections, active players and combined odds must be confirmed before a parlay is offered.</div></div>';
-  return research+verified;
+  return research+verified+renderPublicBookResearch();
  }
  function offerHtml(x){const o=x.bookOffer;if(!o)return '';
   return '<div class="small">Verified individual '+esc(o.book)+' line'+
@@ -494,7 +534,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   }
   const token=++state.loading;
   state.selected=String(id);state.selectedData=null;state.aiData=null;
-  state.liveData=null;state.detailTab=state.module==='sgps'?'sgps':state.module==='live'?'live':'overview';renderGames();
+  state.liveData=null;state.publicBookResearch=null;state.publicBookLoading=false;state.detailTab=state.module==='sgps'?'sgps':state.module==='live'?'live':'overview';renderGames();
   if(scroll&&typeof requestAnimationFrame==='function')
    requestAnimationFrame(()=>{
     if(token===state.loading)
@@ -510,7 +550,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    return;
   }
  try{const d=await getJson('/api/public-nfl-game?'+new URLSearchParams({date:state.date,gameId:String(id)}));if(token!==state.loading)return;
- $('#freshness').textContent=(d.status==='LAST_SAVED'?'Model preview • ':'')+fmtStamp(d.updatedAt);state.selectedData=d;renderGame(d);if(state.detailTab==='live'&&!state.liveData&&!state.liveLoading)loadPublicLive(String(id))}
+ $('#freshness').textContent=(d.status==='LAST_SAVED'?'Model preview • ':'')+fmtStamp(d.updatedAt);state.selectedData=d;renderGame(d);if(state.detailTab==='live'&&!state.liveData&&!state.liveLoading)loadPublicLive(String(id));if(state.detailTab==='sgps')loadPublicBookResearch(state.date,String(id))}
  catch{if(token===state.loading)$('#match-content').innerHTML='<div class="empty" style="margin-top:18px">Predictions are temporarily unavailable. Try refreshing shortly.</div>'}}
 function renderExtras(){
  const box=$('#extra-content');if(!box)return;
@@ -544,7 +584,7 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
  async function loadRanks(){const token=++state.rankLoading;state.rankings=null;$('#rankings').innerHTML='<div class="empty loading grid-span">Loading rankings…</div>';
  if(state.league!=='nfl')return;
  try{const d=await getJson('/api/public-nfl-rankings?'+new URLSearchParams({date:state.date}));if(token!==state.rankLoading)return;state.rankings=d;renderRanks();renderExtras()}catch{if(token===state.rankLoading)$('#rankings').innerHTML=noData('Rankings unavailable','Check again after the next saved update.')}}
- async function loadSlate(upcoming){++state.loading;++state.rankLoading;state.selected='';state.selectedData=null;state.aiData=null;state.liveData=null;state.games=[];renderGames();$('#games').innerHTML='<div class="empty loading grid-span">Loading scheduled matchups…</div>';
+ async function loadSlate(upcoming){++state.loading;++state.rankLoading;state.selected='';state.selectedData=null;state.aiData=null;state.liveData=null;state.publicBookResearch=null;state.publicBookLoading=false;state.games=[];renderGames();$('#games').innerHTML='<div class="empty loading grid-span">Loading scheduled matchups…</div>';
  $('#match-title').textContent='Select a game';$('#match-content').innerHTML='<div class="empty" style="margin-top:18px">Choose a matchup to explore the picks.</div>';renderNflModule();
  const base=state.league==='nfl'?'/api/nfl-schedule':'/api/nba-slate';
  const q=(!upcoming&&state.date)?'?'+new URLSearchParams({date:state.date}):'';
@@ -565,6 +605,7 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
   renderGame(state.selectedData);
   if(view==='ai'&&!state.aiData&&!state.aiLoading)loadSavedAi(state.date,state.selected);
   if(view==='live'&&!state.liveData&&!state.liveLoading)loadPublicLive(state.selected);
+  if(view==='sgps'&&!state.publicBookResearch&&!state.publicBookLoading)loadPublicBookResearch(state.date,state.selected);
  });
  $('#leagues').addEventListener('click',e=>{
   const b=e.target.closest('[data-league]');if(!b)return;
