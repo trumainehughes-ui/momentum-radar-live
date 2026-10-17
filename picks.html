@@ -400,14 +400,32 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   // STALE_MODEL_ONLY. Those are still real historical model selections:
   // display them for reference with explicit refresh status, NEVER as current
   // sportsbook-verified bets. Reject unknown modes and malformed tiers.
-  const models=(Array.isArray(d.parlays)?d.parlays:[]).filter(c=>
-   ['Small','Medium','Nuke'].includes(c?.risk)&&
-   ['MODEL_ONLY','STALE_MODEL_ONLY'].includes(c.mode)&&
-   Array.isArray(c.legs)&&c.legs.length>=2&&
-   c.legs.every(l=>l?.player&&l?.category&&l?.target));
+  // A public SGP slip must never combine teams from other matchups or
+  // display saved stale selections as if they were actionable game picks.
+  const matchupTeams=new Set([String(d.home||'').toUpperCase(),String(d.away||'').toUpperCase()]);
+  const models=(Array.isArray(d.parlays)?d.parlays:[]).filter(c=>{
+   if(!['Small','Medium','Nuke'].includes(c?.risk)||
+      c.mode!=='MODEL_ONLY'||c.outdated===true||
+      d.status==='LAST_SAVED'||d.updatedDataCurrent===false||
+      !Array.isArray(c.legs))return false;
+   const expected=c.risk==='Small'?4:c.risk==='Medium'?5:null;
+   if(expected!==null&&c.legs.length!==expected)return false;
+   if(c.risk==='Nuke'&&(c.legs.length<5||c.legs.length>7))return false;
+   const names=new Set();
+   return matchupTeams.size===2&&matchupTeams.has(String(d.home||'').toUpperCase())&&
+    matchupTeams.has(String(d.away||'').toUpperCase())&&
+    String(d.home||'').toUpperCase()!==String(d.away||'').toUpperCase()&&
+    c.legs.every(l=>{
+     const name=String(l?.player||'').trim().toUpperCase();
+     const team=String(l?.team||'').toUpperCase();
+     if(!name||names.has(name)||!matchupTeams.has(team)||
+       !l?.category||!l?.target)return false;
+     names.add(name);return true;
+    });
+  });
   const anyStale=d.status==='LAST_SAVED'||d.updatedDataCurrent===false||
    models.some(c=>c.outdated===true||c.mode==='STALE_MODEL_ONLY');
-  const staleNote=anyStale&&models.length?
+  const staleNote=anyStale?
    '<p class="sgp-slip-stale"><strong>Needs refresh · Saved model selections</strong> — these were generated earlier. Player status, injury reports and exact sportsbook lines must be rechecked before using any pick.</p>'+
    '<p class="sgp-auto-check" role="status">'+esc(renderAutoRecheckStatus())+'</p>':'';
 
