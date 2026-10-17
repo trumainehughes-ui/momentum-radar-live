@@ -70,8 +70,9 @@ test('public UI checks only signed scoped game source and retains verified SGP s
  assert.ok(!api.includes('CRON_SECRET'));
  assert.ok(!api.includes('fetch(req.query'));
  assert.ok(ui.includes("loadPublicBookResearch(state.date,state.selected)"));
- assert.ok(ui.includes("return research+verified+renderPublicBookResearch()"));
- assert.ok(ui.includes('No sportsbook-verified parlays available yet.'));
+ assert.ok(ui.includes('return intro+slips+verification+research'));
+ assert.ok(ui.includes('<details class="sgp-research-details">'));
+ assert.ok(ui.includes('Combined sportsbook odds and player lines are not verified'));
  assert.ok(ui.includes('not authenticated current sportsbook selections'));
 });
 

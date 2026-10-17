@@ -57,7 +57,7 @@ test('Sharp public model-first view shows estimated hit chance instead of mislea
  const html=readFileSync(new URL('../picks.html',import.meta.url),'utf8');
  assert.ok(html.includes('Sharp Insights • Player Chances & Sportsbook Checks'));
  assert.ok(html.includes('Estimated hit chance •'));
- assert.ok(html.includes('Sportsbook verification pending'));
+ assert.ok(html.includes('Model picks only · Combined sportsbook odds and player lines are not verified'));
  assert.ok(html.includes('Why is this bet not verified?'));
  assert.ok(!html.includes('Market verification status: '));
  assert.ok(!html.includes('>+EV Verdict: '+String.fromCharCode(39)));

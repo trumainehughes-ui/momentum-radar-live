@@ -105,8 +105,9 @@ test('FanDuel lacks exact Ferguson receptions offer, so model statistics cannot 
  assert.ok(code.includes('const quoteSourceRows=nflAuthorizedBookSgpRows'));
  assert.ok(code.includes("if(candidate)candidates.push({book,bookmaker,risk,candidate})"));
  const html=readFileSync(new URL('../picks.html',import.meta.url),'utf8');
- assert.ok(html.includes('MODEL RESEARCH ONLY — NOT A VERIFIED SPORTSBOOK PARLAY'));
- assert.ok(html.includes("A missing FanDuel or DraftKings line invalidates"));
+ assert.ok(html.includes('Model picks only · Combined sportsbook odds and player lines are not verified'));
+ assert.ok(html.includes('Confirm every selection at the sportsbook'));
+ assert.ok(!html.includes('MODEL RESEARCH ONLY — NOT A VERIFIED SPORTSBOOK PARLAY'));
 });
 test('market and game-role routes both block official reserve transactions before publication',()=>{
  const markets=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
