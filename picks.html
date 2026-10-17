@@ -1171,6 +1171,9 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
    loadPublicWeather(date,id);
  }
  // Automatic 5-minute public revalidation never generates new bookmaker or AI calls.
+ window.addEventListener('momentum-public-compact-sgp-ready',()=>{
+  if(state.league==='nfl'&&state.detailTab==='sgps'&&state.selectedData)renderGame(state.selectedData);
+ });
  window.addEventListener('momentum-browser-book-parity-ready',()=>{
   if(state.league==='nfl'&&state.detailTab==='sgps'&&state.selectedData)renderGame(state.selectedData);
  });
