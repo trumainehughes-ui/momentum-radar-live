@@ -411,8 +411,9 @@ const observedBookRows=(()=>{
      if(!profile)continue;
      const forecast=Number(profile.edgeAnalytics?.modelProjection??profile.projection);
      if(!Number.isFinite(forecast)||forecast<=0)continue;
-     const recent=profile.recentGameValues||profile.recentYards||
-      profile.recentGames?.map(x=>x?.yards??x?.value) ||[];
+     const recent=Array.isArray(profile.recentGameValues)?profile.recentGameValues:
+      Array.isArray(profile.recentYards)?profile.recentYards:
+      Array.isArray(profile.recentGames)?profile.recentGames.map(x=>x?.yards??x?.value):[];
      // Only compare adjacent ACTUAL sportsbook alternates. The selection
      // function makes a risk- and price-aware choice; it cannot invent 135+.
      const choice=window.momentumSelectBookAlternate?.({
