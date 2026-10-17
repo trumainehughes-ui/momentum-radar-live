@@ -433,6 +433,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   }catch{/* Keep saved snapshot and its explicit freshness warning. */}
  }
  function renderLocalBookParity(d){
+  if(typeof window==='undefined'||typeof localStorage==='undefined')return '';
   const captureUrl='/odds-capture.html?'+new URLSearchParams({date:state.date,gameId:String(state.selected)});
   const action='<p class="sub"><a href="'+esc(captureUrl)+'">Capture exact visible FanDuel/DraftKings odds →</a></p>';
   let stored=[];
