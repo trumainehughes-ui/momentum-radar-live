@@ -143,7 +143,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
 .player .small{font-size:12px;color:#bbccd6;line-height:1.5;margin-top:9px}
 </style><script type="module" src="/public-sgp-browser-bootstrap.js"></script>
 <script type="module" src="/public-automatic-dk-book-bootstrap.js"></script>
-<script type="module" src="/nfl-model-choice-bootstrap.js"></script><script type="module" src="/nfl-sgp-model-yardage-bootstrap.js"></script>
+<script type="module" src="/nfl-model-choice-bootstrap.js"></script><script type="module" src="/nfl-sgp-model-yardage-bootstrap.js"></script><script type="module" src="/nfl-public-compact-sgp-bootstrap.js"></script>
 </head>
 <body>
 <header><div class="container nav"><a class="brand" href="/picks" aria-label="Momentum Radar home"><span class="logo" aria-hidden="true">↗</span><span>Momentum <span style="color:#50e7ac">Radar</span></span></a><div class="toplinks"><span class="navpill">SPORTS INSIGHTS</span><button class="soft" id="refresh" type="button">↻ Refresh</button></div></div></header>
@@ -582,6 +582,19 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   const research='<section class="sgp-research-details" aria-label="Public sportsbook player odds">'+
    '<div class="sgp-research-heading">Public DraftKings and FanDuel player odds</div>'+
    '<div class="sgp-research-inner">'+renderPublicBookResearch()+'</div></section>';
+  // Public-only concise presentation. Internal Momentum Radar retains its
+  // expanded SGP evidence and model controls.
+  const publicCompact=typeof window!=='undefined'&&
+   window.momentumPublicCompactNflSgp;
+  if(publicCompact){
+   const brief=publicCompact.renderPublicCompactNflSgpCards(
+    publicCompact.buildPublicCompactNflSgpCards({
+     market:state.currentBookSgpModel,date:state.date,
+     gameId:state.selected,home:d.home,away:d.away,
+     saved:anyStale
+    }));
+   return brief+(ready&&!anyStale&&quotes.length?renderOdds(quotes):'');
+  }
   return modelChoiceHtml+tierYardageHtml+intro+staleNote+slips+verification+renderLocalBookParity(d)+research;
  }
  function offerHtml(x){const o=x.bookOffer;if(!o)return '';
