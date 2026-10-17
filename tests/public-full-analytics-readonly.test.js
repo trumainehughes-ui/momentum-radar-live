@@ -91,7 +91,9 @@ test('last saved mode preserves model evidence visibly but never stale prices',(
  assert.ok(html.includes("'Model preview • ':'')+fmtStamp(d.updatedAt)"));
  assert.ok(html.includes("$('#match-content').innerHTML=tabs+'<div class=\"detail-body\">'+body+'</div>'"));
  assert.ok(html.includes("['CURRENT','LAST_SAVED'].includes(d.status)"));
- assert.ok(html.includes('current sportsbook prices remain unverified'));
+ assert.ok(html.includes('Combined sportsbook odds and player lines are not verified'));
+ assert.ok(html.includes('No matching public price captured for this selection.'));
+ assert.ok(html.includes('Observed '));
  assert.ok(!html.includes('border:1px solid #ba8550;background:#342923'));
 });
 test('old book prices and questionable player projections remain hidden',()=>{

@@ -89,11 +89,12 @@ test('public side has developer Sharp +EV audit, current sportsbook and risk lab
  assert.ok(owner.includes('Sharp +EV Audit (all sports)'));
  assert.ok(html.includes("['sharp','📈 Sharp +EV Audit']"));
  assert.ok(html.includes('function showSharp(d)'));
- assert.ok(html.includes('Market Context:'));
- assert.ok(html.includes('Quantitative Angle:'));
- assert.ok(html.includes('Market Movement:'));
- assert.ok(html.includes('Expected Value:'));
- assert.ok(html.includes('Bankroll Strategy:'));
+ assert.ok(html.includes('publicObservation(p.name,p.category,line)'));
+ assert.ok(html.includes('publicObservationHtml(p.name,p.category,line)'));
+ assert.ok(html.includes('Model estimates are not calibrated sportsbook probabilities'));
+ assert.ok(html.includes('Why is this bet not verified?'));
+ assert.ok(!html.includes('Bankroll Strategy:'));
+ assert.ok(!html.includes('Market Movement:'));
  assert.ok(html.includes("if(state.detailTab==='sharp')body=showSharp(d)"));
  assert.ok(html.includes('Open Sharp +EV Audit'));
  assert.ok(route.includes('publicSharpReview(safe,'));
