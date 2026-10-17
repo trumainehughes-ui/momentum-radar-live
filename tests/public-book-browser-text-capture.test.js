@@ -55,12 +55,15 @@ test('does not treat stale imports as a real-time public sportsbook price',()=>{
  assert.equal(currentLocalBookOffers(fresh.offers,base.gameId).length,8);
  assert.equal(currentLocalBookOffers(fresh.offers,base.gameId,Date.now()+21*60000).length,0);
 });
-test('the main matchup UI exposes manual DOM capture without reclassifying it as bookmaker SGP quote',()=>{
+test('manual capture remains optional and hidden on prediction-first matchup without fresh observations',()=>{
  const main=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  const html=readFileSync(new URL('../odds-capture.html',import.meta.url),'utf8');
  assert.ok(main.includes("momentum-radar-public-book-observations-v1"));
  assert.ok(main.includes('bookCaptureHtml'));
- assert.ok(main.includes('Capture exact publicly visible sportsbook odds'));
+ assert.ok(main.includes('const bookCaptureHtml=observedBookRows.length?'));
+ assert.ok(main.includes('modelChoiceHtml+autoDkHtml+bookCaptureHtml'));
+ assert.ok(!main.includes('Capture exact publicly visible sportsbook odds →'));
+
  assert.ok(main.includes('Not server-verified'));
  assert.ok(html.includes('MOMENTUM_PUBLIC_SPORTSBOOK_CAPTURE'));
  assert.ok(html.includes("event.origin"));

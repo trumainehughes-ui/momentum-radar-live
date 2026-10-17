@@ -143,6 +143,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
 .player .small{font-size:12px;color:#bbccd6;line-height:1.5;margin-top:9px}
 </style><script type="module" src="/public-sgp-browser-bootstrap.js"></script>
 <script type="module" src="/public-automatic-dk-book-bootstrap.js"></script>
+<script type="module" src="/nfl-model-choice-bootstrap.js"></script>
 </head>
 <body>
 <header><div class="container nav"><a class="brand" href="/picks" aria-label="Momentum Radar home"><span class="logo" aria-hidden="true">↗</span><span>Momentum <span style="color:#50e7ac">Radar</span></span></a><div class="toplinks"><span class="navpill">SPORTS INSIGHTS</span><button class="soft" id="refresh" type="button">↻ Refresh</button></div></div></header>
@@ -467,6 +468,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    gameId:state.selected,teams:[d.home,d.away]});}
   catch{return '<div class="panel" style="margin-top:18px"><h3>Public sportsbook observations on this device</h3>'+
    '<p class="sub">No usable observations were found.</p>'+action+'</div>'}
+  if(!matches.observed?.length)return '';
   const cards=matches.tiers.map(card=>
    '<div class="player"><div class="tiny">'+esc(card.book)+' · '+esc(card.risk)+'</div>'+
    '<b>'+esc(card.legs.length)+' / '+esc(card.minimumLegs)+' exact listed markets</b>'+
@@ -490,6 +492,12 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    action+'</section>';
  }
  function renderParlays(d){
+  const modelBoard=typeof window!=='undefined'?window.momentumNflModelChoice?.buildNflModelChoiceBoard({
+   market:state.currentBookSgpModel,date:state.date,gameId:state.selected,
+   home:d.home,away:d.away}):null;
+  const modelChoiceHtml=typeof window==='undefined'?'':modelBoard?.rows?.length?
+   window.momentumNflModelChoice.renderNflModelChoiceBoard(modelBoard):
+   '<p class="sgp-brief-status">Model yardage forecasts will appear once current game and injury/role evidence is screened. Players with OUT/IR designations are not shown.</p>';
   const quotes=(d.verifiedQuotes||[]).filter(q=>q&&['DraftKings','FanDuel'].includes(q.book)&&
    ['Small','Medium','Nuke'].includes(q.risk)&&Number.isFinite(Number(q.americanOdds))&&
    Number(q.americanOdds)!==0);
@@ -569,7 +577,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   const research='<section class="sgp-research-details" aria-label="Public sportsbook player odds">'+
    '<div class="sgp-research-heading">Public DraftKings and FanDuel player odds</div>'+
    '<div class="sgp-research-inner">'+renderPublicBookResearch()+'</div></section>';
-  return intro+staleNote+slips+verification+renderLocalBookParity(d)+research;
+  return modelChoiceHtml+intro+staleNote+slips+verification+renderLocalBookParity(d)+research;
  }
  function offerHtml(x){const o=x.bookOffer;if(!o)return '';
   return '<div class="small">Verified individual '+esc(o.book)+' line'+
