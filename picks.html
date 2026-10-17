@@ -83,6 +83,13 @@ h2{font-size:26px;letter-spacing:-.035em;margin:0 0 5px}h3{font-size:18px;letter
 .sgp-leg-name{color:#f2f8fc;font-size:16px;line-height:1.35;font-weight:850;overflow-wrap:anywhere;margin-bottom:6px}
 .sgp-leg-selection{display:flex;gap:8px;justify-content:space-between;align-items:baseline;color:#bfd5df;font-size:13px;line-height:1.4}
 .sgp-leg-selection strong{color:#85efc1;font-size:16px;font-weight:850;text-align:right;white-space:nowrap}
+.market-observed{font-size:13px;font-weight:700;color:#8cebc7;margin-top:9px;line-height:1.5}
+.market-observed small{display:block;color:#9db8c6;font-size:11px;font-weight:500;margin-top:3px}
+.weather-values{display:flex;flex-wrap:wrap;gap:12px;margin:9px 0 8px;font-weight:850;font-size:17px;color:#9aefc9}
+.weather-values span{border:1px solid #365667;border-radius:9px;padding:9px 12px}
+.weather-meta{font-size:12px;color:#a8c4d2;line-height:1.5}
+.sharp-brief{font-size:12px;color:#b5ced9;line-height:1.4;margin-top:9px}
+.sharp-card .stat{margin-top:8px}
 .sgp-brief-status{color:#adc4cf;font-size:12px;line-height:1.5;margin:0 0 13px}
 .sgp-research-details{border:1px solid #2c4b5a;border-radius:12px;margin-top:17px;background:#0d2431}
 .sgp-research-details>summary{cursor:pointer;color:#a8dfd0;font-weight:750;font-size:13px;padding:14px 17px}
@@ -141,7 +148,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  <div id="nfl-module-content" class="nfl-module-content"></div>
 </section>
 <div id="game-day-board"><p id="date-caption" class="sub" style="margin:16px 0 11px" aria-live="polite">Loading scheduled games…</p><div id="games" class="game-grid"><div class="empty loading grid-span">Loading matchups…</div></div><div id="game-panel-home" hidden></div></div></section>
-<section class="section" id="game-section" hidden><div class="panel"><div class="details-top"><div><div class="eyebrow">Matchup breakdown</div><div id="match-title" class="matchup">Select a game</div><p id="match-subtitle" class="sub">Model forecasts are screened before appearing here.</p></div><div id="freshness" class="fresh"></div></div><div id="match-content"><div class="empty" style="margin-top:18px">Choose a matchup above to view the player outlook and parlay tiers.</div></div><section id="public-weather-impact" class="panel" aria-label="NFL Weather Impact" style="margin-top:14px"><h3>🌦 Weather Impact</h3><p class="sub">Kickoff forecasts and historical player-weather comparisons will be shown after source verification. No weather-adjusted player props or SGPs are currently verified here.</p></section></div></section>
+<section class="section" id="game-section" hidden><div class="panel"><div class="details-top"><div><div class="eyebrow">Matchup breakdown</div><div id="match-title" class="matchup">Select a game</div><p id="match-subtitle" class="sub">Model forecasts are screened before appearing here.</p></div><div id="freshness" class="fresh"></div></div><div id="match-content"><div class="empty" style="margin-top:18px">Choose a matchup above to view the player outlook and parlay tiers.</div></div><section id="public-weather-impact" class="panel" aria-label="NFL Weather Impact" style="margin-top:14px"><h3>🌦 Kickoff Weather</h3><div id="public-weather-content" class="sub">Open a matchup to see its kickoff forecast.</div></section></div></section>
 <section class="section" id="rankings-section"><div class="section-head"><div><h2>Players to watch</h2><p class="sub">Ranked model projections from games on the selected NFL slate. Friday's scheduled Sunday-slate primer prepares roster/injury-screened Anytime TD scorer estimates for every scheduled matchup. The existing 30-hour and final pregame refreshes then update them; model TD estimates are not verified sportsbook odds.</p></div></div><div class="market-tabs" id="rank-tabs"><button type="button" class="chip active" data-rank="td">Anytime TD</button><button type="button" class="chip" data-rank="passing">Passing</button><button type="button" class="chip" data-rank="rushing">Rushing</button><button type="button" class="chip" data-rank="receiving">Receiving</button><button type="button" class="chip" data-rank="receptions">Receptions</button></div><div class="players-grid" id="rankings"><div class="empty grid-span">Waiting for today's saved rankings…</div></div></section>
 <section class="section" id="extra-section"><div class="section-head"><div><h2>🏆 Best of Slate</h2><p class="sub">Top model candidates across Sunday's matchups. Research only; not a verified multi-game parlay.</p></div></div>
 <div id="extra-content"><div class="empty">Ranked game data will appear after the selected slate loads.</div></div></section>
@@ -152,7 +159,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  'use strict';
  const $=s=>document.querySelector(s);
  const labels={td:'Anytime TD',passing:'Passing yards',rushing:'Rushing yards',receiving:'Receiving yards',receptions:'Receptions'};
- const state={league:'nfl',module:'games',date:'',games:[],selected:'',rank:'td',rankings:null,loading:0,rankLoading:0,selectedData:null,detailTab:'overview',propTab:'passing',aiData:null,aiLoading:false,liveData:null,liveLoading:false,publicBookResearch:null,publicBookLoading:false};
+ const state={league:'nfl',module:'games',date:'',games:[],selected:'',rank:'td',rankings:null,loading:0,rankLoading:0,selectedData:null,detailTab:'overview',propTab:'passing',aiData:null,aiLoading:false,liveData:null,liveLoading:false,publicBookResearch:null,publicBookLoading:false,weatherData:null,weatherLoading:false};
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const fmtTime=v=>{const n=Date.parse(v||'');return Number.isFinite(n)?new Intl.DateTimeFormat(undefined,{weekday:'short',hour:'numeric',minute:'2-digit'}).format(new Date(n)):'Time TBD'};
  const fmtStamp=v=>{const n=Date.parse(v||'');return Number.isFinite(n)?'Updated '+new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(n)):'Awaiting updates'};
@@ -338,6 +345,61 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   if(x.avgPerGame!=null)parts.push('averaging '+x.avgPerGame+' '+(cat==='receptions'?'catches':'yards')+' per game');
   if(x.recentTrend&&x.recentTrend!=='FLAT')parts.push('recent '+String(x.recentTrend).toLowerCase()+' form');
   return parts.length?'Selected based on '+parts.join(' and ')+'.':'Selected based on recent performance and the opponent matchup.';
+ }
+ // Join public odds research by exact sanitized name, category AND target.
+ // Publishing an individual price does not turn it into verified parlay odds.
+ function publicObservation(name,cat,target){
+  const norm=v=>String(v||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const offers=Array.isArray(state.publicBookResearch?.offers)?state.publicBookResearch.offers:[];
+  return offers.find(x=>{
+   if(x.book!=='DraftKings'||norm(x.player)!==norm(name)||x.category!==cat||
+      x.verification!=='PUBLIC_PAGE_OBSERVATION_ONLY')return false;
+   if(cat==='td')return true;
+   const expected=Number(target),line=Number(x.line);
+   return Number.isFinite(expected)&&expected>0&&Number.isFinite(line)&&expected===line;
+  })||null;
+ }
+ function publicObservationHtml(name,cat,target){
+  const offer=publicObservation(name,cat,target);
+  if(!offer)return '';
+  const odds=Number(offer.odds);
+  return '<div class="market-observed">DraftKings Network '+(odds>0?'+':'')+esc(odds)+
+   '<small>Public listing · '+esc(fmtStamp(offer.observedAt))+
+   ' · Price may change</small></div>';
+ }
+ function renderWeather(){
+  const el=$('#public-weather-content');if(!el)return;
+  const w=state.weatherData;
+  if(state.weatherLoading){el.textContent='Checking kickoff forecast…';return}
+  if(!w){el.textContent='Open a matchup to see its kickoff forecast.';return}
+  if(w.status==='INDOOR'){
+   el.innerHTML='<div class="weather-meta">Indoor venue · No outdoor weather adjustment.</div>';
+   return;
+  }
+  if(w.status!=='FORECAST_AVAILABLE'){
+   el.innerHTML='<div class="weather-meta">'+esc(w.message||'Forecast not available yet.')+'</div>';
+   return;
+  }
+  const temp=Math.round(Number(w.temperatureF)),wind=Math.round(Number(w.windMph));
+  const rain=w.rainChancePct==null?'':('<span>Rain '+esc(Math.round(w.rainChancePct))+'%</span>');
+  el.innerHTML='<div class="weather-values"><span>'+esc(temp)+'°F</span><span>Wind '+
+   esc(wind)+' mph</span>'+rain+'</div><div class="weather-meta">'+
+   esc(w.condition||'')+' · '+esc(w.location||'Stadium area')+
+   ' · '+esc(w.source)+' · '+esc(fmtStamp(w.checkedAt))+
+   (w.venueMode==='COVERED_OR_RETRACTABLE'?' · Roof configuration may change':'')+
+   '</div>';
+ }
+ async function loadPublicWeather(date,gameId){
+  const key=String(gameId);state.weatherLoading=true;state.weatherData=null;renderWeather();
+  try{
+   const w=await getJson('/api/public-nfl-weather?'+new URLSearchParams({date,gameId:key}));
+   if(state.league==='nfl'&&state.date===date&&String(state.selected)===key)state.weatherData=w;
+  }catch{
+   if(state.date===date&&String(state.selected)===key)
+    state.weatherData={status:'FORECAST_NOT_READY',message:'Kickoff forecast is being updated.'};
+  }finally{
+   if(state.date===date&&String(state.selected)===key){state.weatherLoading=false;renderWeather()}
+  }
  }
  function renderPlayer(x,cat){
   const td=cat==='td',pct=Number(x.modelChancePct);
