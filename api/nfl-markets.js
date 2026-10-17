@@ -114,7 +114,7 @@ function nflVerifiedOnlySgpResponse(body){
  }
  sgps.Analytics=[];
  sgps.mode=sgps.DraftKings.length||sgps.FanDuel.length?
-  'VERIFIED_BOOK_SGPS_WITH_MODEL_RESEARCH':response.sgps.Analytics.length?'MODEL_ONLY_RESEARCH':'NO_VERIFIED_BOOK_SGPS';
+  'VERIFIED_BOOK_SGPS_ONLY':sgps.Analytics.length?'MODEL_ONLY_RESEARCH':'NO_VERIFIED_BOOK_SGPS';
  sgps.rule='Only accepted bookmaker-priced SGPs appear as parlays; model estimates are not sportsbook offers.';
  return {...body,sgps};
 }
@@ -963,7 +963,7 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
     team:String(l.team||''),category:l.cat,target:l.analyticsThreshold,
     gameId:String(l.eventID||l.gameId||'')}))}));
  response.sgps.mode=response.sgps.DraftKings.length||response.sgps.FanDuel.length?
-  'VERIFIED_BOOK_SGPS_ONLY':'NO_VERIFIED_BOOK_SGPS';
+  'VERIFIED_BOOK_SGPS_WITH_MODEL_RESEARCH':response.sgps.Analytics.length?'MODEL_ONLY_RESEARCH':'NO_VERIFIED_BOOK_SGPS';
  response.sgps.rule='Analytics tiers are unpriced model research, not sportsbook offers. Only verified bookmaker quotes can be presented as bettable parlays.';
  const publicResponse=nflPublicMarketResponse(response);
  res.setHeader('Cache-Control','private, no-store');
