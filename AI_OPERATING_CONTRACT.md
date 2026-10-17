@@ -70,3 +70,10 @@ For a supplied FanDuel Bijan Robinson rushing ladder containing 125+, 150+, 175+
 - The app must retain the **exact sportsbook, athlete, game, market, offered threshold, American price, source URL and observation timestamp**. Do not treat a user screenshot or copied text as an independently server-verified live market, and expire local capture evidence after 20 minutes.
 - The modeled target is an internal analytical input, not a sportsbook selection. An individual prop price does not authenticate the combined SGP odds. Do not invent a price or a market when neither book exposes readable, current options.
 - The official source priority and no-third-party-odds-API rule are unchanged. Browser captures are a permitted user-assisted observation path while unattended extraction of script-rendered sportsbook markets remains unverified.
+
+## Public / production current-book observation parity (October 17, 2026)
+- The production homepage and the read-only `/picks` page must interpret **the same exact** DraftKings/FanDuel player-line observations using the shared `lib/public-sgp-browser-parity.js` matcher and identical Small/Medium/Nuke risk logic.
+- Both views use official site host validation, exact game identity, player, market, line, price, and a 20-minute expiration. **Model projections are not listed sportsbook thresholds**. Never display 135+ if only 125+ and 150+ are observed.
+- Local browser/screenshot captures may be shown to the viewer on either page of the same origin and device. This is **not public global distribution**, independent server verification, or a bookmaker-accepted correlated SGP quote.
+- A public website response that can render the storefront does not guarantee its JavaScript market prices are readable by a server. Do not pretend an unreadable source was successfully crawled; report actual source state and do not switch to an odds API.
+- Only an independently authenticated sportsbook combined quote may populate a "verified SGP" payout. Match actual currently observed bookmaker alternatives as unquoted candidate lineups otherwise.
