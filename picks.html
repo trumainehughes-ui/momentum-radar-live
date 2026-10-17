@@ -491,10 +491,10 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    action+'</section>';
  }
  function renderParlays(d){
-  const modelBoard=window.momentumNflModelChoice?.buildNflModelChoiceBoard({
+  const modelBoard=typeof window!=='undefined'?window.momentumNflModelChoice?.buildNflModelChoiceBoard({
    market:state.currentBookSgpModel,date:state.date,gameId:state.selected,
-   home:d.home,away:d.away});
-  const modelChoiceHtml=modelBoard?.rows?.length?
+   home:d.home,away:d.away}):null;
+  const modelChoiceHtml=typeof window==='undefined'?'':modelBoard?.rows?.length?
    window.momentumNflModelChoice.renderNflModelChoiceBoard(modelBoard):
    '<p class="sgp-brief-status">Model yardage forecasts will appear once current game and injury/role evidence is screened. Players with OUT/IR designations are not shown.</p>';
   const quotes=(d.verifiedQuotes||[]).filter(q=>q&&['DraftKings','FanDuel'].includes(q.book)&&
