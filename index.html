@@ -397,6 +397,13 @@ const observedBookRows=(()=>{
      const name=canon(leg.name||leg.player),cat=String(leg.cat||leg.category||'');
      if(!name||!cat||used.has(name)||!matchupTeams.has(String(leg.team||''))||
       String(leg.gameId||g.gameId)!==String(g.gameId))continue;
+     if(cat==='td'){
+      // Touchdowns are not numeric yardage ladders. Only accept the exact
+      // bookmaker-published anytime-TD offer for this athlete and game.
+      const observed=rows.find(o=>canon(o.player)===name&&o.category==='td');
+      if(observed){used.add(name);matched.push({...observed,selectionDirection:'EXACT_LISTED'})}
+      continue;
+     }
      // The SGP response is deliberately stripped of speculative targets.
      // Obtain the independent player forecast from the actual matchup model.
      const profile=(d.categories?.[cat]||[]).find(p=>
