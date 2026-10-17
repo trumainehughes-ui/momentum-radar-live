@@ -14,6 +14,7 @@ test('Nuke never claims price verification for model-only combinations',()=>{
 });
 test('cache supports up to ten Nuke legs',()=>{
  const s=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
- assert.match(s,/c\.risk==='Nuke'\?10:7/);
+ assert.match(s,/c\.legs\.length<=\(c\.risk==='Nuke'\?10:7\)/);
+ assert.doesNotMatch(s,/c\.legs\.length<=7&&/);
  assert.match(s,/nuke-10leg-v1/);
 });
