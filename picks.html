@@ -35,6 +35,13 @@ h2{font-size:26px;letter-spacing:-.035em;margin:0 0 5px}h3{font-size:18px;letter
 .chip.active{border-color:#36ab85;background:#165344;color:#d5ffec}
 .game-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(246px,1fr));gap:13px}
 .game-card{width:100%;text-align:left;border:1px solid var(--border);border-radius:16px;padding:19px;background:linear-gradient(145deg,#102532,#0b1c27);color:var(--ink);transition:border-color .2s,transform .2s}
+.game-expand-slot{grid-column:1/-1;min-width:0;scroll-margin-top:90px;animation:game-reveal .18s ease-out}
+.game-expand-slot #game-section{margin:0;min-width:0}
+.game-expand-slot #game-section>.panel{width:100%;min-width:0;border-color:#397561;box-shadow:0 10px 35px #0004}
+.game-open-hint{display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:11px;border-top:1px solid #294957;color:#b5dece;font-size:12px;font-weight:800}
+.game-card.selected .game-open-hint{color:#70efc0}
+@keyframes game-reveal{from{opacity:.5;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:570px){.game-expand-slot{scroll-margin-top:72px}.game-expand-slot #game-section>.panel{padding:15px}.game-expand-slot .market-tabs{gap:6px}.game-expand-slot .market-tabs .chip{padding:10px 12px}}
 .game-card:hover{transform:translateY(-2px)}.game-card.selected{border:1px solid #46dba4;box-shadow:inset 0 0 0 1px #46dba433,0 0 20px #43d5a416}
 .game-head{display:flex;justify-content:space-between;gap:10px;font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.07em}
 .game-status{color:var(--green)}.team{display:flex;align-items:center;gap:10px;margin:13px 0;font-size:16px;font-weight:850}
@@ -76,8 +83,8 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
 <header><div class="container nav"><a class="brand" href="/picks" aria-label="Momentum Radar home"><span class="logo" aria-hidden="true">↗</span><span>Momentum <span style="color:#50e7ac">Radar</span></span></a><div class="toplinks"><span class="navpill">SPORTS INSIGHTS</span><button class="soft" id="refresh" type="button">↻ Refresh</button></div></div></header>
 <main class="container">
 <section class="hero"><div><div class="eyebrow">Your game-day edge</div><h1>See the game <em>before it unfolds.</em></h1><p>Player projections, touchdown opportunities, matchup insights, and game parlays. One clear view, with none of the noise.</p></div><aside class="hero-stat" aria-label="Prediction coverage"><div class="small-label">Momentum at a glance</div><div class="number">GAME DAY</div><p>Explore player matchups and compare model picks before kickoff. Updated predictions appear when fresh, verified data is available.</p><div class="sparkline" aria-hidden="true"><i style="height:38%"></i><i style="height:63%"></i><i style="height:45%"></i><i style="height:76%"></i><i style="height:59%"></i><i style="height:98%"></i><i style="height:81%"></i></div></aside></section>
-<section class="section" aria-label="Choose a league"><div class="section-head"><div><h2>Explore matchups</h2><p class="sub">Choose a league, then select a game.</p></div><div class="controls"><input id="day" class="datebox" type="date" aria-label="Choose game date"><button id="today" class="soft" type="button">Upcoming</button></div></div><div class="chips" id="leagues"><button type="button" class="chip active" data-league="nfl">🏈 NFL</button><button type="button" class="chip" data-league="nba">🏀 NBA</button></div><p id="date-caption" class="sub" style="margin:16px 0 11px" aria-live="polite">Loading scheduled games…</p><div id="games" class="game-grid"><div class="empty loading grid-span">Loading matchups…</div></div></section>
-<section class="section" id="game-section"><div class="panel"><div class="details-top"><div><div class="eyebrow">Matchup breakdown</div><div id="match-title" class="matchup">Select a game</div><p id="match-subtitle" class="sub">Model forecasts are screened before appearing here.</p></div><div id="freshness" class="fresh"></div></div><div id="match-content"><div class="empty" style="margin-top:18px">Choose a matchup above to view the player outlook and parlay tiers.</div></div><section id="public-weather-impact" class="panel" aria-label="NFL Weather Impact" style="margin-top:14px"><h3>🌦 Weather Impact</h3><p class="sub">Kickoff forecasts and historical player-weather comparisons will be shown after source verification. No weather-adjusted player props or SGPs are currently verified here.</p></section></div></section>
+<section class="section" aria-label="Choose a league"><div class="section-head"><div><h2>Explore matchups</h2><p class="sub">Choose a league, then select a game.</p></div><div class="controls"><input id="day" class="datebox" type="date" aria-label="Choose game date"><button id="today" class="soft" type="button">Upcoming</button></div></div><div class="chips" id="leagues"><button type="button" class="chip active" data-league="nfl">🏈 NFL</button><button type="button" class="chip" data-league="nba">🏀 NBA</button></div><p id="date-caption" class="sub" style="margin:16px 0 11px" aria-live="polite">Loading scheduled games…</p><div id="games" class="game-grid"><div class="empty loading grid-span">Loading matchups…</div></div><div id="game-panel-home" hidden></div></section>
+<section class="section" id="game-section" hidden><div class="panel"><div class="details-top"><div><div class="eyebrow">Matchup breakdown</div><div id="match-title" class="matchup">Select a game</div><p id="match-subtitle" class="sub">Model forecasts are screened before appearing here.</p></div><div id="freshness" class="fresh"></div></div><div id="match-content"><div class="empty" style="margin-top:18px">Choose a matchup above to view the player outlook and parlay tiers.</div></div><section id="public-weather-impact" class="panel" aria-label="NFL Weather Impact" style="margin-top:14px"><h3>🌦 Weather Impact</h3><p class="sub">Kickoff forecasts and historical player-weather comparisons will be shown after source verification. No weather-adjusted player props or SGPs are currently verified here.</p></section></div></section>
 <section class="section" id="rankings-section"><div class="section-head"><div><h2>Players to watch</h2><p class="sub">Ranked model projections from games on the selected NFL slate. Friday's scheduled Sunday-slate primer prepares roster/injury-screened Anytime TD scorer estimates for every scheduled matchup. The existing 30-hour and final pregame refreshes then update them; model TD estimates are not verified sportsbook odds.</p></div></div><div class="market-tabs" id="rank-tabs"><button type="button" class="chip active" data-rank="td">Anytime TD</button><button type="button" class="chip" data-rank="passing">Passing</button><button type="button" class="chip" data-rank="rushing">Rushing</button><button type="button" class="chip" data-rank="receiving">Receiving</button><button type="button" class="chip" data-rank="receptions">Receptions</button></div><div class="players-grid" id="rankings"><div class="empty grid-span">Waiting for today's saved rankings…</div></div></section>
 <section class="section" id="extra-section"><div class="section-head"><div><h2>Beyond the matchup</h2><p class="sub">Best of the slate, scoring activity, and past results.</p></div></div>
 <div class="market-tabs" id="extra-tabs"><button type="button" class="chip active" data-extra="best">🏆 Best of Slate</button><button type="button" class="chip" data-extra="history">🗂️ NFL Results History</button></div>
@@ -97,8 +104,35 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  async function getJson(path){const res=await fetch(path,{cache:'no-store'});const data=await res.json();if(!res.ok||!data.ok)throw Error(data.error||'Data unavailable');return data}
  function statusLabel(g){const s=String(g.status||'SCHEDULED').toUpperCase();return s==='FINAL'?'Final':s==='LIVE'?'Live':'Pregame'}
  function teamLine(team){const ab=team?.abbr||'TBD',name=team?.name||ab;return '<div class="team"><span class="team-crest">'+esc(ab)+'</span><span>'+esc(name)+'</span></div>'}
- function renderGames(){const box=$('#games');if(!state.games.length){box.innerHTML=noData('No games listed for this date.','Choose another date or try Upcoming.');return}
- box.innerHTML=state.games.map(g=>'<button class="game-card '+(String(g.gameId)===String(state.selected)?'selected':'')+'" type="button" data-game="'+esc(g.gameId)+'" aria-label="Open '+esc(g.away?.name)+' at '+esc(g.home?.name)+'"><div class="game-head"><span>'+esc(state.league.toUpperCase())+' • '+esc('Week '+(g.week||'Matchup'))+'</span><span class="game-status">'+esc(statusLabel(g))+'</span></div>'+teamLine(g.away)+teamLine(g.home)+'<div class="game-meta">'+esc(fmtTime(g.kickoff))+(g.venue?' • '+esc(g.venue):'')+'</div></button>').join('')}
+ // Move the one existing analytics panel into the tapped game's grid slot.
+ // DOM moves preserve its tab listeners, AI state and periodic read-only refresh.
+ function renderGames(){
+  const box=$('#games'),panel=$('#game-section'),home=$('#game-panel-home');
+  if(panel)panel.remove();
+  if(!state.games.length){
+   box.innerHTML=noData('No games listed for this date.','Choose another date or try Upcoming.');
+  }else{
+   box.innerHTML=state.games.map(g=>{
+    const active=String(g.gameId)===String(state.selected);
+    const name=(g.away?.name||'Away')+' at '+(g.home?.name||'Home');
+    const card='<button class="game-card '+(active?'selected':'')+
+     '" type="button" data-game="'+esc(g.gameId)+
+     '" aria-controls="game-section" aria-expanded="'+(active?'true':'false')+
+     '" aria-label="'+(active?'Collapse':'Expand')+' game analytics for '+esc(name)+'">'+
+     '<div class="game-head"><span>'+esc(state.league.toUpperCase())+' • '+
+      esc('Week '+(g.week||'Matchup'))+'</span><span class="game-status">'+
+      esc(statusLabel(g))+'</span></div>'+teamLine(g.away)+teamLine(g.home)+
+     '<div class="game-meta">'+esc(fmtTime(g.kickoff))+
+      (g.venue?' • '+esc(g.venue):'')+'</div>'+
+     '<div class="game-open-hint"><span>'+(active?'Hide game analytics':'View game analytics')+
+     '</span><span aria-hidden="true">'+(active?'▴':'▾')+'</span></div></button>';
+    return card+(active?'<div class="game-expand-slot" id="game-inline-slot" role="region" aria-label="'+
+      esc(name)+' game analytics"></div>':'');
+   }).join('');
+  }
+  const slot=$('#game-inline-slot');
+  if(panel){(slot||home).appendChild(panel);panel.hidden=!slot;}
+ }
  const views=[['overview','Overview'],['td','Anytime TD'],['props','Player Props'],['matchup','Matchup Edge'],['injuries','Injuries'],['sgps','SGPs'],['ai','✨ AI Game Analyzer'],['sharp','📈 Sharp +EV Audit'],['live','📊 Live TD Tracker']];
  const rankMetricNames={passYards:'Passing yards',rushYards:'Rushing yards',recYards:'Receiving yards',passTD:'Passing TDs',rushTD:'Rushing TDs',recTD:'Receiving TDs',receptions:'Receptions',targets:'Targets'};
  function renderOdds(offers){if(!Array.isArray(offers)||!offers.length)return '';
@@ -372,7 +406,21 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   }catch{if(String(state.selected)===String(gameId))state.aiData={status:'REVIEW_PENDING',message:'AI report is temporarily unavailable.'}}
   finally{if(String(state.selected)===String(gameId)){state.aiLoading=false;if(state.detailTab==='ai'&&state.selectedData)renderGame(state.selectedData)}}
  }
- async function openGame(id){const g=state.games.find(x=>String(x.gameId)===String(id));if(!g)return;state.selected=String(id);state.selectedData=null;state.aiData=null;state.liveData=null;state.detailTab='overview';renderGames();const token=++state.loading;
+ async function openGame(id,{scroll=true}={}){
+  const g=state.games.find(x=>String(x.gameId)===String(id));if(!g)return;
+  // A second tap collapses. Selecting another moves the same analytics panel.
+  if(String(state.selected)===String(id)){
+   ++state.loading;state.selected='';state.selectedData=null;state.aiData=null;
+   state.liveData=null;state.detailTab='overview';renderGames();return;
+  }
+  const token=++state.loading;
+  state.selected=String(id);state.selectedData=null;state.aiData=null;
+  state.liveData=null;state.detailTab='overview';renderGames();
+  if(scroll&&typeof requestAnimationFrame==='function')
+   requestAnimationFrame(()=>{
+    if(token===state.loading)
+     $('#game-inline-slot')?.scrollIntoView?.({behavior:'smooth',block:'start'});
+   });
  $('#match-title').textContent=(g.away?.name||'Away')+' @ '+(g.home?.name||'Home');
  $('#match-subtitle').textContent=fmtTime(g.kickoff)+' • '+statusLabel(g)+' • Predictions are estimates';
  $('#freshness').textContent='';$('#match-content').innerHTML='<div class="empty loading" style="margin-top:18px">Loading saved predictions…</div>';
@@ -428,14 +476,14 @@ async function loadHistory(){
  async function loadRanks(){const token=++state.rankLoading;state.rankings=null;$('#rankings').innerHTML='<div class="empty loading grid-span">Loading rankings…</div>';
  if(state.league!=='nfl')return;
  try{const d=await getJson('/api/public-nfl-rankings?'+new URLSearchParams({date:state.date}));if(token!==state.rankLoading)return;state.rankings=d;renderRanks();renderExtras()}catch{if(token===state.rankLoading)$('#rankings').innerHTML=noData('Rankings unavailable','Check again after the next saved update.')}}
- async function loadSlate(upcoming){++state.loading;++state.rankLoading;state.selected='';state.games=[];$('#games').innerHTML='<div class="empty loading grid-span">Loading scheduled matchups…</div>';
+ async function loadSlate(upcoming){++state.loading;++state.rankLoading;state.selected='';state.selectedData=null;state.aiData=null;state.liveData=null;state.games=[];renderGames();$('#games').innerHTML='<div class="empty loading grid-span">Loading scheduled matchups…</div>';
  $('#match-title').textContent='Select a game';$('#match-content').innerHTML='<div class="empty" style="margin-top:18px">Choose a matchup to explore the picks.</div>';$('#rankings-section').style.display=state.league==='nfl'?'':'none';$('#extra-section').style.display=state.league==='nfl'?'':'none';
  const base=state.league==='nfl'?'/api/nfl-schedule':'/api/nba-slate';
  const q=(!upcoming&&state.date)?'?'+new URLSearchParams({date:state.date}):'';
  try{const d=await getJson(base+q);state.date=d.date||state.date;$('#day').value=state.date;$('#date-caption').textContent=state.league.toUpperCase()+' • '+(d.games?.length||0)+' scheduled matchups • '+state.date;
  state.games=Array.isArray(d.games)?d.games:[];renderGames();
  if(state.league==='nfl')loadRanks();
- if(state.games.length)openGame(String(state.games[0].gameId));
+ // No default game selection: first tap opens analysis directly under its card.
  }catch{$('#date-caption').textContent='Unable to retrieve game schedule';$('#games').innerHTML=noData('Schedule temporarily unavailable','Refresh or try another date.')}}
  $('#games').addEventListener('click',e=>{const b=e.target.closest('[data-game]');if(b)openGame(b.dataset.game)});
  $('#match-content').addEventListener('click',e=>{
