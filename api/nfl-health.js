@@ -219,9 +219,12 @@ export default async function handler(req,res){
  const productionHost=String(process.env.VERCEL_PROJECT_PRODUCTION_URL||'').toLowerCase();
  const previewHost=/^momentum-radar-live-[a-z0-9-]+\.vercel\.app$/.test(deploymentHost)?
   deploymentHost:'';
+ // Prefer this exact deployment's VERCEL_URL for signed internal calls.
+ // Production deployments have unique Vercel hostnames; requiring only the
+ // vanity domain incorrectly blocks scheduled collectors with HTTP 503.
  const trustedHost=process.env.VERCEL_ENV==='production'?
-  (productionHost==='momentum-radar-live.vercel.app'?productionHost:
-   deploymentHost==='momentum-radar-live.vercel.app'?deploymentHost:''):
+  (previewHost||productionHost==='momentum-radar-live.vercel.app'?
+   previewHost||productionHost:''):
   (process.env.VERCEL_ENV==='preview'?previewHost:'');
  if(!trustedHost)return res.status(503).json({ok:false,error:'trusted_deployment_origin_unavailable'});
  const base='https://'+trustedHost;
