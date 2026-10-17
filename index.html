@@ -23,7 +23,11 @@
 #nflInjuries .nflInjuryStatus.ACTIVE,#nflInjuries .nflInjuryStatus.PROBABLE{color:#a7f7c9;background:#153a2c;border-color:#4a9970}
 #nflInjuries .nflInjuryRefreshBtn{background:#183749;color:#f5fbff;border:1px solid #6ca7c7;padding:9px 12px;border-radius:8px;font-weight:800;margin-top:11px;cursor:pointer}
 #nflInjuries .nflInjurySourceLink{color:#9ee7ff;text-decoration:underline;font-weight:800}
-</style></head><body><div class="wrap"><div class="top"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><div class="brand">Momentum Radar <span class="live">LIVE</span></div><span class="rockingChairMark" role="img" aria-label="Rocking chair" title="Sit back. Let the data work.">🪑</span><button id="nflHelp" class="helpBtn">❓ How to Use</button></div><div id="status" class="status">Connecting…</div></div><div id="nflGuide" class="guide" role="region" aria-label="Momentum Radar user guide"><h3>🪑 Momentum Radar — How to Use</h3><p class="note">New here? Start with a sport, choose a game, then explore the matchup and player categories. This guide explains the numbers, AI tools, and what is — and is not — a verified sportsbook selection.</p><div class="guideSteps">
+</style><script type="module">
+import {selectBestListedBookAlternate} from '/lib/sportsbook-listed-alternate-selector.js';
+window.momentumSelectBookAlternate=selectBestListedBookAlternate;
+</script>
+</head><body><div class="wrap"><div class="top"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><div class="brand">Momentum Radar <span class="live">LIVE</span></div><span class="rockingChairMark" role="img" aria-label="Rocking chair" title="Sit back. Let the data work.">🪑</span><button id="nflHelp" class="helpBtn">❓ How to Use</button></div><div id="status" class="status">Connecting…</div></div><div id="nflGuide" class="guide" role="region" aria-label="Momentum Radar user guide"><h3>🪑 Momentum Radar — How to Use</h3><p class="note">New here? Start with a sport, choose a game, then explore the matchup and player categories. This guide explains the numbers, AI tools, and what is — and is not — a verified sportsbook selection.</p><div class="guideSteps">
 <div class="guideStep"><b>1. Choose a sport and date</b>⚾ MLB covers home-run opportunities. 🏈 NFL covers matchup analysis, player props and touchdown tracking. 🏀 NBA covers games, player stats and available SGP analysis. Select a game date to see that slate.</div>
 <div class="guideStep"><b>2. Open a game</b>Choose Game Day, then tap a matchup to see its own player projections, injury evidence, weather when relevant, and Same Game Parlay ideas. Use Back to Games to return to the slate.</div>
 <div class="guideStep"><b>3. Understand player categories</b><strong>Passing yards</strong> = QB yards through the air. <strong>Rushing yards</strong> = yards gained running. <strong>Receiving yards</strong> = yards on catches. <strong>Receptions</strong> = catches made. <strong>Anytime TD</strong> = player scores a touchdown. NBA: <strong>Points</strong>, <strong>Rebounds</strong>, <strong>Assists</strong>, <strong>3-Pointers</strong>, and <strong>PRA</strong> (points + rebounds + assists).</div>
@@ -388,20 +392,30 @@ const observedBookRows=(()=>{
     const tier=tiers.find(x=>x.risk===risk);
     if(!Array.isArray(tier?.legs)||!tier.legs.length)continue;
     const matched=[],used=new Set();
+    const matchupTeams=new Set([String(g.home?.abbr||''),String(g.away?.abbr||'')]);
     for(const leg of tier.legs){
      const name=canon(leg.name||leg.player),cat=String(leg.cat||leg.category||'');
-     if(!name||!cat||used.has(name))continue;
-     const options=rows.filter(o=>canon(o.player)===name&&o.category===cat);
-     if(!options.length)continue;
-     const model=leg.target==='Anytime TD'?null:Number(leg.target??leg.analyticsThreshold??leg.projection);
-     // Target was already adjusted for the tier by the server-side model.
-     const target=model!==null&&Number.isFinite(model)?model:null;
-     // Ranking uses the model, but ONLY a threshold actually observed on the
-     // bookmaker page can become the candidate. No invented alternate lines.
-     const selected=options.sort((a,b)=>target!==null?
-      Math.abs(Number(a.line||0)-target)-Math.abs(Number(b.line||0)-target):
-      Number(a.line||0)-Number(b.line||0))[0];
-     used.add(name);matched.push(selected);
+     if(!name||!cat||used.has(name)||!matchupTeams.has(String(leg.team||''))||
+      String(leg.gameId||g.gameId)!==String(g.gameId))continue;
+     // The SGP response is deliberately stripped of speculative targets.
+     // Obtain the independent player forecast from the actual matchup model.
+     const profile=(d.categories?.[cat]||[]).find(p=>
+      canon(p.name)===name&&String(p.team||'')===String(leg.team||''));
+     if(!profile)continue;
+     const forecast=Number(profile.edgeAnalytics?.modelProjection??profile.projection);
+     if(!Number.isFinite(forecast)||forecast<=0)continue;
+     const recent=profile.recentGameValues||profile.recentYards||
+      profile.recentGames?.map(x=>x?.yards??x?.value) ||[];
+     // Only compare adjacent ACTUAL sportsbook alternates. The selection
+     // function makes a risk- and price-aware choice; it cannot invent 135+.
+     const choice=window.momentumSelectBookAlternate?.({
+      offers:rows,book,gameId:g.gameId,player:leg.player||leg.name,
+      category:cat,projection:forecast,risk,recentGameValues:recent});
+     if(choice?.ok){
+      used.add(name);
+      matched.push({...choice.offer,selectionDirection:choice.direction,
+       adjacentListed:choice.candidateOffers,selectionAnalysis:choice.analysis});
+     }
     }
     const needed=risk==='Small'?4:risk==='Medium'?5:6;
     out.push({book,risk,needed,matched});
@@ -415,9 +429,12 @@ const observedBookRows=(()=>{
   capturedMatchupCandidates.map(c=>'<div class="nflSgpMini"><b>'+nflEscape(c.book)+' · '+nflEscape(c.risk)+
    '</b><div class="meta">'+c.matched.length+' / '+c.needed+' required distinct player markets observed'+
    (c.matched.length<c.needed?' • Incomplete':' • Candidate lineup only; bookmaker must confirm combined price')+'</div>'+
-   c.matched.map(o=>'<div class="nflMarketLine">'+nflEscape(o.player)+' — '+
+   c.matched.map(o=>'<div class="nflMarketLine"><b>'+nflEscape(o.player)+'</b> — '+
     nflEscape(o.category==='td'?'Anytime TD':o.line+'+ '+o.category)+
-    ' at '+(Number(o.odds)>0?'+':'')+nflEscape(o.odds)+'</div>').join('')+'</div>').join('')+
+    ' at '+(Number(o.odds)>0?'+':'')+nflEscape(o.odds)+
+    '<div class="note">Chosen from the exact listed '+nflEscape(c.book)+
+    ' alternatives using the matchup model, individual price and '+nflEscape(c.risk)+
+    ' risk tier. No unlisted threshold substituted.</div></div>').join('')+'</div>').join('')+
   '</div>':'';
 
  const capturePath='/odds-capture.html?'+new URLSearchParams({date:nflData?.date||'',gameId:g.gameId});
