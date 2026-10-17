@@ -28,7 +28,11 @@ a{color:#78c6ff}table{width:100%;border-collapse:collapse}th,td{padding:7px;bord
 <label for="source">Official sportsbook page address</label>
 <input id="source" type="url" value="https://co.sportsbook.fanduel.com/" autocomplete="off">
 <p><a href="https://co.sportsbook.fanduel.com/" rel="noopener noreferrer" target="_blank">Open FanDuel Colorado ↗</a> · <a href="https://sportsbook.draftkings.com/" rel="noopener noreferrer" target="_blank">Open DraftKings ↗</a></p>
-<label for="raw">Paste the visible matchup and player-prop rows</label>
+<label for="file">Or select a screenshot of the public sportsbook odds</label>
+<input id="file" type="file" accept="image/png,image/jpeg,image/webp">
+<button id="ocr" class="secondary" type="button">Read screenshot text on this device</button>
+<p class="small">Screenshot reading runs locally in your browser using an on-demand OCR library. Check each recognized player, yardage, and price before saving. No screenshot is uploaded to Momentum Radar.</p>
+<label for="raw">Paste or correct the visible matchup and player-prop rows</label>
 <textarea id="raw" placeholder="Chicago Bears @ Atlanta Falcons Rushing Props Odds&#10;Bijan Robinson 50+ Yards&#10;-1100&#10;Bijan Robinson 60+ Yards&#10;-500"></textarea>
 <p class="small">For more reliable capture, add a bookmark whose URL is created by the button below. While viewing a public sportsbook market in your normal browser, activate that bookmark. It transfers visible page text only—no cookies, login information, or account details. If the sportsbook offers no copy/select option, a screenshot can be used for manual transcription.</p>
 <button id="copy" class="secondary" type="button">Copy browser capture bookmark</button>
@@ -42,7 +46,8 @@ import {parseVisibleBookCapture,validateBookPageUrl,currentLocalBookOffers,
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const params=new URLSearchParams(location.search);
-const homeDate=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+const parts=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));
+const homeDate=parts.year+'-'+parts.month+'-'+parts.day;
 $('date').value=params.get('date')||homeDate;
 let schedule=[],athletes=[],capturedFromOrigin=false,bookSourceMethod='USER_PASTED_TEXT';
 const get=async path=>{const r=await fetch(path,{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);return r.json()};
@@ -91,6 +96,32 @@ $('book').addEventListener('change',()=>{
  $('source').value=$('book').value==='FanDuel'?'https://co.sportsbook.fanduel.com/':'https://sportsbook.draftkings.com/';
 });
 $('raw').addEventListener('input',()=>{capturedFromOrigin=false;bookSourceMethod='USER_PASTED_TEXT'});
+$('ocr').addEventListener('click',async()=>{
+ const file=$('file').files?.[0];
+ if(!file||!/^image\/(?:png|jpeg|webp)$/.test(file.type)||file.size>12*1024*1024){
+  $('capturestatus').textContent='Choose a PNG, JPEG or WebP screenshot under 12 MB first.';return;
+ }
+ $('ocr').disabled=true;$('capturestatus').textContent='Reading image locally. This may take a few seconds…';
+ try{
+  if(!window.Tesseract){
+   await new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    script.onload=resolve;script.onerror=()=>reject(Error('OCR library could not load'));
+    document.head.appendChild(script);
+   });
+  }
+  if(!window.Tesseract?.createWorker)throw Error('Local screenshot reader unavailable');
+  const worker=await window.Tesseract.createWorker('eng',1);
+  try{
+   const result=await worker.recognize(file);
+   $('raw').value=String(result?.data?.text||'').slice(0,170000);
+   capturedFromOrigin=false;bookSourceMethod='USER_SCREENSHOT_OCR';
+   $('capturestatus').textContent='Screenshot read locally. Correct any names, numbers, or American prices before saving.';
+  }finally{await worker.terminate()}
+ }catch(e){$('capturestatus').textContent=String(e.message||e)+' · You can still paste or type the visible market rows.'}
+ finally{$('ocr').disabled=false}
+});
 window.addEventListener('message',event=>{
  const from=event.origin,book=from==='https://co.sportsbook.fanduel.com'||from==='https://sportsbook.fanduel.com'?'FanDuel':
   from==='https://sportsbook.draftkings.com'?'DraftKings':null;
