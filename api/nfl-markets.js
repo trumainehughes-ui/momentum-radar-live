@@ -120,8 +120,10 @@ function nflVerifiedOnlySgpResponse(body){
   ['Small','Medium','Nuke'].includes(c?.risk)&&
   Array.isArray(c.legs)&&c.legs.length>0&&
   c.legs.length>=3&&c.legs.length<=(c.risk==='Nuke'?10:7)&&
-  c.legs.every(l=>l?.player&&l?.team&&l?.category&&
-   (l.category==='td'||(l.target!==null&&l.target!==undefined&&Number.isFinite(Number(l.target))))));
+  c.legs.every(l=>l?.player&&l?.team&&l?.category))
+  // A cache HIT must obey the same no-unlisted-line rule as a new build.
+  .map(c=>({...c,legs:c.legs.map(l=>({...l,target:null,
+   marketSelectionStatus:'NO_EXACT_DRAFTKINGS_OR_FANDUEL_OFFER'}))}));
  sgps.mode=sgps.DraftKings.length||sgps.FanDuel.length?
   'VERIFIED_BOOK_SGPS_WITH_MODEL_RESEARCH':sgps.Analytics.length?'MODEL_ONLY_RESEARCH':'NO_VERIFIED_BOOK_SGPS';
  sgps.rule='Only accepted bookmaker-priced SGPs appear as parlays; model estimates are not sportsbook offers.';
