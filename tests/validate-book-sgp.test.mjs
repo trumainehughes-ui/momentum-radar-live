@@ -28,7 +28,7 @@ test('requires verified combined SGP quote', () => {
 });
 test('accepts exact verified offer and verified combined quote', () => {
  const result=validateBookSgp({legs:[leg(125)],combinedQuote:quote},'FanDuel',[offer(125)],now);
- assert.equal(result.publishable,true);
+ assert.equal(result.publishable,false);
 });
 test('rejects stale offers', () => {
  const stale={...offer(125),observedAt:new Date(now-31*60_000).toISOString()};
@@ -59,4 +59,14 @@ test('rejects cross-game selections inside one SGP', () => {
  const result=validateBookSgp({legs:[leg(125),second],combinedQuote:quote},'FanDuel',[offer(125),secondOffer],now);
  assert.equal(result.publishable,false);
  assert.ok(result.reasons.includes('MULTIPLE_GAMES_IN_SGP'));
+});
+
+test('publishes only multi-leg SGP with matching quote selection IDs', () => {
+ const first={...leg(125),playerId:'player-a'};
+ const second={...leg(64.5),playerId:'player-b'};
+ const a={...offer(125),playerId:'player-a',offerId:'selection-a'};
+ const b={...offer(64.5),playerId:'player-b',offerId:'selection-b'};
+ const sgp={legs:[first,second],combinedQuote:{...quote,legIds:['selection-b','selection-a']}};
+ assert.equal(validateBookSgp(sgp,'FanDuel',[a,b],now).publishable,true);
+ assert.equal(validateBookSgp({...sgp,combinedQuote:{...quote,legIds:['selection-a','different']}},'FanDuel',[a,b],now).publishable,false);
 });
