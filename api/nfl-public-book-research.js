@@ -1,7 +1,8 @@
 // Read-only public-market research for one scheduled NFL game.
 // Never fetch user-provided URLs, never place bets, never create a book quote.
 import {
- DKN_NFL_PROPS_URL,FANDUEL_NFL_PUBLIC_URL,publicBookResearchReport
+ DKN_NFL_PROPS_URL,FANDUEL_NFL_PUBLIC_URL,publicBookResearchReport,
+ matchPublicOffersToEligibleGamePlayers
 } from '../lib/nfl-public-sportsbook-observer.js';
 
 const PUBLIC_SOURCE_TIMEOUT=6500;
@@ -38,7 +39,16 @@ export default async function handler(req,res){
   const home=String(game.home?.abbr||''),away=String(game.away?.abbr||'');
   if(!/^[A-Z]{2,4}$/.test(home)||!/^[A-Z]{2,4}$/.test(away))
    return res.status(503).json({ok:false,error:'team_identity_missing'});
-  const [dk,fd]=await Promise.all([
+  // Use the separately sanitized matchup player list for game/player identity
+  // to prevent public-index listings attributed to the wrong team from leaking.
+  const saved=await fetch(BASE+'/api/public-nfl-game?date='+
+   encodeURIComponent(date)+'&gameId='+encodeURIComponent(gameId),{
+    cache:'no-store',signal:AbortSignal.timeout(8000)}).then(r=>r.ok?r.json():null)
+   .catch(()=>null);
+  const rosterEvidenceReady=saved?.ok===true&&
+   ['CURRENT','LAST_SAVED'].includes(saved?.status)&&
+   String(saved?.gameId)===gameId&&saved?.date===date;
+    const [dk,fd]=await Promise.all([
    read(DKN_NFL_PROPS_URL).catch(e=>({status:'FETCH_FAILED',html:null})),
    read(FANDUEL_NFL_PUBLIC_URL).catch(e=>({status:'FETCH_FAILED',html:null}))
   ]);
@@ -47,6 +57,18 @@ export default async function handler(req,res){
   const fdStatus=fd.status==='FETCH_OK'?'NO_MACHINE_READABLE_MARKETS':fd.status;
   const report=publicBookResearchReport({dkHtml:dk.html,dkStatus:dk.status,
    fdStatus,date,home,away,now:Date.now()});
+  const observed=report.offers.length;
+  report.offers=rosterEvidenceReady?
+   matchPublicOffersToEligibleGamePlayers(report.offers,saved,{home,away}):[];
+  report.books[0].observedOffers=report.offers.length;
+  report.books[0].status=!rosterEvidenceReady?'PLAYER_EVIDENCE_UNAVAILABLE':
+   report.offers.length?'PUBLIC_LISTINGS_MATCHED':
+   observed>0?'NO_VETTED_GAME_PLAYER_MATCH':'NO_MATCHING_PUBLIC_PROPS';
+  report.status=!rosterEvidenceReady?'VETTED_GAME_DATA_UNAVAILABLE':
+   report.offers.length?'PUBLIC_OFFERS_MATCHED':
+   'NO_MATCHING_VETTED_PUBLIC_PROPS';
+  report.excludedUnmatchedPublicRows=Math.max(0,observed-report.offers.length);
+  report.playerIdentityScreened=rosterEvidenceReady;
   res.setHeader('X-Momentum-Public-Market-Source',report.status);
   return res.status(200).json({...report,gameId,checkedAt:new Date().toISOString()});
  }catch{
