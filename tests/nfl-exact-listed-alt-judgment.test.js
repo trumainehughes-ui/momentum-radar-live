@@ -93,7 +93,9 @@ test('passing, receiving and reception markets all select only actual adjacent t
 });
 test('actual sportsbook selection remains exact and browser UI calls shared judgment function',()=>{
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
- assert.ok(html.includes("window.momentumSelectBookAlternate=selectBestListedBookAlternate"));
+ const bootstrap=readFileSync(new URL('../public-book-selector-bootstrap.js',import.meta.url),'utf8');
+ assert.ok(html.includes('src="/public-book-selector-bootstrap.js"'));
+ assert.ok(bootstrap.includes("window.momentumSelectBookAlternate=selectBestListedBookAlternate"));
  assert.ok(html.includes("const choice=window.momentumSelectBookAlternate?.({"));
  assert.ok(html.includes("d.categories?.[cat]"));
  assert.ok(html.includes("matched.push({...choice.offer"));
