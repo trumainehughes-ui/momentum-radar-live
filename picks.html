@@ -468,6 +468,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    gameId:state.selected,teams:[d.home,d.away]});}
   catch{return '<div class="panel" style="margin-top:18px"><h3>Public sportsbook observations on this device</h3>'+
    '<p class="sub">No usable observations were found.</p>'+action+'</div>'}
+  if(!matches.observed?.length)return '';
   const cards=matches.tiers.map(card=>
    '<div class="player"><div class="tiny">'+esc(card.book)+' · '+esc(card.risk)+'</div>'+
    '<b>'+esc(card.legs.length)+' / '+esc(card.minimumLegs)+' exact listed markets</b>'+
