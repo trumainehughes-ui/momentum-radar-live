@@ -2,6 +2,7 @@ import {put,list} from '@vercel/blob';
 import {blobCredentialMode} from '../lib/blob-storage-config.js';
 import {timingSafeEqual} from 'node:crypto';
 import {pregameAiAudit} from '../lib/pregame-ai-review.js';
+import {nflDayAheadAiReviewDue} from '../lib/nfl-scheduled-ai-review.js';
 import {pregameEvidenceAudit,pregameNeedsAiReview,pregamePhase}
  from '../lib/pregame-revalidation.js';
 import {selectedShardGames,collectorAuditReport,writeCollectorAudit}
@@ -165,11 +166,20 @@ async function autoLock(base,games){
   }else if(pregameNeedsAiReview({stage:snap.lockStage,
     changedFields:audit.changedFields,
     priorAiReviewed:prior?.aiReview?.status==='REVIEWED'&&
-      prior?.lockStage==='FINAL_T_MINUS_30'})){
+      prior?.lockStage==='FINAL_T_MINUS_30'})||
+    nflDayAheadAiReviewDue({stage:snap.lockStage,
+      changedFields:audit.changedFields,prior,now:Date.now()})){
+   // Signed cron: ESPN/injury & sportsbook recheck runs before this advisory
+   // AI quality review. AI cannot invent or certify bookmaker prices.
+   snap.aiReviewAttemptAt=new Date().toISOString();
    snap.aiReview=await pregameAiAudit('nfl',g,snap,{base});
-  }else if(!audit.changedFromPrior&&snap.lockStage===prior?.lockStage)
-   snap.aiReview=prior?.aiReview||{status:'PENDING',reason:'awaiting_T30_review'};
-  else snap.aiReview={status:'PENDING',reason:'new_model_evidence_pending_T30_review'};
+  }else if(!audit.changedFromPrior&&snap.lockStage===prior?.lockStage){
+   snap.aiReview=prior?.aiReview||{status:'PENDING',reason:'awaiting_scheduled_review'};
+   snap.aiReviewAttemptAt=prior?.aiReviewAttemptAt||null;
+  }else{
+   snap.aiReview={status:'PENDING',reason:'new_model_evidence_pending_review'};
+   snap.aiReviewAttemptAt=prior?.aiReviewAttemptAt||null;
+  }
   const changed=audit.changedFromPrior;
   await put(P+g.gameId+'.json',JSON.stringify(snap),
    {access:'public',addRandomSuffix:false,allowOverwrite:true});
