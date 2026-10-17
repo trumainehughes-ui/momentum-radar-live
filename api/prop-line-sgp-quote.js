@@ -56,8 +56,12 @@ export default async function handler(req,res){
   const r=await fetch(API+'/sports/'+SPORT[league]+'/events/'+eventId+'/sgp',{method:'POST',headers:{'X-API-Key':process.env.PLAYER_PROPS_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({bookmaker,legs:legs.map(l=>league==='nfl'?exactPropLineSgpLeg(l):({book_outcome_id:l.book_outcome_id,market:l.market}))}),signal:AbortSignal.timeout(12000)});
   const data=await r.json().catch(()=>({}));
   const remaining=r.headers.get('x-daily-remaining');
-  if(!r.ok)return res.status(502).json({ok:false,error:'quote_provider_rejected',providerStatus:r.status,remaining:remaining===null?null:Number(remaining)});
+  if(!r.ok){
+   console.warn('[sgp-quote] provider_rejected',JSON.stringify({league,bookmaker,risk,providerStatus:r.status}));
+   return res.status(502).json({ok:false,error:'quote_provider_rejected',providerStatus:r.status,remaining:remaining===null?null:Number(remaining)});
+  }
   const verified=verifyPropLineSgpResponse({league,gameId,eventId,bookmaker,legs},data);
+  console.info('[sgp-quote] validation',JSON.stringify({league,bookmaker,risk,quoted:verified.quoted,reason:verified.reason,legCount:legs.length}));
   return res.status(200).json({ok:true,quoted:verified.quoted,bookmaker,eventId,americanOdds:verified.americanOdds,pricedAt:verified.pricedAt,legsAccepted:verified.legsAccepted,remaining:remaining===null?null:Number(remaining),status:verified.quoted?'PROVIDER_BOOK_COMBINED_QUOTE':'BOOK_QUOTE_NOT_VERIFIED',reason:verified.reason});
  }catch{return res.status(502).json({ok:false,error:'quote_provider_unavailable'})}
 }
