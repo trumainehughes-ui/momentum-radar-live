@@ -57,8 +57,8 @@ test('missing tiers do not claim a confirmed sportsbook price',()=>{
 test('browser-observed exact-line matcher respects public API field names and does not re-juice model targets',()=>{
  assert.ok(html.includes('leg.name||leg.player'));
  assert.ok(html.includes('leg.cat||leg.category'));
- assert.ok(html.includes("leg.target==='Anytime TD'?null:Number(leg.target??leg.analyticsThreshold??leg.projection)"));
- assert.ok(html.includes('Target was already adjusted for the tier'));
+ assert.ok(html.includes('const forecast=Number(profile.edgeAnalytics?.modelProjection??profile.projection)'));
+ assert.ok(html.includes('The SGP response is deliberately stripped of speculative targets.'));
  assert.ok(html.includes('No combined bookmaker quote has been obtained'));
 });
 
