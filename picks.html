@@ -872,7 +872,9 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
       (p.detail?' · '+esc(p.detail):'')+'</div></div>').join('')+'</div>':
      noData('No reported injuries','This does not confirm every player is active.'));
   }
-  $('#match-content').innerHTML=tabs+'<div class="detail-body">'+body+'</div>';
+  const aiSummary=state.aiLoading?'AI review loading':state.aiData?.status==='SAVED_AI_REVIEW'?'AI review available':state.aiData?.status==='HISTORICAL_AI_REVIEW'?'Historical AI review':'AI review pending';
+  const aiStrip='<div class="panel" style="margin:12px 0;padding:12px 16px;border-color:#366274" aria-label="AI game intelligence status"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><strong>✨ Momentum AI</strong><div class="small">'+esc(aiSummary)+' · Projections are model estimates, not sportsbook quotes</div></div><button type="button" class="soft" data-view="ai">Open AI analysis →</button></div></div>';
+  $('#match-content').innerHTML=tabs+aiStrip+'<div class="detail-body">'+body+'</div>';
  }
  async function loadNbaPublicBook(date,gameId){
   const key=String(gameId);
