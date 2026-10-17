@@ -70,3 +70,39 @@ test('NFL market route refuses third-party odds API use and reads only confirmed
  assert.ok(market.includes('^https:\\/\\/sportsbook\\.draftkings\\.com'));
  assert.ok(market.includes('oddsDebug.directPublicSources=research.directSources||{}'));
 });
+
+test('production public research does not claim FanDuel roster mismatch when only DK supplied odds',async()=>{
+ const {default:handler}=await import('../api/nfl-public-book-research.js');
+ const savedFetch=globalThis.fetch;
+ const html='<table><tr><td>CHI Bears @ ATL Falcons</td><td>10/18, 01:00PM</td>'+
+  '<td>Anytime TD Scorer</td><td>Bijan Robinson</td><td>−290</td></tr></table>';
+ const mock=(body,contentType='application/json')=>({
+  ok:true,status:200,headers:{get:x=>x==='content-type'?contentType:null},
+  json:async()=>body,text:async()=>body
+ });
+ globalThis.fetch=async url=>{
+  const u=String(url);
+  if(u.includes('/api/nfl-schedule?'))return mock({
+   ok:true,date:'2026-10-18',games:[{gameId:'401872999',
+    home:{abbr:'ATL',name:'Atlanta Falcons'},away:{abbr:'CHI',name:'Chicago Bears'}}]});
+  if(u.includes('/api/public-nfl-game?'))return mock({
+   ok:true,status:'CURRENT',date:'2026-10-18',gameId:'401872999',
+   categories:{td:[{name:'Bijan Robinson',playerID:'4429',team:'ATL'}]}});
+  if(u.includes('dknetwork.draftkings.com'))return mock(html,'text/html');
+  if(u.includes('co.sportsbook.fanduel.com'))return mock(
+   '<html><body><div id="app">Please enable JavaScript</div></body></html>','text/html');
+  if(u.includes('sportsbook.draftkings.com'))return mock(
+   '<html><body>DraftKings public storefront</body></html>','text/html');
+  throw Error('unexpected URL '+u);
+ };
+ const res={headers:{},setHeader(k,v){this.headers[k]=v;return this},
+  status(v){this.statusCode=v;return this},json(v){this.body=v;return this}};
+ try{
+  await handler({method:'GET',query:{date:'2026-10-18',gameId:'401872999'}},res);
+  assert.equal(res.statusCode,200);
+  assert.equal(res.body.sourceHealth.DraftKings.observedPropRows,1);
+  assert.equal(res.body.sourceHealth.FanDuel.observedPropRows,0);
+  assert.equal(res.body.sourceHealth.FanDuel.state,'JAVASCRIPT_RENDERED_STOREFRONT');
+  assert.equal(res.body.sourceHealth.FanDuel.requiresMachineReadableMarketFeed,true);
+ }finally{globalThis.fetch=savedFetch}
+});
