@@ -81,10 +81,14 @@ async function selectGame(){
  $('roster').textContent='Loading eligible player names for '+game.away.name+' @ '+game.home.name+'…';
  try{
   const d=await get('/api/nfl-markets?'+new URLSearchParams({date:$('date').value,gameId:game.gameId}));
-  athletes=[...new Set(Object.values(d.categories||{}).flatMap(a=>(Array.isArray(a)?a:[]).map(x=>x.name)).filter(Boolean))];
+  athletes=[...new Map(Object.values(d.categories||{}).flatMap(a=>(Array.isArray(a)?a:[]))
+   .filter(x=>x?.name&&x?.team).map(x=>[String(x.name).toLowerCase()+'|'+String(x.team).toUpperCase(),
+    {name:x.name,team:String(x.team).toUpperCase()}])).values()];
   if(athletes.length<1){
    const saved=await get('/api/public-nfl-game?'+new URLSearchParams({date:$('date').value,gameId:game.gameId}));
-   athletes=[...new Set(Object.values(saved.categories||{}).flatMap(a=>(Array.isArray(a)?a:[]).map(x=>x.name)).filter(Boolean))];
+   athletes=[...new Map(Object.values(saved.categories||{}).flatMap(a=>(Array.isArray(a)?a:[]))
+    .filter(x=>x?.name&&x?.team).map(x=>[String(x.name).toLowerCase()+'|'+String(x.team).toUpperCase(),
+     {name:x.name,team:String(x.team).toUpperCase()}])).values()];
   }
   $('roster').textContent=athletes.length+' screened game player names loaded. Only their exact sportsbook selections can be imported.';
  }catch(e){$('roster').textContent='Game player evidence unavailable. Capture will be held, not guessed.';}
@@ -142,7 +146,8 @@ $('save').addEventListener('click',()=>{
  if(!game||!athletes.length){$('result').innerHTML='<div class="status">Select a matchup with screened players first. No unvetted names can be imported.</div>';return}
  const d=parseVisibleBookCapture({book:$('book').value,sourceUrl:$('source').value,
   text:$('raw').value,date:$('date').value,gameId:game.gameId,
-  homeName:game.home.name,awayName:game.away.name,players:athletes,
+  homeName:game.home.name,awayName:game.away.name,
+  homeAbbr:game.home.abbr,awayAbbr:game.away.abbr,players:athletes,
   observedAt:new Date().toISOString(),captureMethod:bookSourceMethod});
  if(!d.ok||!d.offers.length){
   $('result').innerHTML='<div class="status">'+esc(d.reason||'No exact player market prices found')+' · 0 selections imported. Check the game heading, sportsbook, player names and American prices.</div>';return;
