@@ -614,11 +614,14 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
     if(!propTrustedHost)throw Error('untrusted_prop_line_origin');
     const trustedPropOrigin='https://'+propTrustedHost;
     const propUrl=trustedPropOrigin+'/api/prop-line-markets?league=nfl&date='+date+'&gameId='+encodeURIComponent(gameId);
-    const propResult=await Promise.race([(async()=>{const r=await timedFetch(propUrl,{cache:'no-store',headers:{Authorization:'Bearer '+process.env.CRON_SECRET,'x-momentum-change-token':verifiedToken}});return r.ok?await r.json():{ok:false,providerUnavailable:true}})(),new Promise(resolve=>setTimeout(()=>resolve({ok:false,providerUnavailable:true}),6000))]);
+    const propResult=await Promise.race([(async()=>{const r=await timedFetch(propUrl,{cache:'no-store',headers:{Authorization:'Bearer '+process.env.CRON_SECRET,'x-momentum-change-token':verifiedToken}});return r.ok?await r.json():{ok:false,providerUnavailable:true}})(),new Promise(resolve=>setTimeout(()=>resolve({ok:false,providerUnavailable:true,reason:'collector_deadline_exceeded'}),16500))]);
     // Never convert an unavailable provider response or unmatched event into
     // the misleading claim that a valid book returned zero selections.
-    if(propResult?.providerUnavailable||propResult?.ok===false)
+    if(propResult?.providerUnavailable||propResult?.ok===false){
      oddsDebug.propLineStage='provider_response_unavailable';
+     oddsDebug.propLineFailureReason=String(propResult?.error||propResult?.reason||'upstream_unavailable').slice(0,80);
+     oddsDebug.propLineProviderStatus=Number(propResult?.providerStatus)||null;
+    }
     else if(propResult?.status==='event_not_matched')
      oddsDebug.propLineStage='event_not_matched';
     const offers=propLineRows(propResult,gameId);
