@@ -81,3 +81,14 @@ test('mobile screenshot import runs local OCR, never uploads image to an odds AP
  assert.ok(!html.includes('THE_ODDS_API_KEY'));
  assert.ok(!html.includes('fetch(endpoint'));
 });
+
+test('imported official-book lines are used only for same-book incomplete/complete SGP review',()=>{
+ const home=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.ok(home.includes('capturedMatchupCandidates='));
+ assert.ok(home.includes("const rows=observedBookRows.filter(x=>x.book===book)"));
+ assert.ok(home.includes("options=rows.filter(o=>canon(o.player)===name&&o.category===cat)"));
+ assert.ok(home.includes("const needed=risk==='Small'?4:risk==='Medium'?5:6"));
+ assert.ok(home.includes('candidate.legs')===false || home.includes('capturePath'));
+ assert.ok(home.includes('No combined bookmaker quote has been obtained'));
+ assert.ok(home.includes('No invented alternate lines')||home.includes('No invented alternate'));
+});
