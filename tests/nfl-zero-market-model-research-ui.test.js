@@ -7,21 +7,22 @@ const start=html.indexOf('if(analyticsMode&&Number(d.validation?.sgpEligibleMark
 const end=html.indexOf('}else if(analyticsMode){',start);
 const code=html.slice(start,end);
 
-test('when verified market rows are zero, all three available model SGP tiers remain visible as research',()=>{
+test('zero sportsbook rows renders all available Small Medium Nuke AI yardage tiers',()=>{
  assert.ok(start>=0&&end>start);
- assert.ok(code.includes("d.sgps?.Analytics||[]"));
- assert.ok(code.includes("['Small','Medium','Nuke']"));
- assert.ok(code.includes('legs.map(p=>'));
- assert.ok(code.includes("nflEscape(p.player||p.name)"));
- assert.ok(!code.includes("p.target"));
- assert.ok(code.includes('Projection candidates'));
- assert.ok(!code.includes("String(p.target)+'+ '"));
- assert.ok(!code.includes('No sportsbook-selectable SGP can be generated'));
+ assert.ok(code.includes('const tiersHtml=sgpYardageHtml'));
+ assert.ok(code.includes('(tiersHtml||'));
+ const model=readFileSync(new URL('../lib/nfl-sgp-model-yardage-cards.js',import.meta.url),'utf8');
+ assert.ok(model.includes("['Small','Medium','Nuke']"));
+ assert.ok(model.includes('tier.legs.length'));
+ assert.ok(model.includes('AI yardage projection candidates'));
+ assert.ok(model.includes('AI '));
+ assert.ok(!code.includes('Exact sportsbook selection pending'));
 });
-test('no exact sportsbook offers means no fake book prices or invented 135-yard alternatives',()=>{
- assert.ok(code.includes('Model research only • Not a selectable sportsbook parlay'));
- assert.ok(code.includes('No listed DraftKings/FanDuel line confirmed for this athlete and market'));
- assert.ok(code.includes('Combined odds not quoted'));
+test('model yards do not manufacture an official sportsbook offer or combined price',()=>{
+ const model=readFileSync(new URL('../lib/nfl-sgp-model-yardage-cards.js',import.meta.url),'utf8');
+ assert.ok(model.includes('NOT a listed betting line'));
+ assert.ok(model.includes('Combined sportsbook SGP price not verified'));
+ assert.ok(code.includes('Sportsbook-priced parlays are not verified'));
  assert.ok(!code.includes('actualSgpOdds'));
  assert.ok(!code.includes('135+'));
  assert.ok(code.includes('https://co.sportsbook.fanduel.com/'));
