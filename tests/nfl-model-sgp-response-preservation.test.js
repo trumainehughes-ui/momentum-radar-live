@@ -24,8 +24,9 @@ test('cached NFL SGP response does not reference an undefined response or erase 
 test('cached touchdown SGP legs do not require a numeric yardage threshold',()=>{
  const src=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
  const cached=src.split('function nflVerifiedOnlySgpResponse(body){')[1].split('async function readResponseSnapshot(')[0];
- assert.match(cached,/l\.category==='td'/);
- assert.match(cached,/l\.target!==null&&l\.target!==undefined/);
+ assert.match(cached,/c\.legs\.every\(l=>l\?\.player&&l\?\.team&&l\?\.category\)/);
+ assert.match(cached,/target:null/);
+ assert.match(cached,/marketSelectionStatus:'NO_EXACT_DRAFTKINGS_OR_FANDUEL_OFFER'/);
 });
 
 test('model SGP publication requires checked current roster and injury holds',()=>{
