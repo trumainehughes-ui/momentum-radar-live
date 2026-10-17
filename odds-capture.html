@@ -34,7 +34,7 @@ a{color:#78c6ff}table{width:100%;border-collapse:collapse}th,td{padding:7px;bord
 <p class="small">Screenshot reading runs locally in your browser using an on-demand OCR library. Check each recognized player, yardage, and price before saving. No screenshot is uploaded to Momentum Radar.</p>
 <label for="raw">Paste or correct the visible matchup and player-prop rows</label>
 <textarea id="raw" placeholder="Chicago Bears @ Atlanta Falcons Rushing Props Odds&#10;Bijan Robinson 50+ Yards&#10;-1100&#10;Bijan Robinson 60+ Yards&#10;-500"></textarea>
-<p class="small">For more reliable capture, add a bookmark whose URL is created by the button below. While viewing a public sportsbook market in your normal browser, activate that bookmark. It transfers visible page text only—no cookies, login information, or account details. If the sportsbook offers no copy/select option, a screenshot can be used for manual transcription.</p>
+<p class="small">For more reliable capture, add a bookmark whose URL is created by the button below. While viewing a public sportsbook market in your normal browser, activate that bookmark. It transfers visible page text, not cookies or login tokens. Use it while logged out to avoid including personal account information. If the sportsbook offers no copy/select option, a screenshot can be used for manual transcription.</p>
 <button id="copy" class="secondary" type="button">Copy browser capture bookmark</button>
 <div id="capturestatus" class="small" role="status"></div>
 <button id="save" type="button">Match and save exact displayed odds</button><div id="result" role="status"></div></section>
@@ -133,7 +133,7 @@ window.addEventListener('message',event=>{
  $('capturestatus').textContent='Received visible page text from '+from+'. Choose this page’s scheduled matchup and save.';
 });
 $('copy').addEventListener('click',async()=>{
- const code="javascript:(()=>{const w=window.open('https://momentum-radar-live.vercel.app/odds-capture.html','_blank');if(!w){alert('Allow popups for this bookmark');return;}const m={type:'MOMENTUM_PUBLIC_SPORTSBOOK_CAPTURE',url:location.href,text:document.body.innerText.slice(0,170000)};let n=0;const t=setInterval(()=>{try{w.postMessage(m,'https://momentum-radar-live.vercel.app')}catch(e){}if(++n>=10)clearInterval(t)},400);})();";
+ const code="javascript:(()=>{const w=window.open('https://momentum-radar-live.vercel.app/odds-capture.html','_blank');if(!w){alert('Allow popups for this bookmark');return;}const m={type:'MOMENTUM_PUBLIC_SPORTSBOOK_CAPTURE',url:location.href,text:(()=>{const s=document.body.innerText;const m=s.match(/(?:Rushing|Receiving|Passing|Touchdown|TD Scorer) Props? Odds/i);return(m?s.slice(Math.max(0,m.index-160),m.index+85000):s.slice(0,85000))})()};let n=0;const t=setInterval(()=>{try{w.postMessage(m,'https://momentum-radar-live.vercel.app')}catch(e){}if(++n>=10)clearInterval(t)},400);})();";
  try{await navigator.clipboard.writeText(code);$('capturestatus').textContent='Bookmark code copied. Create a browser bookmark and paste it into the bookmark URL. Use it while viewing the public sportsbook market.'}
  catch{$('capturestatus').textContent='Clipboard unavailable. Use the text-paste field instead.'}
 });
