@@ -61,7 +61,7 @@ test('manual capture remains optional and hidden on prediction-first matchup wit
  assert.ok(main.includes("momentum-radar-public-book-observations-v1"));
  assert.ok(main.includes('bookCaptureHtml'));
  assert.ok(main.includes('const bookCaptureHtml=observedBookRows.length?'));
- assert.ok(main.includes('modelChoiceHtml+autoDkHtml+bookCaptureHtml'));
+ assert.ok(main.includes('modelChoiceHtml+sgpYardageHtml+autoDkHtml+bookCaptureHtml'));
  assert.ok(!main.includes('Capture exact publicly visible sportsbook odds →'));
 
  assert.ok(main.includes('Not server-verified'));
