@@ -114,7 +114,7 @@ function nflVerifiedOnlySgpResponse(body){
  }
  sgps.Analytics=[];
  sgps.mode=sgps.DraftKings.length||sgps.FanDuel.length?
-  'VERIFIED_BOOK_SGPS_ONLY':'NO_VERIFIED_BOOK_SGPS';
+  'VERIFIED_BOOK_SGPS_WITH_MODEL_RESEARCH':response.sgps.Analytics.length?'MODEL_ONLY_RESEARCH':'NO_VERIFIED_BOOK_SGPS';
  sgps.rule='Only accepted bookmaker-priced SGPs appear as parlays; model estimates are not sportsbook offers.';
  return {...body,sgps};
 }
@@ -946,10 +946,25 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
    Number.isFinite(Number(card.actualSgpOdds))&&
    sgpOddsInBand(card.risk,card.actualSgpOdds));
  }
- response.sgps.Analytics=[];
+ // Keep complete, game-scoped MODEL_ONLY tiers visible for research.
+ // Never represent them as sportsbook-priced or ready-to-bet selections.
+ const safeTeams=new Set([String(home||'').toUpperCase(),String(away||'').toUpperCase()]);
+ response.sgps.Analytics=(analyticsSgps||[]).filter(c=>
+  c.tierAssessment?.compositionOk===true&&Array.isArray(c.legs)&&
+  c.legs.length>0&&c.legs.every(l=>
+   String(l.eventID||l.gameId||'')===String(gameId)&&
+   safeTeams.has(String(l.team||'').toUpperCase())&&
+   !/\\b(OUT|INACTIVE|IR|DOUBTFUL|QUESTIONABLE|SUSPENDED)\\b/i.test(
+    [l.injuryStatus,l.availability,l.starterStatus].join(' '))
+  )).map(c=>({risk:c.risk,mode:'MODEL_ONLY',publishable:false,
+   combinedBookQuoteVerified:false,actualSgpOdds:null,
+   explanation:String(c.explanation?.summary||c.reason||'').slice(0,250),
+   legs:c.legs.map(l=>({player:String(l.name||'').slice(0,90),
+    team:String(l.team||''),category:l.cat,target:l.analyticsThreshold,
+    gameId:String(l.eventID||l.gameId||'')}))}));
  response.sgps.mode=response.sgps.DraftKings.length||response.sgps.FanDuel.length?
   'VERIFIED_BOOK_SGPS_ONLY':'NO_VERIFIED_BOOK_SGPS';
- response.sgps.rule='Only accepted, bookmaker-priced same-game parlays are displayed. Model projections are research, not offered sportsbook lines.';
+ response.sgps.rule='Analytics tiers are unpriced model research, not sportsbook offers. Only verified bookmaker quotes can be presented as bettable parlays.';
  const publicResponse=nflPublicMarketResponse(response);
  res.setHeader('Cache-Control','private, no-store');
  // A signed cron must not declare a fresh collector cycle while an old Blob
