@@ -73,6 +73,9 @@ export default async function handler(req,res){
     role:'LIMITED_FIRST_PARTY_PUBLISHED_MARKETS'}
   };
   const observed=report.offers.length;
+  const observedByBook=Object.fromEntries(report.books.map(book=>[
+   book.book,report.offers.filter(x=>x.book===book.book).length
+  ]));
   report.offers=rosterEvidenceReady?
    matchPublicOffersToEligibleGamePlayers(report.offers,saved,{home,away}):[];
   for(const book of report.books){
@@ -80,7 +83,7 @@ export default async function handler(req,res){
    book.observedOffers=count;
    book.status=!rosterEvidenceReady?'PLAYER_EVIDENCE_UNAVAILABLE':
     count?'PUBLIC_LISTINGS_MATCHED':
-    observed>0?'NO_VETTED_GAME_PLAYER_MATCH':book.status;
+    observedByBook[book.book]>0?'NO_VETTED_GAME_PLAYER_MATCH':book.status;
   }
   report.status=!rosterEvidenceReady?'VETTED_GAME_DATA_UNAVAILABLE':
    report.offers.length?'PUBLIC_OFFERS_MATCHED':
