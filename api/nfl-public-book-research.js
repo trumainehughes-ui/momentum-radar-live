@@ -73,6 +73,7 @@ export default async function handler(req,res){
   report.playerIdentityScreened=rosterEvidenceReady;
   report.participationSignals=publicNflOfferParticipationSignals(report.offers,{gameId,now:Date.now()});
   report.participationPolicy='SUPPORTING_SIGNAL_ONLY_OFFICIAL_ROSTER_AND_INJURY_RULES_OVERRIDE';
+  report.sourceHealth={DraftKings:{state:report.books[0].status,verifiedPropRows:report.offers.filter(x=>x.book==='DraftKings').length},FanDuel:{state:report.books[1].status,verifiedPropRows:0,requiresMachineReadableMarketFeed:fdStatus==='JAVASCRIPT_RENDERED_STOREFRONT',noPriceInference:true}};
   report.coverage={scope:'SELECTED_GAME',gameId,observedRows:observed,
    vettedRows:report.offers.length,excludedRows:report.excludedUnmatchedPublicRows,
    categories:[...new Set(report.offers.map(x=>x.category))].sort(),
