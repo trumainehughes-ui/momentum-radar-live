@@ -274,7 +274,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  async function loadPublicBookResearch(date,gameId){
   const key=String(gameId);
   state.publicBookLoading=true;state.publicBookResearch=null;
-  if(state.selectedData&&state.detailTab==='sgps')renderGame(state.selectedData);
+  if(state.selectedData&&state.detailTab!=='live')renderGame(state.selectedData);
   try{
    const data=await getJson('/api/nfl-public-book-research?'+new URLSearchParams({date,gameId:key}));
    if(state.date!==date||String(state.selected)!==key)return;
@@ -286,7 +286,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   }finally{
    if(state.date===date&&String(state.selected)===key){
     state.publicBookLoading=false;
-    if(state.selectedData&&state.detailTab==='sgps')renderGame(state.selectedData);
+    if(state.selectedData&&state.detailTab!=='live')renderGame(state.selectedData);
    }
   }
  }
@@ -607,16 +607,17 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   // A second tap collapses. Selecting another moves the same analytics panel.
   if(String(state.selected)===String(id)){
    ++state.loading;state.selected='';state.selectedData=null;state.aiData=null;
-   state.liveData=null;state.detailTab='overview';renderGames();return;
+   state.liveData=null;state.weatherData=null;state.weatherLoading=false;state.detailTab='overview';renderGames();renderWeather();return;
   }
   const token=++state.loading;
   state.selected=String(id);state.selectedData=null;state.aiData=null;
-  state.liveData=null;state.publicBookResearch=null;state.publicBookLoading=false;state.detailTab=state.module==='sgps'?'sgps':state.module==='live'?'live':'overview';renderGames();
+  state.liveData=null;state.publicBookResearch=null;state.publicBookLoading=false;state.weatherData=null;state.weatherLoading=false;state.detailTab=state.module==='sgps'?'sgps':state.module==='live'?'live':'overview';renderGames();
   if(scroll&&typeof requestAnimationFrame==='function')
    requestAnimationFrame(()=>{
     if(token===state.loading)
      $('#game-inline-slot')?.scrollIntoView?.({behavior:'smooth',block:'start'});
    });
+ if(state.league==='nfl')loadPublicWeather(state.date,String(id));
  $('#match-title').textContent=(g.away?.name||'Away')+' @ '+(g.home?.name||'Home');
  $('#match-subtitle').textContent=fmtTime(g.kickoff)+' • '+statusLabel(g)+' • Predictions are estimates';
  $('#freshness').textContent='';$('#match-content').innerHTML='<div class="empty loading" style="margin-top:18px">Loading saved predictions…</div>';
@@ -627,7 +628,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    return;
   }
  try{const d=await getJson('/api/public-nfl-game?'+new URLSearchParams({date:state.date,gameId:String(id)}));if(token!==state.loading)return;
- $('#freshness').textContent=(d.status==='LAST_SAVED'?'Model preview • ':'')+fmtStamp(d.updatedAt);state.selectedData=d;renderGame(d);if(state.detailTab==='live'&&!state.liveData&&!state.liveLoading)loadPublicLive(String(id));if(state.detailTab==='sgps')loadPublicBookResearch(state.date,String(id))}
+ $('#freshness').textContent=(d.status==='LAST_SAVED'?'Model preview • ':'')+fmtStamp(d.updatedAt);state.selectedData=d;renderGame(d);if(state.detailTab==='live'&&!state.liveData&&!state.liveLoading)loadPublicLive(String(id));if(state.league==='nfl'&&!state.publicBookLoading)loadPublicBookResearch(state.date,String(id))}
  catch{if(token===state.loading)$('#match-content').innerHTML='<div class="empty" style="margin-top:18px">Predictions are temporarily unavailable. Try refreshing shortly.</div>'}}
 function renderExtras(){
  const box=$('#extra-content');if(!box)return;
@@ -661,7 +662,7 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
  async function loadRanks(){const token=++state.rankLoading;state.rankings=null;$('#rankings').innerHTML='<div class="empty loading grid-span">Loading rankings…</div>';
  if(state.league!=='nfl')return;
  try{const d=await getJson('/api/public-nfl-rankings?'+new URLSearchParams({date:state.date}));if(token!==state.rankLoading)return;state.rankings=d;renderRanks();renderExtras()}catch{if(token===state.rankLoading)$('#rankings').innerHTML=noData('Rankings unavailable','Check again after the next saved update.')}}
- async function loadSlate(upcoming){++state.loading;++state.rankLoading;state.selected='';state.selectedData=null;state.aiData=null;state.liveData=null;state.publicBookResearch=null;state.publicBookLoading=false;state.games=[];renderGames();$('#games').innerHTML='<div class="empty loading grid-span">Loading scheduled matchups…</div>';
+ async function loadSlate(upcoming){++state.loading;++state.rankLoading;state.selected='';state.selectedData=null;state.aiData=null;state.liveData=null;state.publicBookResearch=null;state.publicBookLoading=false;state.weatherData=null;state.weatherLoading=false;state.games=[];renderGames();renderWeather();$('#games').innerHTML='<div class="empty loading grid-span">Loading scheduled matchups…</div>';
  $('#match-title').textContent='Select a game';$('#match-content').innerHTML='<div class="empty" style="margin-top:18px">Choose a matchup to explore the picks.</div>';renderNflModule();
  const base=state.league==='nfl'?'/api/nfl-schedule':'/api/nba-slate';
  const q=(!upcoming&&state.date)?'?'+new URLSearchParams({date:state.date}):'';
@@ -720,8 +721,10 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
   }catch{/* No new dataset is safer than clearing an already displayed one. */}
   if(state.detailTab==='ai'&&id&&state.selected===id&&!state.aiLoading)
    loadSavedAi(date,id);
-  if(state.detailTab==='sgps'&&id&&state.selected===id&&!state.publicBookLoading)
+  if(id&&state.selected===id&&!state.publicBookLoading)
    loadPublicBookResearch(date,id);
+  if(id&&state.selected===id&&!state.weatherLoading)
+   loadPublicWeather(date,id);
  }
  // Automatic 5-minute public revalidation never generates new bookmaker or AI calls.
  setInterval(refreshReadOnlyPredictions,5*60*1000);
