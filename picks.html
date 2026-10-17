@@ -226,6 +226,11 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   const nfl=state.league==='nfl',module=allowedModules.has(state.module)?state.module:'games';
   const ranking=nfl&&rankedModules.has(module);
   $('#nfl-module-panel').hidden=!nfl;
+  $('#nba-module-panel').hidden=nfl;
+  document.querySelectorAll('[data-nba-module]').forEach(b=>{
+   const active=!nfl&&b.dataset.nbaModule===state.nbaTab;
+   b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));
+  });
   $('#game-day-board').hidden=nfl&&!gameModules.has(module);
   $('#rankings-section').hidden=!ranking;
   $('#extra-section').hidden=!(nfl&&module==='best');
@@ -756,21 +761,34 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   // A second tap collapses. Selecting another moves the same analytics panel.
   if(String(state.selected)===String(id)){
    ++state.loading;state.selected='';state.selectedData=null;state.aiData=null;
-   state.liveData=null;state.weatherData=null;state.weatherLoading=false;state.detailTab='overview';renderGames();renderWeather();return;
+   state.liveData=null;state.nbaData=null;state.nbaBookResearch=null;state.nbaBookLoading=false;state.weatherData=null;state.weatherLoading=false;state.detailTab='overview';renderGames();renderWeather();return;
   }
   const token=++state.loading;
   state.selected=String(id);state.selectedData=null;state.aiData=null;
-  state.liveData=null;state.publicBookResearch=null;state.publicBookLoading=false;state.weatherData=null;state.weatherLoading=false;state.detailTab=state.module==='sgps'?'sgps':state.module==='live'?'live':'overview';renderGames();
+  state.liveData=null;state.nbaData=null;state.nbaBookResearch=null;state.nbaBookLoading=false;state.publicBookResearch=null;state.publicBookLoading=false;state.weatherData=null;state.weatherLoading=false;state.detailTab=state.module==='sgps'?'sgps':state.module==='live'?'live':'overview';renderGames();
   if(scroll&&typeof requestAnimationFrame==='function')
    requestAnimationFrame(()=>{
     if(token===state.loading)
      $('#game-inline-slot')?.scrollIntoView?.({behavior:'smooth',block:'start'});
    });
+ $('#public-weather-impact').hidden=state.league==='nba';
  if(state.league==='nfl')loadPublicWeather(state.date,String(id));
  $('#match-title').textContent=(g.away?.name||'Away')+' @ '+(g.home?.name||'Home');
  $('#match-subtitle').textContent=fmtTime(g.kickoff)+' • '+statusLabel(g)+' • Predictions are estimates';
  $('#freshness').textContent='';$('#match-content').innerHTML='<div class="empty loading" style="margin-top:18px">Loading saved predictions…</div>';
- if(state.league==='nba'){$('#match-content').innerHTML='<div class="empty" style="margin-top:18px"><strong>NBA matchup preview</strong><div>Schedule and scores are available. Screened public player and parlay picks will appear here when NBA prediction snapshots are enabled.</div></div>';return}
+ if(state.league==='nba'){
+  $('#match-content').innerHTML='<div class="empty loading">Loading NBA game data…</div>';
+  try{
+   const report=await getJson('/api/nba-game?'+new URLSearchParams({gameId:String(id)}));
+   if(token!==state.loading||state.league!=='nba')return;
+   state.nbaData=report;$('#freshness').textContent=fmtStamp(
+    report.pregameReadiness?.checkedAt||report.fetchedAt);
+   renderNbaGame(report);loadNbaPublicBook(state.date,String(id));
+  }catch{if(token===state.loading)
+   $('#match-content').innerHTML=noData('NBA analysis temporarily unavailable',
+     'No unverified player data will be shown. Please refresh to retry.');}
+  return;
+ }
  if(g.status==='FINAL'||g.status==='LIVE'){
    if(state.detailTab==='live'){$('#match-content').innerHTML=showLive({});loadPublicLive(String(id));}
    else $('#match-content').innerHTML='<div class="empty" style="margin-top:18px">This game is '+esc(statusLabel(g).toLowerCase())+'. Pregame predictions are not presented as live betting lines.</div>';
@@ -811,7 +829,7 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
  async function loadRanks(){const token=++state.rankLoading;state.rankings=null;$('#rankings').innerHTML='<div class="empty loading grid-span">Loading rankings…</div>';
  if(state.league!=='nfl')return;
  try{const d=await getJson('/api/public-nfl-rankings?'+new URLSearchParams({date:state.date}));if(token!==state.rankLoading)return;state.rankings=d;renderRanks();renderExtras()}catch{if(token===state.rankLoading)$('#rankings').innerHTML=noData('Rankings unavailable','Check again after the next saved update.')}}
- async function loadSlate(upcoming){++state.loading;++state.rankLoading;state.selected='';state.selectedData=null;state.aiData=null;state.liveData=null;state.publicBookResearch=null;state.publicBookLoading=false;state.weatherData=null;state.weatherLoading=false;state.games=[];renderGames();renderWeather();$('#games').innerHTML='<div class="empty loading grid-span">Loading scheduled matchups…</div>';
+ async function loadSlate(upcoming){++state.loading;++state.rankLoading;state.selected='';state.selectedData=null;state.aiData=null;state.liveData=null;state.publicBookResearch=null;state.publicBookLoading=false;state.nbaData=null;state.nbaBookResearch=null;state.nbaBookLoading=false;state.weatherData=null;state.weatherLoading=false;state.games=[];renderGames();renderWeather();$('#games').innerHTML='<div class="empty loading grid-span">Loading scheduled matchups…</div>';
  $('#match-title').textContent='Select a game';$('#match-content').innerHTML='<div class="empty" style="margin-top:18px">Choose a matchup to explore the picks.</div>';renderNflModule();
  const base=state.league==='nfl'?'/api/nfl-schedule':'/api/nba-slate';
  const q=(!upcoming&&state.date)?'?'+new URLSearchParams({date:state.date}):'';
@@ -837,10 +855,10 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
  $('#leagues').addEventListener('click',e=>{
   const b=e.target.closest('[data-league]');if(!b)return;
   if(state.league===b.dataset.league){
-   if(state.league==='nfl')$('#nfl-module-panel')?.scrollIntoView?.({behavior:'smooth',block:'start'});
+   (state.league==='nfl'?$('#nfl-module-panel'):$('#nba-module-panel'))?.scrollIntoView?.({behavior:'smooth',block:'start'});
    return;
   }
-  state.league=b.dataset.league;state.module='games';
+  state.league=b.dataset.league;state.module='games';state.nbaTab='overview';
   document.querySelectorAll('[data-league]').forEach(el=>el.classList.toggle('active',el===b));
   state.date='';$('#day').value='';loadSlate(true);
  });
