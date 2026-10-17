@@ -33,3 +33,16 @@ Ingest -> normalize -> validate source/time/team/player -> deterministic calcula
 - AI cannot add injured/inactive players.
 - No numeric weather-adjusted prop or SGP without an actual model calculation.
 - Every AI interpretation names its input evidence and freshness.
+
+## Exact sportsbook ladder rule (hard gate)
+1. A model projection (e.g. 135 rushing yards) is not a sportsbook offer. Keep it labeled MODEL_ESTIMATE and never copy it into a selectable bet line.
+2. For each candidate, retrieve the actual FanDuel and DraftKings market ladder for the specific game, player, stat, and market type (e.g. alternative rushing yards). Persist exact threshold, price, sportsbook, observed_at, and source identifier.
+3. Only choose a threshold if it is an exact match in that sportsbook's verified currently offered ladder. Never round to the nearest five, interpolate between offers, infer availability from another sportsbook, or invent odds.
+4. A 5-yard increment is a formatting/eligibility constraint, NOT proof a line is offered. An available 125+ and 150+ ladder does not authorize 130+, 135+, or 140+.
+5. If one sportsbook offers a line and the other does not, build separate book-specific candidates. If neither confirms the desired threshold, select a different verified option or withhold that leg.
+6. Before publishing an SGP, revalidate every leg's exact market, threshold, and odds, plus compatibility/acceptance in the chosen book. Combined odds estimated by multiplication must be labeled an estimate, not a sportsbook quote.
+7. When public pages cannot be read reliably or the ladder is incomplete, mark the affected leg unverified and exclude it from verified SGPs. Do not present guesses as sportsbook offers.
+8. The AI may rank or explain verified choices, but deterministic code must reject any leg not found in the verified book-specific ladder.
+
+### Regression example
+For a supplied FanDuel Bijan Robinson rushing ladder containing 125+, 150+, 175+ (among other offered thresholds), a model projection of 135 does NOT authorize a 135+, 130+, or 140+ prop. A chosen prop must match an actual offer for that book at the time of verification.
