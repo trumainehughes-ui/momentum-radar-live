@@ -109,6 +109,7 @@ h2{font-size:26px;letter-spacing:-.035em;margin:0 0 5px}h3{font-size:18px;letter
 .sgp-brief-status{color:#adc4cf;font-size:12px;line-height:1.5;margin:0 0 13px}
 .sgp-research-details{border:1px solid #2c4b5a;border-radius:12px;margin-top:17px;background:#0d2431}
 .sgp-research-details>summary{cursor:pointer;color:#a8dfd0;font-weight:750;font-size:13px;padding:14px 17px}
+.sgp-research-heading{color:#a8dfd0;font-weight:750;font-size:13px;padding:14px 17px}
 .sgp-research-inner{padding:0 12px 12px}
 .sgp-research-inner>.panel{margin-top:0!important}
 @media(max-width:570px){.sgp-slips{grid-template-columns:minmax(0,1fr)}.sgp-leg{padding:12px 15px}.sgp-slip-head{padding:14px 15px}}
@@ -451,8 +452,9 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   const verification=ready&&!anyStale?
    '<p class="sgp-brief-status">Sportsbook-issued combined quotes below. Recheck selections before betting.</p>'+renderOdds(quotes):
    '<p class="sgp-brief-status">Model picks only · Combined sportsbook odds and player lines are not verified. Confirm every selection at the sportsbook.</p>';
-  const research='<details class="sgp-research-details"><summary>Public sportsbook price research (optional)</summary>'+
-   '<div class="sgp-research-inner">'+renderPublicBookResearch()+'</div></details>';
+  const research='<section class="sgp-research-details" aria-label="Public sportsbook player odds">'+
+   '<div class="sgp-research-heading">Public DraftKings and FanDuel player odds</div>'+
+   '<div class="sgp-research-inner">'+renderPublicBookResearch()+'</div></section>';
   return intro+staleNote+slips+verification+research;
  }
  function offerHtml(x){const o=x.bookOffer;if(!o)return '';
