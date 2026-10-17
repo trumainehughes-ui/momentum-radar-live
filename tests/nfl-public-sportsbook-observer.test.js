@@ -70,7 +70,7 @@ test('public UI checks only signed scoped game source and retains verified SGP s
  assert.ok(!api.includes('CRON_SECRET'));
  assert.ok(!api.includes('fetch(req.query'));
  assert.ok(ui.includes("loadPublicBookResearch(state.date,state.selected)"));
- assert.ok(ui.includes('return modelChoiceHtml+intro+staleNote+slips+verification+renderLocalBookParity(d)+research'));
+ assert.ok(ui.includes('return modelChoiceHtml+tierYardageHtml+intro+staleNote+slips+verification+renderLocalBookParity(d)+research'));
  assert.ok(ui.includes('correlated SGP prices require sportsbook confirmation'));
  assert.ok(ui.includes('window.momentumNflModelChoice?.buildNflModelChoiceBoard({'));
  assert.ok(ui.includes('state.currentBookSgpModel=m;'));
