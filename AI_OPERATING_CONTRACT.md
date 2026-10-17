@@ -55,3 +55,10 @@ For a supplied FanDuel Bijan Robinson rushing ladder containing 125+, 150+, 175+
 - Keep DraftKings and FanDuel ladders separate. Individual prices are not a bookmaker-issued correlated SGP price. Never mark a slip bettable until every actual leg and the book's combined price have been confirmed.
 - Scheduled public checks are due the day before each game and 30 minutes before start. Backend collectors must respect each site's access controls and cannot claim coverage if a source returns no readable market lines.
 - Automated regressions must prove the screenshot-observed Bijan Robinson FanDuel rushing ladder (50+/60+/70+/80+/90+/100+/110+/125+) is accepted **only as an observed example**, and that 135+ is rejected unless subsequently present in an actual newer bookmaker observation.
+
+## Strict SGP market-display guard (October 17, 2026)
+- **No Small/Medium/Nuke SGP card or public SGP slip may display a numeric yardage/reception target unless an exact currently offered threshold and American price were observed for that specific player, market, matchup, and sportsbook on DraftKings.com or FanDuel.com.**
+- A model projection of 135 rushing yards for Bijan Robinson is NOT permission to present “135+” as a selectable bet; a FanDuel screenshot of 125+ at +300 only supports that exact observed 125+ individual selection for the moment observed.
+- When bookmaker market evidence is absent, the SGP UI may display screened player names and market categories, but not synthetic numerical sportsbook selections. Keep projection calculations in analytics-only panels, clearly separate from parlays.
+- Enforce the rule on **fresh API responses, cached API responses, the production matchup display, and the public picks display**, with schema bumps for stale caches and regression tests.
+- Bookmaker-issued correlated SGP prices remain unverified until the actual bookmaker validates the combined slip; never calculate a correlated SGP price by multiplying individual odds and presenting it as book-issued.
