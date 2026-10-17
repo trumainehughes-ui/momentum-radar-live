@@ -840,6 +840,10 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
  }catch{$('#date-caption').textContent='Unable to retrieve game schedule';$('#games').innerHTML=noData('Schedule temporarily unavailable','Refresh or try another date.')}}
  $('#games').addEventListener('click',e=>{const b=e.target.closest('[data-game]');if(b)openGame(b.dataset.game)});
  $('#match-content').addEventListener('click',e=>{
+  const nba=e.target.closest('[data-nba-view]');
+  if(nba&&state.league==='nba'&&state.nbaData){
+   state.nbaTab=nba.dataset.nbaView;renderNflModule();renderNbaGame(state.nbaData);return;
+  }
   const b=e.target.closest('[data-view]'),p=e.target.closest('[data-prop]');
   if(p&&state.selectedData){state.propTab=p.dataset.prop;renderGame(state.selectedData);return}
   if(e.target.closest('[data-refresh-live]')&&state.selected)return loadPublicLive(state.selected);
@@ -865,6 +869,12 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
  $('#nfl-module-tabs').addEventListener('click',e=>{
   const b=e.target.closest('[data-nfl-module]');if(b)activateNflModule(b.dataset.nflModule);
  });
+ $('#nba-module-tabs').addEventListener('click',e=>{
+  const b=e.target.closest('[data-nba-module]');
+  if(!b||state.league!=='nba')return;
+  state.nbaTab=b.dataset.nbaModule;renderNflModule();
+  if(state.nbaData)renderNbaGame(state.nbaData);
+ });
  $('#rank-tabs').addEventListener('click',e=>{const b=e.target.closest('[data-rank]');if(b)activateNflModule(b.dataset.rank)});
  $('#day').addEventListener('change',()=>{state.date=$('#day').value;if(state.date)loadSlate(false)});
  $('#today').addEventListener('click',()=>{state.date='';$('#day').value='';loadSlate(true)});
@@ -872,8 +882,21 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
  async function refreshReadOnlyPredictions(){
   // Public polls read saved snapshots only. No calls to the market builder,
   // Groq inference or privileged collector/write routes.
-  if(document.hidden||state.league!=='nfl'||!state.date)return;
+  if(document.hidden||!state.date)return;
   const date=state.date,id=state.selected;
+  if(state.league==='nba'){
+   if(!id)return;
+   try{
+    const d=await getJson('/api/nba-game?'+new URLSearchParams({gameId:id}));
+    if(state.league==='nba'&&state.date===date&&String(state.selected)===String(id)){
+     state.nbaData=d;$('#freshness').textContent=fmtStamp(
+      d.pregameReadiness?.checkedAt||d.fetchedAt);renderNbaGame(d);
+    }
+   }catch{/* Keep previously displayed NBA game data. */}
+   if(!state.nbaBookLoading)loadNbaPublicBook(date,id);
+   return;
+  }
+  if(state.league!=='nfl')return;
   if(id){
    try{const d=await getJson('/api/public-nfl-game?'+new URLSearchParams({date,gameId:id}));
     if(state.league==='nfl'&&state.date===date&&String(state.selected)===String(id)){
