@@ -118,7 +118,9 @@ test('owner/public UI and ranking endpoints display same target-based percentage
  assert.ok(html.includes('nflLegHitChance(x)'));
  assert.ok(picks.includes('function hitChanceText(x,cat)'));
  assert.ok(picks.includes('hitChanceText(x,cat)'));
- assert.ok(picks.includes('hitChanceText(l,l.category)'));
+ assert.ok(picks.includes('sgpSelectionDisplay(l)'));
+ assert.ok(picks.includes('sgp-leg-selection'));
+ // Hit probabilities stay in player/AI analysis, not customer SGP slips.
  assert.ok(markets.includes('hitChance:estimateNflHitChance(x,cat)'));
  assert.ok(markets.includes('hitChance:estimateNflHitChance(leg,leg.cat,{target:leg.analyticsThreshold})'));
  assert.ok(ranks.includes('hitProbabilityPct:hit?.percent??null'));
