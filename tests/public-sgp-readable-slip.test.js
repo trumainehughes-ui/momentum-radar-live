@@ -11,6 +11,8 @@ assert.ok(first>0&&last>first,'SGP renderer is available');
 const snippet=script.slice(first,last);
 function setup(){
  const context={
+  state:{recheckLoading:false,recheckStatus:null},
+  fmtStamp:()=> 'Updated Oct 17, 1:30 AM',
   esc:v=>String(v??'').replace(/[&<>"']/g,s=>({
    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   })[s]),
