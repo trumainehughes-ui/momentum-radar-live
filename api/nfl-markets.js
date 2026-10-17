@@ -913,6 +913,20 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
   },oddsDebug,fetchedAt:new Date().toISOString()};
  // Signed quotes above need exact provider outcome IDs. The public response
  // and read-only Blob snapshot must never include those internal instructions.
+ // Never publish speculative analytics thresholds or unquoted book candidates
+ // as a bettable Small/Medium/Nuke parlay. Internal quote preflight above
+ // still evaluates all candidates; this is a response-boundary safety gate.
+ // A bookmaker-priced card must have the exact accepted correlated quote.
+ for(const book of ['DraftKings','FanDuel']){
+  response.sgps[book]=(response.sgps[book]||[]).filter(card=>
+   card.publishable===true&&card.combinedBookQuoteVerified===true&&
+   Number.isFinite(Number(card.actualSgpOdds))&&
+   sgpOddsInBand(card.risk,card.actualSgpOdds));
+ }
+ response.sgps.Analytics=[];
+ response.sgps.mode=response.sgps.DraftKings.length||response.sgps.FanDuel.length?
+  'VERIFIED_BOOK_SGPS_ONLY':'NO_VERIFIED_BOOK_SGPS';
+ response.sgps.rule='Only accepted, bookmaker-priced same-game parlays are displayed. Model projections are research, not offered sportsbook lines.';
  const publicResponse=nflPublicMarketResponse(response);
  res.setHeader('Cache-Control','private, no-store');
  // A signed cron must not declare a fresh collector cycle while an old Blob
