@@ -481,17 +481,17 @@ const observedBookRows=(()=>{
   '<div class="card" style="grid-column:1/-1">'+window.momentumNflModelChoice.renderNflModelChoiceBoard(modelBoard)+'</div>':
   '<div class="card" style="grid-column:1/-1"><b>AI player yardage projections</b><div class="note">No role-screened player forecasts qualify yet. Out, inactive and injured-reserve players are not inserted to fill gaps; confirmed starting lineup evidence may still be missing.</div></div>';
  const capturePath='/odds-capture.html?'+new URLSearchParams({date:nflData?.date||'',gameId:g.gameId});
-const bookCaptureHtml=
+const bookCaptureHtml=observedBookRows.length?
  '<div class="card" style="grid-column:1/-1"><b>Public sportsbook odds captured in your browser</b>'+
  '<div class="note">Exact player lines collected from your own DraftKings/FanDuel screen. Saved only in this browser for 20 minutes. Not independently confirmed as a bookmaker-issued SGP quote.</div>'+
- '<div class="refresh"><a href="'+capturePath+'">Capture exact publicly visible sportsbook odds →</a></div>'+
+ 
  (observedBookRows.length?'<div class="meta">'+observedBookRows.length+' individual official-site observations (authorized publication or same-device)</div>'+
   observedBookRows.map(x=>'<div class="nflMarketLine"><b>'+nflEscape(x.player)+'</b>'+
    '<div class="meta">'+nflEscape(x.book)+' • '+nflEscape(x.category==='td'?'Anytime TD':x.line+'+ '+x.category)+
    ' • '+(Number(x.odds)>0?'+':'')+nflEscape(x.odds)+'</div>'+
    '<div class="note">Browser-observed public page • '+nflEscape(x.observedAt)+' • Not server-verified</div></div>').join(''):
   '<div class="note">No current sportsbook observations captured or authorized for publication.</div>')+
- '</div>';
+ '</div>':'';
 if(analyticsMode&&Number(d.validation?.sgpEligibleMarketRows||0)===0){
  // Read-only model candidates are available even when sites supply no machine-readable prices.
  // Display player/projected-stat research, never pretend projections are sportsbook lines.
