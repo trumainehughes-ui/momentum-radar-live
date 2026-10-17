@@ -106,7 +106,7 @@ async function loadNFLWeather(g){
   const forecast=await response.json(),hours=forecast.hourly;const times=hours?.time||[];
   let index=-1,delta=Infinity;for(let i=0;i<times.length;i++){const d=Math.abs(times[i]*1000-kickoff.getTime());if(d<delta){delta=d;index=i;}}
   if(index<0||delta>3600000)throw Error('Kickoff forecast is outside available forecast hours');
-  const n=(key,unit='')=>{const v=Number(hours[key]?.[index]);return Number.isFinite(v)?Math.round(v)+unit:'Not reported'};
+  const n=(key,unit='')=>{const raw=hours[key]?.[index];if(raw===null||raw===undefined||raw==='')return 'Not reported';const v=Number(raw);return Number.isFinite(v)?Math.round(v)+unit:'Not reported'};
   const roof=/\b(dome|indoor|enclosed)\b/i.test(venue)?'Indoor venue indicated; confirm roof status':/\b(retractable)\b/i.test(venue)?'Retractable roof; game-day status not verified':'Roof status not independently verified';
   const wind=Number(hours.wind_speed_10m?.[index]),gust=Number(hours.wind_gusts_10m?.[index]);
   const impact=wind>=20||gust>=30?'Strong wind could make longer passes and kicks more difficult.':wind>=12?'Moderate wind may affect deeper throws and kicking.':'Forecast wind alone does not indicate a major passing disadvantage.';
