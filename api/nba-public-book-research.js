@@ -1,6 +1,6 @@
 // Public NBA bookmaker research. Source HTML is read-only, scoped by a
 // validated NBA scoreboard game and current game-specific model candidates.
-import {NBA_DKN_LISTINGS,NBA_FANDUEL_PUBLIC,parseNbaDkPublicProps,onlyKnownNbaPlayers} from '../lib/nba-public-book-observer.js';
+import {NBA_DKN_LISTINGS,NBA_FANDUEL_PUBLIC,parseNbaDkPublicProps,onlyKnownNbaPlayers,onlyRosterListedNbaOffers} from '../lib/nba-public-book-observer.js';
 const ORIGIN='https://momentum-radar-live.vercel.app';
 const readJson=async url=>{
  const r=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout(9000)});
@@ -34,7 +34,27 @@ export default async function handler(req,res){
    }else dkStatus='PUBLIC_SOURCE_HTTP_'+r.status;
   }catch{dkStatus='PUBLIC_SOURCE_UNREACHABLE'}
   const raw=html?parseNbaDkPublicProps(html,{date,game}):[];
-  const matched=onlyKnownNbaPlayers(raw,report,game);
+  const verifiedModel=onlyKnownNbaPlayers(raw,report,game);
+  // When first NBA pregame models are not ready, independently check ESPN
+  // current team rosters so public prices needn't vanish behind model status.
+  const rosters=await Promise.all([game.home,game.away].map(async team=>{
+   if(!/^\d{1,4}$/.test(String(team.id||'')))return null;
+   try{
+    const r=await fetch('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/'+
+     encodeURIComponent(team.id)+'/roster',{cache:'no-store',
+      signal:AbortSignal.timeout(6000)});
+    if(!r.ok)return null;
+    return {team:team.abbr,data:await r.json()};
+   }catch{return null;}
+  }));
+  const rostered=onlyRosterListedNbaOffers(raw,{
+   home:game.home,away:game.away,rosters:rosters.filter(Boolean),
+   injuries:report.injuries||[]});
+  const keys=new Set();
+  const matched=[...verifiedModel,...rostered].filter(o=>{
+   const key=o.player+'|'+o.category+'|'+o.side+'|'+o.line;
+   if(keys.has(key))return false;keys.add(key);return true;
+  });
   const checkedAt=new Date().toISOString();
   return res.status(200).json({ok:true,date,gameId,
    status:matched.length?'PUBLIC_OFFERS_OBSERVED':
