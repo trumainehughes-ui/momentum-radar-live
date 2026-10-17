@@ -41,6 +41,8 @@ const RESPONSE_CACHE=new Map(),ANALYTICS_CACHE=new Map();const ANALYTICS_TTL=6*6
 const SNAP_PREFIX='momentum-nfl-markets/v2/';
 // Net-profit targets on a $10 stake: Small $200–$300 (+2000–+3000), Medium $300–$800 (+3000–+8000), Nuke over $1,000 (+10001+).
 const SGP_ODDS_BANDS={Small:{min:2000,max:3000},Medium:{min:3000,max:8000},Nuke:{min:10001,max:Infinity}};
+// Public sites are the sole odds authority; third-party odds APIs are disabled.
+const DIRECT_PUBLIC_ODDS_ONLY=true;
 // Source hierarchy when sportsbook APIs are degraded:
 // 1) NFL.com / ESPN performance, roles and injuries drive the football projection.
 // 2) Team offense vs opponent defense + DVP adjusts the projection.
@@ -588,13 +590,60 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
   Boolean(process.env.CRON_SECRET)&&
   String(req.headers?.authorization||'')==='Bearer '+process.env.CRON_SECRET;
  const sgoFlag=String(process.env.SPORTSGAMEODDS_ENABLED||'').toLowerCase();
- const sgoEnabled=Boolean(process.env.SPORTSGAMEODDS_API_KEY)&&sgoFlag!=='false'&&!modelOnlyPrimer;
- oddsDebug.primaryConfigured=Boolean(process.env.THE_ODDS_API_KEY);oddsDebug.reserveConfigured=sgoEnabled;oddsDebug.requestedGameId=gameId||null;if(!gameId)oddsDebug.note='League slate uses ESPN analytics only; reserve sportsbook API is not queried.';
+ const sgoEnabled=Boolean(process.env.SPORTSGAMEODDS_API_KEY)&&sgoFlag!=='false'&&!modelOnlyPrimer&&!DIRECT_PUBLIC_ODDS_ONLY;
+ oddsDebug.primaryConfigured=!DIRECT_PUBLIC_ODDS_ONLY&&Boolean(process.env.THE_ODDS_API_KEY);oddsDebug.oddsApisDisabled=DIRECT_PUBLIC_ODDS_ONLY;oddsDebug.primarySource='Direct FanDuel and DraftKings websites';oddsDebug.reserveConfigured=sgoEnabled;oddsDebug.requestedGameId=gameId||null;if(!gameId)oddsDebug.note='League slate uses ESPN analytics only; reserve sportsbook API is not queried.';
  if(gameId&&home&&away){
   if(modelOnlyPrimer)oddsDebug.stage='ESPN_MODEL_ONLY_SUNDAY_PRIMER';
+  if(!modelOnlyPrimer&&DIRECT_PUBLIC_ODDS_ONLY)try{
+   requestStage='first_party_sportsbook_websites';
+   const deploymentHost=String(process.env.VERCEL_URL||'').toLowerCase();
+   const safeHost=/^momentum-radar-live-[a-z0-9-]+\.vercel\.app$/.test(deploymentHost)?
+    deploymentHost:'momentum-radar-live.vercel.app';
+   const url='https://'+safeHost+'/api/nfl-public-book-research?date='+
+    encodeURIComponent(date)+'&gameId='+encodeURIComponent(gameId);
+   const response=await timedFetch(url,{cache:'no-store',signal:AbortSignal.timeout(12500)});
+   if(!response.ok)throw Error('public_books_http_'+response.status);
+   const research=await response.json();
+   oddsDebug.directPublicResearchStatus=String(research.status||'UNKNOWN').slice(0,70);
+   oddsDebug.directPublicSources=research.directSources||{};
+   const names={td:'player_anytime_td',passing:'player_pass_yds',
+    rushing:'player_rush_yds',receiving:'player_reception_yds',
+    receptions:'player_receptions'};
+   // DK Network's popular-props listing is only research, not a direct book offer.
+   const exactSiteOffers=(Array.isArray(research.offers)?research.offers:[]).filter(o=>
+    String(o.gameId||'')===String(gameId)&&
+    ['DraftKings','FanDuel'].includes(o.book)&&
+    typeof o.player==='string'&&o.player.length>2&&
+    typeof o.playerID==='string'&&o.playerID.length>0&&
+    names[o.category]&&
+    (o.book==='DraftKings'?/^https:\/\/sportsbook\.draftkings\.com\//.test(o.sourceUrl):
+     /^https:\/\/co\.sportsbook\.fanduel\.com\//.test(o.sourceUrl))&&
+    Number.isFinite(Number(o.odds))&&Number(o.odds)!==0&&
+    Number.isFinite(Date.parse(o.observedAt||''))&&
+    (o.category==='td'||o.line!==null&&o.line!==undefined&&Number.isFinite(Number(o.line))));
+   directRows=exactSiteOffers.map(o=>({
+    eventID:gameId,playerID:o.playerID,name:o.player,team:o.team||'',
+    position:o.position||'',marketName:names[o.category],
+    statID:o.category==='td'?'touchdowns':o.category+' yards',
+    periodID:'game',betTypeID:o.category==='td'?'yn':'ou',
+    sideID:o.category==='td'?'yes':'over',
+    books:[{book:o.book,available:true,odds:Number(o.odds),
+     line:o.category==='td'?null:Number(o.line),checkedAt:o.observedAt,
+     sourceUrl:o.sourceUrl,sourceProvider:'Direct official sportsbook webpage'}],
+    provider:'Direct official sportsbook webpage'}));
+   provider='DraftKings / FanDuel official public sites';
+   oddsDebug.primaryMarketRows=directRows.length;
+   oddsDebug.stage=directRows.length?'first_party_web_lines_observed':
+    'first_party_web_no_eligible_lines';
+  }catch(e){
+   oddsDebug.stage='first_party_web_collection_unreadable';
+   oddsDebug.directPublicFailure=String(e?.message||e).slice(0,120);
+   directRows=[];
+  }
+
   // Ordinary reads try the configured market provider only. The SGO reserve
   // budget is never touched by routine UI polls or manual "Refresh" clicks.
-  if(!modelOnlyPrimer)try{
+  if(!modelOnlyPrimer&&!DIRECT_PUBLIC_ODDS_ONLY)try{
    requestStage='primary_book_provider';const alt=await oddsApiFallback(date,home,away,gameId);
    if(Array.isArray(alt)&&alt.length){directRows=alt;provider='The Odds API';oddsDebug.stage='primary_market_ready'}
    else {oddsDebug.stage='primary_market_unavailable';oddsDebug.primaryMarketRows=0;oddsDebug.primaryFailureReason='No exact DraftKings/FanDuel player prop rows returned for this ESPN matchup';}
@@ -614,7 +663,7 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
   oddsDebug.sportsbookStatus='verified_market_data_pending';
   oddsDebug.propLineCreditPolicy='verified_change_or_signed_checkpoint_only';
   oddsDebug.propLineChangeType=authorizedChange?changeType:null;
-  if(process.env.PLAYER_PROPS_API_KEY&&authorizedChange){
+  if(process.env.PLAYER_PROPS_API_KEY&&authorizedChange&&!DIRECT_PUBLIC_ODDS_ONLY){
    try{
     const propDeploymentHost=String(process.env.VERCEL_URL||'').toLowerCase();
     const propProductionHost=String(process.env.VERCEL_PROJECT_PRODUCTION_URL||'').toLowerCase();
@@ -819,7 +868,7 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
  // Quote jobs run concurrently to stay inside the 45-second NFL market deadline.
  // A valid bookmaker-correlated price (not multiplied individual-leg odds)
  // is required before any tier can be published as book-priced.
- if(authorizedChange&&gameId){
+ if(authorizedChange&&gameId&&!DIRECT_PUBLIC_ODDS_ONLY){
   const candidates=[];
   for(const [book,bookmaker] of [['DraftKings','draftkings'],['FanDuel','fanduel']]){
    for(const risk of ['Small','Medium','Nuke']){
