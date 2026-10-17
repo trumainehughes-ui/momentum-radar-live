@@ -921,7 +921,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   try{const data=await getJson('/api/public-nfl-ai?'+new URLSearchParams({date,gameId}));
    if(String(state.selected)!==String(gameId)||state.date!==date)return;
    state.aiData=data;
-  }catch{if(String(state.selected)===String(gameId))state.aiData={status:'REVIEW_PENDING',message:'AI report is temporarily unavailable.'}}
+  }catch{if(String(state.selected)===String(gameId)&&state.date===date)state.aiData={status:'REVIEW_PENDING',message:'AI report is temporarily unavailable.'}}
   finally{if(String(state.selected)===String(gameId)&&state.date===date){state.aiLoading=false;if(state.selectedData)renderGame(state.selectedData)}}
  }
  async function openGame(id,{scroll=true}={}){
