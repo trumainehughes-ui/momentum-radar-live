@@ -454,7 +454,15 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    if(token!==state.loading||!state.selectedData||String(state.selected)!==String(gameId))return;
    const teams=new Set([String(state.selectedData.home).toUpperCase(),String(state.selectedData.away).toUpperCase()]);
    const cards=Array.isArray(m.sgps?.Analytics)?m.sgps.Analytics:[];
-   state.selectedData.researchParlays=cards.filter(c=>['Small','Medium','Nuke'].includes(c?.risk)&&Array.isArray(c.legs)&&c.legs.length>=3&&c.legs.length<=(c.risk==='Nuke'?10:7)).map(c=>({
+   // Never convert a model target into a sportsbook-available leg.
+   // Only a fresh, exact bookmaker offer can be presented in a betting slip.
+   const exactOffer=l=>l?.sportsbookVerified===true&&l?.bookOffer?.available===true&&
+    ['DraftKings','FanDuel'].includes(l.bookOffer.book)&&
+    (l.category==='td'||Number(l.bookOffer.line)===Number(l.target))&&
+    Number.isFinite(Date.parse(l.bookOffer.checkedAt))&&
+    Date.now()-Date.parse(l.bookOffer.checkedAt)<=15*60000&&
+    Date.now()-Date.parse(l.bookOffer.checkedAt)>=-60000;
+   state.selectedData.researchParlays=cards.filter(c=>['Small','Medium','Nuke'].includes(c?.risk)&&Array.isArray(c.legs)&&c.legs.length>=3&&c.legs.length<=(c.risk==='Nuke'?10:7)&&c.legs.every(exactOffer)).map(c=>({
     risk:c.risk,mode:'MODEL_ONLY',researchFromCurrentMarkets:true,researchFallback:true,
     legs:c.legs.filter(l=>teams.has(String(l.team).toUpperCase())&&l.player&&l.category&&l.target!==undefined&&l.target!==null).map(l=>({player:l.player,team:l.team,category:l.category,target:l.category==='td'?'Anytime TD':String(l.target)+'+'}))
    })).filter(c=>c.legs.length>=3);
@@ -473,7 +481,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   // A public SGP slip must never combine teams from other matchups or
   // display saved stale selections as if they were actionable game picks.
   const matchupTeams=new Set([String(d.home||'').toUpperCase(),String(d.away||'').toUpperCase()]);
-  const candidateModels=Array.isArray(d.researchParlays)&&d.researchParlays.length?d.researchParlays:(Array.isArray(d.parlays)&&d.parlays.length?d.parlays:buildResearchSgpTiers(d));
+  const candidateModels=Array.isArray(d.researchParlays)?d.researchParlays:[];
   const models=candidateModels.filter(c=>{
    if(!['Small','Medium','Nuke'].includes(c?.risk)||
       c.mode!=='MODEL_ONLY'||c.outdated===true||
