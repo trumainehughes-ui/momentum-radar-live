@@ -1,0 +1,12 @@
+{
+  "name": "momentum-radar-book-browser-companion",
+  "private": true,
+  "type": "module",
+  "description": "Owner-operated read-only official sportsbook browser observation companion",
+  "scripts": {
+    "start": "node companion.mjs"
+  },
+  "dependencies": {
+    "puppeteer-core": "24.26.1"
+  }
+}
