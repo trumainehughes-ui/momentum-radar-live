@@ -141,7 +141,8 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
 .analytics-row:last-child{border-bottom:0}.detail-body{min-height:180px;padding-top:9px}
 .details-tabs{border-bottom:1px solid #2c4b5b;padding-bottom:16px}.injstatus{display:inline-block;padding:5px 8px;border-radius:8px;border:1px solid #b99a54;background:#392f23;color:#fbe0a0;font-weight:900;font-size:12px}
 .player .small{font-size:12px;color:#bbccd6;line-height:1.5;margin-top:9px}
-</style></head>
+</style><script type="module" src="/public-sgp-browser-bootstrap.js"></script>
+</head>
 <body>
 <header><div class="container nav"><a class="brand" href="/picks" aria-label="Momentum Radar home"><span class="logo" aria-hidden="true">↗</span><span>Momentum <span style="color:#50e7ac">Radar</span></span></a><div class="toplinks"><span class="navpill">SPORTS INSIGHTS</span><button class="soft" id="refresh" type="button">↻ Refresh</button></div></div></header>
 <main class="container">
@@ -191,7 +192,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  'use strict';
  const $=s=>document.querySelector(s);
  const labels={td:'Anytime TD',passing:'Passing yards',rushing:'Rushing yards',receiving:'Receiving yards',receptions:'Receptions'};
- const state={league:'nfl',module:'games',nbaTab:'overview',nbaData:null,nbaBookResearch:null,nbaBookLoading:false,date:'',games:[],selected:'',rank:'td',rankings:null,loading:0,rankLoading:0,selectedData:null,detailTab:'overview',propTab:'passing',aiData:null,aiLoading:false,liveData:null,liveLoading:false,publicBookResearch:null,publicBookLoading:false,weatherData:null,weatherLoading:false,recheckStatus:null,recheckLoading:false};
+ const state={league:'nfl',module:'games',nbaTab:'overview',nbaData:null,nbaBookResearch:null,nbaBookLoading:false,date:'',games:[],selected:'',rank:'td',rankings:null,loading:0,rankLoading:0,selectedData:null,detailTab:'overview',propTab:'passing',aiData:null,aiLoading:false,liveData:null,liveLoading:false,publicBookResearch:null,publicBookLoading:false,currentBookSgpModel:null,weatherData:null,weatherLoading:false,recheckStatus:null,recheckLoading:false};
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const fmtTime=v=>{const n=Date.parse(v||'');return Number.isFinite(n)?new Intl.DateTimeFormat(undefined,{weekday:'short',hour:'numeric',minute:'2-digit'}).format(new Date(n)):'Time TBD'};
  const fmtStamp=v=>{const n=Date.parse(v||'');return Number.isFinite(n)?'Updated '+new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(n)):'Awaiting updates'};
@@ -413,6 +414,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   try{
    const m=await getJson('/api/nfl-markets?'+new URLSearchParams({date,gameId}));
    if(token!==state.loading||!state.selectedData||String(state.selected)!==String(gameId))return;
+   state.currentBookSgpModel=m;
    const teams=new Set([String(state.selectedData.home).toUpperCase(),String(state.selectedData.away).toUpperCase()]);
    const cards=Array.isArray(m.sgps?.Analytics)?m.sgps.Analytics:[];
    // Never convert a model target into a sportsbook-available leg.
@@ -429,6 +431,43 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    })).filter(c=>c.legs.length>=3);
    renderGame(state.selectedData);
   }catch{/* Keep saved snapshot and its explicit freshness warning. */}
+ }
+ function renderLocalBookParity(d){
+  const captureUrl='/odds-capture.html?'+new URLSearchParams({date:state.date,gameId:String(state.selected)});
+  const action='<p class="sub"><a href="'+esc(captureUrl)+'">Capture exact visible FanDuel/DraftKings odds →</a></p>';
+  let stored=[];
+  try{stored=JSON.parse(localStorage.getItem('momentum-radar-public-book-observations-v1')||'[]')}
+  catch{stored=[]}
+  const shared=window.momentumBrowserBookParity;
+  if(!shared)return '<div class="panel" style="margin-top:18px"><h3>Public sportsbook observations on this device</h3>'+
+   '<p class="sub">Loading official sportsbook observation matcher…</p>'+action+'</div>';
+  let matches;
+  try{matches=shared.buildBrowserObservedSgpReviews({
+   entries:stored,model:state.currentBookSgpModel,date:state.date,
+   gameId:state.selected,teams:[d.home,d.away]});}
+  catch{return '<div class="panel" style="margin-top:18px"><h3>Public sportsbook observations on this device</h3>'+
+   '<p class="sub">No usable observations were found.</p>'+action+'</div>'}
+  const cards=matches.tiers.map(card=>
+   '<div class="player"><div class="tiny">'+esc(card.book)+' · '+esc(card.risk)+'</div>'+
+   '<b>'+esc(card.legs.length)+' / '+esc(card.minimumLegs)+' exact listed markets</b>'+
+   '<p class="small">'+(card.completeCandidate?'Observed lineup only — combined bookmaker price not confirmed.':
+    'Additional listed selections are needed for this tier.')+'</p>'+
+   card.legs.map(item=>{
+    const x=item.offer,price=(Number(x.odds)>0?'+':'')+x.odds;
+    const line=x.category==='td'?'Anytime TD':x.line+'+ '+x.category;
+    const alternatives=(item.comparison||[]).map(n=>n.line+'+ ('+(n.odds>0?'+':'')+n.odds+')').join(' / ');
+    return '<div class="market-observed"><b>'+esc(x.player)+'</b> · '+esc(line)+
+     ' · '+esc(price)+'<small>'+esc(x.book)+' · '+esc(fmtStamp(x.observedAt))+
+     (alternatives?' · Actual alternatives: '+esc(alternatives):'')+'</small></div>';
+   }).join('')+'</div>').join('');
+  return '<section class="panel" style="margin-top:18px" aria-label="Same-device exact sportsbook observations">'+
+   '<h3>Public sportsbook observations on this device</h3>'+
+   '<p class="sub">'+esc(matches.observed.length)+' current first-party market observations in this browser. '+
+   'Not independently refreshed by the server; correlated SGP prices require sportsbook confirmation.</p>'+
+   (cards?'<div class="players-grid" style="margin-top:14px">'+cards+'</div>':
+    '<p class="sub">'+(matches.observed.length?'Waiting for matching player projections.':
+     'No current game odds have been captured in this browser.')+'</p>')+
+   action+'</section>';
  }
  function renderParlays(d){
   const quotes=(d.verifiedQuotes||[]).filter(q=>q&&['DraftKings','FanDuel'].includes(q.book)&&
@@ -510,7 +549,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   const research='<section class="sgp-research-details" aria-label="Public sportsbook player odds">'+
    '<div class="sgp-research-heading">Public DraftKings and FanDuel player odds</div>'+
    '<div class="sgp-research-inner">'+renderPublicBookResearch()+'</div></section>';
-  return intro+staleNote+slips+verification+research;
+  return intro+staleNote+slips+verification+renderLocalBookParity(d)+research;
  }
  function offerHtml(x){const o=x.bookOffer;if(!o)return '';
   return '<div class="small">Verified individual '+esc(o.book)+' line'+
@@ -929,11 +968,11 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   // A second tap collapses. Selecting another moves the same analytics panel.
   if(String(state.selected)===String(id)){
    ++state.loading;state.selected='';state.selectedData=null;state.aiData=null;
-   state.liveData=null;state.nbaData=null;state.nbaBookResearch=null;state.nbaBookLoading=false;state.weatherData=null;state.weatherLoading=false;state.recheckStatus=null;state.recheckLoading=false;state.detailTab='overview';renderGames();renderWeather();return;
+   state.liveData=null;state.nbaData=null;state.nbaBookResearch=null;state.nbaBookLoading=false;state.currentBookSgpModel=null;state.weatherData=null;state.weatherLoading=false;state.recheckStatus=null;state.recheckLoading=false;state.detailTab='overview';renderGames();renderWeather();return;
   }
   const token=++state.loading;
   state.selected=String(id);state.selectedData=null;state.aiData=null;
-  state.liveData=null;state.nbaData=null;state.nbaBookResearch=null;state.nbaBookLoading=false;state.publicBookResearch=null;state.publicBookLoading=false;state.weatherData=null;state.weatherLoading=false;state.recheckStatus=null;state.recheckLoading=false;state.detailTab=state.module==='sgps'?'sgps':state.module==='live'?'live':'overview';renderGames();
+  state.liveData=null;state.nbaData=null;state.nbaBookResearch=null;state.nbaBookLoading=false;state.currentBookSgpModel=null;state.publicBookResearch=null;state.publicBookLoading=false;state.weatherData=null;state.weatherLoading=false;state.recheckStatus=null;state.recheckLoading=false;state.detailTab=state.module==='sgps'?'sgps':state.module==='live'?'live':'overview';renderGames();
   if(scroll&&typeof requestAnimationFrame==='function')
    requestAnimationFrame(()=>{
     if(token===state.loading)
@@ -1086,6 +1125,13 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
    loadPublicWeather(date,id);
  }
  // Automatic 5-minute public revalidation never generates new bookmaker or AI calls.
+ window.addEventListener('momentum-browser-book-parity-ready',()=>{
+  if(state.league==='nfl'&&state.detailTab==='sgps'&&state.selectedData)renderGame(state.selectedData);
+ });
+ window.addEventListener('storage',event=>{
+  if(event.key==='momentum-radar-public-book-observations-v1'&&state.league==='nfl'&&
+    state.detailTab==='sgps'&&state.selectedData)renderGame(state.selectedData);
+ });
  setInterval(refreshReadOnlyPredictions,5*60*1000);
  $('#refresh').addEventListener('click',()=>state.selected?refreshReadOnlyPredictions():loadSlate(false));
  // Move the same public read-only ranking/Best-of-Slate DOM directly below
