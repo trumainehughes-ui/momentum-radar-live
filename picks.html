@@ -400,6 +400,45 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    }
   }
  }
+ function buildResearchSgpTiers(d){
+  // Independent display-only fallback: never infer a bettable sportsbook line
+  // or override official player eligibility from an unverified snapshot.
+  if(d?.status!=='CURRENT'||d?.updatedDataCurrent!==true||
+     d?.inactivesVerified!==true)return [];
+  const home=String(d.home||'').toUpperCase(),away=String(d.away||'').toUpperCase();
+  if(!home||!away||home===away)return [];
+  const cats=['passing','rushing','receiving','receptions','td'];
+  const pool=cats.flatMap(cat=>(Array.isArray(d.categories?.[cat])?d.categories[cat]:[])
+   .filter(x=>[home,away].includes(String(x.team||'').toUpperCase())&&
+     x.modelOnly===true&&x.name&&
+     (cat==='td'||Number.isFinite(Number(x.projection))&&Number(x.projection)>0))
+   .map(x=>({...x,cat})));
+  const counts={Small:4,Medium:5,Nuke:6},tiers=[];
+  for(const risk of ['Small','Medium','Nuke']){
+   const used=new Set(),legs=[],mix=new Set();
+   const add=cat=>{
+    const row=pool.filter(x=>x.cat===cat&&!used.has(String(x.name).toUpperCase()))
+     .sort((a,b)=>(Number(b.projection)||0)-(Number(a.projection)||0))[0];
+    if(!row)return false;
+    const base=Number(row.projection)||0;
+    const target=cat==='td'?'Anytime TD':cat==='receptions'?
+     Math.max(1,Math.round(base*(risk==='Small'?.65:risk==='Medium'?.9:1.2)))+'+ receptions':
+     Math.max(5,Math.round(base*(risk==='Small'?.65:risk==='Medium'?.9:1.2)/5)*5)+'+ yards';
+    used.add(String(row.name).toUpperCase());mix.add(cat);
+    legs.push({player:row.name,team:row.team,category:cat,target});
+    return true;
+   };
+   // At least three non-TD markets; do not fabricate a tier from TDs alone.
+   for(const cat of ['passing','receiving','rushing','receptions'])add(cat);
+   if(mix.size<3)continue;
+   if(risk!=='Small')add('td');
+   for(const cat of ['receiving','rushing','receptions','passing','td'])
+    if(legs.length<counts[risk])add(cat);
+   if(legs.length!==counts[risk])continue;
+   tiers.push({risk,mode:'MODEL_ONLY',legs,researchFallback:true});
+  }
+  return tiers;
+ }
  function renderParlays(d){
   const quotes=(d.verifiedQuotes||[]).filter(q=>q&&['DraftKings','FanDuel'].includes(q.book)&&
    ['Small','Medium','Nuke'].includes(q.risk)&&Number.isFinite(Number(q.americanOdds))&&
@@ -412,7 +451,8 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   // A public SGP slip must never combine teams from other matchups or
   // display saved stale selections as if they were actionable game picks.
   const matchupTeams=new Set([String(d.home||'').toUpperCase(),String(d.away||'').toUpperCase()]);
-  const models=(Array.isArray(d.parlays)?d.parlays:[]).filter(c=>{
+  const candidateModels=Array.isArray(d.parlays)&&d.parlays.length?d.parlays:buildResearchSgpTiers(d);
+  const models=candidateModels.filter(c=>{
    if(!['Small','Medium','Nuke'].includes(c?.risk)||
       c.mode!=='MODEL_ONLY'||c.outdated===true||
       d.status==='LAST_SAVED'||d.updatedDataCurrent===false||
@@ -456,7 +496,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
      'SGP selections are being refreshed for this matchup. '+
      'Current player eligibility and sportsbook pricing are checked separately.'+
      '</div>';
-  const intro='<p class="sgp-slip-intro">Player selections for each parlay tier.</p>';
+  const intro='<p class="sgp-slip-intro">Player selections for each parlay tier.</p>'+(models.some(c=>c.researchFallback)?'<p class="sgp-brief-status">Research-only model combinations built from current game projections. Targets are NOT confirmed sportsbook markets, and no combined payout is quoted. Check player status and every selection at the sportsbook.</p>':'');
   const verification=ready&&!anyStale?
    '<p class="sgp-brief-status">Sportsbook-issued combined quotes below. Recheck selections before betting.</p>'+renderOdds(quotes):
    '<p class="sgp-brief-status">Model picks only · Combined sportsbook odds and player lines are not verified. Confirm every selection at the sportsbook.</p>';
