@@ -434,6 +434,14 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    if(risk!=='Small')add('td');
    for(const cat of ['receiving','rushing','receptions','passing','td'])
     if(legs.length<counts[risk])add(cat);
+   // A sixth distinct athlete requires a second vetted projection in a
+   // previously used market; never reuse a player or invent a market.
+   if(legs.length<counts[risk]){
+    for(const cat of ['receiving','rushing','receptions','passing']){
+     if(legs.length>=counts[risk])break;
+     add(cat);
+    }
+   }
    if(legs.length!==counts[risk])continue;
    tiers.push({risk,mode:'MODEL_ONLY',legs,researchFallback:true});
   }
