@@ -111,7 +111,7 @@ test('actual matchup card assembly selects only real prices from captured FanDue
   risk:'Nuke',legs:[{player:'Bijan Robinson',team:'ATL',
    category:'rushing',gameId:'401872999',target:null}]
  }]},categories:{rushing:[{name:'Bijan Robinson',team:'ATL',
-  projection:135,recentGameValues:[83,72,194,145,86]}]}};
+  projection:117.4,recentGameValues:[83,72,194,145,86]}]}};
  const g={gameId:'401872999',home:{abbr:'ATL'},away:{abbr:'CHI'}};
  const snippet=home.slice(start,end);
  const cards=vm.runInNewContext('(function(){'+snippet+'return capturedMatchupCandidates})()',
