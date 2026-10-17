@@ -257,6 +257,21 @@ export default async function handler(req,res){
   if(cron&&assigned.length)historyLocks=await autoLock(base,assigned);
   if(cron)await writeCollectorAudit(collectorAuditReport('nfl',shard,historyLocks,{
    state:'COMPLETE',startedAt,due:assigned.length}));
+  // Operational observability only: no secrets, player picks or provider payloads.
+  // A completed cron with zero due games is distinct from a blocked collector.
+  if(cron)console.info('[nfl-collector] checkpoint_summary',JSON.stringify({
+   shard,scheduledGames:games.length,due:assigned.length,
+   attempted:historyLocks.length,
+   statuses:historyLocks.reduce((acc,x)=>{
+    const key=['locked','updated','markets_unavailable','collector_error'].includes(x?.status)?
+     x.status:'other';
+    acc[key]=(acc[key]||0)+1;return acc;
+   },{}),
+   checkpointStatuses:historyLocks.reduce((acc,x)=>{
+    const key=String(x?.bookCheckpoint?.outcomeStatus||x?.bookCheckpoint?.status||'NONE').slice(0,55);
+    acc[key]=(acc[key]||0)+1;return acc;
+   },{})
+  }));
   if(historyLocks.some(x=>!['locked','updated'].includes(x.status)))
    degraded.push('pregame_collection');
   return res.status(blocking.length?503:200).json({
