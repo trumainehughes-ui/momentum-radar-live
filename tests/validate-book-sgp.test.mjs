@@ -35,3 +35,20 @@ test('rejects stale offers', () => {
  const result=validateBookSgp({legs:[leg(125)],combinedQuote:quote},'FanDuel',[stale],now);
  assert.equal(result.publishable,false);
 });
+
+test('accepts exact fractional sportsbook thresholds', () => {
+ const result=validateBookSgp({legs:[leg(64.5)],combinedQuote:quote},'FanDuel',[offer(64.5)],now);
+ assert.equal(result.publishable,true);
+});
+test('rejects missing or zero-priced individual offers', () => {
+ for (const priceAmerican of [null,undefined,'',0]) {
+  const result=validateBookSgp({legs:[leg(125)],combinedQuote:quote},'FanDuel',[{...offer(125),priceAmerican}],now);
+  assert.equal(result.publishable,false);
+ }
+});
+test('rejects missing or zero-priced combined quote', () => {
+ for (const priceAmerican of [null,undefined,'',0]) {
+  const result=validateBookSgp({legs:[leg(125)],combinedQuote:{...quote,priceAmerican}},'FanDuel',[offer(125)],now);
+  assert.equal(result.publishable,false);
+ }
+});
