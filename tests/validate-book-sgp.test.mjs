@@ -52,3 +52,11 @@ test('rejects missing or zero-priced combined quote', () => {
   assert.equal(result.publishable,false);
  }
 });
+
+test('rejects cross-game selections inside one SGP', () => {
+ const second={...leg(125),gameId:'different-game',playerId:'second-player'};
+ const secondOffer={...offer(125),gameId:'different-game',playerId:'second-player'};
+ const result=validateBookSgp({legs:[leg(125),second],combinedQuote:quote},'FanDuel',[offer(125),secondOffer],now);
+ assert.equal(result.publishable,false);
+ assert.ok(result.reasons.includes('MULTIPLE_GAMES_IN_SGP'));
+});
