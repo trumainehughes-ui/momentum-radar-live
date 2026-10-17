@@ -1,7 +1,7 @@
 // Read-only public-market research for one scheduled NFL game.
 // Never fetch user-provided URLs, never place bets, never create a book quote.
 import {
- DKN_NFL_PROPS_URL,FANDUEL_NFL_PUBLIC_URL,publicBookResearchReport,
+ DKN_NFL_PROPS_URL,DRAFTKINGS_DIRECT_URL,FANDUEL_NFL_PUBLIC_URL,publicBookResearchReport,
  matchPublicOffersToEligibleGamePlayers,publicNflOfferParticipationSignals
 } from '../lib/nfl-public-sportsbook-observer.js';
 
@@ -48,9 +48,13 @@ export default async function handler(req,res){
   const rosterEvidenceReady=saved?.ok===true&&
    ['CURRENT','LAST_SAVED'].includes(saved?.status)&&
    String(saved?.gameId)===gameId&&saved?.date===date;
-    const [dk,fd]=await Promise.all([
-   read(DKN_NFL_PROPS_URL).catch(e=>({status:'FETCH_FAILED',html:null})),
-   read(FANDUEL_NFL_PUBLIC_URL).catch(e=>({status:'FETCH_FAILED',html:null}))
+  // Open the actual first-party sportsbook sites before consulting the
+  // DraftKings-published popular-props listing (limited secondary research).
+  // NO odds API is called, including when a sportsbook refuses automation.
+  const [dkDirect,fd,dk]=await Promise.all([
+   read(DRAFTKINGS_DIRECT_URL).catch(()=>({status:'FETCH_FAILED',html:null})),
+   read(FANDUEL_NFL_PUBLIC_URL).catch(()=>({status:'FETCH_FAILED',html:null})),
+   read(DKN_NFL_PROPS_URL).catch(()=>({status:'FETCH_FAILED',html:null}))
   ]);
   // The FanDuel public website often renders odds through client-side
   // interfaces. Don't promote arbitrary page text to a current priced prop.
@@ -58,14 +62,26 @@ export default async function handler(req,res){
    (/enable javascript|javascript is required|please enable javascript|requires javascript/i.test(fd.html||'')?
     'JAVASCRIPT_RENDERED_STOREFRONT':'NO_MACHINE_READABLE_MARKETS'):fd.status;
   const report=publicBookResearchReport({dkHtml:dk.html,dkStatus:dk.status,
-   fdStatus,date,home,away,now:Date.now()});
+   fdHtml:fd.html,fdStatus,date,home,away,
+   homeName:game.home?.name,awayName:game.away?.name,now:Date.now()});
+  report.directSources={
+   DraftKings:{url:DRAFTKINGS_DIRECT_URL,fetchStatus:dkDirect.status,
+    role:'FIRST_PARTY_PUBLIC_STOREFRONT'},
+   FanDuel:{url:FANDUEL_NFL_PUBLIC_URL,fetchStatus:fd.status,
+    role:'FIRST_PARTY_PUBLIC_STOREFRONT'},
+   DraftKingsPublishedListing:{url:DKN_NFL_PROPS_URL,fetchStatus:dk.status,
+    role:'LIMITED_FIRST_PARTY_PUBLISHED_MARKETS'}
+  };
   const observed=report.offers.length;
   report.offers=rosterEvidenceReady?
    matchPublicOffersToEligibleGamePlayers(report.offers,saved,{home,away}):[];
-  report.books[0].observedOffers=report.offers.length;
-  report.books[0].status=!rosterEvidenceReady?'PLAYER_EVIDENCE_UNAVAILABLE':
-   report.offers.length?'PUBLIC_LISTINGS_MATCHED':
-   observed>0?'NO_VETTED_GAME_PLAYER_MATCH':'NO_MATCHING_PUBLIC_PROPS';
+  for(const book of report.books){
+   const count=report.offers.filter(x=>x.book===book.book).length;
+   book.observedOffers=count;
+   book.status=!rosterEvidenceReady?'PLAYER_EVIDENCE_UNAVAILABLE':
+    count?'PUBLIC_LISTINGS_MATCHED':
+    observed>0?'NO_VETTED_GAME_PLAYER_MATCH':book.status;
+  }
   report.status=!rosterEvidenceReady?'VETTED_GAME_DATA_UNAVAILABLE':
    report.offers.length?'PUBLIC_OFFERS_MATCHED':
    'NO_MATCHING_VETTED_PUBLIC_PROPS';
@@ -73,7 +89,16 @@ export default async function handler(req,res){
   report.playerIdentityScreened=rosterEvidenceReady;
   report.participationSignals=publicNflOfferParticipationSignals(report.offers,{gameId,now:Date.now()});
   report.participationPolicy='SUPPORTING_SIGNAL_ONLY_OFFICIAL_ROSTER_AND_INJURY_RULES_OVERRIDE';
-  report.sourceHealth={DraftKings:{state:report.books[0].status,verifiedPropRows:report.offers.filter(x=>x.book==='DraftKings').length},FanDuel:{state:report.books[1].status,verifiedPropRows:0,requiresMachineReadableMarketFeed:fdStatus==='JAVASCRIPT_RENDERED_STOREFRONT',noPriceInference:true}};
+  report.sourceHealth={
+   DraftKings:{state:report.books[0].status,
+    observedPropRows:report.offers.filter(x=>x.book==='DraftKings').length,
+    verifiedPropRows:0,sourceUrl:DKN_NFL_PROPS_URL},
+   FanDuel:{state:report.books[1].status,
+    observedPropRows:report.offers.filter(x=>x.book==='FanDuel').length,
+    verifiedPropRows:0,sourceUrl:FANDUEL_NFL_PUBLIC_URL,
+    requiresMachineReadableMarketFeed:fdStatus==='JAVASCRIPT_RENDERED_STOREFRONT',
+    noPriceInference:true}
+  };
   report.coverage={scope:'SELECTED_GAME',gameId,observedRows:observed,
    vettedRows:report.offers.length,excludedRows:report.excludedUnmatchedPublicRows,
    categories:[...new Set(report.offers.map(x=>x.category))].sort(),
