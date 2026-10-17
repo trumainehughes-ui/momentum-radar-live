@@ -38,6 +38,26 @@ h2{font-size:26px;letter-spacing:-.035em;margin:0 0 5px}h3{font-size:18px;letter
 .game-expand-slot{grid-column:1/-1;min-width:0;scroll-margin-top:90px;animation:game-reveal .18s ease-out}
 .game-expand-slot #game-section{margin:0;min-width:0}
 .game-expand-slot #game-section>.panel{width:100%;min-width:0;border-color:#397561;box-shadow:0 10px 35px #0004}
+
+/* Production-style public NFL navigation, without engineering or History. */
+.nfl-module-panel{border:1px solid #2a4c5b;background:linear-gradient(155deg,#0c2230,#081824);padding:20px;border-radius:18px;margin:17px 0 18px;scroll-margin-top:85px}
+.nfl-module-heading{display:flex;align-items:center;gap:14px;margin-bottom:5px}
+.nfl-module-icon{font-size:35px;line-height:1}
+.nfl-module-heading h2{font-size:33px;line-height:1.12;margin:0}
+.nfl-module-heading p{font-size:13px;color:var(--muted);margin:5px 0 0}
+.nfl-module-note{font-size:12px;color:#78e9b8;margin:9px 0 19px;line-height:1.5}
+.nfl-module-tabs{display:flex;flex-wrap:wrap;gap:10px}
+.nfl-module-tab{background:#142b39;color:#ecf4f8;border:1px solid #2f5362;border-radius:12px;padding:13px 15px;font-size:14px;font-weight:820;min-height:45px;text-align:left;transition:border-color .15s,background .15s}
+.nfl-module-tab:hover{border-color:#66acbc}
+.nfl-module-tab.active{background:#19483c;color:#91f5c7;border-color:#55deb0;box-shadow:inset 0 0 0 1px #55deb026}
+.nfl-module-tab:focus-visible{outline:2px solid #7beec4;outline-offset:3px}
+.nfl-module-message{font-size:13px;line-height:1.55;color:#c1d7e0;margin:14px 0 0}
+.nfl-module-content .section{margin:18px 0 0}
+.nfl-module-content .section-head{margin-bottom:13px}
+.nfl-module-panel #rank-tabs{display:none}
+.nfl-module-content .players-grid{margin-top:12px}
+.nfl-module-content #extra-tabs{display:none}
+@media(max-width:570px){.nfl-module-panel{padding:16px;margin-top:15px}.nfl-module-heading h2{font-size:29px}.nfl-module-tab{padding:11px 13px;font-size:13px}.nfl-module-tabs{gap:8px}}
 .game-open-hint{display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:11px;border-top:1px solid #294957;color:#b5dece;font-size:12px;font-weight:800}
 .game-card.selected .game-open-hint{color:#70efc0}
 @keyframes game-reveal{from{opacity:.5;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
@@ -83,11 +103,28 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
 <header><div class="container nav"><a class="brand" href="/picks" aria-label="Momentum Radar home"><span class="logo" aria-hidden="true">↗</span><span>Momentum <span style="color:#50e7ac">Radar</span></span></a><div class="toplinks"><span class="navpill">SPORTS INSIGHTS</span><button class="soft" id="refresh" type="button">↻ Refresh</button></div></div></header>
 <main class="container">
 <section class="hero"><div><div class="eyebrow">Your game-day edge</div><h1>See the game <em>before it unfolds.</em></h1><p>Player projections, touchdown opportunities, matchup insights, and game parlays. One clear view, with none of the noise.</p></div><aside class="hero-stat" aria-label="Prediction coverage"><div class="small-label">Momentum at a glance</div><div class="number">GAME DAY</div><p>Explore player matchups and compare model picks before kickoff. Updated predictions appear when fresh, verified data is available.</p><div class="sparkline" aria-hidden="true"><i style="height:38%"></i><i style="height:63%"></i><i style="height:45%"></i><i style="height:76%"></i><i style="height:59%"></i><i style="height:98%"></i><i style="height:81%"></i></div></aside></section>
-<section class="section" aria-label="Choose a league"><div class="section-head"><div><h2>Explore matchups</h2><p class="sub">Choose a league, then select a game.</p></div><div class="controls"><input id="day" class="datebox" type="date" aria-label="Choose game date"><button id="today" class="soft" type="button">Upcoming</button></div></div><div class="chips" id="leagues"><button type="button" class="chip active" data-league="nfl">🏈 NFL</button><button type="button" class="chip" data-league="nba">🏀 NBA</button></div><p id="date-caption" class="sub" style="margin:16px 0 11px" aria-live="polite">Loading scheduled games…</p><div id="games" class="game-grid"><div class="empty loading grid-span">Loading matchups…</div></div><div id="game-panel-home" hidden></div></section>
+<section class="section" aria-label="Choose a league"><div class="section-head"><div><h2>Explore matchups</h2><p class="sub">Choose a league, then select a game.</p></div><div class="controls"><input id="day" class="datebox" type="date" aria-label="Choose game date"><button id="today" class="soft" type="button">Upcoming</button></div></div><div class="chips" id="leagues"><button type="button" class="chip active" data-league="nfl">🏈 NFL</button><button type="button" class="chip" data-league="nba">🏀 NBA</button></div>
+<section id="nfl-module-panel" class="nfl-module-panel" aria-label="NFL analysis navigation">
+ <div class="nfl-module-heading"><span class="nfl-module-icon" aria-hidden="true">🏈</span><div><h2>NFL</h2><p>Data. Matchups. Trends. Opportunities.</p></div></div>
+ <p class="nfl-module-note">Day-before analysis • game-day refresh • final checks near kickoff</p>
+ <nav id="nfl-module-tabs" class="nfl-module-tabs" aria-label="Choose NFL analysis">
+  <button type="button" class="nfl-module-tab active" data-nfl-module="games" aria-pressed="true">📅 Game Day</button>
+  <button type="button" class="nfl-module-tab" data-nfl-module="td" aria-pressed="false">⭐ Anytime TD</button>
+  <button type="button" class="nfl-module-tab" data-nfl-module="passing" aria-pressed="false">Passing</button>
+  <button type="button" class="nfl-module-tab" data-nfl-module="rushing" aria-pressed="false">Rushing</button>
+  <button type="button" class="nfl-module-tab" data-nfl-module="receiving" aria-pressed="false">Receiving</button>
+  <button type="button" class="nfl-module-tab" data-nfl-module="receptions" aria-pressed="false">Receptions</button>
+  <button type="button" class="nfl-module-tab" data-nfl-module="sgps" aria-pressed="false">🔗 Same Game Parlays</button>
+  <button type="button" class="nfl-module-tab" data-nfl-module="best" aria-pressed="false">🏆 Best of Slate</button>
+  <button type="button" class="nfl-module-tab" data-nfl-module="live" aria-pressed="false">📊 Live TD Tracker</button>
+ </nav>
+ <p id="nfl-module-message" class="nfl-module-message" aria-live="polite">Select a matchup below to open its overview and game analytics.</p>
+ <div id="nfl-module-content" class="nfl-module-content"></div>
+</section>
+<div id="game-day-board"><p id="date-caption" class="sub" style="margin:16px 0 11px" aria-live="polite">Loading scheduled games…</p><div id="games" class="game-grid"><div class="empty loading grid-span">Loading matchups…</div></div><div id="game-panel-home" hidden></div></div></section>
 <section class="section" id="game-section" hidden><div class="panel"><div class="details-top"><div><div class="eyebrow">Matchup breakdown</div><div id="match-title" class="matchup">Select a game</div><p id="match-subtitle" class="sub">Model forecasts are screened before appearing here.</p></div><div id="freshness" class="fresh"></div></div><div id="match-content"><div class="empty" style="margin-top:18px">Choose a matchup above to view the player outlook and parlay tiers.</div></div><section id="public-weather-impact" class="panel" aria-label="NFL Weather Impact" style="margin-top:14px"><h3>🌦 Weather Impact</h3><p class="sub">Kickoff forecasts and historical player-weather comparisons will be shown after source verification. No weather-adjusted player props or SGPs are currently verified here.</p></section></div></section>
 <section class="section" id="rankings-section"><div class="section-head"><div><h2>Players to watch</h2><p class="sub">Ranked model projections from games on the selected NFL slate. Friday's scheduled Sunday-slate primer prepares roster/injury-screened Anytime TD scorer estimates for every scheduled matchup. The existing 30-hour and final pregame refreshes then update them; model TD estimates are not verified sportsbook odds.</p></div></div><div class="market-tabs" id="rank-tabs"><button type="button" class="chip active" data-rank="td">Anytime TD</button><button type="button" class="chip" data-rank="passing">Passing</button><button type="button" class="chip" data-rank="rushing">Rushing</button><button type="button" class="chip" data-rank="receiving">Receiving</button><button type="button" class="chip" data-rank="receptions">Receptions</button></div><div class="players-grid" id="rankings"><div class="empty grid-span">Waiting for today's saved rankings…</div></div></section>
-<section class="section" id="extra-section"><div class="section-head"><div><h2>Beyond the matchup</h2><p class="sub">Best of the slate, scoring activity, and past results.</p></div></div>
-<div class="market-tabs" id="extra-tabs"><button type="button" class="chip active" data-extra="best">🏆 Best of Slate</button><button type="button" class="chip" data-extra="history">🗂️ NFL Results History</button></div>
+<section class="section" id="extra-section"><div class="section-head"><div><h2>🏆 Best of Slate</h2><p class="sub">Top model candidates across Sunday's matchups. Research only; not a verified multi-game parlay.</p></div></div>
 <div id="extra-content"><div class="empty">Ranked game data will appear after the selected slate loads.</div></div></section>
 </main>
 <footer><div class="container footer-wrap"><div><b style="color:#edf5f9">Momentum Radar</b><div>Independent sports insights. Model-generated projections are estimates, not guarantees or confirmed sportsbook bets. Combined parlay odds appear only when explicitly verified and may change before placement.</div></div><div>For informational use only. Bet responsibly where legal. 21+ where required.</div></div></footer>
