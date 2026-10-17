@@ -70,3 +70,12 @@ test('publishes only multi-leg SGP with matching quote selection IDs', () => {
  assert.equal(validateBookSgp(sgp,'FanDuel',[a,b],now).publishable,true);
  assert.equal(validateBookSgp({...sgp,combinedQuote:{...quote,legIds:['selection-a','different']}},'FanDuel',[a,b],now).publishable,false);
 });
+
+test('missing source offer line never matches a zero-threshold selection', () => {
+ const zeroLeg={...leg(0)};
+ for (const line of [null,undefined,'']) {
+  const candidate={...offer(0),line};
+  const result=validateBookSgp({legs:[zeroLeg],combinedQuote:quote},'FanDuel',[candidate],now);
+  assert.equal(result.verifiedLegCount,0);
+ }
+});
