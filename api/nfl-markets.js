@@ -959,9 +959,13 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
  const safeTeams=new Set([String(home||'').toUpperCase(),String(away||'').toUpperCase()]);
  response.sgps.Analytics=(analyticsSgps||[]).filter(c=>
   c.tierAssessment?.compositionOk===true&&Array.isArray(c.legs)&&
-  c.legs.length>0&&c.legs.every(l=>
+  c.legs.length>0&&eligibility.checked===true&&c.legs.every(l=>
    String(l.eventID||l.gameId||'')===String(gameId)&&
    safeTeams.has(String(l.team||'').toUpperCase())&&
+   (()=>{const id=String(l.playerID||l.playerId||'');
+    const roster=id&&eligibility.rosterById?.get(id)||eligibility.rosterByName?.get(norm(l.name));
+    return roster&&nflCanonTeam(roster.team)===nflCanonTeam(l.team)&&
+     !eligibility.blockedIds.has(id)&&!eligibility.blockedNames.has(norm(l.name));})()&&
    !/\\b(OUT|INACTIVE|IR|DOUBTFUL|QUESTIONABLE|SUSPENDED)\\b/i.test(
     [l.injuryStatus,l.availability,l.starterStatus].join(' '))
   )).map(c=>({risk:c.risk,mode:'MODEL_ONLY',publishable:false,
