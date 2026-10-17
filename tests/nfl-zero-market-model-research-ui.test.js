@@ -13,7 +13,7 @@ test('when verified market rows are zero, all three available model SGP tiers re
  assert.ok(code.includes("['Small','Medium','Nuke']"));
  assert.ok(code.includes('legs.map(p=>'));
  assert.ok(code.includes("nflEscape(p.player||p.name)"));
- assert.ok(code.includes("nflProjection(p,cat)"));
+ assert.ok(code.includes("p.target"));
  assert.ok(code.includes('Projection candidates'));
  assert.ok(!code.includes('No sportsbook-selectable SGP can be generated'));
 });
