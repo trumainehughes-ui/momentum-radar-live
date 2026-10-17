@@ -95,3 +95,38 @@ test('public SGP styling allows a readable single-column phone layout',()=>{
  assert.ok(page.includes('@media(max-width:570px){.sgp-slips{grid-template-columns:minmax(0,1fr)'));
  assert.ok(page.includes('Simple player and prop selections'));
 });
+
+test('older saved NFL game still shows all Small, Medium and Nuke model slips rather than a false empty message',()=>{
+ const snapshot={...picks,status:'LAST_SAVED',updatedDataCurrent:false,
+  inactivesVerified:false,verifiedQuotes:[],
+  parlays:picks.parlays.map(x=>({...x,mode:'STALE_MODEL_ONLY',outdated:true}))};
+ const html=setup().sgps(snapshot);
+ assert.equal((html.match(/class="sgp-slip"/g)||[]).length,3);
+ assert.equal((html.match(/class="sgp-leg"/g)||[]).length,16);
+ for(const risk of ['Small','Medium','Nuke'])assert.ok(html.includes('>'+risk+'</strong>'));
+ assert.ok(html.includes('Needs refresh · Saved model selections'));
+ assert.equal((html.match(/Needs refresh<\/span>/g)||[]).length,3);
+ assert.ok(html.includes('Trevor Lawrence'));
+ assert.ok(html.includes('Parker Washington'));
+ assert.ok(!html.includes('No model parlay selections are available'));
+ assert.ok(!html.includes('BOOK QUOTE'));
+ assert.equal((html.match(/Model picks only/g)||[]).length,1);
+});
+test('stale game cannot display a purported verified combined price even if quote metadata leaks through',()=>{
+ const snapshot={...picks,status:'LAST_SAVED',updatedDataCurrent:false,
+  inactivesVerified:true,verifiedQuotes:[{book:'DraftKings',risk:'Small',americanOdds:2000}],
+  parlays:picks.parlays.map(x=>({...x,mode:'STALE_MODEL_ONLY',outdated:true}))};
+ const html=setup().sgps(snapshot);
+ assert.ok(!html.includes('BOOK QUOTE'));
+ assert.ok(html.includes('Combined sportsbook odds and player lines are not verified'));
+});
+test('unknown or malformed model candidate remains hidden rather than being promoted by individual market price',()=>{
+ const snapshot={...picks,status:'CURRENT',updatedDataCurrent:true,
+  parlays:[{risk:'Small',mode:'UNVERIFIED_INDIVIDUAL_MARKET',
+    legs:[leg('Test Player','td','Anytime TD'),leg('Second Player','td','Anytime TD')]},
+   {risk:'Medium',mode:'MODEL_ONLY',
+    legs:[leg('Player One','td','Anytime TD'),{player:'Broken'}]}]};
+ const html=setup().sgps(snapshot);
+ assert.ok(html.includes('No complete model SGP tier was generated'));
+ assert.ok(!html.includes('sgp-leg-name'));
+});
