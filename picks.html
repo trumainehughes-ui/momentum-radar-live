@@ -319,7 +319,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   const list=review.candidates.slice(0,30);
   const caution='<p class="sub" style="margin:18px 0"><b>Why is this bet not verified?</b> A projected hit chance alone does not prove that an exact sportsbook selection is offered or that a combined SGP price is confirmed. '+
    '<b>Analysis only — betting value not confirmed.</b> These estimates are for comparing players, not confirmed betting recommendations.'+
-   (d.status==='LAST_SAVED'?' <b>These are older saved projections, not current betting lines.</b>':'')+'</p>';
+   (d.status==='LAST_SAVED'?' <b>Model-only projections; current sportsbook prices remain unverified.</b>':'')+'</p>';
   if(!list.length)return intro+caution+
    noData('No verified player research yet','The current game has not produced screened model candidates.');
   return intro+caution+
@@ -395,8 +395,9 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   if(state.detailTab==='ai')body=showAi(d);
   if(state.detailTab==='sharp')body=showSharp(d);
   if(state.detailTab==='live')body=showLive(d);
-  const warning=d.status==='LAST_SAVED'?'<div class="bookquote" style="border:1px solid #ba8550;background:#342923;color:#ffe1b3"><b>Older saved predictions — not current betting information</b><div>'+esc(d.message)+'</div><div class="small">'+esc(fmtStamp(d.updatedAt))+'</div></div>':'';
-  $('#match-content').innerHTML=warning+tabs+'<div class="detail-body">'+body+'</div>';
+  // Keep a discreet last-updated model label in the matchup header.
+  // Stale bookmaker prices remain blocked by existing public data gates.
+  $('#match-content').innerHTML=tabs+'<div class="detail-body">'+body+'</div>';
  }
  async function loadSavedAi(date,gameId){
   state.aiLoading=true;state.aiData=null; if(state.selectedData)renderGame(state.selectedData);
@@ -427,7 +428,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  if(state.league==='nba'){$('#match-content').innerHTML='<div class="empty" style="margin-top:18px"><strong>NBA matchup preview</strong><div>Schedule and scores are available. Screened public player and parlay picks will appear here when NBA prediction snapshots are enabled.</div></div>';return}
  if(g.status==='FINAL'||g.status==='LIVE'){$('#match-content').innerHTML='<div class="empty" style="margin-top:18px">This game is '+esc(statusLabel(g).toLowerCase())+'. Pregame predictions are not presented as live betting lines.</div>';return}
  try{const d=await getJson('/api/public-nfl-game?'+new URLSearchParams({date:state.date,gameId:String(id)}));if(token!==state.loading)return;
- $('#freshness').textContent=fmtStamp(d.updatedAt);state.selectedData=d;renderGame(d)}
+ $('#freshness').textContent=(d.status==='LAST_SAVED'?'Model preview • ':'')+fmtStamp(d.updatedAt);state.selectedData=d;renderGame(d)}
  catch{if(token===state.loading)$('#match-content').innerHTML='<div class="empty" style="margin-top:18px">Predictions are temporarily unavailable. Try refreshing shortly.</div>'}}
 function renderExtras(){
  const box=$('#extra-content');if(!box)return;
@@ -512,7 +513,7 @@ async function loadHistory(){
   if(id){
    try{const d=await getJson('/api/public-nfl-game?'+new URLSearchParams({date,gameId:id}));
     if(state.league==='nfl'&&state.date===date&&String(state.selected)===String(id)){
-     state.selectedData=d;$('#freshness').textContent=fmtStamp(d.updatedAt);
+     state.selectedData=d;$('#freshness').textContent=(d.status==='LAST_SAVED'?'Model preview • ':'')+fmtStamp(d.updatedAt);
      renderGame(d);
     }
    }catch{/* Preserve the existing card and its last-update label. */}

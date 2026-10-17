@@ -87,7 +87,12 @@ test('last saved mode preserves model evidence visibly but never stale prices',(
  const html=readFileSync(new URL('../picks.html',import.meta.url),'utf8');
  assert.ok(api.includes('includeLastSaved:true'));
  assert.ok(html.includes("['CURRENT','LAST_SAVED'].includes(d.status)"));
- assert.ok(html.includes('Older saved predictions — not current betting information'));
+ assert.ok(!html.includes('Older saved predictions — not current betting information'));
+ assert.ok(html.includes("'Model preview • ':'')+fmtStamp(d.updatedAt)"));
+ assert.ok(html.includes("$('#match-content').innerHTML=tabs+'<div class=\"detail-body\">'+body+'</div>'"));
+ assert.ok(html.includes("['CURRENT','LAST_SAVED'].includes(d.status)"));
+ assert.ok(html.includes('current sportsbook prices remain unverified'));
+ assert.ok(!html.includes('border:1px solid #ba8550;background:#342923'));
 });
 test('old book prices and questionable player projections remain hidden',()=>{
  const old=structuredClone(game);
