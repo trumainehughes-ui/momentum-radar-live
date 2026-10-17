@@ -37,3 +37,8 @@ test('model SGP publication requires checked current roster and injury holds',()
  assert.match(publish,/!eligibility.blockedIds.has\(id\)/);
  assert.match(publish,/!eligibility.blockedNames.has\(norm\(l.name\)\)/);
 });
+
+test('roster hard-gate changes the NFL market cache schema',()=>{
+ const src=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
+ assert.match(src,/const CACHE_SCHEMA=[^;]*roster-hardgate-v1/);
+});
