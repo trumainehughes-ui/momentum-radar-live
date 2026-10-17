@@ -78,6 +78,7 @@ h2{font-size:26px;letter-spacing:-.035em;margin:0 0 5px}h3{font-size:18px;letter
 .nba-pick-line strong{color:#8cecc0;font-size:17px;white-space:nowrap}
 .nba-sgp-card{margin-top:13px}
 .nba-status-line{font-size:12px;color:#a7bec9;line-height:1.55;margin-top:14px}
+.sgp-auto-check{font-size:12px;color:#c0dfdd;border-left:2px solid #55c69f;padding:9px 12px;margin:0 0 14px;line-height:1.5;background:#112f35;border-radius:0 8px 8px 0}
 .sgp-slip-stale{color:#ffdca6;font-size:12px;line-height:1.55;padding:10px 13px;background:#32281d;border:1px solid #816746;border-radius:10px;margin:0 0 14px}
 .sgp-slip-stale strong{font-weight:850}
 .sgp-stale-label{color:#ffdca6!important}
@@ -184,7 +185,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  'use strict';
  const $=s=>document.querySelector(s);
  const labels={td:'Anytime TD',passing:'Passing yards',rushing:'Rushing yards',receiving:'Receiving yards',receptions:'Receptions'};
- const state={league:'nfl',module:'games',nbaTab:'overview',nbaData:null,nbaBookResearch:null,nbaBookLoading:false,date:'',games:[],selected:'',rank:'td',rankings:null,loading:0,rankLoading:0,selectedData:null,detailTab:'overview',propTab:'passing',aiData:null,aiLoading:false,liveData:null,liveLoading:false,publicBookResearch:null,publicBookLoading:false,weatherData:null,weatherLoading:false};
+ const state={league:'nfl',module:'games',nbaTab:'overview',nbaData:null,nbaBookResearch:null,nbaBookLoading:false,date:'',games:[],selected:'',rank:'td',rankings:null,loading:0,rankLoading:0,selectedData:null,detailTab:'overview',propTab:'passing',aiData:null,aiLoading:false,liveData:null,liveLoading:false,publicBookResearch:null,publicBookLoading:false,weatherData:null,weatherLoading:false,recheckStatus:null,recheckLoading:false};
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const fmtTime=v=>{const n=Date.parse(v||'');return Number.isFinite(n)?new Intl.DateTimeFormat(undefined,{weekday:'short',hour:'numeric',minute:'2-digit'}).format(new Date(n)):'Time TBD'};
  const fmtStamp=v=>{const n=Date.parse(v||'');return Number.isFinite(n)?'Updated '+new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(n)):'Awaiting updates'};
@@ -328,6 +329,45 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   const raw=String(l?.target??'').trim(),amount=raw.match(/^(\d+(?:\.\d+)?)\+/)?.[1];
   return{label,target:amount?amount+'+':raw.slice(0,24)||'See sportsbook'};
  }
+ function renderAutoRecheckStatus(){
+  if(state.recheckLoading)return 'Checking the next automatic game recheck…';
+  const s=state.recheckStatus;
+  if(!s)return 'Automatic pregame checks run on the signed NFL schedule.';
+  if(s.phase==='GAME_STARTED')return 'The pregame recheck window has closed.';
+  const at=s.nextScheduledTick?fmtStamp(s.nextScheduledTick).replace(/^Updated /,''):'the next scheduled cycle';
+  if(s.phase==='WAITING_DAY_AHEAD_WINDOW')
+   return 'Automatic ESPN, injury, model and sportsbook checks begin '+at+'. Updated picks will appear after a screened model is saved.';
+  const last=s.lastAttempt;
+  if(!last)return 'Automatic pregame rechecks are scheduled every 15 minutes. Next eligible cycle: '+at+'.';
+  const when=fmtStamp(last.checkedAt).replace(/^Updated /,'');
+  const ai=last.aiReview==='REVIEWED'?'AI model review completed':
+   last.aiReview==='UNAVAILABLE'?'AI review source unavailable':
+   'AI review not yet confirmed';
+  const book=last.bookCheckpoint==='MARKET_REFRESHED'?
+   'sportsbook checkpoint attempted':
+   last.bookCheckpoint==='NOT_DUE'?'sportsbook checkpoint not due':
+   'sportsbook prices not confirmed';
+  return 'Last automated check '+when+' · '+ai+' · '+book+'. Next scheduled cycle: '+at+'.';
+ }
+ async function loadNflRecheckStatus(date,gameId){
+  const id=String(gameId);
+  if(state.recheckLoading)return;
+  state.recheckLoading=true;
+  try{
+   const info=await getJson('/api/public-nfl-recheck-status?'+new URLSearchParams({date,gameId:id}));
+   if(state.league==='nfl'&&state.date===date&&String(state.selected)===id)
+    state.recheckStatus=info;
+  }catch{
+   if(state.league==='nfl'&&state.date===date&&String(state.selected)===id)
+    state.recheckStatus=null;
+  }finally{
+   if(state.league==='nfl'&&state.date===date&&String(state.selected)===id){
+    state.recheckLoading=false;
+    if(state.selectedData?.status==='LAST_SAVED'&&state.detailTab==='sgps')
+     renderGame(state.selectedData);
+   }
+  }
+ }
  function renderParlays(d){
   const quotes=(d.verifiedQuotes||[]).filter(q=>q&&['DraftKings','FanDuel'].includes(q.book)&&
    ['Small','Medium','Nuke'].includes(q.risk)&&Number.isFinite(Number(q.americanOdds))&&
@@ -345,7 +385,8 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   const anyStale=d.status==='LAST_SAVED'||d.updatedDataCurrent===false||
    models.some(c=>c.outdated===true||c.mode==='STALE_MODEL_ONLY');
   const staleNote=anyStale&&models.length?
-   '<p class="sgp-slip-stale"><strong>Needs refresh · Saved model selections</strong> — these were generated earlier. Player status, injury reports and exact sportsbook lines must be rechecked before using any pick.</p>':'';
+   '<p class="sgp-slip-stale"><strong>Needs refresh · Saved model selections</strong> — these were generated earlier. Player status, injury reports and exact sportsbook lines must be rechecked before using any pick.</p>'+
+   '<p class="sgp-auto-check" role="status">'+esc(renderAutoRecheckStatus())+'</p>':'';
 
   const slips=models.length?
    '<div class="sgp-slips">'+models.map(c=>
@@ -782,11 +823,11 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   // A second tap collapses. Selecting another moves the same analytics panel.
   if(String(state.selected)===String(id)){
    ++state.loading;state.selected='';state.selectedData=null;state.aiData=null;
-   state.liveData=null;state.nbaData=null;state.nbaBookResearch=null;state.nbaBookLoading=false;state.weatherData=null;state.weatherLoading=false;state.detailTab='overview';renderGames();renderWeather();return;
+   state.liveData=null;state.nbaData=null;state.nbaBookResearch=null;state.nbaBookLoading=false;state.weatherData=null;state.weatherLoading=false;state.recheckStatus=null;state.recheckLoading=false;state.detailTab='overview';renderGames();renderWeather();return;
   }
   const token=++state.loading;
   state.selected=String(id);state.selectedData=null;state.aiData=null;
-  state.liveData=null;state.nbaData=null;state.nbaBookResearch=null;state.nbaBookLoading=false;state.publicBookResearch=null;state.publicBookLoading=false;state.weatherData=null;state.weatherLoading=false;state.detailTab=state.module==='sgps'?'sgps':state.module==='live'?'live':'overview';renderGames();
+  state.liveData=null;state.nbaData=null;state.nbaBookResearch=null;state.nbaBookLoading=false;state.publicBookResearch=null;state.publicBookLoading=false;state.weatherData=null;state.weatherLoading=false;state.recheckStatus=null;state.recheckLoading=false;state.detailTab=state.module==='sgps'?'sgps':state.module==='live'?'live':'overview';renderGames();
   if(scroll&&typeof requestAnimationFrame==='function')
    requestAnimationFrame(()=>{
     if(token===state.loading)
@@ -816,7 +857,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    return;
   }
  try{const d=await getJson('/api/public-nfl-game?'+new URLSearchParams({date:state.date,gameId:String(id)}));if(token!==state.loading)return;
- $('#freshness').textContent=(d.status==='LAST_SAVED'?'Model preview • ':'')+fmtStamp(d.updatedAt);state.selectedData=d;renderGame(d);if(state.detailTab==='live'&&!state.liveData&&!state.liveLoading)loadPublicLive(String(id));if(state.league==='nfl'&&!state.publicBookLoading)loadPublicBookResearch(state.date,String(id))}
+ $('#freshness').textContent=(d.status==='LAST_SAVED'?'Model preview • ':'')+fmtStamp(d.updatedAt);state.selectedData=d;renderGame(d);if(d.status==='LAST_SAVED')loadNflRecheckStatus(state.date,String(id));if(state.detailTab==='live'&&!state.liveData&&!state.liveLoading)loadPublicLive(String(id));if(state.league==='nfl'&&!state.publicBookLoading)loadPublicBookResearch(state.date,String(id))}
  catch{if(token===state.loading)$('#match-content').innerHTML='<div class="empty" style="margin-top:18px">Predictions are temporarily unavailable. Try refreshing shortly.</div>'}}
 function renderExtras(){
  const box=$('#extra-content');if(!box)return;
@@ -850,7 +891,7 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
  async function loadRanks(){const token=++state.rankLoading;state.rankings=null;$('#rankings').innerHTML='<div class="empty loading grid-span">Loading rankings…</div>';
  if(state.league!=='nfl')return;
  try{const d=await getJson('/api/public-nfl-rankings?'+new URLSearchParams({date:state.date}));if(token!==state.rankLoading)return;state.rankings=d;renderRanks();renderExtras()}catch{if(token===state.rankLoading)$('#rankings').innerHTML=noData('Rankings unavailable','Check again after the next saved update.')}}
- async function loadSlate(upcoming){++state.loading;++state.rankLoading;state.selected='';state.selectedData=null;state.aiData=null;state.liveData=null;state.publicBookResearch=null;state.publicBookLoading=false;state.nbaData=null;state.nbaBookResearch=null;state.nbaBookLoading=false;state.weatherData=null;state.weatherLoading=false;state.games=[];renderGames();renderWeather();$('#games').innerHTML='<div class="empty loading grid-span">Loading scheduled matchups…</div>';
+ async function loadSlate(upcoming){++state.loading;++state.rankLoading;state.selected='';state.selectedData=null;state.aiData=null;state.liveData=null;state.publicBookResearch=null;state.publicBookLoading=false;state.nbaData=null;state.nbaBookResearch=null;state.nbaBookLoading=false;state.weatherData=null;state.weatherLoading=false;state.recheckStatus=null;state.recheckLoading=false;state.games=[];renderGames();renderWeather();$('#games').innerHTML='<div class="empty loading grid-span">Loading scheduled matchups…</div>';
  $('#match-title').textContent='Select a game';$('#match-content').innerHTML='<div class="empty" style="margin-top:18px">Choose a matchup to explore the picks.</div>';renderNflModule();
  const base=state.league==='nfl'?'/api/nfl-schedule':'/api/nba-slate';
  const q=(!upcoming&&state.date)?'?'+new URLSearchParams({date:state.date}):'';
@@ -923,6 +964,7 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
     if(state.league==='nfl'&&state.date===date&&String(state.selected)===String(id)){
      state.selectedData=d;$('#freshness').textContent=(d.status==='LAST_SAVED'?'Model preview • ':'')+fmtStamp(d.updatedAt);
      renderGame(d);
+     if(d.status==='LAST_SAVED'&&!state.recheckLoading)loadNflRecheckStatus(date,id);
     }
    }catch{/* Preserve the existing card and its last-update label. */}
   }
@@ -939,7 +981,7 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
  }
  // Automatic 5-minute public revalidation never generates new bookmaker or AI calls.
  setInterval(refreshReadOnlyPredictions,5*60*1000);
- $('#refresh').addEventListener('click',()=>loadSlate(false));
+ $('#refresh').addEventListener('click',()=>state.selected?refreshReadOnlyPredictions():loadSlate(false));
  // Move the same public read-only ranking/Best-of-Slate DOM directly below
  // the NFL tabs. No duplicate API requests or independent renderers.
  const moduleContent=$('#nfl-module-content');
