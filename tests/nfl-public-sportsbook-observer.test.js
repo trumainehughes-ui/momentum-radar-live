@@ -74,6 +74,8 @@ test('public UI checks only signed scoped game source and retains verified SGP s
  assert.ok(ui.includes('<section class="sgp-research-details" aria-label="Public sportsbook player odds">'));
  assert.ok(ui.includes('Combined sportsbook odds and player lines are not verified'));
  assert.ok(ui.includes('not authenticated current sportsbook selections'));
+ assert.ok(ui.includes('participationByPlayer.has('));
+ assert.ok(ui.includes('official active status not confirmed by this price'));
 });
 
 test('game/player identity gate drops other-team prices even when public listing mislabeled the matchup',()=>{
