@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-import {parseNbaDkPublicProps,onlyKnownNbaPlayers} from '../lib/nba-public-book-observer.js';
+import {parseNbaDkPublicProps,onlyKnownNbaPlayers,onlyRosterListedNbaOffers} from '../lib/nba-public-book-observer.js';
 
 const game={gameId:'401909088',home:{abbr:'DET',name:'Detroit Pistons'},
  away:{abbr:'BOS',name:'Boston Celtics'},kickoff:'2026-10-20T19:00:00Z'};
@@ -99,4 +99,20 @@ test('NBA observes only the exact matching prop threshold and not another alt-li
  assert.equal(ctx.offers({name:'Jayson Tatum',category:'points',threshold:25}).odds,115);
  assert.equal(ctx.offers({name:'Jayson Tatum',category:'points',threshold:30}),undefined);
  assert.equal(ctx.offers({name:'Jaylen Brown',category:'points',threshold:25}),undefined);
+});
+
+test('NBA public odds can display for roster-checked players before AI pregame model builds',()=>{
+ const gameReport={injuries:[{name:'Suspended Player',status:'OUT'}]};
+ const rosters=[{team:'BOS',data:{athletes:[{items:[
+  {id:'1',displayName:'Jayson Tatum',status:{name:'active'}},
+  {id:'2',displayName:'Suspended Player',status:{name:'active'}}
+ ]}]}},{team:'DET',data:{athletes:[{items:[
+  {id:'3',displayName:'Cade Cunningham',status:{name:'active'}}]}]}}];
+ const observations=[
+  {player:'Jayson Tatum',category:'points',line:24.5,side:'OVER',odds:115},
+  {player:'Suspended Player',category:'points',line:14.5,side:'OVER',odds:115},
+  {player:'Unrelated Player',category:'points',line:24.5,side:'OVER',odds:115}
+ ];
+ assert.deepEqual(onlyRosterListedNbaOffers(observations,{...game,rosters,
+  injuries:gameReport.injuries}).map(x=>x.player),['Jayson Tatum']);
 });
