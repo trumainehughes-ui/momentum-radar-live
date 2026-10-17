@@ -36,9 +36,10 @@ test('rejects stale offers', () => {
  assert.equal(result.publishable,false);
 });
 
-test('fractional threshold is accepted as an exact offer but single-leg SGP is not publishable', () => {
+test('fractional threshold matches the offer, but a single leg cannot publish as SGP', () => {
  const result=validateBookSgp({legs:[leg(64.5)],combinedQuote:quote},'FanDuel',[offer(64.5)],now);
- assert.equal(result.publishable,true);
+ assert.equal(result.verifiedLegCount,1);
+ assert.equal(result.publishable,false);
 });
 test('rejects missing or zero-priced individual offers', () => {
  for (const priceAmerican of [null,undefined,'',0]) {
