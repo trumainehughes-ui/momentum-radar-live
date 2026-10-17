@@ -320,6 +320,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    esc(b.book)+': '+(b.observedOffers>0?
     esc(b.observedOffers)+' published offers observed':
     'current game prices could not be read')).join(' • ');
+  const sourceWarning=d.sourceHealth?.FanDuel?.requiresMachineReadableMarketFeed===true?'<p class="sub">FanDuel Colorado: storefront accessible, but JavaScript-rendered prices are not verified by this collector. No FanDuel odds inferred.</p>':'';
   const participationByPlayer=new Map(signals.map(x=>[String(x.player||'').toUpperCase()+'|'+String(x.team||'').toUpperCase(),x]));
   const cards=offers.map(x=>'<div class="player"><div class="tiny">'+esc(x.book||'Public sportsbook')+' · '+
     esc(labels[x.category]||x.category)+'</div><b>'+esc(x.player)+'</b>'+
@@ -327,7 +328,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     '<div class="small">'+esc(x.team||'')+' · '+esc(x.market)+' · '+esc(fmtStamp(x.observedAt))+'</div>'+ 
     (participationByPlayer.has(String(x.player||'').toUpperCase()+'|'+String(x.team||'').toUpperCase())?'<div class="small">Roster-matched sportsbook listing · official active status not confirmed by this price</div>':'')+'</div>').join('');
   return '<div class="panel" style="margin-top:18px"><h3>Public sportsbook market observations</h3>'+
-   '<p class="sub">'+summary+'</p>'+
+   '<p class="sub">'+summary+'</p>'+sourceWarning+
    (cards?'<div class="players-grid" style="margin-top:14px">'+cards+'</div>':
      '<p class="sub">No matching price rows were readable automatically for this game.</p>')+
    signalNote+coverageNote+
