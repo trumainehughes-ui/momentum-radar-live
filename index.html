@@ -393,9 +393,9 @@ const observedBookRows=(()=>{
      if(!name||!cat||used.has(name))continue;
      const options=rows.filter(o=>canon(o.player)===name&&o.category===cat);
      if(!options.length)continue;
-     const model=Number(leg.projection??leg.analyticsThreshold);
-     const multiplier=risk==='Small'?.75:risk==='Medium'?1:1.15;
-     const target=Number.isFinite(model)?model*multiplier:null;
+     const model=leg.target==='Anytime TD'?null:Number(leg.target??leg.analyticsThreshold??leg.projection);
+     // Target was already adjusted for the tier by the server-side model.
+     const target=model!==null&&Number.isFinite(model)?model:null;
      // Ranking uses the model, but ONLY a threshold actually observed on the
      // bookmaker page can become the candidate. No invented alternate lines.
      const selected=options.sort((a,b)=>target!==null?
@@ -438,16 +438,25 @@ if(analyticsMode&&Number(d.validation?.sgpEligibleMarketRows||0)===0){
  const catNames={td:'Anytime TD candidate',passing:'Passing yards',
   rushing:'Rushing yards',receiving:'Receiving yards',receptions:'Receptions'};
  const tiersHtml=(d.sgps?.Analytics||[]).filter(x=>['Small','Medium','Nuke'].includes(x?.risk)).map(x=>{
-  const legs=Array.isArray(x.legs)?x.legs.filter(p=>p&&p.name&&
-   Object.hasOwn(catNames,String(p.cat||''))):[];
+  const matchupTeams=new Set([String(g.home?.abbr||''),String(g.away?.abbr||'')]);
+  const legs=Array.isArray(x.legs)?x.legs.filter(p=>{
+   const cat=String(p?.category||p?.cat||'');
+   return Boolean(p?.player||p?.name)&&Object.hasOwn(catNames,cat)&&
+    String(p.gameId||g.gameId)===String(g.gameId)&&
+    matchupTeams.has(String(p.team||''));
+  }):[];
   const status=x.tierAssessment?.compositionOk===false||!legs.length?'Research not ready':'Projection candidates';
   return '<div class="nflSgpMini" data-risk="'+nflEscape(x.risk)+'" style="grid-column:1/-1">'+
    '<b>'+nflEscape(x.risk)+' • '+status+'</b>'+
    '<div class="meta">'+legs.length+' player projections • 0 verified sportsbook lines • Combined odds not quoted</div>'+
    (legs.length?legs.map(p=>{
-    const cat=String(p.cat||''),estimate=cat==='td'?'Touchdown candidate':nflProjection(p,cat);
-    return '<div class="nflMarketLine"><b>'+nflEscape(p.name)+'</b>'+
-     '<div class="meta">'+nflEscape(catNames[cat])+' • Model estimate: '+nflEscape(estimate)+'</div>'+
+    const cat=String(p.category||p.cat||'');
+    const target=cat==='td'?'Anytime touchdown candidate':
+     p.target!==null&&p.target!==undefined&&Number.isFinite(Number(p.target))?
+      String(p.target)+'+ '+(cat==='receptions'?'receptions':cat+' yards'):
+      'Target unavailable';
+    return '<div class="nflMarketLine"><b>'+nflEscape(p.player||p.name)+'</b>'+
+     '<div class="meta">'+nflEscape(catNames[cat])+' • Unverified model target: '+nflEscape(target)+'</div>'+
      '<div class="note">No current exact DraftKings/FanDuel line verified for this leg.</div></div>';
    }).join(''):'<div class="note">'+nflEscape(x.reason||'Insufficient screened player evidence.')+'</div>')+
    '<div class="refresh">Model research only • Not a selectable sportsbook parlay</div></div>';
