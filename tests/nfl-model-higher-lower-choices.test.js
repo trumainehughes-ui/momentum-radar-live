@@ -130,9 +130,9 @@ test('higher/lower controls adjust the comparison without introducing a sportsbo
  const card={dataset:{mrStep:'5',mrProjection:'115',mrTarget:'115',mrUnit:'yards'},
   querySelector(q){return q==='[data-mr-target-label]'?targetText:outcome},
   querySelectorAll(){return [yes,no]}};
- const plus={dataset:{mrAdjust:'1'},closest(q){return q==='.mr-projection-choice'?card:{}},
+ const plus={dataset:{mrAdjust:'1'},closest(q){return q==='.mr-projection-choice'?card:q.startsWith('button[')?this:{}},
   hasAttribute(k){return k==='data-mr-adjust'}};
- const higher={dataset:{mrDirection:'higher'},closest(q){return q==='.mr-projection-choice'?card:{}},
+ const higher={dataset:{mrDirection:'higher'},closest(q){return q==='.mr-projection-choice'?card:q.startsWith('button[')?this:{}},
   hasAttribute(){return false}};
  handlers.click({target:plus});
  assert.equal(targetText.textContent,'120');
