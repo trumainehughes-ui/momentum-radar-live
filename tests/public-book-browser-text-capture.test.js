@@ -69,3 +69,15 @@ test('the main matchup UI exposes manual DOM capture without reclassifying it as
  assert.ok(!html.includes('THE_ODDS_API_KEY'));
  assert.ok(!html.includes('CRON_SECRET'));
 });
+
+test('mobile screenshot import runs local OCR, never uploads image to an odds API',()=>{
+ const html=readFileSync(new URL('../odds-capture.html',import.meta.url),'utf8');
+ assert.ok(html.includes('type="file" accept="image/png,image/jpeg,image/webp"'));
+ assert.ok(html.includes("window.Tesseract.createWorker('eng',1)"));
+ assert.ok(html.includes('await worker.recognize(file)'));
+ assert.ok(html.includes('await worker.terminate()'));
+ assert.ok(html.includes("bookSourceMethod='USER_SCREENSHOT_OCR'"));
+ assert.ok(html.includes("const homeDate=parts.year+'-'+parts.month+'-'+parts.day"));
+ assert.ok(!html.includes('THE_ODDS_API_KEY'));
+ assert.ok(!html.includes('fetch(endpoint'));
+});
