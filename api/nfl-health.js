@@ -60,7 +60,7 @@ export function historySnap(g,m,prior=null){
      !Array.isArray(s.legs)||s.legs.length!==s.requiredLegs)continue;
   sgps.push({...s,book,combinedBookQuoteVerified:false,actualSgpOdds:null,
    legs:s.legs.map(x=>({...x,category:x.cat,
-    threshold:x.cat==='td'?1:(x.bookOffer?.line??x.analyticsThreshold??x.threshold??null)}))});
+    threshold:x.cat==='td'?1:(x.bookOffer?.line??null)}))});
  }
  // Carry only source-backed, fresh individual offers to the AI guardian.
  // The review is advisory; it must never convert them to a combined SGP quote.
