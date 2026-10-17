@@ -39,7 +39,7 @@ test('one signed roster-change may price each tier once for each bookmaker, neve
  assert.ok(apiSource.includes('candidates.slice(0,6)'));
  assert.ok(apiSource.includes('chooseNflCheckpointQuotes(candidates,'));
  assert.ok(apiSource.includes('await Promise.all('));
- assert.ok(apiSource.includes('if(authorizedChange&&gameId)'));
+ assert.ok(apiSource.includes('if(authorizedChange&&gameId&&!DIRECT_PUBLIC_ODDS_ONLY)'));
  assert.ok(apiSource.includes('evaluateNflBookQuoteReadiness(s,{book,gameId,now})'));
  assert.ok(apiSource.includes('quoteRequest:safeQuote'));
  const gate=readFileSync(new URL('../lib/nfl-book-quote-readiness.js',import.meta.url),'utf8');
