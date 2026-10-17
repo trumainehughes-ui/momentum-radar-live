@@ -71,6 +71,13 @@ h2{font-size:26px;letter-spacing:-.035em;margin:0 0 5px}h3{font-size:18px;letter
 .details-top .matchup{font-size:24px;font-weight:900;letter-spacing:-.035em;margin:5px 0}.fresh{font-size:12px;color:var(--muted)}
 .market-tabs{display:flex;gap:7px;flex-wrap:wrap;margin:20px 0 17px}.market-tabs .chip{font-size:12px;border-radius:10px;padding:9px 13px}
 /* Readable public SGP slips: only player, prop type and target. */
+.nba-picks-list{display:grid;gap:12px;margin-top:14px}
+.nba-pick{background:#112936;border:1px solid #305462;border-radius:13px;padding:14px}
+.nba-pick-player{font-size:16px;font-weight:800;color:#f0f9fb}
+.nba-pick-line{display:flex;justify-content:space-between;gap:12px;color:#bfd2dc;margin-top:8px;font-size:13px;align-items:center}
+.nba-pick-line strong{color:#8cecc0;font-size:17px;white-space:nowrap}
+.nba-sgp-card{margin-top:13px}
+.nba-status-line{font-size:12px;color:#a7bec9;line-height:1.55;margin-top:14px}
 .sgp-slip-intro{margin:0 0 13px;color:#c5d9e2;font-size:13px;line-height:1.5}
 .sgp-slips{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:13px;margin:0 0 16px}
 .sgp-slip{min-width:0;background:#102733;border:1px solid #345463;border-radius:15px;overflow:hidden}
@@ -147,6 +154,21 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  <p id="nfl-module-message" class="nfl-module-message" aria-live="polite">Select a matchup below to open its overview and game analytics.</p>
  <div id="nfl-module-content" class="nfl-module-content"></div>
 </section>
+<section id="nba-module-panel" class="nfl-module-panel" aria-label="NBA public analysis navigation" hidden>
+ <div class="nfl-module-heading"><span class="nfl-module-icon" aria-hidden="true">🏀</span><div><h2>NBA</h2><p>Game-by-game props, injuries and parlay research.</p></div></div>
+ <p class="nfl-module-note">Model data appears after the verified NBA pregame collector completes.</p>
+ <nav id="nba-module-tabs" class="nfl-module-tabs" aria-label="Choose NBA analysis">
+  <button type="button" class="nfl-module-tab active" data-nba-module="overview" aria-pressed="true">📅 Game Day</button>
+  <button type="button" class="nfl-module-tab" data-nba-module="points" aria-pressed="false">Points</button>
+  <button type="button" class="nfl-module-tab" data-nba-module="rebounds" aria-pressed="false">Rebounds</button>
+  <button type="button" class="nfl-module-tab" data-nba-module="assists" aria-pressed="false">Assists</button>
+  <button type="button" class="nfl-module-tab" data-nba-module="threes" aria-pressed="false">3-Pointers</button>
+  <button type="button" class="nfl-module-tab" data-nba-module="pra" aria-pressed="false">PRA</button>
+  <button type="button" class="nfl-module-tab" data-nba-module="sgps" aria-pressed="false">🔗 Same Game Parlays</button>
+  <button type="button" class="nfl-module-tab" data-nba-module="injuries" aria-pressed="false">Injuries</button>
+ </nav>
+ <p id="nba-module-message" class="nfl-module-message">Select any NBA game below to see player props, injuries and available Small / Medium / Nuke model picks.</p>
+</section>
 <div id="game-day-board"><p id="date-caption" class="sub" style="margin:16px 0 11px" aria-live="polite">Loading scheduled games…</p><div id="games" class="game-grid"><div class="empty loading grid-span">Loading matchups…</div></div><div id="game-panel-home" hidden></div></div></section>
 <section class="section" id="game-section" hidden><div class="panel"><div class="details-top"><div><div class="eyebrow">Matchup breakdown</div><div id="match-title" class="matchup">Select a game</div><p id="match-subtitle" class="sub">Model forecasts are screened before appearing here.</p></div><div id="freshness" class="fresh"></div></div><div id="match-content"><div class="empty" style="margin-top:18px">Choose a matchup above to view the player outlook and parlay tiers.</div></div><section id="public-weather-impact" class="panel" aria-label="NFL Weather Impact" style="margin-top:14px"><h3>🌦 Kickoff Weather</h3><div id="public-weather-content" class="sub">Open a matchup to see its kickoff forecast.</div></section></div></section>
 <section class="section" id="rankings-section"><div class="section-head"><div><h2>Players to watch</h2><p class="sub">Ranked model projections from games on the selected NFL slate. Friday's scheduled Sunday-slate primer prepares roster/injury-screened Anytime TD scorer estimates for every scheduled matchup. The existing 30-hour and final pregame refreshes then update them; model TD estimates are not verified sportsbook odds.</p></div></div><div class="market-tabs" id="rank-tabs"><button type="button" class="chip active" data-rank="td">Anytime TD</button><button type="button" class="chip" data-rank="passing">Passing</button><button type="button" class="chip" data-rank="rushing">Rushing</button><button type="button" class="chip" data-rank="receiving">Receiving</button><button type="button" class="chip" data-rank="receptions">Receptions</button></div><div class="players-grid" id="rankings"><div class="empty grid-span">Waiting for today's saved rankings…</div></div></section>
@@ -159,7 +181,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  'use strict';
  const $=s=>document.querySelector(s);
  const labels={td:'Anytime TD',passing:'Passing yards',rushing:'Rushing yards',receiving:'Receiving yards',receptions:'Receptions'};
- const state={league:'nfl',module:'games',date:'',games:[],selected:'',rank:'td',rankings:null,loading:0,rankLoading:0,selectedData:null,detailTab:'overview',propTab:'passing',aiData:null,aiLoading:false,liveData:null,liveLoading:false,publicBookResearch:null,publicBookLoading:false,weatherData:null,weatherLoading:false};
+ const state={league:'nfl',module:'games',nbaTab:'overview',nbaData:null,nbaBookResearch:null,nbaBookLoading:false,date:'',games:[],selected:'',rank:'td',rankings:null,loading:0,rankLoading:0,selectedData:null,detailTab:'overview',propTab:'passing',aiData:null,aiLoading:false,liveData:null,liveLoading:false,publicBookResearch:null,publicBookLoading:false,weatherData:null,weatherLoading:false};
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const fmtTime=v=>{const n=Date.parse(v||'');return Number.isFinite(n)?new Intl.DateTimeFormat(undefined,{weekday:'short',hour:'numeric',minute:'2-digit'}).format(new Date(n)):'Time TBD'};
  const fmtStamp=v=>{const n=Date.parse(v||'');return Number.isFinite(n)?'Updated '+new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(n)):'Awaiting updates'};
