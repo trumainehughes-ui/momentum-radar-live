@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
 import {parseVisibleBookCapture} from '../lib/public-book-text-capture.js';
 import {selectBestListedBookAlternate} from '../lib/sportsbook-listed-alternate-selector.js';
 
@@ -98,4 +99,28 @@ test('actual sportsbook selection remains exact and browser UI calls shared judg
  assert.ok(html.includes("matched.push({...choice.offer"));
  assert.ok(html.includes('No unlisted threshold substituted.'));
  assert.ok(!html.includes("Math.abs(Number(a.line||0)-target)"));
+});
+
+test('actual matchup card assembly selects only real prices from captured FanDuel offers',()=>{
+ const home=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const start=home.indexOf('const capturedMatchupCandidates=(()=>{');
+ const end=home.indexOf('const capturedDraftHtml=',start);
+ assert.ok(start>0&&end>start);
+ const offers=parseVisibleBookCapture({...base,text:playerModal}).offers;
+ const d={sgps:{Analytics:[{
+  risk:'Nuke',legs:[{player:'Bijan Robinson',team:'ATL',
+   category:'rushing',gameId:'401872999',target:null}]
+ }]},categories:{rushing:[{name:'Bijan Robinson',team:'ATL',
+  projection:135,recentGameValues:[83,72,194,145,86]}]}};
+ const g={gameId:'401872999',home:{abbr:'ATL'},away:{abbr:'CHI'}};
+ const snippet=home.slice(start,end);
+ const cards=vm.runInNewContext('(function(){'+snippet+'return capturedMatchupCandidates})()',
+  {d,g,observedBookRows:offers,window:{momentumSelectBookAlternate:selectBestListedBookAlternate}});
+ assert.equal(cards.length,1);
+ assert.equal(cards[0].matched.length,1);
+ const pick=cards[0].matched[0];
+ assert.ok([125,150].includes(pick.line));
+ assert.equal(pick.odds,pick.line===125?300:640);
+ assert.notEqual(pick.line,135);
+ assert.deepEqual([...pick.adjacentListed].map(x=>x.line),[125,150]);
 });
