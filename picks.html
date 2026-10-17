@@ -70,6 +70,25 @@ h2{font-size:26px;letter-spacing:-.035em;margin:0 0 5px}h3{font-size:18px;letter
 .panel{border:1px solid var(--border);border-radius:18px;background:#0d1d29;padding:23px}.details-top{display:flex;gap:12px;justify-content:space-between;align-items:start;flex-wrap:wrap}
 .details-top .matchup{font-size:24px;font-weight:900;letter-spacing:-.035em;margin:5px 0}.fresh{font-size:12px;color:var(--muted)}
 .market-tabs{display:flex;gap:7px;flex-wrap:wrap;margin:20px 0 17px}.market-tabs .chip{font-size:12px;border-radius:10px;padding:9px 13px}
+/* Readable public SGP slips: only player, prop type and target. */
+.sgp-slip-intro{margin:0 0 13px;color:#c5d9e2;font-size:13px;line-height:1.5}
+.sgp-slips{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:13px;margin:0 0 16px}
+.sgp-slip{min-width:0;background:#102733;border:1px solid #345463;border-radius:15px;overflow:hidden}
+.sgp-slip-head{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#183746;border-bottom:1px solid #345463;padding:15px 17px}
+.sgp-slip-head strong{font-size:19px;color:#f2fcff}
+.sgp-slip-head span{font-size:12px;color:#b8d3dd;font-weight:750}
+.sgp-leg-list{list-style:none;margin:0;padding:0}
+.sgp-leg{padding:13px 17px;border-top:1px solid #2a4551}
+.sgp-leg:first-child{border-top:0}
+.sgp-leg-name{color:#f2f8fc;font-size:16px;line-height:1.35;font-weight:850;overflow-wrap:anywhere;margin-bottom:6px}
+.sgp-leg-selection{display:flex;gap:8px;justify-content:space-between;align-items:baseline;color:#bfd5df;font-size:13px;line-height:1.4}
+.sgp-leg-selection strong{color:#85efc1;font-size:16px;font-weight:850;text-align:right;white-space:nowrap}
+.sgp-brief-status{color:#adc4cf;font-size:12px;line-height:1.5;margin:0 0 13px}
+.sgp-research-details{border:1px solid #2c4b5a;border-radius:12px;margin-top:17px;background:#0d2431}
+.sgp-research-details>summary{cursor:pointer;color:#a8dfd0;font-weight:750;font-size:13px;padding:14px 17px}
+.sgp-research-inner{padding:0 12px 12px}
+.sgp-research-inner>.panel{margin-top:0!important}
+@media(max-width:570px){.sgp-slips{grid-template-columns:minmax(0,1fr)}.sgp-leg{padding:12px 15px}.sgp-slip-head{padding:14px 15px}}
 .players-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:11px}
 .player{background:#102733;border-radius:12px;border:1px solid #2b4a58;padding:16px}.player b{font-size:15px;display:block;margin:7px 0}
 .player .stat{font-size:25px;font-weight:900;color:var(--green);letter-spacing:-.04em}
@@ -264,28 +283,40 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    }
   }
  }
+ function sgpSelectionDisplay(l){
+  const cat=String(l?.category||l?.cat||'').toLowerCase();
+  if(cat==='td')return{label:'Anytime touchdown',target:'Score a TD'};
+  const label={passing:'Passing yards',rushing:'Rushing yards',
+   receiving:'Receiving yards',receptions:'Receptions'}[cat]||'Player prop';
+  const raw=String(l?.target??'').trim(),amount=raw.match(/^(\d+(?:\.\d+)?)\+/)?.[1];
+  return{label,target:amount?amount+'+':raw.slice(0,24)||'See sportsbook'};
+ }
  function renderParlays(d){
   const quotes=(d.verifiedQuotes||[]).filter(q=>q&&['DraftKings','FanDuel'].includes(q.book)&&
    ['Small','Medium','Nuke'].includes(q.risk)&&Number.isFinite(Number(q.americanOdds))&&
    Number(q.americanOdds)!==0);
-  // An unverified inactives check must not promote a saved quote to a ticket.
   const ready=d.inactivesVerified===true&&d.updatedDataCurrent===true&&quotes.length>0;
   const models=(Array.isArray(d.parlays)?d.parlays:[]).filter(c=>
    ['Small','Medium','Nuke'].includes(c?.risk)&&c.mode==='MODEL_ONLY'&&
    Array.isArray(c.legs)&&c.legs.length>=2);
-  const research=models.length?
-   '<div class="section-head"><div><h3>Model SGP Research</h3>'+
-   '<p class="sub">MODEL PICKS • COMBINED ODDS UNVERIFIED. MODEL RESEARCH ONLY — NOT A VERIFIED SPORTSBOOK PARLAY. Day-before conditional model; player status, exact book lines and combined odds are not verified. Hit chances are experimental model estimates, not sportsbook probabilities.</p></div></div>'+
-   models.map(c=>'<div class="bookquote"><b>'+esc(c.risk)+' • '+esc(c.legCount)+' model legs</b>'+
-    '<div class="sub">'+c.legs.map(l=>esc(l.player)+' — '+esc(l.target)+' ('+esc(hitChanceText(l,l.category))+')').join(' • ')+'</div>'+
-    (c.explanation?'<div class="sub">'+esc(c.explanation)+'</div>':'')+'</div>').join(''):'';
-  const verified=ready?
-   '<div class="section-head"><div><h3>Verified Same Game Parlays</h3>'+
-   '<p class="sub">Review the current selections and prices at your sportsbook before betting.</p></div></div>'+
-   renderOdds(quotes):
-   '<div class="empty"><strong>No sportsbook-verified parlays available yet.</strong>'+
-   '<div>Sportsbook verification pending. A missing FanDuel or DraftKings line invalidates the proposed sportsbook parlay. Exact selections, active players and combined odds must be confirmed before a parlay is offered.</div></div>';
-  return research+verified+renderPublicBookResearch();
+  const slips=models.length?
+   '<div class="sgp-slips">'+models.map(c=>
+    '<section class="sgp-slip" aria-label="'+esc(c.risk)+' same-game parlay">'+
+    '<div class="sgp-slip-head"><strong>'+esc(c.risk)+'</strong><span>'+esc(c.legs.length)+' legs</span></div>'+
+    '<ol class="sgp-leg-list">'+c.legs.map(l=>{
+     const pick=sgpSelectionDisplay(l);
+     return '<li class="sgp-leg"><div class="sgp-leg-name">'+esc(l.player)+'</div>'+
+      '<div class="sgp-leg-selection"><span>'+esc(pick.label)+'</span><strong>'+
+       esc(pick.target)+'</strong></div></li>';
+    }).join('')+'</ol></section>').join('')+'</div>':
+   '<div class="empty">No model parlay selections are available for this matchup yet.</div>';
+  const intro='<p class="sgp-slip-intro">Player selections for each parlay tier.</p>';
+  const verification=ready?
+   '<p class="sgp-brief-status">Sportsbook-issued combined quotes below. Recheck selections before betting.</p>'+renderOdds(quotes):
+   '<p class="sgp-brief-status">Model picks only · Combined sportsbook odds and player lines are not verified. Confirm every selection at the sportsbook.</p>';
+  const research='<details class="sgp-research-details"><summary>Public sportsbook price research (optional)</summary>'+
+   '<div class="sgp-research-inner">'+renderPublicBookResearch()+'</div></details>';
+  return intro+slips+verification+research;
  }
  function offerHtml(x){const o=x.bookOffer;if(!o)return '';
   return '<div class="small">Verified individual '+esc(o.book)+' line'+
@@ -335,7 +366,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    '<button class="soft" type="button" data-view="props">All player props →</button></div>'+
    '<div class="players-grid">'+['passing','rushing','receiving','receptions'].flatMap(cat=>
     (d.categories?.[cat]||[]).slice(0,1).map(x=>renderPlayer(x,cat))).join('')+'</div>'+
-   '<div class="section-head" style="margin-top:25px"><div><h3>Small / Medium / Nuke</h3><p class="sub">See every leg and the model explanation</p></div>'+
+   '<div class="section-head" style="margin-top:25px"><div><h3>Small / Medium / Nuke</h3><p class="sub">Simple player and prop selections</p></div>'+
    '<button class="soft" type="button" data-view="sgps">Full parlays →</button></div>'+
    renderParlays(d);
  }
