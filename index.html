@@ -473,7 +473,7 @@ const observedBookRows=(()=>{
    autoPublicDK.tiers.map(t=>'<div class="nflSgpMini" data-risk="'+nflEscape(t.risk)+'"><b>'+nflEscape(t.risk)+' published-market comparison</b>'+
     '<div class="meta">'+t.offers.length+' / '+t.required+' model legs matched to real listed prices'+
     (t.complete?' · candidate lineup only':' · incomplete')+'</div></div>').join(''):
-   '<div class="note">No fresh exact published DraftKings props matched this game's roster.</div>')+
+   '<div class="note">No fresh exact published DraftKings props matched the selected game roster.</div>')+
   '<div class="refresh"><a href="https://dknetwork.draftkings.com/draftkings-sportsbook-player-props/" rel="noopener noreferrer" target="_blank">View published source ↗</a> · FanDuel and complete alternate ladders remain unverified.</div></div>';
  const capturePath='/odds-capture.html?'+new URLSearchParams({date:nflData?.date||'',gameId:g.gameId});
 const bookCaptureHtml=
