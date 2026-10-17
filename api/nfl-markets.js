@@ -597,7 +597,7 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
   if(!modelOnlyPrimer)try{
    requestStage='primary_book_provider';const alt=await oddsApiFallback(date,home,away,gameId);
    if(Array.isArray(alt)&&alt.length){directRows=alt;provider='The Odds API';oddsDebug.stage='primary_market_ready'}
-   else oddsDebug.stage='primary_market_unavailable';
+   else {oddsDebug.stage='primary_market_unavailable';oddsDebug.primaryMarketRows=0;oddsDebug.primaryFailureReason='No exact DraftKings/FanDuel player prop rows returned for this ESPN matchup';}
   }catch(e){
    oddsDebug.attempted=true;oddsDebug.stage='primary_market_degraded';
    oddsDebug.error=String(e?.message||e);
@@ -673,7 +673,7 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
     oddsDebug.sgoUsage=e?.sgoUsage||null;
     console.warn('sgo_backup_skipped',oddsDebug.sgoError);
    }
-  }else if(!primaryBooksReady)oddsDebug.stage=sgoEnabled?'backup_reserved':'backup_not_configured';
+  }else if(!primaryBooksReady){oddsDebug.backupReason=sgoEnabled?'Reserved for signed scheduled checkpoint or final pregame refresh; ordinary browser reload does not invoke backup provider.':'Backup sportsbook provider is not configured.';oddsDebug.stage=sgoEnabled?'backup_reserved':'backup_not_configured';}
  }let chosen=events;if(gameId)chosen=events.filter(e=>{const h=e.teams?.home||{},a=e.teams?.away||{};const hs=[h.teamID,h.names?.short,h.names?.medium,h.names?.long].map(norm),as=[a.teamID,a.names?.short,a.names?.medium,a.names?.long].map(norm);return hs.includes(norm(home))&&as.includes(norm(away))});const rawRows=directRows||chosen.flatMap(e=>Object.values(e.odds||{}).filter(o=>o&&!['all','home','away'].includes(String(o.statEntityID||'').toLowerCase())).map(o=>market(o,e.eventID||e.id)));const emptyStatBoards={passing:[],rushing:[],receiving:[],receptions:[],td:[]};const statBoardsPromise=gameId?Promise.race([analyticsStatBoards(date,[home,away]),new Promise(resolve=>setTimeout(()=>resolve(emptyStatBoards),6500))]):Promise.resolve(emptyStatBoards);const base=process.env.VERCEL_PROJECT_PRODUCTION_URL?'https://'+process.env.VERCEL_PROJECT_PRODUCTION_URL:'https://momentum-radar-live.vercel.app';requestStage='eligibility_and_roles';const [eligibility,roles]=await Promise.all([Promise.race([gameEligibility(gameId,{date,home,away}),new Promise(resolve=>setTimeout(()=>resolve({blockedIds:new Set(),blockedNames:new Set(),rosterById:new Map(),rosterByName:new Map(),checked:false,injuryChecked:false,injuryEvidence:[],teamIdsByAbbr:new Map()}),10000))]),Promise.race([gameRoleGate(gameId,base),new Promise(resolve=>setTimeout(()=>resolve({checked:false,roles:new Map(),players:[]}),8500))])]);const rows=gameId?eligibilityFilter(rawRows,eligibility):rawRows;const categories={};for(const c of ['td','passing','rushing','receiving','receptions'])categories[c]=pickRows(rows,c,10);// Game-scoped model TD candidates are built below from the same already-loaded ESPN box scores.
 const publicRefs=gameId?manualAtlNoTonightSgps(date,home,away)?.[0]?.publicMarketSnapshot?.references||[]:[];
 // Public ATD observations must become real category rows even when an upstream API supplies no TD base row.
