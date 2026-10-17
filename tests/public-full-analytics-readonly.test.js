@@ -175,9 +175,9 @@ test('public site has all core dashboard read-only modules, with syntactically v
  const html=readFileSync(new URL('../picks.html',import.meta.url),'utf8');
  for(const value of ['AI Game Analyzer','Matchup Edge','Injuries','Anytime TD',
  'Player Props','Same Game Parlays','Small','Medium','Nuke',
- 'Live TD Tracker','NFL Results History','Best of Slate',
+ 'Live TD Tracker','Best of Slate',
  '/api/public-nfl-ai?','/api/public-nfl-live?',
- '/api/public-nfl-history','/api/public-nfl-game?'])
+ '/api/public-nfl-game?'])
   assert.ok(html.includes(value),value);
  const js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
  assert.ok(js);
@@ -205,4 +205,24 @@ test('preliminary NFL Top 10 coverage and real book verification stay consistent
  assert.ok(publicApi.includes('categoryGameCounts:ranked.categoryGameCounts'));
  assert.ok(ranks.includes('nflBookOfferEligible(row,b,b.book,now)'));
  assert.ok(ranks.includes('categoryGameCounts:Object.fromEntries'));
+});
+
+test('public NFL module menu mirrors consumer production categories without History',()=>{
+ const html=readFileSync(new URL('../picks.html',import.meta.url),'utf8');
+ const menu=html.match(/<nav id="nfl-module-tabs"[\s\S]*?<\/nav>/)?.[0]||'';
+ const expected=['games','td','passing','rushing','receiving','receptions','sgps','best','live'];
+ assert.deepEqual([...menu.matchAll(/data-nfl-module="([^"]+)"/g)].map(x=>x[1]),expected);
+ for(const label of ['Game Day','Anytime TD','Passing','Rushing','Receiving',
+   'Receptions','Same Game Parlays','Best of Slate','Live TD Tracker'])
+  assert.ok(menu.includes(label),label);
+ assert.ok(!menu.includes('History'));
+ assert.ok(!html.includes('NFL Results History'));
+ assert.ok(!html.includes('/api/public-nfl-history'));
+ assert.ok(html.includes("moduleContent.appendChild($('#rankings-section'))"));
+ assert.ok(html.includes("moduleContent.appendChild($('#extra-section'))"));
+ assert.ok(html.includes("$('#game-day-board').hidden=nfl&&!gameModules.has(module)"));
+ assert.ok(html.includes("$('#nfl-module-tabs').addEventListener('click'"));
+ assert.ok(html.includes('/api/public-nfl-game?'));
+ assert.ok(html.includes('/api/public-nfl-rankings?'));
+ assert.ok(!html.includes('/api/nfl-markets?'));
 });
