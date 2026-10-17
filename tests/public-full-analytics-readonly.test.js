@@ -146,7 +146,8 @@ test('public AI analysis presents immediate real model evidence while saved Groq
  assert.ok(html.includes('Top Anytime TD opportunities'));
  assert.ok(html.includes('Top yardage and reception candidates'));
  assert.ok(html.includes('observed rush/target opportunities per game'));
- assert.ok(html.includes('experimental model estimates, not sportsbook probabilities'));
+ assert.ok(html.includes('(uncalibrated model)'));
+ assert.ok(html.includes('Model picks only · Combined sportsbook odds and player lines are not verified'));
  assert.ok(html.includes('Source-verified individual offers:'));
  assert.ok(html.includes('Correlated SGP quotes:'));
  const aiStart=html.indexOf('function showAi(d)');
