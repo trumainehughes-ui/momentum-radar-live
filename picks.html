@@ -448,7 +448,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   }
   return tiers;
  }
- async function loadCurrentNflSgpResearch(date,gameId,token){
+ async async function loadCurrentNflSgpResearch(date,gameId,token){
   try{
    const m=await getJson('/api/nfl-markets?'+new URLSearchParams({date,gameId}));
    if(token!==state.loading||!state.selectedData||String(state.selected)!==String(gameId))return;
