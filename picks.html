@@ -143,7 +143,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
 .player .small{font-size:12px;color:#bbccd6;line-height:1.5;margin-top:9px}
 </style><script type="module" src="/public-sgp-browser-bootstrap.js"></script>
 <script type="module" src="/public-automatic-dk-book-bootstrap.js"></script>
-<script type="module" src="/nfl-model-choice-bootstrap.js"></script><script type="module" src="/nfl-sgp-model-yardage-bootstrap.js"></script><script type="module" src="/nfl-public-compact-sgp-bootstrap.js"></script>
+<script type="module" src="/nfl-model-choice-bootstrap.js"></script><script type="module" src="/nfl-sgp-model-yardage-bootstrap.js"></script><script type="module" src="/nfl-public-compact-sgp-bootstrap.js"></script><script type="module" src="/nfl-public-matchup-intelligence-bootstrap.js"></script>
 </head>
 <body>
 <header><div class="container nav"><a class="brand" href="/picks" aria-label="Momentum Radar home"><span class="logo" aria-hidden="true">↗</span><span>Momentum <span style="color:#50e7ac">Radar</span></span></a><div class="toplinks"><span class="navpill">SPORTS INSIGHTS</span><button class="soft" id="refresh" type="button">↻ Refresh</button></div></div></header>
@@ -711,26 +711,26 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    (state.propTab===cat?'active':'')+'" data-prop="'+cat+'" type="button">'+esc(labels[cat])+'</button>').join('')+
    '</div><p class="sub">All available player projections, recent games, matchup notes and qualified individual book offers.</p>'+
    '<div style="margin-top:16px">'+playerGroup(d,state.propTab,10)+'</div>'}
+ function publicMatchupCards(sides){
+  // The public-only renderer is loaded asynchronously; do not flash
+  // the former wall of numbers while it loads.
+  return typeof window!=='undefined'&&window.momentumPublicMatchupIntelligence?
+   window.momentumPublicMatchupIntelligence.renderPublicMatchupIntelligence(sides):
+   '<p class="sub">Preparing the matchup comparison…</p>';
+ }
  function showMatchup(d){
   const sides=d.matchup?.sides||[],score=d.projectedScore;
-  if(!sides.length)return noData('Matchup intelligence pending','Two-direction offense versus defense rankings are not ready for this matchup.');
-  let html='<div class="sub">Compare each offense with the opposing defense by player position. Rank #1 means the most allowed or produced, not the strongest defense.</div>';
-  if(score?.scores?.length)html+='<div class="bookquote"><b>Model projected score:</b> '+score.scores.map(x=>esc(x.team)+' '+esc(x.points)).join(' – ')+
-   (score.chances?.length?'<div class="sub">Model win chances: '+score.chances.map(x=>esc(x.team)+' '+esc(x.percent)+'%').join(' / ')+'</div>':'')+'</div>';
-  for(const side of sides){
-   html+='<div class="panel" style="margin:17px 0;padding:16px"><h3>'+esc(side.offense)+' Offense vs '+esc(side.defense)+' Defense</h3>'+
-    '<p class="sub">Samples: offense '+esc(side.offenseGames??'—')+' games, opposing defense '+esc(side.defenseGames??'—')+' games.</p>';
-   for(const p of side.positions||[]){
-    const vals=(p.metrics||[]).filter(m=>m.offensePerGame!=null||m.defenseAllowedPerGame!=null);
-    if(!vals.length)continue;
-    html+='<div class="small-label" style="margin-top:15px">'+esc(p.position)+' position</div>'+
-     '<div class="analytics-table"><div class="analytics-row analytics-th"><span>Statistic</span><span>Offense / Game</span><span>Allowed / Game</span></div>'+
-     vals.map(m=>'<div class="analytics-row"><span>'+esc(rankMetricNames[m.metric]||m.metric)+'</span><span>'+
-      esc(m.offensePerGame??'—')+(m.offenseRank!=null?' (#'+esc(m.offenseRank)+')':'')+'</span><span>'+
-      esc(m.defenseAllowedPerGame??'—')+(m.defenseRank!=null?' (#'+esc(m.defenseRank)+')':'')+'</span></div>').join('')+'</div>';
-   }html+='</div>';
-  }
-  return html;
+  if(!sides.length)return noData('Matchup intelligence pending',
+   'Offense versus defense comparisons are still being prepared.');
+  const projected=score?.scores?.length?
+   '<div class="bookquote"><b>Projected score:</b> '+
+    score.scores.map(x=>esc(x.team)+' '+esc(x.points)).join(' – ')+
+    (score.chances?.length?'<p class="sub">Estimated win chances: '+
+     score.chances.map(x=>esc(x.team)+' '+esc(x.percent)+'%').join(' / ')+
+    '</p>':'')+'</div>':'';
+  return '<h3>Matchup Intelligence</h3>'+
+    '<p class="sub">A quick look at each offense against the opposing defense.</p>'+
+    projected+publicMatchupCards(sides);
  }
  function showInjuries(d){
   const xs=d.injuries||[];
@@ -780,12 +780,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    '<div class="players-grid">'+['passing','rushing','receiving','receptions'].flatMap(cat=>
     (d.categories?.[cat]||[]).slice(0,2).map(x=>renderPlayer(x,cat))).join('')+'</div>';
   const insight='<div class="section-head" style="margin-top:22px"><h3>Matchup Intelligence</h3></div>'+
-   (match.length?match.map(x=>'<div class="leg"><strong>'+esc(x.offense)+' offense against '+esc(x.defense)+' defense</strong>'+
-    '<div class="small">Offense sample '+esc(x.offenseGames??'—')+' games • Defense sample '+esc(x.defenseGames??'—')+' games</div>'+
-    (x.positions||[]).slice(0,4).map(p=>'<div class="small">'+esc(p.position)+': '+
-     (p.metrics||[]).filter(m=>m.offensePerGame!=null&&m.defenseAllowedPerGame!=null).slice(0,2)
-     .map(m=>esc(rankMetricNames[m.metric]||m.metric)+' '+esc(m.offensePerGame)+' produced / '+esc(m.defenseAllowedPerGame)+' allowed').join(' • ')+'</div>').join('')+'</div>').join(''):
-    '<p class="sub">The bilateral matchup report is pending.</p>')+
+   publicMatchupCards(match)+
    '<div class="section-head" style="margin-top:24px"><h3>Parlay AI Risk Review</h3></div>'+
    (d.parlays||[]).map(s=>'<div class="leg"><strong>'+esc(s.risk)+' model</strong><div class="small">'+
     esc(s.explanation||'This tier awaits a full risk narrative.')+'</div></div>').join('')+
@@ -1171,6 +1166,10 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
    loadPublicWeather(date,id);
  }
  // Automatic 5-minute public revalidation never generates new bookmaker or AI calls.
+ window.addEventListener('momentum-public-matchup-intelligence-ready',()=>{
+  if(state.league==='nfl'&&['matchup','ai'].includes(state.detailTab)&&state.selectedData)
+   renderGame(state.selectedData);
+ });
  window.addEventListener('momentum-public-compact-sgp-ready',()=>{
   if(state.league==='nfl'&&state.detailTab==='sgps'&&state.selectedData)renderGame(state.selectedData);
  });
