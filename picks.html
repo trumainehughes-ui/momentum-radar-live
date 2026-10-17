@@ -78,6 +78,9 @@ h2{font-size:26px;letter-spacing:-.035em;margin:0 0 5px}h3{font-size:18px;letter
 .nba-pick-line strong{color:#8cecc0;font-size:17px;white-space:nowrap}
 .nba-sgp-card{margin-top:13px}
 .nba-status-line{font-size:12px;color:#a7bec9;line-height:1.55;margin-top:14px}
+.sgp-slip-stale{color:#ffdca6;font-size:12px;line-height:1.55;padding:10px 13px;background:#32281d;border:1px solid #816746;border-radius:10px;margin:0 0 14px}
+.sgp-slip-stale strong{font-weight:850}
+.sgp-stale-label{color:#ffdca6!important}
 .sgp-slip-intro{margin:0 0 13px;color:#c5d9e2;font-size:13px;line-height:1.5}
 .sgp-slips{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:13px;margin:0 0 16px}
 .sgp-slip{min-width:0;background:#102733;border:1px solid #345463;border-radius:15px;overflow:hidden}
@@ -330,27 +333,45 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    ['Small','Medium','Nuke'].includes(q.risk)&&Number.isFinite(Number(q.americanOdds))&&
    Number(q.americanOdds)!==0);
   const ready=d.inactivesVerified===true&&d.updatedDataCurrent===true&&quotes.length>0;
+  // The public endpoint deliberately labels older saved model picks
+  // STALE_MODEL_ONLY. Those are still real historical model selections:
+  // display them for reference with explicit refresh status, NEVER as current
+  // sportsbook-verified bets. Reject unknown modes and malformed tiers.
   const models=(Array.isArray(d.parlays)?d.parlays:[]).filter(c=>
-   ['Small','Medium','Nuke'].includes(c?.risk)&&c.mode==='MODEL_ONLY'&&
-   Array.isArray(c.legs)&&c.legs.length>=2);
+   ['Small','Medium','Nuke'].includes(c?.risk)&&
+   ['MODEL_ONLY','STALE_MODEL_ONLY'].includes(c.mode)&&
+   Array.isArray(c.legs)&&c.legs.length>=2&&
+   c.legs.every(l=>l?.player&&l?.category&&l?.target));
+  const anyStale=d.status==='LAST_SAVED'||d.updatedDataCurrent===false||
+   models.some(c=>c.outdated===true||c.mode==='STALE_MODEL_ONLY');
+  const staleNote=anyStale&&models.length?
+   '<p class="sgp-slip-stale"><strong>Needs refresh · Saved model selections</strong> — these were generated earlier. Player status, injury reports and exact sportsbook lines must be rechecked before using any pick.</p>':'';
+
   const slips=models.length?
    '<div class="sgp-slips">'+models.map(c=>
     '<section class="sgp-slip" aria-label="'+esc(c.risk)+' same-game parlay">'+
-    '<div class="sgp-slip-head"><strong>'+esc(c.risk)+'</strong><span>'+esc(c.legs.length)+' legs</span></div>'+
+    '<div class="sgp-slip-head"><strong>'+esc(c.risk)+'</strong><span'+
+     (c.mode==='STALE_MODEL_ONLY'||c.outdated?' class="sgp-stale-label"':'')+
+     '>'+esc(c.legs.length)+' legs'+
+     (c.mode==='STALE_MODEL_ONLY'||c.outdated?' · Needs refresh':'')+
+     '</span></div>'+
     '<ol class="sgp-leg-list">'+c.legs.map(l=>{
      const pick=sgpSelectionDisplay(l);
      return '<li class="sgp-leg"><div class="sgp-leg-name">'+esc(l.player)+'</div>'+
       '<div class="sgp-leg-selection"><span>'+esc(pick.label)+'</span><strong>'+
        esc(pick.target)+'</strong></div></li>';
     }).join('')+'</ol></section>').join('')+'</div>':
-   '<div class="empty">No model parlay selections are available for this matchup yet.</div>';
+   '<div class="empty">'+(d.status==='LAST_SAVED'?
+      'No eligible saved SGP tiers were available in the older matchup snapshot.':
+      'No complete model SGP tier was generated for this game yet. Individual public sportsbook prices are separate from combined SGP models.')+
+     '</div>';
   const intro='<p class="sgp-slip-intro">Player selections for each parlay tier.</p>';
-  const verification=ready?
+  const verification=ready&&!anyStale?
    '<p class="sgp-brief-status">Sportsbook-issued combined quotes below. Recheck selections before betting.</p>'+renderOdds(quotes):
    '<p class="sgp-brief-status">Model picks only · Combined sportsbook odds and player lines are not verified. Confirm every selection at the sportsbook.</p>';
   const research='<details class="sgp-research-details"><summary>Public sportsbook price research (optional)</summary>'+
    '<div class="sgp-research-inner">'+renderPublicBookResearch()+'</div></details>';
-  return intro+slips+verification+research;
+  return intro+staleNote+slips+verification+research;
  }
  function offerHtml(x){const o=x.bookOffer;if(!o)return '';
   return '<div class="small">Verified individual '+esc(o.book)+' line'+
