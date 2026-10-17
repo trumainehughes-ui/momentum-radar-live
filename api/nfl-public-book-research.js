@@ -54,7 +54,9 @@ export default async function handler(req,res){
   ]);
   // The FanDuel public website often renders odds through client-side
   // interfaces. Don't promote arbitrary page text to a current priced prop.
-  const fdStatus=fd.status==='FETCH_OK'?'NO_MACHINE_READABLE_MARKETS':fd.status;
+  const fdStatus=fd.status==='FETCH_OK'?
+   (/enable javascript|javascript is required|please enable javascript|requires javascript/i.test(fd.html||'')?
+    'JAVASCRIPT_RENDERED_STOREFRONT':'NO_MACHINE_READABLE_MARKETS'):fd.status;
   const report=publicBookResearchReport({dkHtml:dk.html,dkStatus:dk.status,
    fdStatus,date,home,away,now:Date.now()});
   const observed=report.offers.length;
