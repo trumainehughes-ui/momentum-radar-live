@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {parseDraftKingsNetworkNflProps,publicBookResearchReport,
- DKN_NFL_PROPS_URL,matchPublicOffersToEligibleGamePlayers} from '../lib/nfl-public-sportsbook-observer.js';
+ DKN_NFL_PROPS_URL,matchPublicOffersToEligibleGamePlayers,publicNflOfferParticipationSignals} from '../lib/nfl-public-sportsbook-observer.js';
 
 const now=Date.parse('2026-10-17T00:50:00Z'),date='2026-10-18';
 const html=(rows)=>'<html><table><thead><tr><th>Event</th><th>Event Date</th>'+
@@ -92,4 +92,21 @@ test('game/player identity gate drops other-team prices even when public listing
   .map(x=>x.player),['Parker Washington','Nico Collins']);
  assert.deepEqual(matchPublicOffersToEligibleGamePlayers(offers,
   {...game,status:'STALE'},{home:'JAX',away:'HOU'}),[]);
+});
+
+test('sportsbook participation signals require current game-scoped vetted prices',()=>{
+ const now=Date.parse('2026-10-17T14:00:00Z');
+ const base={gameId:'401872996',rosterMatched:true,book:'DraftKings',
+  player:'Parker Washington',team:'JAX',category:'td',odds:155,
+  observedAt:'2026-10-17T13:50:00Z'};
+ const signals=publicNflOfferParticipationSignals([base,
+  {...base,book:'FanDuel',category:'receiving'},
+  {...base,gameId:'other',player:'Wrong Game'},
+  {...base,player:'Stale Player',observedAt:'2026-10-17T12:00:00Z'},
+  {...base,player:'Unvetted',rosterMatched:false}],
+  {gameId:'401872996',now});
+ assert.equal(signals.length,1);
+ assert.deepEqual(signals[0].sportsbookSources,['DraftKings','FanDuel']);
+ assert.equal(signals[0].officialStatusVerified,false);
+ assert.equal(signals[0].participationEvidence,'PUBLIC_PROP_LISTED_NOT_OFFICIAL_ACTIVE');
 });
