@@ -40,6 +40,6 @@ test('production game market builder uses guarded filter without triggering a pa
  assert.ok(source.includes("return filterCompleteNflBookSgps(["));
  assert.ok(source.includes("findTier('Small',4,0),findTier('Medium',5,1),dynamicNuke()"));
  assert.ok(!source.includes("s?.legs?.length===s.requiredLegs"));
- assert.ok(source.includes('if(authorizedChange&&gameId)'));
+ assert.ok(source.includes('if(authorizedChange&&gameId&&!DIRECT_PUBLIC_ODDS_ONLY)'));
  assert.ok(source.includes('quoteEligibility'));
 });
