@@ -437,9 +437,10 @@ const observedBookRows=(()=>{
    c.matched.map(o=>'<div class="nflMarketLine"><b>'+nflEscape(o.player)+'</b> — '+
     nflEscape(o.category==='td'?'Anytime TD':o.line+'+ '+o.category)+
     ' at '+(Number(o.odds)>0?'+':'')+nflEscape(o.odds)+
-    '<div class="note">Chosen from the exact listed '+nflEscape(c.book)+
-    ' alternatives using the matchup model, individual price and '+nflEscape(c.risk)+
-    ' risk tier. No unlisted threshold substituted.</div></div>').join('')+'</div>').join('')+
+    '<div class="note">Listed options compared: '+nflEscape((o.adjacentListed||[]).map(a=>
+     a.line+'+ ('+(a.odds>0?'+':'')+a.odds+')').join(' vs '))+
+    ' • Selected using '+nflEscape(c.risk)+
+    ' risk, matchup forecast and individual prices. No unlisted threshold substituted.</div></div>').join('')+'</div>').join('')+
   '</div>':'';
 
  const capturePath='/odds-capture.html?'+new URLSearchParams({date:nflData?.date||'',gameId:g.gameId});
