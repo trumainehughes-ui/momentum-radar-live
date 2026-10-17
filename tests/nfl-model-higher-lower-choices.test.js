@@ -113,9 +113,9 @@ test('both views show model predictions BEFORE empty sportsbook cards and allow 
  const boot=readFileSync(new URL('../nfl-model-choice-bootstrap.js',import.meta.url),'utf8');
  assert.ok(prod.includes('src="/nfl-model-choice-bootstrap.js"'));
  assert.ok(pub.includes('src="/nfl-model-choice-bootstrap.js"'));
- assert.ok(prod.includes('modelChoiceHtml+autoDkHtml+bookCaptureHtml'));
+ assert.ok(prod.includes('modelChoiceHtml+sgpYardageHtml+autoDkHtml+bookCaptureHtml'));
  assert.ok(prod.includes("$('#nflSGP').innerHTML=modelChoiceHtml+"));
- assert.ok(pub.includes('return modelChoiceHtml+intro+staleNote+slips+verification'));
+ assert.ok(pub.includes('return modelChoiceHtml+tierYardageHtml+intro+staleNote+slips+verification'));
  assert.ok(boot.includes('installNflModelChoiceInteractions(document)'));
  assert.ok(boot.includes('buildNflModelChoiceBoard'));
 });
