@@ -97,8 +97,8 @@ test('NBA observes only the exact matching prop threshold and not another alt-li
    odds:115,book:'DraftKings',verification:'PUBLIC_PAGE_OBSERVATION_ONLY',
    observedAt:'2026-10-19T01:00:00Z'}]};
  assert.equal(ctx.offers({name:'Jayson Tatum',category:'points',threshold:25}).odds,115);
- assert.equal(ctx.offers({name:'Jayson Tatum',category:'points',threshold:30}),undefined);
- assert.equal(ctx.offers({name:'Jaylen Brown',category:'points',threshold:25}),undefined);
+ assert.equal(ctx.offers({name:'Jayson Tatum',category:'points',threshold:30}),null);
+ assert.equal(ctx.offers({name:'Jaylen Brown',category:'points',threshold:25}),null);
 });
 
 test('NBA public odds can display for roster-checked players before AI pregame model builds',()=>{
