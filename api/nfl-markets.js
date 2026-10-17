@@ -120,9 +120,9 @@ function nflVerifiedOnlySgpResponse(body){
   c.legs.length===(c.risk==='Small'?4:c.risk==='Medium'?5:c.legs.length)&&
   (c.risk!=='Nuke'||c.legs.length>=5&&c.legs.length<=7)&&
   c.legs.every(l=>l?.player&&l?.team&&l?.category&&
-   (l?.target===true||Number.isFinite(Number(l?.target)))));
+   (l.category==='td'||(l.target!==null&&l.target!==undefined&&Number.isFinite(Number(l.target))))));
  sgps.mode=sgps.DraftKings.length||sgps.FanDuel.length?
-  'VERIFIED_BOOK_SGPS_ONLY':sgps.Analytics.length?'MODEL_ONLY_RESEARCH':'NO_VERIFIED_BOOK_SGPS';
+  'VERIFIED_BOOK_SGPS_WITH_MODEL_RESEARCH':sgps.Analytics.length?'MODEL_ONLY_RESEARCH':'NO_VERIFIED_BOOK_SGPS';
  sgps.rule='Only accepted bookmaker-priced SGPs appear as parlays; model estimates are not sportsbook offers.';
  return {...body,sgps};
 }
