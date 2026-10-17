@@ -407,6 +407,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   const chance=td?(Number.isFinite(pct)?pct+'%':'Estimate unavailable'):esc(hitChanceText(x,cat));
   return '<div class="player"><div class="tiny">'+esc(x.team||'')+' • '+esc(labels[cat])+'</div><b>'+esc(x.name)+'</b>'+
    '<div class="stat">'+projected+'</div><div class="small"><b>Estimated chance: '+chance+'</b></div>'+
+   publicObservationHtml(x.name,cat,x.suggestedTarget??x.hitTarget)+
    '<div class="small"><b>Why AI picked this player:</b> '+esc(publicWhy(x,cat))+'</div>'+
    '<div class="tiny" style="margin-top:12px">Model estimate • not guaranteed</div></div>';
  }
@@ -522,50 +523,33 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  function showSharp(d){
   const review=d.sharpReview;
   const intro='<h3>📈 Sharp Insights • Player Chances & Sportsbook Checks</h3>'+
-   '<p class="sub">Compare estimated player chances and spot potential opportunities. Verified betting value appears only when the required checks pass.</p>';
+   '<p class="sub">Player outlook with public prices when an exact match is available.</p>';
   if(!review||!Array.isArray(review.candidates))return intro+
    noData('Player insights not available','Waiting for an approved read-only game analysis.');
   const list=review.candidates.slice(0,30);
-  const caution='<p class="sub" style="margin:18px 0"><b>Why is this bet not verified?</b> A projected hit chance alone does not prove that an exact sportsbook selection is offered or that a combined SGP price is confirmed. '+
-   '<b>Analysis only — betting value not confirmed.</b> These estimates are for comparing players, not confirmed betting recommendations.'+
-   (d.status==='LAST_SAVED'?' <b>Model-only projections; current sportsbook prices remain unverified.</b>':'')+'</p>';
-  if(!list.length)return intro+caution+
-   noData('No verified player research yet','The current game has not produced screened model candidates.');
-  return intro+caution+
-   '<div class="players-grid" style="margin-top:18px">'+list.map(p=>{
-    const m=p.marketContext||{},a=p.quantitativeAngle||{},ev=p.expectedValue||{},mm=p.marketMovement||{};
-    const pct=a.estimatedHitChancePct;
-    const estimated=pct!=null?esc(pct)+'%':'Pending';
-    const target=p.category==='td'?'Anytime TD':
-     a.hitTarget!=null?esc(a.hitTarget)+(p.category==='receptions'?'+ receptions':'+ '+p.category+' yards'):
-     esc(labels[p.category]||p.market);
-    const market=m.displayOdds?
-     'Observed '+esc(m.book)+' '+esc(m.displayOdds)+
-      (m.line!=null?' at line '+esc(m.line):'')+
-      ' • sportsbook break-even '+esc(m.impliedProbabilityPct)+'% (not independent +EV verification)':
-     'No independently verified FanDuel or DraftKings price attached';
-    const betStatus=m.displayOdds?
-     'A price has been observed, but book-to-book verification and model calibration remain incomplete.':
-     'A current sportsbook price for this selection has not been confirmed.';
-    return '<div class="player"><div class="tiny">'+esc(p.team)+' • '+esc(labels[p.category]||p.market)+'</div>'+
-     '<b>'+esc(p.name)+'</b>'+
-     '<div class="stat">'+estimated+'</div>'+
-     '<div class="small"><b>Estimated hit chance • '+target+'</b> (model estimate)</div>'+
-     '<div class="small" style="margin-top:13px"><b>Betting odds not confirmed</b></div>'+
-     '<div class="small">'+betStatus+'</div>'+
-     '<details style="margin-top:14px"><summary style="cursor:pointer;font-weight:750">Why is this still an estimate?</summary>'+
-      '<div class="small"><b>Market Context:</b> '+market+'</div>'+
-      '<div class="small"><b>Quantitative Angle:</b> '+estimated+' estimated chance for '+target+
-        (a.historicalSampleGames!=null?' • '+esc(a.historicalSampleGames)+' completed games sampled':'')+'</div>'+
-      '<div class="small"><b>Market Movement:</b> '+esc(mm.status||'UNAVAILABLE')+
-        ' • sharp/public money unavailable • CLV not established</div>'+
-      '<div class="small"><b>Expected Value:</b> '+esc(ev.reason||'Not established')+
-        ' • +EV Verdict: '+esc(p.status)+'</div>'+
-      '<div class="small"><b>Bankroll Strategy:</b> '+esc(p.bankroll?.units??0)+
-        ' units • no wager recommendation (1 unit = 1% of bankroll)</div>'+
-     '</details></div>';
-   }).join('')+'</div>'+
-   '<p class="sub" style="margin-top:14px">Percentages are estimates, not guarantees or confirmed sportsbook prices.</p>';
+  if(!list.length)return intro+noData('No player candidates yet','Try after the next game analysis.');
+  return intro+'<div class="players-grid" style="margin-top:16px">'+list.map(p=>{
+   const m=p.marketContext||{},a=p.quantitativeAngle||{};
+   const pct=a.estimatedHitChancePct;
+   const estimated=pct!=null?esc(pct)+'%':'—';
+   const line=a.hitTarget;
+   const target=p.category==='td'?'Anytime TD':
+    line!=null?esc(line)+'+ '+esc(p.category==='receptions'?'receptions':p.category+' yards'):
+    esc(labels[p.category]||p.market);
+   const observation=publicObservation(p.name,p.category,line);
+   const bookHtml=observation?publicObservationHtml(p.name,p.category,line):
+    m.displayOdds?
+     '<div class="market-observed">'+esc(m.book||'Sportsbook')+' '+esc(m.displayOdds)+
+      '<small>Saved sportsbook record · Recheck the price</small></div>':
+     '<div class="sharp-brief">No matching public price captured for this selection.</div>';
+   return '<article class="player sharp-card"><div class="tiny">'+
+    esc(p.team||'')+' · '+esc(labels[p.category]||p.market)+'</div>'+
+    '<b>'+esc(p.name)+'</b><div class="stat">'+estimated+'</div>'+
+    '<div class="small"><b>Estimated hit chance • '+target+'</b></div>'+
+    bookHtml+
+    '<details style="margin-top:12px"><summary style="cursor:pointer;font-size:12px;color:#acd9d0">Why is this bet not verified?</summary>'+
+    '<p class="sharp-brief">Model estimates are not calibrated sportsbook probabilities. Published individual-player prices do not verify availability, current starters, positive expected value or combined SGP odds.</p></details></article>';
+  }).join('')+'</div>';
  }
  function showLive(d){
   const l=state.liveData;
