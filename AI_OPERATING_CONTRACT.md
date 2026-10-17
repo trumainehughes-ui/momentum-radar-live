@@ -77,3 +77,10 @@ For a supplied FanDuel Bijan Robinson rushing ladder containing 125+, 150+, 175+
 - Local browser/screenshot captures may be shown to the viewer on either page of the same origin and device. This is **not public global distribution**, independent server verification, or a bookmaker-accepted correlated SGP quote.
 - A public website response that can render the storefront does not guarantee its JavaScript market prices are readable by a server. Do not pretend an unreadable source was successfully crawled; report actual source state and do not switch to an odds API.
 - Only an independently authenticated sportsbook combined quote may populate a "verified SGP" payout. Match actual currently observed bookmaker alternatives as unquoted candidate lineups otherwise.
+
+## Shared admin-approved first-party market observation feed (October 17, 2026)
+- Authenticated `POST /api/nfl-published-book-observations` publishes exact FanDuel/DraftKings selections **only after** server-side schedule and roster checks. It requires the dedicated, sensitive `MOMENTUM_BOOK_PUBLISH_KEY`; it **MUST NOT** reuse `CRON_SECRET` or any sportsbook password. The public may not publish.
+- Read-only `GET` must show **only** observations scoped to the exact date, game, player, book, market, original offered line, American odds, source URL, and observation timestamp, expiring after 20 minutes; each book is isolated.
+- Production and public pages consume the same central feed (plus same-device captured observations). A publicly readable sportsbook storefront is not proof that Vercel can scrape its JavaScript price board.
+- A published capture is `USER_OBSERVED_NOT_BOOK_VERIFIED` until the actual sportsbook independently confirms it, and individual prices NEVER stand in for authenticated correlated combined SGP odds.
+- Do not claim fully automated sportsbook collection works unless a fresh real-book collection completes end-to-end in cloud production without human challenge, and both production/public pages show eligible market selections. Never bypass a human-verification challenge, invent lines or substitute any odds API.
