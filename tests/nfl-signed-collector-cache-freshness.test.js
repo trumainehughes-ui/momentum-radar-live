@@ -50,6 +50,6 @@ test('production collector signs per-game market refresh only inside protected c
  assert.ok(markets.includes('shouldServeCachedNflMarkets(saved,req,{secret:process.env.CRON_SECRET,ttl:TTL})'));
  assert.ok(markets.includes('(signedNflCollectorLock(req,process.env.CRON_SECRET)||authorizedChange)?4500:1200'));
  assert.ok(health.includes('bookCheckpoint.marketResponse||await r.json()'));
- assert.ok(markets.includes("if(authorizedChange&&gameId)"));
+ assert.ok(markets.includes("if(authorizedChange&&gameId&&!DIRECT_PUBLIC_ODDS_ONLY)"));
  assert.ok(health.includes("const injuryWatch=await checkNflScheduledInjuryChanges(g,{"));
 });

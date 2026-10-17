@@ -47,7 +47,7 @@ test('provider-native-only quote gate never accepts a generic odds identity',()=
 });
 test('production eligible changed-event pulls native book IDs regardless of Odds API availability',()=>{
  const src=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
- assert.ok(src.includes('if(process.env.PLAYER_PROPS_API_KEY&&authorizedChange){'));
+ assert.ok(src.includes('if(process.env.PLAYER_PROPS_API_KEY&&authorizedChange&&!DIRECT_PUBLIC_ODDS_ONLY){'));
  assert.ok(!src.includes('if(!directRows?.length&&process.env.PLAYER_PROPS_API_KEY&&authorizedChange)'));
  assert.ok(src.includes('signedPropLineRows.push(...offers)'));
  assert.ok(src.includes('mergeAuthorizedPropLineRows(directRows,offers)'));
@@ -55,7 +55,7 @@ test('production eligible changed-event pulls native book IDs regardless of Odds
  assert.ok(src.includes('signedSelectionRows:signedPropLineRows.length'));
  assert.ok(src.includes("buildBookSgp(quoteSourceRows,'DraftKings',ctx)"));
  assert.ok(src.includes("buildBookSgp(quoteSourceRows,'FanDuel',ctx)"));
- assert.ok(src.includes("if(authorizedChange&&gameId)"));
+ assert.ok(src.includes("if(authorizedChange&&gameId&&!DIRECT_PUBLIC_ODDS_ONLY)"));
  // No provider spend on public reads or automatic every-15-minute collector.
  assert.ok(src.includes("authorizedChange=Boolean(process.env.CRON_SECRET)"));
  assert.ok(src.includes('authorizedQuoteCandidates=candidates.length'));

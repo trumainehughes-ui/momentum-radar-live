@@ -46,3 +46,12 @@ Ingest -> normalize -> validate source/time/team/player -> deterministic calcula
 
 ### Regression example
 For a supplied FanDuel Bijan Robinson rushing ladder containing 125+, 150+, 175+ (among other offered thresholds), a model projection of 135 does NOT authorize a 135+, 130+, or 140+ prop. A chosen prop must match an actual offer for that book at the time of verification.
+
+## Direct sportsbook website source policy (mandatory, October 17, 2026)
+- Read **https://co.sportsbook.fanduel.com/** and **https://sportsbook.draftkings.com/** directly, without requiring user login, as the first and only permitted betting-odds sources for Momentum Radar's NFL/NBA props and SGP candidates.
+- **Do not call The Odds API, SportsGameOdds, PropLine or any other third-party odds API to obtain or verify betting lines.** Statistics and injury providers are separate from odds sourcing.
+- Publicly viewable does not guarantee server-side HTML contains the market board. If JavaScript rendering or a human verification challenge prevents an automatic observation, report the exact blocker and do not invent a line, fake a price or silently fall back to odds APIs. Human-observed evidence may be shown as such with source and timestamp, not falsely as an independently rechecked live quote.
+- Match each extracted player, NFL/NBA game, market, exact **listed** threshold, American price, sportsbook and observation time. Never infer 135+ rushing yards from visible 125+ or a model's 135-yard projection.
+- Keep DraftKings and FanDuel ladders separate. Individual prices are not a bookmaker-issued correlated SGP price. Never mark a slip bettable until every actual leg and the book's combined price have been confirmed.
+- Scheduled public checks are due the day before each game and 30 minutes before start. Backend collectors must respect each site's access controls and cannot claim coverage if a source returns no readable market lines.
+- Automated regressions must prove the screenshot-observed Bijan Robinson FanDuel rushing ladder (50+/60+/70+/80+/90+/100+/110+/125+) is accepted **only as an observed example**, and that 135+ is rejected unless subsequently present in an actual newer bookmaker observation.
