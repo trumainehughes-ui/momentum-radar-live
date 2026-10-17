@@ -831,6 +831,7 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
     });
     const quote=await quoteRes.json().catch(()=>null);
     oddsDebug[key]=quote?.status||quote?.error||'invalid_provider_response';
+    if(quote?.reason)oddsDebug[key+'Reason']=String(quote.reason).slice(0,100);
     const pricedAt=Date.parse(quote?.pricedAt||''),now=Date.now();
     if(quoteRes.ok&&quote?.quoted===true&&quote?.status==='PROVIDER_BOOK_COMBINED_QUOTE'&&
       quote?.bookmaker===bookmaker&&
