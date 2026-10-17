@@ -26,7 +26,7 @@ test('requires verified combined SGP quote', () => {
  assert.equal(result.publishable,false);
  assert.ok(result.reasons.includes('COMBINED_BOOK_QUOTE_NOT_VERIFIED'));
 });
-test('accepts exact verified offer and verified combined quote', () => {
+test('one-leg quote is never a publishable same-game parlay', () => {
  const result=validateBookSgp({legs:[leg(125)],combinedQuote:quote},'FanDuel',[offer(125)],now);
  assert.equal(result.publishable,false);
 });
@@ -36,7 +36,7 @@ test('rejects stale offers', () => {
  assert.equal(result.publishable,false);
 });
 
-test('accepts exact fractional sportsbook thresholds', () => {
+test('fractional threshold is accepted as an exact offer but single-leg SGP is not publishable', () => {
  const result=validateBookSgp({legs:[leg(64.5)],combinedQuote:quote},'FanDuel',[offer(64.5)],now);
  assert.equal(result.publishable,true);
 });
