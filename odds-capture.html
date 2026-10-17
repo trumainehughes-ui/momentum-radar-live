@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Momentum Radar — Capture Public Sportsbook Odds</title>
+<style>
+:root{color-scheme:dark;font:16px system-ui,Arial;background:#07131d;color:#eff6fc}
+body{margin:0 auto;max-width:800px;padding:20px 16px 60px;line-height:1.5}
+h1{font-size:clamp(1.6rem,4vw,2.3rem);margin:.4rem 0}
+h2{font-size:1.2rem;margin:1.2rem 0 .3rem}p{color:#b2c7d6}
+label{font-size:.95rem;display:block;margin:.8rem 0 .25rem;font-weight:650}
+select,input,textarea,button{font:inherit;color:inherit;border-radius:10px}
+select,input,textarea{box-sizing:border-box;background:#102535;border:1px solid #456477;padding:12px;width:100%}
+textarea{min-height:210px;resize:vertical}
+button,.action{padding:12px 16px;background:#0a74c6;border:1px solid #5bace4;cursor:pointer;font-weight:700;display:inline-block;text-decoration:none;color:white;margin-top:10px}
+button.secondary,.action.secondary{background:#173041}.card{padding:20px;background:#0b1d2b;border:1px solid #304b62;border-radius:15px;margin-top:18px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.small{font-size:.86rem;color:#a2b7c5}.status{padding:14px;border:1px solid #46657d;border-radius:12px;margin-top:15px;white-space:pre-wrap}
+a{color:#78c6ff}table{width:100%;border-collapse:collapse}th,td{padding:7px;border-bottom:1px solid #244458;text-align:left}
+@media(max-width:600px){.two{grid-template-columns:1fr}} 
+</style></head>
+<body><a href="/">← Momentum Radar</a><h1>Capture public sportsbook odds</h1>
+<p>Capture the exact lines displayed in your own DraftKings or FanDuel browser—without an odds API. Captures stay on this device, expire after 20 minutes, and do not turn individual odds into a bookmaker-issued SGP quote.</p>
+<section class="card"><h2>1. Select the scheduled game</h2>
+<div class="two"><div><label for="date">Game date</label><input type="date" id="date"></div>
+<div><label for="game">NFL matchup</label><select id="game"><option value="">Load games first</option></select></div></div>
+<button id="load" type="button">Load game schedule</button>
+<div id="roster" class="small" role="status"></div></section>
+<section class="card"><h2>2. Capture visible odds</h2>
+<label for="book">Public sportsbook</label><select id="book"><option>FanDuel</option><option>DraftKings</option></select>
+<label for="source">Official sportsbook page address</label>
+<input id="source" type="url" value="https://co.sportsbook.fanduel.com/" autocomplete="off">
+<p><a href="https://co.sportsbook.fanduel.com/" rel="noopener noreferrer" target="_blank">Open FanDuel Colorado ↗</a> · <a href="https://sportsbook.draftkings.com/" rel="noopener noreferrer" target="_blank">Open DraftKings ↗</a></p>
+<label for="file">Or select a screenshot of the public sportsbook odds</label>
+<input id="file" type="file" accept="image/png,image/jpeg,image/webp">
+<button id="ocr" class="secondary" type="button">Read screenshot text on this device</button>
+<p class="small">Screenshot reading runs locally in your browser using an on-demand OCR library. Check each recognized player, yardage, and price before saving. No screenshot is uploaded to Momentum Radar.</p>
+<label for="raw">Paste or correct the visible matchup and player-prop rows</label>
+<textarea id="raw" placeholder="Chicago Bears @ Atlanta Falcons Rushing Props Odds&#10;Bijan Robinson 50+ Yards&#10;-1100&#10;Bijan Robinson 60+ Yards&#10;-500"></textarea>
+<p class="small">For more reliable capture, add a bookmark whose URL is created by the button below. While viewing a public sportsbook market in your normal browser, activate that bookmark. It transfers visible page text, not cookies or login tokens. Use it while logged out to avoid including personal account information. If the sportsbook offers no copy/select option, a screenshot can be used for manual transcription.</p>
+<button id="copy" class="secondary" type="button">Copy browser capture bookmark</button>
+<div id="capturestatus" class="small" role="status"></div>
+<button id="save" type="button">Match and save exact displayed odds</button><div id="result" role="status"></div></section>
+<section class="card"><h2>3. Review captured markets</h2><div id="saved" class="small"></div>
+<a class="action" href="/" id="back">Return to Momentum Radar</a></section>
+<script type="module">
+import {parseVisibleBookCapture,validateBookPageUrl,currentLocalBookOffers,
+ CAPTURE_STORAGE_KEY} from './lib/public-book-text-capture.js';
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const params=new URLSearchParams(location.search);
+const parts=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));
+const homeDate=parts.year+'-'+parts.month+'-'+parts.day;
+$('date').value=params.get('date')||homeDate;
+let schedule=[],athletes=[],capturedFromOrigin=false,bookSourceMethod='USER_PASTED_TEXT';
+const get=async path=>{const r=await fetch(path,{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);return r.json()};
+function storage(){try{return JSON.parse(localStorage.getItem(CAPTURE_STORAGE_KEY)||'[]')}catch{return []}}
+function showSaved(){
+ const found=currentLocalBookOffers(storage(),$('game').value);
+ $('saved').innerHTML=found.length?'<table><thead><tr><th>Book / player</th><th>Exact line</th><th>Odds</th></tr></thead><tbody>'+
+  found.map(x=>'<tr><td>'+esc(x.book)+' · '+esc(x.player)+'</td><td>'+
+   esc(x.category==='td'?'Anytime TD':x.line+'+ '+x.category)+'</td><td>'+
+   (Number(x.odds)>0?'+':'')+esc(x.odds)+'</td></tr>').join('')+'</tbody></table>'+
+  '<p class="small">Source: viewer-captured or pasted first-party market text. These observations are not confirmed as available by the Momentum Radar server and do not constitute an SGP quote.</p>':
+  'No unexpired observed player odds saved for this game on this device.';
+}
+async function load(){
+ $('roster').textContent='Loading official schedule and screened game players…';
+ try{
+  const day=$('date').value;
+  const slate=await get('/api/nfl-schedule?date='+encodeURIComponent(day));
+  schedule=slate.games||[];
+  $('game').innerHTML='<option value="">Choose matchup</option>'+schedule.map(g=>
+   '<option value="'+esc(g.gameId)+'">'+esc(g.away?.name)+' @ '+esc(g.home?.name)+'</option>').join('');
+  if(schedule.some(g=>String(g.gameId)===params.get('gameId'))) $('game').value=params.get('gameId');
+  $('roster').textContent='Loaded '+schedule.length+' scheduled NFL games. Select one to verify player identity.';
+  await selectGame();
+ }catch(e){$('roster').textContent='Schedule unavailable: '+e.message;athletes=[]}
+}
+async function selectGame(){
+ const game=schedule.find(g=>String(g.gameId)===$('game').value);
+ athletes=[];showSaved();
+ if(!game)return;
+ $('roster').textContent='Loading eligible player names for '+game.away.name+' @ '+game.home.name+'…';
+ try{
+  const d=await get('/api/nfl-markets?'+new URLSearchParams({date:$('date').value,gameId:game.gameId}));
+  athletes=[...new Set(Object.values(d.categories||{}).flatMap(a=>(Array.isArray(a)?a:[]).map(x=>x.name)).filter(Boolean))];
+  if(athletes.length<1){
+   const saved=await get('/api/public-nfl-game?'+new URLSearchParams({date:$('date').value,gameId:game.gameId}));
+   athletes=[...new Set(Object.values(saved.categories||{}).flatMap(a=>(Array.isArray(a)?a:[]).map(x=>x.name)).filter(Boolean))];
+  }
+  $('roster').textContent=athletes.length+' screened game player names loaded. Only their exact sportsbook selections can be imported.';
+ }catch(e){$('roster').textContent='Game player evidence unavailable. Capture will be held, not guessed.';}
+ showSaved();
+}
+$('load').addEventListener('click',load);
+$('game').addEventListener('change',selectGame);
+$('book').addEventListener('change',()=>{
+ $('source').value=$('book').value==='FanDuel'?'https://co.sportsbook.fanduel.com/':'https://sportsbook.draftkings.com/';
+});
+$('raw').addEventListener('input',()=>{capturedFromOrigin=false;bookSourceMethod='USER_PASTED_TEXT'});
+$('ocr').addEventListener('click',async()=>{
+ const file=$('file').files?.[0];
+ if(!file||!/^image\/(?:png|jpeg|webp)$/.test(file.type)||file.size>12*1024*1024){
+  $('capturestatus').textContent='Choose a PNG, JPEG or WebP screenshot under 12 MB first.';return;
+ }
+ $('ocr').disabled=true;$('capturestatus').textContent='Reading image locally. This may take a few seconds…';
+ try{
+  if(!window.Tesseract){
+   await new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    script.onload=resolve;script.onerror=()=>reject(Error('OCR library could not load'));
+    document.head.appendChild(script);
+   });
+  }
+  if(!window.Tesseract?.createWorker)throw Error('Local screenshot reader unavailable');
+  const worker=await window.Tesseract.createWorker('eng',1);
+  try{
+   const result=await worker.recognize(file);
+   $('raw').value=String(result?.data?.text||'').slice(0,170000);
+   capturedFromOrigin=false;bookSourceMethod='USER_SCREENSHOT_OCR';
+   $('capturestatus').textContent='Screenshot read locally. Correct any names, numbers, or American prices before saving.';
+  }finally{await worker.terminate()}
+ }catch(e){$('capturestatus').textContent=String(e.message||e)+' · You can still paste or type the visible market rows.'}
+ finally{$('ocr').disabled=false}
+});
+window.addEventListener('message',event=>{
+ const from=event.origin,book=from==='https://co.sportsbook.fanduel.com'||from==='https://sportsbook.fanduel.com'?'FanDuel':
+  from==='https://sportsbook.draftkings.com'?'DraftKings':null;
+ if(!book||event.data?.type!=='MOMENTUM_PUBLIC_SPORTSBOOK_CAPTURE')return;
+ if(!validateBookPageUrl(event.data.url,book)||typeof event.data.text!=='string')return;
+ $('book').value=book;$('source').value=event.data.url;
+ $('raw').value=event.data.text.slice(0,170000);
+ capturedFromOrigin=true;bookSourceMethod='USER_BROWSER_DOM_OBSERVATION';
+ $('capturestatus').textContent='Received visible page text from '+from+'. Choose this page’s scheduled matchup and save.';
+});
+$('copy').addEventListener('click',async()=>{
+ const code="javascript:(()=>{const w=window.open('https://momentum-radar-live.vercel.app/odds-capture.html','_blank');if(!w){alert('Allow popups for this bookmark');return;}const m={type:'MOMENTUM_PUBLIC_SPORTSBOOK_CAPTURE',url:location.href,text:(()=>{const s=document.body.innerText;const m=s.match(/(?:Rushing|Receiving|Passing|Touchdown|TD Scorer) Props? Odds/i);return(m?s.slice(Math.max(0,m.index-160),m.index+85000):s.slice(0,85000))})()};let n=0;const t=setInterval(()=>{try{w.postMessage(m,'https://momentum-radar-live.vercel.app')}catch(e){}if(++n>=10)clearInterval(t)},400);})();";
+ try{await navigator.clipboard.writeText(code);$('capturestatus').textContent='Bookmark code copied. Create a browser bookmark and paste it into the bookmark URL. Use it while viewing the public sportsbook market.'}
+ catch{$('capturestatus').textContent='Clipboard unavailable. Use the text-paste field instead.'}
+});
+$('save').addEventListener('click',()=>{
+ const game=schedule.find(g=>String(g.gameId)===$('game').value);
+ if(!game||!athletes.length){$('result').innerHTML='<div class="status">Select a matchup with screened players first. No unvetted names can be imported.</div>';return}
+ const d=parseVisibleBookCapture({book:$('book').value,sourceUrl:$('source').value,
+  text:$('raw').value,date:$('date').value,gameId:game.gameId,
+  homeName:game.home.name,awayName:game.away.name,players:athletes,
+  observedAt:new Date().toISOString(),captureMethod:bookSourceMethod});
+ if(!d.ok||!d.offers.length){
+  $('result').innerHTML='<div class="status">'+esc(d.reason||'No exact player market prices found')+' · 0 selections imported. Check the game heading, sportsbook, player names and American prices.</div>';return;
+ }
+ try{
+  const previous=storage().filter(x=>Date.now()-Date.parse(x.observedAt)<=20*60000);
+  const merged=new Map(previous.map(x=>[x.gameId+'|'+x.book+'|'+x.player+'|'+x.category+'|'+x.line,x]));
+  for(const x of d.offers)merged.set(x.gameId+'|'+x.book+'|'+x.player+'|'+x.category+'|'+x.line,x);
+  const all=[...merged.values()].slice(-600);
+  localStorage.setItem(CAPTURE_STORAGE_KEY,JSON.stringify(all));
+  $('result').innerHTML='<div class="status">'+d.offers.length+' exact public-market observations saved locally for this game. No lines were inferred. Return to Momentum Radar to review them. The capture expires in 20 minutes and does not confirm a bookmaker SGP price.</div>';
+  showSaved();
+ }catch(e){$('result').innerHTML='<div class="status">Browser storage unavailable: '+esc(e.message)+'</div>'}
+});
+load();
+</script></body></html>
