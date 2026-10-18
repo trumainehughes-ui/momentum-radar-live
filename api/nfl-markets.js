@@ -105,7 +105,7 @@ function manualAtlNoTonightSgps(date,home,away){
 }
 // Enforce sportsbook provenance even for pre-deployment Blob cache hits.
 // Do not mutate cached objects: multiple requests can share RESPONSE_CACHE.
-function existingSgpLegEligible(body,leg){
+function existingSgpLegEligible(body,leg,book){
  const cat=String(leg?.category||leg?.cat||'').toLowerCase();
  const name=norm(leg?.player||leg?.name);
  const team=nflCanonTeam(leg?.team);
@@ -116,9 +116,9 @@ function existingSgpLegEligible(body,leg){
  return pools.some(k=>(body.categories?.[k]||[]).some(x=>
   norm(x?.name||x?.player)===name&&nflCanonTeam(x?.team)===team&&
   verifiedOffensiveOpportunity(x,x,k)&&
-  (cat==='td'?x?.bookOffer?.available===true:
-   x?.bookOffer?.available===true&&
-   Number(x.bookOffer.line)===Number(leg?.target??leg?.threshold))));
+  x?.bookOffer?.available===true&&
+  (!book||x.bookOffer.book===book)&&
+  (cat==='td'||Number(x.bookOffer.line)===Number(leg?.target??leg?.threshold))));
 }
 function nflVerifiedOnlySgpResponse(body){
  if(!body||!body.sgps||body.scope!=='game')return body;
@@ -129,7 +129,7 @@ function nflVerifiedOnlySgpResponse(body){
    Number.isFinite(Number(card?.actualSgpOdds))&&
    sgpOddsInBand(card.risk,card.actualSgpOdds)&&
    Array.isArray(card.legs)&&card.legs.length>0&&
-   card.legs.every(leg=>existingSgpLegEligible(body,leg)));
+   card.legs.every(leg=>existingSgpLegEligible(body,leg,book)));
  }
  sgps.Analytics=(Array.isArray(sgps.Analytics)?sgps.Analytics:[]).filter(c=>
   c?.mode==='MODEL_ONLY'&&c?.publishable===false&&
