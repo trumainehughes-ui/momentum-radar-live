@@ -31,3 +31,24 @@ test('checkpoint audit rejects arbitrary tier names and invalid state',()=>{
  assert.equal(result.quoteRejections[1].status.length,70);
  assert.equal(sanitizeNflCheckpointOutcome({...input,status:'UNKNOWN'}),null);
 });
+
+test('a +5000 DraftKings quote cannot qualify as a verified Nuke',()=>{
+ const quote={risk:'Nuke',actualSgpOdds:5000,combinedBookQuoteVerified:true,publishable:true};
+ const market={ok:true,oddsDebug:{providerNativeRows:5,authorizedQuoteCandidates:1},
+  sgps:{DraftKings:[quote],FanDuel:[],combinedBookQuoteVerified:true}};
+ const result=classifyNflCheckpointMarket(market);
+ assert.equal(result.verifiedBookTiers,0);
+ assert.equal(result.status,'PROVIDER_SELECTIONS_UNQUOTED');
+});
+
+test('only in-band published combined quotes count as verified',()=>{
+ const market={ok:true,oddsDebug:{providerNativeRows:5,authorizedQuoteCandidates:2},
+  sgps:{DraftKings:[
+   {risk:'Nuke',actualSgpOdds:10000,combinedBookQuoteVerified:true,publishable:true},
+   {risk:'Medium',actualSgpOdds:5000,combinedBookQuoteVerified:true,publishable:false}],
+   FanDuel:[{risk:'Small',actualSgpOdds:2500,combinedBookQuoteVerified:true,publishable:true}],
+   combinedBookQuoteVerified:true}};
+ const result=classifyNflCheckpointMarket(market);
+ assert.equal(result.verifiedBookTiers,2);
+ assert.equal(result.status,'VERIFIED_BOOK_QUOTE');
+});
