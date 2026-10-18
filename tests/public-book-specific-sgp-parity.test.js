@@ -123,3 +123,25 @@ test('unverified models render as research, never book-price cards',()=>{
  assert.ok(h.includes('No complete DraftKings lineup'));
  assert.ok(!h.includes('2500 combined'));
 });
+
+test('published day-ahead SGPs remain visible with an official-inactives warning',()=>{
+ const data=sample();
+ data.body.validation.officialInactivesVerified=false;
+ const v=publicNflGameView(data,{date,gameId,now});
+ assert.equal(v.inactivesVerified,false);
+ const h=render(v);
+ assert.ok(h.includes('2500 combined'));
+ assert.ok(h.includes('Official game-day inactives are not final'));
+ assert.ok(h.includes('30 minutes before kickoff'));
+});
+test('official market token aliases still map only to their exact NFL category',()=>{
+ const data=sample();
+ data.body.categories.passing[0].books[0].category=null;
+ data.body.categories.passing[0].books[0].market='player_pass_yds';
+ data.body.categories.rushing[0].books[0].category=null;
+ data.body.categories.rushing[0].books[0].market='player_rush_yds';
+ data.body.categories.receiving[0].books[0].category=null;
+ data.body.categories.receiving[0].books[0].market='player_reception_yds';
+ const v=publicNflGameView(data,{date,gameId,now});
+ assert.deepEqual(v.verifiedBookParlays.map(c=>c.book),books);
+});
