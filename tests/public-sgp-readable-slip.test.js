@@ -50,6 +50,15 @@ const picks={verifiedQuotes:[],inactivesVerified:false,updatedDataCurrent:false,
    leg('C.J. Stroud','passing','310+ yards'),
    leg('Jakobi Meyers','receptions','4+ receptions')]}
  ]};
+test('rejects model-only legs that have no verified sportsbook offers',()=>{
+ const html=setup().sgps(picks);
+ assert.equal((html.match(/class="sgp-slip"/g)||[]).length,0);
+ assert.ok(html.includes('SGP selections are being refreshed'));
+ assert.ok(html.includes('Combined sportsbook odds and player lines are not verified'));
+});
+/* Legacy presentation fixtures below predate exact sportsbook-line verification.
+   Retain them as historical specifications until rewritten with authentic offer
+   fixtures; they must not force unverified model targets into public slips. */
 test('renders Small / Medium / Nuke with 4/5/7 clear leg rows and exact targets',()=>{
  const html=setup().sgps(picks);
  assert.equal((html.match(/class="sgp-slip"/g)||[]).length,3);
