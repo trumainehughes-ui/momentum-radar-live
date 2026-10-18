@@ -480,17 +480,9 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    action+'</section>';
  }
  function renderParlays(d){
-  const tierDetails=typeof window!=='undefined'?window.momentumNflSgpModelYardage?.buildNflProjectedSgpTierDetails({
-   market:state.currentBookSgpModel,date:state.date,gameId:state.selected,
-   home:d.home,away:d.away}):null;
-  const tierYardageHtml=false&&typeof window!=='undefined'&&tierDetails?.tiers?.length?
-   window.momentumNflSgpModelYardage.renderNflProjectedSgpTierDetails(tierDetails):'';
-  const modelBoard=typeof window!=='undefined'?window.momentumNflModelChoice?.buildNflModelChoiceBoard({
-   market:state.currentBookSgpModel,date:state.date,gameId:state.selected,
-   home:d.home,away:d.away}):null;
-  const modelChoiceHtml=typeof window==='undefined'?'':modelBoard?.rows?.length?
-   window.momentumNflModelChoice.renderNflModelChoiceBoard(modelBoard):
-   '<p class="sgp-brief-status">Model yardage forecasts will appear once current game and injury/role evidence is screened. Players with OUT/IR designations are not shown.</p>';
+  // The public SGP view must use the same persisted game/market version
+  // as the owner page. Never construct independent projections or tier
+  // thresholds in this visitor renderer.
   const quotes=(d.verifiedQuotes||[]).filter(q=>q&&['DraftKings','FanDuel'].includes(q.book)&&
    ['Small','Medium','Nuke'].includes(q.risk)&&Number.isFinite(Number(q.americanOdds))&&
    Number(q.americanOdds)!==0);
@@ -576,20 +568,9 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   const research='<section class="sgp-research-details" aria-label="Public sportsbook player odds">'+
    '<div class="sgp-research-heading">Public DraftKings and FanDuel player odds</div>'+
    '<div class="sgp-research-inner">'+renderPublicBookResearch()+'</div></section>';
-  // Public-only concise presentation. Internal Momentum Radar retains its
-  // expanded SGP evidence and model controls.
-  const publicCompact=typeof window!=='undefined'&&
-   window.momentumPublicCompactNflSgp;
-  if(publicCompact){
-   const brief=publicCompact.renderPublicCompactNflSgpCards(
-    publicCompact.buildPublicCompactNflSgpCards({
-     market:state.currentBookSgpModel,date:state.date,
-     gameId:state.selected,home:d.home,away:d.away,
-     saved:anyStale
-    }));
-   return brief+(ready&&!anyStale&&quotes.length?renderOdds(quotes):'');
-  }
-  return modelChoiceHtml+tierYardageHtml+intro+staleNote+slips+verification+renderLocalBookParity(d)+research;
+  // There is exactly one sportsbook slip renderer. A public compact
+  // model renderer would silently replace the canonical selections.
+  return intro+staleNote+slips+verification+research;
  }
  function offerHtml(x){const o=x.bookOffer;if(!o)return '';
   return '<div class="small">Verified individual '+esc(o.book)+' line'+
