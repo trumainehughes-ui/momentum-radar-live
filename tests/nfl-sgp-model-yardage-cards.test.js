@@ -116,3 +116,21 @@ test('both owner and public matchup views now show tier yardage, not empty exact
  assert.ok(publicHtml.includes('modelChoiceHtml+tierYardageHtml+intro'));
  assert.ok(!main.includes('Exact sportsbook selection pending'));
 });
+
+test('SGP model yardage cards retain one athlete in distinct rushing, receiving, and TD markets',()=>{
+ const m={...market,sgps:{Analytics:[{risk:'Small',legs:[
+  {player:'Bijan Robinson',team:'ATL',category:'rushing'},
+  {player:'Bijan Robinson',team:'ATL',category:'receiving'},
+  {player:'Bijan Robinson',team:'ATL',category:'td'},
+  {player:'Bijan Robinson',team:'ATL',category:'rushing'}
+ ]}]}};
+ const result=buildNflProjectedSgpTierDetails({...ctx,market:m});
+ assert.deepEqual(result.tiers[0].legs.map(x=>x.category),['rushing','receiving','td']);
+ assert.equal(result.tiers[0].legs[0].mainProjection,115);
+ assert.equal(result.tiers[0].legs[1].mainProjection,30);
+ assert.equal(result.tiers[0].legs[2].mainTarget,null);
+ assert.equal(result.tiers[0].bookmakerSgpQuoteVerified,false);
+ const html=renderNflProjectedSgpTierDetails(result);
+ assert.match(html,/Anytime touchdown/);
+ assert.match(html,/NOT a listed betting line/);
+});
