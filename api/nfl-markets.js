@@ -372,6 +372,7 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
   // after an invalid cross-team leg has already been picked.
   if(!nflLegMatchesGameRoster(x,identity))continue;
   const verifiedRole=roleFor(roles,x);
+  if(!verifiedOffensiveOpportunity(x,verifiedRole,cat))continue;
   if(identity?.gameId&&(!verifiedRole||verifiedRole.recommendationEligible!==true||
     nflCanonTeam(verifiedRole.team)!==nflCanonTeam(x.team)||
     (verifiedRole.playerId&&String(verifiedRole.playerId)!==String(x.playerID||x.playerId||''))))continue;
@@ -431,6 +432,23 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
 }
 async function gameRoleGate(gameId,base){if(!gameId)return{checked:false,roles:new Map()};try{const r=await timedFetch(base+'/api/nfl-game?gameId='+encodeURIComponent(gameId)+'&ts='+Date.now(),{cache:'no-store'});if(!r.ok)return{checked:false,roles:new Map()};const d=await r.json(),m=new Map();for(const x of d.playerProjections||[]){if(x.playerId)m.set(String(x.playerId),x);if(x.name)m.set('name:'+norm(x.name),x)}return{checked:true,roles:m,players:d.playerProjections||[],source:d.source||null,gameScopedStarters:d.gameScopedStarters||null}}catch{return{checked:false,roles:new Map()}}}
 function roleFor(gate,x){const roles=gate?.roles||new Map();return roles.get(String(x.playerID||x.playerId||''))||roles.get('name:'+norm(x.name))||null}
+function verifiedOffensiveOpportunity(x,r,cat){
+ if(r?.recommendationEligible===false||x?.recommendationEligible===false)return false;
+ const pos=String(x?.position||r?.position||'').toUpperCase();
+ if(!['QB','RB','WR','TE'].includes(pos))return false;
+ if(r?.starterVerified===true||x?.starterVerified===true)return true;
+ if(pos==='QB')return false;
+ // A sportsbook listing or a season yardage average does not establish
+ // meaningful game usage. Require documented offensive snaps and opportunities.
+ const snaps=Number(x?.offensiveSnapShare??r?.offensiveSnapShare);
+ const games=Number(x?.usageGames??r?.usageGames);
+ if(!Number.isFinite(snaps)||snaps<0.50||!Number.isFinite(games)||games<3)return false;
+ if(pos==='RB'&&(cat==='rushing'||cat==='td'))
+  return Number(x?.carriesPerGame??r?.carriesPerGame)>=6;
+ if(pos==='WR'||pos==='TE'||cat==='receiving'||cat==='receptions')
+  return Number(x?.targetsPerGame??r?.targetsPerGame)>=4;
+ return false;
+}
 function analyticsUsageEligible(x,r,cat){
  const pos=String(x.position||r?.position||'').toUpperCase(),u=x.usagePerGame||{},pg=Number(x.gamesPlayed)||Number(x.evidence?.games)||0,per=Number(x.perGame)||0,tgt=Number(u.targets)||Number(x.evidence?.targets)||0,rec=Number(u.receptions)||0,rush=Number(u.rushYards)||0,recv=Number(u.recYards)||0;
  if(pg<1||!['QB','RB','WR','TE'].includes(pos))return false;
@@ -444,7 +462,7 @@ function analyticsUsageEligible(x,r,cat){
 }
 function roleFilter(rows,gate,cat){
  const slateFallback=!gate?.checked;
- const eligible=(rows||[]).filter(x=>{const r=slateFallback?{position:x.position,recommendationEligible:true}:roleFor(gate,x);if(!r||cat==='td'&&!slateFallback&&r.recommendationEligible!==true)return false;const pos=String(x.position||r.position||'').toUpperCase(),status=String(r.starterStatus||r.status||'').toUpperCase();if(/(^|[_ -])(OUT|INACTIVE|IR|SUSPENDED|SUSPEND|DOUBTFUL)($|[_ -])/.test(status))return false;if(!x.analyticsOnly&&(Number.isFinite(Number(x.perGame))||x.usagePerGame))return analyticsUsageEligible(x,r,cat);if(!x.analyticsOnly)return true;return analyticsUsageEligible(x,r,cat)});
+ const eligible=(rows||[]).filter(x=>{const r=slateFallback?{position:x.position,recommendationEligible:true}:roleFor(gate,x);if(!verifiedOffensiveOpportunity(x,r,cat))return false;if(!r||cat==='td'&&!slateFallback&&r.recommendationEligible!==true)return false;const pos=String(x.position||r.position||'').toUpperCase(),status=String(r.starterStatus||r.status||'').toUpperCase();if(/(^|[_ -])(OUT|INACTIVE|IR|SUSPENDED|SUSPEND|DOUBTFUL)($|[_ -])/.test(status))return false;if(!x.analyticsOnly&&(Number.isFinite(Number(x.perGame))||x.usagePerGame))return analyticsUsageEligible(x,r,cat);if(!x.analyticsOnly)return true;return analyticsUsageEligible(x,r,cat)});
  // Fail closed to the highest-usage players at each team/position. QB is QB1 only; skill positions allow primary plus substantial rotation.
  const limits={QB:1,RB:2,WR:3,TE:2},groups=new Map();
  for(const x of eligible){const r=slateFallback?{position:x.position}:roleFor(gate,x),pos=String(x.position||r?.position||'').toUpperCase(),k=norm(x.team)+'|'+pos;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(x)}
