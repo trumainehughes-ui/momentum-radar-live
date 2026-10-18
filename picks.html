@@ -1045,7 +1045,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     markets.size===legs.length&&categories.size>=3;
    if(!c||c.status!=='MODEL_CANDIDATE'||!compositionReady)
     return '<section class="sgp-slip nba-sgp-card"><div class="sgp-slip-head"><strong>'+
-     name+'</strong><span>Awaiting selections</span></div>'+
+     name+'</strong><span>'+(legs.length?'NOT READY':'Awaiting selections')+'</span></div>'+
      '<p class="sub" style="padding:14px">'+esc(c?.reason||d.pregameReadiness?.reason||
       'No game-eligible model legs yet.')+'</p></section>';
    return '<section class="sgp-slip nba-sgp-card"><div class="sgp-slip-head"><strong>'+
