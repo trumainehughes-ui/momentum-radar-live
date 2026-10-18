@@ -75,7 +75,13 @@
    ' • Injury evidence: '+safe(injury)+' ('+safe(readiness?.injuryReportStatus||'UNVERIFIED')+')</div>';
   return source+rows.map(s=>{
    const ready=s.status==='MODEL_CANDIDATE'&&Array.isArray(s.legs)&&s.legs.length>0;
-   const list=ready?s.legs.map((l,i)=>
+   // Each player/market is an independent row; do not collapse different props.
+   const distinct=ready?s.legs.filter((l,i,all)=>all.findIndex(x=>
+    String(x.name||'').toLowerCase()===String(l.name||'').toLowerCase()&&
+    String(x.team||'')===String(l.team||'')&&
+    String(x.category||'')===String(l.category||'')&&
+    String(x.threshold||'')===String(l.threshold||''))===i):[];
+   const list=distinct.map((l,i)=>
     '<div class="nflMarketLine"><b>'+(i+1)+'. '+safe(l.name)+' • '+safe(l.team)+'</b>'+
     '<div class="meta">'+safe(l.threshold)+'+ '+safe(l.category)+' • historical mean '+safe(l.projection)+
     ' • '+safe(l.sampleGames)+' completed games</div></div>').join(''):'';
