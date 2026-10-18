@@ -252,7 +252,7 @@ export default async function handler(req,res){
    stage:ev?.season?.type===1?'PRESEASON':'REGULAR SEASON',
    home:{id:String(home?.team?.id||''),abbr:home?.team?.abbreviation},
    away:{id:String(away?.team?.id||''),abbr:away?.team?.abbreviation}}]
- })).values()].filter(g=>g.status==='SCHEDULED'&&nbaPregameStage(g,null).stage!=='OUTSIDE_WINDOW');
+ })).values()].filter(g=>g.status==='SCHEDULED'&&g.stage==='REGULAR SEASON'&&nbaPregameStage(g,null).stage!=='OUTSIDE_WINDOW');
  const assigned=selectedShardGames(games,shard);
  const histories=await Promise.all(assigned.map(g=>nbaReadPregame(g.gameId)));
  const pending=assigned.map((g,i)=>({gameId:g.gameId,g,prior:histories[i],plan:nbaPregameStage(g,histories[i])}))
