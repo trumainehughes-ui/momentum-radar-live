@@ -502,7 +502,9 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   // A public SGP slip must never combine teams from other matchups or
   // display saved stale selections as if they were actionable game picks.
   const matchupTeams=new Set([String(d.home||'').toUpperCase(),String(d.away||'').toUpperCase()]);
-  const candidateModels=Array.isArray(d.researchParlays)?d.researchParlays:[];
+  // Public SGPs originate from the same verified, quoted cards used by
+  // the owner API. Never build a second independent model-based lineup.
+  const candidateModels=Array.isArray(d.parlays)?d.parlays:[];
   const models=candidateModels.filter(c=>{
    // Public SGP slips must not show projection-only targets, even with
    // research disclaimers. Require a fresh exact official sportsbook price
@@ -523,8 +525,8 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
      Number.isFinite(Number(o.odds));
    }))return false;
    if(!['Small','Medium','Nuke'].includes(c?.risk)||
-      c.mode!=='MODEL_ONLY'||c.outdated===true||
-      (!c.researchFromCurrentMarkets&&(d.status==='LAST_SAVED'||d.updatedDataCurrent===false))||
+      c.mode!=='VERIFIED_BOOK_SGP'||c.outdated===true||
+      (d.status==='LAST_SAVED'||d.updatedDataCurrent===false)||
       !Array.isArray(c.legs))return false;
    if(c.legs.length<3||c.legs.length>(c.risk==='Nuke'?10:7))return false;
    const names=new Set();
