@@ -17,7 +17,7 @@ test('automated owner polling reads the identical, already-screened saved game t
  assert.match(poll,/outcome\.innerHTML=nflSharedOutcomeHtml\(parity\.ok\?report:null\)/);
  assert.match(poll,/setInterval\(nflPollPublishedMatchup,30\*1000\)/);
  assert.doesNotMatch(poll,/\/api\/nfl-markets\?|finalCheck=1|\/api\/nfl-public-book-research\?|CRON_SECRET/);
- assert.match(publicHtml,/setInterval\(async\(\)=>\{/);
+ assert.ok(publicHtml.includes('setInterval(refreshReadOnlyPredictions,30*1000)'));
 });
 test('owner displays only published screened SGP research and verified prices, never unscreened raw tier or book quotes',()=>{
  assert.match(owner,/Analytics:\[\],DraftKings:\[\],FanDuel:\[\]/);
