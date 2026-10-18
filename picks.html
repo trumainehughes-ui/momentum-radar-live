@@ -1142,6 +1142,10 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
   if(id){
    try{const d=await getJson('/api/public-nfl-game?'+new URLSearchParams({date,gameId:id}));
     if(state.league==='nfl'&&state.date===date&&String(state.selected)===String(id)){
+     // A slower, older response must never roll the public view backwards.
+     const incoming=Date.parse(d.updatedAt||'');
+     const shown=Date.parse(state.selectedData?.updatedAt||'');
+     if(Number.isFinite(shown)&&(!Number.isFinite(incoming)||incoming<shown))return;
      state.selectedData=d;$('#freshness').textContent=(d.status==='LAST_SAVED'?'Model preview • ':'')+fmtStamp(d.updatedAt);
      renderGame(d);
      if(d.status==='LAST_SAVED'&&!state.recheckLoading)loadNflRecheckStatus(date,id);
@@ -1174,7 +1178,8 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
   if(event.key==='momentum-radar-public-book-observations-v1'&&state.league==='nfl'&&
     state.detailTab==='sgps'&&state.selectedData)renderGame(state.selectedData);
  });
- setInterval(refreshReadOnlyPredictions,5*60*1000);
+ setInterval(refreshReadOnlyPredictions,30*1000);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshReadOnlyPredictions()});
  $('#refresh').addEventListener('click',()=>state.selected?refreshReadOnlyPredictions():loadSlate(false));
  // Move the same public read-only ranking/Best-of-Slate DOM directly below
  // the NFL tabs. No duplicate API requests or independent renderers.
