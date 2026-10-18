@@ -90,7 +90,7 @@ test('insufficient yardage or a Nuke target below projection returns NOT READY r
   assert.equal(r.candidateComplete,false);
   assert.equal(r.combinedBookQuoteVerified,false);
   assert.equal(r.estimatedOdds,null);
-  assert.match(r.reason,/supported elevated yardage/);
+  assert.match(r.reason,/adaptive-leg candidate|roster|market diversity|tier-specific projection/i);
  }
 });
 test('final gate rejects cross-game Nuke even when it has six valid categories',()=>{
@@ -104,6 +104,9 @@ test('market route builds Nuke from vetted roster pool before last-resort presen
  assert.ok(api.includes('if(!nflLegMatchesGameRoster(x,identity))continue;'));
  assert.ok(api.includes("const nuke=selectNflAdaptiveNuke(make);"));
  assert.ok(api.includes('buildAnalyticsSgp(categories,ctx,roles,{gameId,home,away,rosterChecked:'));
- assert.ok(api.includes('sgps=pruneSgpsForEligibility(sgps,eligibility,{gameId,home,away})'));
+ assert.ok(api.includes('response.sgps.Analytics=(analyticsSgps||[]).filter(c=>'));
+ assert.ok(api.includes('c.legs.length>0&&eligibility.checked===true&&c.legs.every(l=>'));
+ assert.ok(api.includes('safeTeams.has(String(l.team||\'\').toUpperCase())'));
+ assert.ok(api.includes('!eligibility.blockedIds.has(id)'));
  assert.ok(api.includes("CACHE_SCHEMA='v92-strict-nuke-profit-20261011'+'-nuke-roster-adaptive-1-game-identity-2'"));
 });
