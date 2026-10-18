@@ -2,6 +2,7 @@ import { put, list } from '@vercel/blob';
 import {NFL_SGP_SNAPSHOT_SCHEMA,nflSgpSnapshotKey,nflSgpVersionedSnapshotPath,nflSgpFindLatestBlob} from '../lib/nfl-sgp-snapshot-status.js';
 import {nflBookOfferEligible} from '../lib/nfl-book-offer-provenance.js';
 import {nflMeaningfulOpportunity} from '../lib/nfl-meaningful-opportunity.js';
+import {publishedNflModelTier} from '../lib/nfl-public-model-sgp-serializer.js';
 import { sportsbookCoverageAudit } from '../lib/sportsbook-source-policy.js';
 import { NFL_SGP_TIERS, assessNflSgpTier, fillNflSgpMarketMix, guardFinalNflSgpCards, modelNflSgpStatThreshold, nflLegMatchesGameRoster, selectNflAdaptiveNuke, selectNflAdaptiveTier } from '../lib/ai-mechanics/nfl-sgp-tiers.js';
 import {validNflDvpRank,capNflTierYardTarget,isNflConfirmedGameQb} from '../lib/ai-mechanics/nfl-projection-safety.js';
@@ -1072,13 +1073,7 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
      !eligibility.blockedIds.has(id)&&!eligibility.blockedNames.has(norm(l.name));})()&&
    !/\\b(OUT|INACTIVE|IR|DOUBTFUL|QUESTIONABLE|SUSPENDED)\\b/i.test(
     [l.injuryStatus,l.availability,l.starterStatus].join(' '))
-  )).map(c=>({risk:c.risk,mode:'MODEL_ONLY',publishable:false,
-   combinedBookQuoteVerified:false,actualSgpOdds:null,
-   explanation:String(c.explanation?.summary||c.reason||'').slice(0,250),
-   legs:c.legs.map(l=>({player:String(l.name||'').slice(0,90),
-    team:String(l.team||''),category:l.cat,target:null,
-     marketSelectionStatus:'NO_EXACT_DRAFTKINGS_OR_FANDUEL_OFFER',
-    gameId:String(l.eventID||l.gameId||'')}))}));
+  )).map(publishedNflModelTier).filter(Boolean);
  response.sgps.mode=response.sgps.DraftKings.length||response.sgps.FanDuel.length?
   'VERIFIED_BOOK_SGPS_WITH_MODEL_RESEARCH':response.sgps.Analytics.length?'MODEL_ONLY_RESEARCH':'NO_VERIFIED_BOOK_SGPS';
  response.sgps.rule='Analytics tiers are unpriced model research, not sportsbook offers. Only verified bookmaker quotes can be presented as bettable parlays.';
