@@ -406,13 +406,14 @@ const observedBookRows=(()=>{
     const matchupTeams=new Set([String(g.home?.abbr||''),String(g.away?.abbr||'')]);
     for(const leg of tier.legs){
      const name=canon(leg.name||leg.player),cat=String(leg.cat||leg.category||'');
-     if(!name||!cat||used.has(name)||!matchupTeams.has(String(leg.team||''))||
+     const marketKey=name+'|'+String(leg.team||'').toUpperCase()+'|'+cat;
+     if(!name||!cat||used.has(marketKey)||!matchupTeams.has(String(leg.team||''))||
       String(leg.gameId||g.gameId)!==String(g.gameId))continue;
      if(cat==='td'){
       // Touchdowns are not numeric yardage ladders. Only accept the exact
       // bookmaker-published anytime-TD offer for this athlete and game.
       const observed=rows.find(o=>canon(o.player)===name&&o.category==='td');
-      if(observed){used.add(name);matched.push({...observed,selectionDirection:'EXACT_LISTED'})}
+      if(observed){used.add(marketKey);matched.push({...observed,selectionDirection:'EXACT_LISTED'})}
       continue;
      }
      // The SGP response is deliberately stripped of speculative targets.
@@ -431,7 +432,7 @@ const observedBookRows=(()=>{
       offers:rows,book,gameId:g.gameId,player:leg.player||leg.name,
       category:cat,projection:forecast,risk,recentGameValues:recent});
      if(choice?.ok){
-      used.add(name);
+      used.add(marketKey);
       matched.push({...choice.offer,selectionDirection:choice.direction,
        adjacentListed:choice.candidateOffers,selectionAnalysis:choice.analysis});
      }
@@ -447,8 +448,8 @@ const observedBookRows=(()=>{
   '<div class="note">Only public-market lines captured from the SAME sportsbook are used. No combined bookmaker quote has been obtained. A partial build is not a selectable parlay.</div>'+
   capturedMatchupCandidates.map(c=>'<div class="nflSgpMini"><b>'+nflEscape(c.book)+' · '+nflEscape(c.risk)+
    '</b><div class="meta">'+c.matched.length+' / '+c.needed+' required distinct player markets observed'+
-   (c.matched.length<c.needed?' • Incomplete':' • Candidate lineup only; bookmaker must confirm combined price')+'</div>'+
-   c.matched.map(o=>'<div class="nflMarketLine"><b>'+nflEscape(o.player)+'</b> — '+
+   (c.matched.length<c.needed?' • NOT READY — incomplete; no verified combined odds':' • Research candidate only; bookmaker must confirm combined price')+'</div>'+
+   (c.matched.length>=c.needed?c.matched:[]).map(o=>'<div class="nflMarketLine"><b>'+nflEscape(o.player)+'</b> — '+
     nflEscape(o.category==='td'?'Anytime TD':o.line+'+ '+o.category)+
     ' at '+(Number(o.odds)>0?'+':'')+nflEscape(o.odds)+
     '<div class="note">Listed options compared: '+nflEscape((o.adjacentListed||[]).map(a=>
