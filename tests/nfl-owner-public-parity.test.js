@@ -31,7 +31,7 @@ const published=()=>({ok:true,date,gameId,home:'ATL',away:'CHI',updatedAt:stamp,
  rushing:[{...safeRow(runner),projection:105}],receiving:[{...safeRow(winner),projection:60}],
  td:[safeRow(scorer)],receptions:[safeRow(catcher)]},
  modelResearchTiers:[{risk:'Small',complete:true,requiredLegs:4,
-  legs:rawLegs.map(safeRow)}],verifiedBookParlays:[]});
+  legs:rawLegs.map(x=>({...safeRow(x),player:x.name}))}],verifiedBookParlays:[]});
 test('owner shows exactly published screened players, not raw unscreened practice-hold entries',()=>{
  const v=ownerNflPublishedParity(original(),published(),{date,gameId,now});
  assert.equal(v.ok,true);
@@ -82,7 +82,8 @@ test('owner and public show no completed SGP if any leg is withheld or incomplet
  p.modelResearchTiers[0].complete=false;
  let v=ownerNflPublishedParity(original(),p,{date,gameId,now});
  assert.equal(v.ok,true);assert.equal(v.tiers.length,0);
- const p2=published();p2.modelResearchTiers[0].legs[0].player='Blocked athlete';
+ const p2=published();p2.modelResearchTiers[0].legs[0].name='Blocked athlete';
+ p2.modelResearchTiers[0].legs[0].player='Blocked athlete';
  v=ownerNflPublishedParity(original(),p2,{date,gameId,now});
  assert.equal(v.tiers.length,0);
 });
