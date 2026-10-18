@@ -66,7 +66,8 @@ test('small/medium/nuke comparison targets change with risk, never claim real sp
  const html=renderNflProjectedSgpTierDetails(r);
  assert.match(html,/AI Rushing forecast: 115 yards/);
  assert.match(html,/Small suggested comparison target: <b>90 yards/);
- assert.match(html,/Nuke suggested comparison target: <b>140 yards/);
+ assert.match(html,/Nuke • NOT READY/);
+ assert.doesNotMatch(html,/Nuke suggested comparison target: <b>140 yards/);
  assert.match(html,/Player yardage outlook:.*Rushing 70 yards.*Receiving 25 yards/);
  assert.match(html,/Player yardage outlook:.*Rushing 115 yards.*Receiving 30 yards/);
  assert.match(html,/Anytime touchdown • model candidate only/);
@@ -115,4 +116,38 @@ test('both owner and public matchup views now show tier yardage, not empty exact
  assert.ok(main.includes('modelChoiceHtml+sgpYardageHtml+autoDkHtml'));
  assert.ok(publicHtml.includes('modelChoiceHtml+tierYardageHtml+intro'));
  assert.ok(!main.includes('Exact sportsbook selection pending'));
+});
+
+test('screenshot case: two receiving projections never render as a completed Nuke',()=>{
+ const m={...market,categories:{...market.categories,receiving:[
+  pl('Parker Washington','CHI','receiving',75,'WR'),
+  pl('Brenton Strange','CHI','receiving',45,'TE')]},
+  sgps:{Analytics:[{risk:'Nuke',legs:[
+   {player:'Parker Washington',team:'CHI',category:'receiving'},
+   {player:'Brenton Strange',team:'CHI',category:'receiving'}]
+  }]}};
+ const details=buildNflProjectedSgpTierDetails({...ctx,market:m});
+ const nuke=details.tiers.find(t=>t.risk==='Nuke');
+ assert.equal(nuke.legs.length,2);
+ assert.equal(nuke.compositionComplete,false);
+ const html=renderNflProjectedSgpTierDetails(details);
+ assert.match(html,/Nuke • NOT READY/);
+ assert.match(html,/2 eligible model selections/);
+ assert.match(html,/Nuke requires 5–7/);
+ assert.doesNotMatch(html,/Nuke • AI yardage projection candidates/);
+ assert.doesNotMatch(html,/Parker Washington/);
+ assert.doesNotMatch(html,/Brenton Strange/);
+ assert.doesNotMatch(html,/\+10000 combined/);
+});
+test('Nuke model rendering requires 5–7 valid diversified markets, not just five players',()=>{
+ const m={...market,sgps:{Analytics:[{risk:'Nuke',legs:[
+   {player:'Rome Odunze',team:'CHI',category:'receiving'},
+   {player:'Luther Burden III',team:'CHI',category:'receiving'},
+   {player:'Kalif Raymond',team:'CHI',category:'receiving'},
+   {player:'IR Player',team:'CHI',category:'receiving'},
+   {player:'Bijan Robinson',team:'ATL',category:'receiving'}
+ ]}]}};
+ const details=buildNflProjectedSgpTierDetails({...ctx,market:m});
+ assert.equal(details.tiers[0].compositionComplete,false);
+ assert.match(renderNflProjectedSgpTierDetails(details),/Nuke • NOT READY/);
 });
