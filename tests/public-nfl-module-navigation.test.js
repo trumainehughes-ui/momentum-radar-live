@@ -18,6 +18,7 @@ function fixture(){
   '#game-day-board':{hidden:false},
   '#rankings-section':{hidden:true},
   '#extra-section':{hidden:true},
+  '#nfl-live-slate':{hidden:true},
   '#nfl-module-message':{hidden:false,textContent:''},
   '#rankings-section h2':{textContent:''}
  };
@@ -43,7 +44,8 @@ function fixture(){
   renderRanks:()=>{calls.ranks++},
   renderExtras:()=>{calls.best++},
   renderGame:()=>{calls.game++},
-  loadPublicLive:()=>{calls.live++},
+  renderNflLiveSlate:()=>{calls.live++},
+  loadPublicLiveSlate:()=>{},
   loadPublicBookResearch:()=>{}
  };
  vm.runInNewContext(src+';this.renderNflModule=renderNflModule;this.activateNflModule=activateNflModule;',context);
@@ -81,7 +83,7 @@ test('Game Day stays visible and category clicks display the correct top-ten boa
  assert.equal(f.elements['#game-day-board'].hidden,false);
  assert.equal(f.elements['#rankings-section'].hidden,true);
 });
-test('Same Game Parlays and Live TD Tracker use selected game rather than introducing duplicated cards',()=>{
+test('Same Game Parlays remains game-specific but Live TD Tracker opens all-games panel without selecting a matchup',()=>{
  const f=fixture();
  f.state.selectedData={status:'CURRENT'};
  f.nav.activateNflModule('sgps');
@@ -91,10 +93,12 @@ test('Same Game Parlays and Live TD Tracker use selected game rather than introd
  assert.match(f.elements['#nfl-module-message'].textContent,/Small, Medium and Nuke/);
  f.state.selected='402222222';
  f.nav.activateNflModule('live');
- assert.equal(f.state.detailTab,'live');
- assert.equal(f.calls.game,2);
+ assert.equal(f.state.detailTab,'sgps','global tracker does not silently change selected game detail tab');
+ assert.equal(f.elements['#game-day-board'].hidden,true,'no need to click a matchup');
+ assert.equal(f.elements['#nfl-live-slate'].hidden,false,'show every game at once');
+ assert.equal(f.calls.game,1,'never re-render individual game when global tracker opens');
  assert.equal(f.calls.live,1);
- assert.match(f.elements['#nfl-module-message'].textContent,/touchdown scoring tracker/);
+ assert.match(f.elements['#nfl-module-message'].textContent,/ALL NFL games/);
 });
 test('Best of Slate opens beneath the menu, NBA hides NFL modules without hiding NBA matchup cards',()=>{
  const f=fixture();
@@ -113,11 +117,12 @@ test('navigation retains sanitized public APIs and inline matchups; no new betti
  for(const required of [
   "moduleContent.appendChild($('#rankings-section'))",
   "moduleContent.appendChild($('#extra-section'))",
-  "state.detailTab=state.module==='sgps'?'sgps':state.module==='live'?'live':'overview'",
-  "if(state.detailTab==='live'){$('#match-content').innerHTML=showLive({});loadPublicLive(String(id));}",
+  "state.detailTab=state.module==='sgps'?'sgps':'overview'",
+  "id=\"nfl-live-slate\"",
+  "loadPublicLiveSlate()",
   "setInterval(refreshReadOnlyPredictions,30*1000)",
   "/api/public-nfl-game?",
-  "/api/public-nfl-live?",
+  "/api/public-nfl-live-slate?",
   "/api/public-nfl-rankings?"
  ])assert.ok(html.includes(required),required);
  assert.ok(!html.includes('/api/nfl-markets?'));

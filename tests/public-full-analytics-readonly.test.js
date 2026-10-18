@@ -155,7 +155,7 @@ test('public AI analysis presents immediate real model evidence while saved Groq
  assert.ok(html.includes('Source-verified individual offers:'));
  assert.ok(html.includes('Correlated SGP quotes:'));
  const aiStart=html.indexOf('function showAi(d)');
- const aiEnd=html.indexOf('function showLive(d)');
+ const aiEnd=html.indexOf('function renderNflLiveSlate(){');
  assert.ok(aiStart>0&&aiEnd>aiStart);
  assert.ok(html.slice(aiStart,aiEnd).includes('return intro+scoringContext+modelBrief+review+insight+'));
  assert.ok(!html.slice(aiStart,aiEnd).includes('/api/ai-analysis'));
@@ -181,7 +181,7 @@ test('public site has all core dashboard read-only modules, with syntactically v
  for(const value of ['AI Game Analyzer','Matchup Edge','Injuries','Anytime TD',
  'Player Props','Same Game Parlays','Small','Medium','Nuke',
  'Live TD Tracker','Best of Slate',
- '/api/public-nfl-ai?','/api/public-nfl-live?',
+ '/api/public-nfl-ai?','/api/public-nfl-live-slate?',
  '/api/public-nfl-game?'])
   assert.ok(html.includes(value),value);
  const js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];

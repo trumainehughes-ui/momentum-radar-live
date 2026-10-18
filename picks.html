@@ -141,6 +141,23 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
 .analytics-row:last-child{border-bottom:0}.detail-body{min-height:180px;padding-top:9px}
 .details-tabs{border-bottom:1px solid #2c4b5b;padding-bottom:16px}.injstatus{display:inline-block;padding:5px 8px;border-radius:8px;border:1px solid #b99a54;background:#392f23;color:#fbe0a0;font-weight:900;font-size:12px}
 .player .small{font-size:12px;color:#bbccd6;line-height:1.5;margin-top:9px}
+.live-slate{margin:16px 0 8px}.live-slate-head{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.live-slate-head h3{font-size:22px;margin:0 0 6px}.live-slate-head p{margin:0;max-width:590px}
+.live-slate-total{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:15px 18px;margin:14px 0;background:#14382f;border:1px solid #368e71;border-radius:13px}
+.live-slate-count{font-size:30px;font-weight:950;color:#6ff2ba}.live-slate-total p{margin:0;color:#c5e6dc;font-size:13px}
+.live-slate-cards{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(285px,1fr))}
+.live-slate-game{background:#102532;border:1px solid #355264;border-radius:14px;padding:17px;min-width:0}
+.live-slate-game-header{display:flex;align-items:start;justify-content:space-between;gap:10px}
+.live-slate-game h4{font-size:16px;line-height:1.3;margin:0 0 6px}
+.live-slate-game-state{color:#72e9b4;font-size:12px;font-weight:850}
+.live-slate-game-summary{font-size:12px;color:#afcbd7;margin:6px 0 12px}
+.live-slate-play{padding:11px 0;border-top:1px solid #2e4755}
+.live-slate-play strong{color:#edfdf8;font-size:15px;display:block}
+.live-slate-play .meta{font-size:11px;color:#a2c5cf;margin:4px 0}
+.live-slate-play p{color:#c3d8e1;font-size:12px;line-height:1.48;margin:5px 0 0;overflow-wrap:anywhere}
+.live-slate-muted{color:#abc3cf;font-size:12px;margin-top:12px}
+.live-slate-alert{border:1px solid #826a44;color:#f0d3a6;background:#2a261e;border-radius:10px;padding:12px 14px;margin:10px 0}
+@media(max-width:570px){.live-slate-cards{grid-template-columns:1fr}.live-slate-count{font-size:26px}}
 </style><script type="module" src="/public-sgp-browser-bootstrap.js"></script>
 <script type="module" src="/public-automatic-dk-book-bootstrap.js"></script>
 <script type="module" src="/nfl-model-choice-bootstrap.js"></script><script type="module" src="/nfl-sgp-model-yardage-bootstrap.js"></script><script type="module" src="/nfl-public-compact-sgp-bootstrap.js"></script><script type="module" src="/nfl-public-matchup-intelligence-bootstrap.js"></script>
@@ -165,7 +182,14 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   <button type="button" class="nfl-module-tab" data-nfl-module="live" aria-pressed="false">📊 Live TD Tracker</button>
  </nav>
  <p id="nfl-module-message" class="nfl-module-message" aria-live="polite">Select a matchup below to open its overview and game analytics.</p>
- <div id="nfl-module-content" class="nfl-module-content"></div>
+ <div id="nfl-module-content" class="nfl-module-content">
+  <section id="nfl-live-slate" class="live-slate" aria-label="NFL all-games touchdown tracker" hidden>
+   <div class="live-slate-head"><div><h3>🏈 NFL Touchdowns • All Games</h3>
+    <p class="sub">Every touchdown from every game on your selected NFL date. No matchup selection needed.</p></div>
+    <button type="button" class="soft" id="refresh-live-slate">↻ Update touchdowns</button></div>
+   <div id="live-slate-content" aria-live="polite"><div class="empty">Select Live TD Tracker to load today's scoring plays.</div></div>
+  </section>
+ </div>
 </section>
 <section id="nba-module-panel" class="nfl-module-panel" aria-label="NBA public analysis navigation" hidden>
  <div class="nfl-module-heading"><span class="nfl-module-icon" aria-hidden="true">🏀</span><div><h2>NBA</h2><p>Game-by-game props, injuries and parlay research.</p></div></div>
@@ -194,7 +218,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  'use strict';
  const $=s=>document.querySelector(s);
  const labels={td:'Anytime TD',passing:'Passing yards',rushing:'Rushing yards',receiving:'Receiving yards',receptions:'Receptions'};
- const state={league:'nfl',module:'games',nbaTab:'overview',nbaData:null,nbaBookResearch:null,nbaBookLoading:false,date:'',games:[],selected:'',rank:'td',rankings:null,loading:0,rankLoading:0,selectedData:null,detailTab:'overview',propTab:'passing',aiData:null,aiLoading:false,liveData:null,liveLoading:false,publicBookResearch:null,publicBookLoading:false,currentBookSgpModel:null,publishedBookObservations:null,weatherData:null,weatherLoading:false,recheckStatus:null,recheckLoading:false};
+ const state={league:'nfl',module:'games',nbaTab:'overview',nbaData:null,nbaBookResearch:null,nbaBookLoading:false,date:'',games:[],selected:'',rank:'td',rankings:null,loading:0,rankLoading:0,selectedData:null,detailTab:'overview',propTab:'passing',aiData:null,aiLoading:false,liveData:null,liveLoading:false,liveSlateData:null,liveSlateLoading:false,liveSlateRequest:0,liveSlateError:null,publicBookResearch:null,publicBookLoading:false,currentBookSgpModel:null,publishedBookObservations:null,weatherData:null,weatherLoading:false,recheckStatus:null,recheckLoading:false};
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const fmtTime=v=>{const n=Date.parse(v||'');return Number.isFinite(n)?new Intl.DateTimeFormat(undefined,{weekday:'short',hour:'numeric',minute:'2-digit'}).format(new Date(n)):'Time TBD'};
  const fmtStamp=v=>{const n=Date.parse(v||'');return Number.isFinite(n)?'Updated '+new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(n)):'Awaiting updates'};
@@ -251,8 +275,8 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  }
  // Public NFL modules mirror production's consumer-facing navigation.
  const rankedModules=new Set(['td','passing','rushing','receiving','receptions']);
- const gameModules=new Set(['games','sgps','live']);
- const allowedModules=new Set([...rankedModules,...gameModules,'best']);
+ const gameModules=new Set(['games','sgps']);
+ const allowedModules=new Set([...rankedModules,...gameModules,'best','live']);
  function renderNflModule(){
   const nfl=state.league==='nfl',module=allowedModules.has(state.module)?state.module:'games';
   const ranking=nfl&&rankedModules.has(module);
@@ -265,16 +289,17 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   $('#game-day-board').hidden=nfl&&!gameModules.has(module);
   $('#rankings-section').hidden=!ranking;
   $('#extra-section').hidden=!(nfl&&module==='best');
+  $('#nfl-live-slate').hidden=!(nfl&&module==='live');
   document.querySelectorAll('[data-nfl-module]').forEach(b=>{
    const selected=nfl&&b.dataset.nflModule===module;
    b.classList.toggle('active',selected);
    b.setAttribute('aria-pressed',String(selected));
   });
   const note=$('#nfl-module-message');
-  note.hidden=!nfl||!gameModules.has(module);
+  note.hidden=!nfl||!(gameModules.has(module)||module==='live');
   if(nfl)note.textContent=module==='sgps'?
    'Select a matchup below to see its Small, Medium and Nuke SGP research and any verified book quotes.':
-   module==='live'?'Select a matchup below to see its touchdown scoring tracker.':
+   module==='live'?'Showing touchdowns from ALL NFL games on this date, including completed games. Scoring data updates automatically.':
    'Select a matchup below to open all of its game analytics.';
   if(ranking){
    state.rank=module;
@@ -283,18 +308,23 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    renderRanks();
   }
   if(nfl&&module==='best')renderExtras();
-  if(nfl&&state.selectedData&&(module==='sgps'||module==='live')){
-   state.detailTab=module==='sgps'?'sgps':'live';
+  if(nfl&&module==='live'){
+   renderNflLiveSlate();
+   if(state.date&&!state.liveSlateLoading&&state.liveSlateData?.date!==state.date)
+    loadPublicLiveSlate();
+  }
+  if(nfl&&state.selectedData&&module==='sgps'){
+   state.detailTab='sgps';
    renderGame(state.selectedData);
-   if(module==='live'&&!state.liveData&&!state.liveLoading)loadPublicLive(state.selected);
-   if(module==='sgps'&&!state.publicBookResearch&&!state.publicBookLoading)loadPublicBookResearch(state.date,state.selected);
+   if(!state.publicBookResearch&&!state.publicBookLoading)
+    loadPublicBookResearch(state.date,state.selected);
   }
  }
  function activateNflModule(module){
   if(state.league!=='nfl'||!allowedModules.has(module))return;
   state.module=module;renderNflModule();
  }
- const views=[['overview','Overview'],['td','Anytime TD'],['props','Player Props'],['matchup','Matchup Edge'],['injuries','Injuries'],['sgps','SGPs'],['ai','✨ AI Game Analyzer'],['sharp','📈 Sharp +EV Audit'],['live','📊 Live TD Tracker']];
+ const views=[['overview','Overview'],['td','Anytime TD'],['props','Player Props'],['matchup','Matchup Edge'],['injuries','Injuries'],['sgps','SGPs'],['ai','✨ AI Game Analyzer'],['sharp','📈 Sharp +EV Audit']];
  const rankMetricNames={passYards:'Passing yards',rushYards:'Rushing yards',recYards:'Receiving yards',passTD:'Passing TDs',rushTD:'Rushing TDs',recTD:'Receiving TDs',receptions:'Receptions',targets:'Targets'};
  function renderOdds(offers){if(!Array.isArray(offers)||!offers.length)return '';
   return '<div class="bookquote"><b>Verified combined sportsbook quotes</b><div>'+
@@ -964,27 +994,75 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     '<p class="sharp-brief">Model estimates are not calibrated sportsbook probabilities. Published individual-player prices do not verify availability, current starters, positive expected value or combined SGP odds.</p></details></article>';
   }).join('')+'</div>';
  }
- function showLive(d){
-  const l=state.liveData;
-  if(state.liveLoading)return '<div class="empty loading">Checking current touchdown results…</div>';
-  if(!l)return '<div class="empty">Open Live TD Tracker to load scorers for this matchup.</div>';
-  return '<h3>📊 Live Touchdown Tracker</h3>'+
-   '<p class="sub">Results from completed scoring plays. A ⭐ only appears for a verified locked pregame prediction.</p>'+
-   '<div class="players-grid" style="margin-top:16px">'+
-   (l.touchdowns?.length?l.touchdowns.map(x=>
-    '<div class="player"><div class="tiny">Quarter '+esc(x.period??'—')+' • '+esc(x.clock||'')+'</div><b>'+
-    (x.star?'⭐ ':'')+esc(x.name)+'</b><div class="small">'+esc(x.description)+'</div></div>').join(''):
-    noData('No touchdowns recorded yet','Check back during the game for scoring-play updates.'))+'</div>'+
-   '<div class="controls" style="margin-top:17px"><button class="soft" type="button" data-refresh-live="1">↻ Update results</button></div>';
+ function renderNflLiveSlate(){
+  if(state.league!=='nfl'||state.module!=='live')return;
+  const box=$('#live-slate-content');
+  if(!box)return;
+  const d=state.liveSlateData?.date===state.date?state.liveSlateData:null;
+  if(!d){
+   box.innerHTML=state.liveSlateLoading?
+    '<div class="empty loading">Loading touchdowns across ALL NFL games…</div>':
+    state.liveSlateError?
+    noData('Scoring feed temporarily unavailable','Touchdown results could not be verified. Use Update touchdowns to retry.'):
+    noData('NFL scoring plays','Select a day to load scoring results for every game.');
+   return;
+  }
+  const count=Number(d.totals?.touchdowns)||0,unavailable=Number(d.totals?.unavailable)||0;
+  const games=Array.isArray(d.games)?d.games:[];
+  const scoreText=t=>t?.score==null?esc(t?.abbr||'—'):
+   esc(t?.abbr||'—')+' '+esc(t.score);
+  const boxes=games.map(g=>{
+   const rows=Array.isArray(g.touchdowns)?g.touchdowns:[];
+   const stateName=g.status==='FINAL'?'FINAL':g.status==='LIVE'?'LIVE':'UPCOMING';
+   const label=g.sourceStatus==='SCORING_FEED_UNAVAILABLE'?
+    'Scoring data unavailable — touchdown count not confirmed':
+    g.status==='SCHEDULED'?'Game has not started':
+    rows.length===0?'No touchdowns recorded yet':
+    rows.length+' confirmed touchdown'+(rows.length===1?'':'s');
+   return '<section class="live-slate-game" data-live-game="'+esc(g.gameId)+'">'+
+    '<div class="live-slate-game-header"><h4>'+esc(g.away?.name||g.away?.abbr||'Away')+
+    ' @ '+esc(g.home?.name||g.home?.abbr||'Home')+'</h4>'+
+    '<span class="live-slate-game-state">'+esc(stateName)+'</span></div>'+
+    '<div class="live-slate-game-summary">'+scoreText(g.away)+' – '+scoreText(g.home)+
+    ' • '+esc(g.statusDetail||fmtTime(g.kickoff))+'</div>'+
+    '<div class="live-slate-muted">'+esc(label)+'</div>'+
+    rows.map(x=>'<div class="live-slate-play"><strong>'+
+     (x.star?'⭐ ':'')+esc(x.name)+'</strong>'+
+     '<div class="meta">Quarter '+esc(x.period??'—')+' • '+esc(x.clock||'Clock unavailable')+
+     (x.star?' • ⭐ matched locked pregame prediction':'')+'</div>'+
+     '<p>'+esc(x.description||'Touchdown scoring play')+'</p></div>').join('')+
+    '</section>';
+  }).join('');
+  box.innerHTML='<div class="live-slate-total"><div class="live-slate-count">'+esc(count)+
+   '</div><p><b>Confirmed touchdowns</b> across '+esc(d.totals?.games||games.length)+
+   ' NFL games on '+esc(d.date)+
+   '<span style="display:block">'+esc(fmtStamp(d.fetchedAt))+
+   ' • ESPN scoring plays • ⭐ = matched locked pregame prediction</span></p></div>'+
+   (unavailable?'<div class="live-slate-alert">'+esc(unavailable)+
+     ' game'+(unavailable===1?'':'s')+
+     ' could not be verified. The total only includes successfully checked games; it is not the full-day final count.</div>':'')+
+   (state.liveSlateError?'<div class="live-slate-alert">Refresh failed. Displaying the last successfully loaded results.</div>':'')+
+   '<div class="live-slate-cards">'+(boxes||noData('No NFL games on this date',
+    'Choose a date with scheduled NFL games.'))+'</div>';
  }
- async function loadPublicLive(gameId){
-  state.liveLoading=true;state.liveData=null;if(state.selectedData)renderGame(state.selectedData);
-  try{const d=await getJson('/api/public-nfl-live?'+new URLSearchParams({gameId}));
-   if(String(state.selected)!==String(gameId))return;state.liveData=d;
-  }catch{if(String(state.selected)===String(gameId))state.liveData={touchdowns:[]}}
-  finally{if(String(state.selected)===String(gameId)){state.liveLoading=false;
-    if(state.detailTab==='live'){if(state.selectedData)renderGame(state.selectedData);
-     else $('#match-content').innerHTML=showLive({});}}}
+ async function loadPublicLiveSlate(){
+  if(state.league!=='nfl'||state.module!=='live'||!state.date||state.liveSlateLoading)return;
+  const date=state.date,token=++state.liveSlateRequest;
+  state.liveSlateLoading=true;state.liveSlateError=null;
+  renderNflLiveSlate();
+  try{
+   const d=await getJson('/api/public-nfl-live-slate?'+new URLSearchParams({date}));
+   if(token!==state.liveSlateRequest||state.league!=='nfl'||
+      state.module!=='live'||state.date!==date)return;
+   state.liveSlateData=d;
+  }catch{
+   if(token===state.liveSlateRequest&&state.date===date)
+    state.liveSlateError='SCORING_FEED_UNAVAILABLE';
+  }finally{
+   if(token===state.liveSlateRequest){
+    state.liveSlateLoading=false;renderNflLiveSlate();
+   }
+  }
  }
  // NBA uses the same single expandable matchup surface, with NBA-specific
  // player stats and model-only SGPs. No NFL-style TD/yardage labels are reused.
@@ -1139,7 +1217,6 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   if(state.detailTab==='sgps')body=renderParlays(d);
   if(state.detailTab==='ai')body=showAi(d);
   if(state.detailTab==='sharp')body=showSharp(d);
-  if(state.detailTab==='live')body=showLive(d);
   // Keep a discreet last-updated model label in the matchup header.
   // Stale bookmaker prices remain blocked by existing public data gates.
   const aiSummary=state.aiLoading?'AI review loading':state.aiData?.status==='SAVED_AI_REVIEW'?'AI review available':state.aiData?.status==='HISTORICAL_AI_REVIEW'?'Historical AI review':'AI review pending';
@@ -1163,7 +1240,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   }
   const token=++state.loading;
   state.selected=String(id);state.selectedData=null;state.aiData=null;
-  state.liveData=null;state.nbaData=null;state.nbaBookResearch=null;state.nbaBookLoading=false;state.currentBookSgpModel=null;state.publishedBookObservations=null;state.publicBookResearch=null;state.publicBookLoading=false;state.weatherData=null;state.weatherLoading=false;state.recheckStatus=null;state.recheckLoading=false;state.detailTab=state.module==='sgps'?'sgps':state.module==='live'?'live':'overview';renderGames();
+  state.liveData=null;state.nbaData=null;state.nbaBookResearch=null;state.nbaBookLoading=false;state.currentBookSgpModel=null;state.publishedBookObservations=null;state.publicBookResearch=null;state.publicBookLoading=false;state.weatherData=null;state.weatherLoading=false;state.recheckStatus=null;state.recheckLoading=false;state.detailTab=state.module==='sgps'?'sgps':'overview';renderGames();
   if(scroll&&typeof requestAnimationFrame==='function')
    requestAnimationFrame(()=>{
     if(token===state.loading)
@@ -1188,12 +1265,12 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   return;
  }
  if(g.status==='FINAL'||g.status==='LIVE'){
-   if(state.detailTab==='live'){$('#match-content').innerHTML=showLive({});loadPublicLive(String(id));}
-   else $('#match-content').innerHTML='<div class="empty" style="margin-top:18px">This game is '+esc(statusLabel(g).toLowerCase())+'. Pregame predictions are not presented as live betting lines.</div>';
+   $('#match-content').innerHTML='<div class="empty" style="margin-top:18px">This game is '+esc(statusLabel(g).toLowerCase())+
+    '. For touchdown scorers from ALL games, open the top-level Live TD Tracker. Pregame predictions are not live betting lines.</div>';
    return;
   }
  try{const d=await getJson('/api/public-nfl-game?'+new URLSearchParams({date:state.date,gameId:String(id)}));if(token!==state.loading)return;
- $('#freshness').textContent=(d.status==='LAST_SAVED'?'Model preview • ':'')+fmtStamp(d.updatedAt);state.selectedData=d;renderGame(d);loadCurrentNflSgpResearch(state.date,String(id),token);if(d.status==='LAST_SAVED')loadNflRecheckStatus(state.date,String(id));if(state.detailTab==='live'&&!state.liveData&&!state.liveLoading)loadPublicLive(String(id));if(state.league==='nfl'&&!state.publicBookLoading)loadPublicBookResearch(state.date,String(id))}
+ $('#freshness').textContent=(d.status==='LAST_SAVED'?'Model preview • ':'')+fmtStamp(d.updatedAt);state.selectedData=d;renderGame(d);loadCurrentNflSgpResearch(state.date,String(id),token);if(d.status==='LAST_SAVED')loadNflRecheckStatus(state.date,String(id));if(state.league==='nfl'&&!state.publicBookLoading)loadPublicBookResearch(state.date,String(id))}
  catch{if(token===state.loading)$('#match-content').innerHTML='<div class="empty" style="margin-top:18px">Predictions are temporarily unavailable. Try refreshing shortly.</div>'}}
 function renderExtras(){
  const box=$('#extra-content');if(!box)return;
@@ -1227,13 +1304,18 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
  async function loadRanks(){const token=++state.rankLoading;state.rankings=null;$('#rankings').innerHTML='<div class="empty loading grid-span">Loading rankings…</div>';
  if(state.league!=='nfl')return;
  try{const d=await getJson('/api/public-nfl-rankings?'+new URLSearchParams({date:state.date}));if(token!==state.rankLoading)return;state.rankings=d;renderRanks();renderExtras()}catch{if(token===state.rankLoading)$('#rankings').innerHTML=noData('Rankings unavailable','Check again after the next saved update.')}}
- async function loadSlate(upcoming){++state.loading;++state.rankLoading;state.selected='';state.selectedData=null;state.aiData=null;state.liveData=null;state.publicBookResearch=null;state.publicBookLoading=false;state.nbaData=null;state.nbaBookResearch=null;state.nbaBookLoading=false;state.weatherData=null;state.weatherLoading=false;state.recheckStatus=null;state.recheckLoading=false;state.games=[];renderGames();renderWeather();$('#games').innerHTML='<div class="empty loading grid-span">Loading scheduled matchups…</div>';
+ async function loadSlate(upcoming){++state.loading;++state.rankLoading;
+  ++state.liveSlateRequest;state.liveSlateData=null;state.liveSlateLoading=false;state.liveSlateError=null;
+  state.selected='';state.selectedData=null;state.aiData=null;state.liveData=null;state.publicBookResearch=null;state.publicBookLoading=false;state.nbaData=null;state.nbaBookResearch=null;state.nbaBookLoading=false;state.weatherData=null;state.weatherLoading=false;state.recheckStatus=null;state.recheckLoading=false;state.games=[];renderGames();renderWeather();$('#games').innerHTML='<div class="empty loading grid-span">Loading scheduled matchups…</div>';
  $('#match-title').textContent='Select a game';$('#match-content').innerHTML='<div class="empty" style="margin-top:18px">Choose a matchup to explore the picks.</div>';renderNflModule();
  const base=state.league==='nfl'?'/api/nfl-schedule':'/api/nba-slate';
  const q=(!upcoming&&state.date)?'?'+new URLSearchParams({date:state.date}):'';
  try{const d=await getJson(base+q);state.date=d.date||state.date;$('#day').value=state.date;$('#date-caption').textContent=state.league.toUpperCase()+' • '+(d.games?.length||0)+' scheduled matchups • '+state.date;
  state.games=Array.isArray(d.games)?d.games:[];renderGames();
- if(state.league==='nfl')loadRanks();
+ if(state.league==='nfl'){
+  loadRanks();
+  if(state.module==='live')loadPublicLiveSlate();
+ }
  // No default game selection: first tap opens analysis directly under its card.
  }catch{$('#date-caption').textContent='Unable to retrieve game schedule';$('#games').innerHTML=noData('Schedule temporarily unavailable','Refresh or try another date.')}}
  $('#games').addEventListener('click',e=>{const b=e.target.closest('[data-game]');if(b)openGame(b.dataset.game)});
@@ -1244,14 +1326,13 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
   }
   const b=e.target.closest('[data-view]'),p=e.target.closest('[data-prop]');
   if(p&&state.selectedData){state.propTab=p.dataset.prop;renderGame(state.selectedData);return}
-  if(e.target.closest('[data-refresh-live]')&&state.selected)return loadPublicLive(state.selected);
+  if(e.target.closest('[data-refresh-live]'))return;
   if(!b||!state.selectedData)return;
   const view=b.dataset.view;
   if(!views.some(x=>x[0]===view))return;
   state.detailTab=view;
   renderGame(state.selectedData);
   if(view==='ai'&&!state.aiData&&!state.aiLoading)loadSavedAi(state.date,state.selected);
-  if(view==='live'&&!state.liveData&&!state.liveLoading)loadPublicLive(state.selected);
   if(view==='sgps'&&!state.publicBookResearch&&!state.publicBookLoading)loadPublicBookResearch(state.date,state.selected);
  });
  $('#leagues').addEventListener('click',e=>{
@@ -1281,6 +1362,10 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
   // Public polls read saved snapshots only. No calls to the market builder,
   // Groq inference or privileged collector/write routes.
   if(document.hidden||!state.date)return;
+  if(state.league==='nfl'&&state.module==='live'){
+   if(!state.liveSlateLoading)await loadPublicLiveSlate();
+   return;
+  }
   const date=state.date,id=state.selected;
   if(state.league==='nba'){
    if(!id)return;
@@ -1335,7 +1420,9 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
  });
  setInterval(refreshReadOnlyPredictions,30*1000);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshReadOnlyPredictions()});
- $('#refresh').addEventListener('click',()=>state.selected?refreshReadOnlyPredictions():loadSlate(false));
+ $('#refresh-live-slate').addEventListener('click',()=>loadPublicLiveSlate());
+ $('#refresh').addEventListener('click',()=>state.league==='nfl'&&state.module==='live'?
+  loadPublicLiveSlate():state.selected?refreshReadOnlyPredictions():loadSlate(false));
  // Move the same public read-only ranking/Best-of-Slate DOM directly below
  // the NFL tabs. No duplicate API requests or independent renderers.
  const moduleContent=$('#nfl-module-content');
