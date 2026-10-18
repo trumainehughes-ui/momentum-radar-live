@@ -20,10 +20,10 @@ test('a cached Nuke model card with Bijan 135 never exposes the invented 135-yar
    {player:"D'Andre Swift",team:'CHI',category:'td',target:'Anytime TD'}
   ]}]}};
  const sanitized=sanitize(input);
- assert.equal(sanitized.sgps.Analytics.length,1);
- assert.equal(sanitized.sgps.Analytics[0].legs.length,3);
- assert.ok(sanitized.sgps.Analytics[0].legs.every(l=>l.target===null&&
-  l.marketSelectionStatus==='NO_EXACT_DRAFTKINGS_OR_FANDUEL_OFFER'));
+ // Under the current 5–7 mixed-market rule, the old three-leg Nuke
+ // is discarded outright instead of shipping even a sanitized partial slip.
+ assert.equal(sanitized.sgps.Analytics.length,0);
+ assert.equal(sanitized.sgps.mode,'NO_VERIFIED_BOOK_SGPS');
  assert.equal(input.sgps.Analytics[0].legs[0].target,135,
   'read-only cache objects are not mutated');
  assert.ok(!JSON.stringify(sanitized.sgps).includes('"target":135'));
