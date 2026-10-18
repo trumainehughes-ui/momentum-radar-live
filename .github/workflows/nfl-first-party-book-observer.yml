@@ -1,0 +1,26 @@
+name: NFL First-Party Book Observer
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  official-book-observer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Check first-party NFL book ingestion syntax
+        run: |
+          node --check api/nfl-public-book-research.js
+          node --check lib/nfl-public-sportsbook-observer.js
+      - name: Verify per-game first-party player markets and no sportsbook price inference
+        run: |
+          node --test tests/nfl-first-party-book-observer-full-markets.test.js
+          node --test tests/nfl-snapshot-immutable-sync.test.js tests/public-nfl-sync-contract.test.js
