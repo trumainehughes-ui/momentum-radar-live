@@ -73,7 +73,10 @@ test('public UI checks only signed scoped game source and retains verified SGP s
  assert.ok(ui.includes('return modelChoiceHtml+tierYardageHtml+intro+staleNote+slips+verification+renderLocalBookParity(d)+research'));
  assert.ok(ui.includes('correlated SGP prices require sportsbook confirmation'));
  assert.ok(ui.includes('window.momentumNflModelChoice?.buildNflModelChoiceBoard({'));
- assert.ok(ui.includes('state.currentBookSgpModel=m;'));
+ assert.ok(ui.includes('state.currentBookSgpModel=null;'));
+ assert.ok(ui.includes("const snapshotFresh=d?.ok===true&&d?.status==='CURRENT'"));
+ assert.ok(ui.includes('verifiedBookParlays.filter(c=>'));
+ assert.ok(ui.includes('offer.attested!==true'));
  assert.ok(ui.includes('buildBrowserObservedSgpReviews({'));
  assert.ok(ui.includes('<section class="sgp-research-details" aria-label="Public sportsbook player odds">'));
  assert.ok(ui.includes('Combined sportsbook odds and player lines are not verified'));
