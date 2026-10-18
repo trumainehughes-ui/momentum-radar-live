@@ -110,10 +110,15 @@ function existingSgpLegEligible(body,leg){
  const name=norm(leg?.player||leg?.name);
  const team=nflCanonTeam(leg?.team);
  if(!name||!team)return false;
- const pools=cat==='td'?['td','rushing','receiving','receptions']: [cat];
+ // Match the exact market: a TD offer cannot validate receiving yards.
+ // A current bookmaker selection is required independently of role eligibility.
+ const pools=cat==='td'?['td']: [cat];
  return pools.some(k=>(body.categories?.[k]||[]).some(x=>
   norm(x?.name||x?.player)===name&&nflCanonTeam(x?.team)===team&&
-  verifiedOffensiveOpportunity(x,x,k)));
+  verifiedOffensiveOpportunity(x,x,k)&&
+  (cat==='td'?x?.bookOffer?.available===true:
+   x?.bookOffer?.available===true&&
+   Number(x.bookOffer.line)===Number(leg?.target??leg?.threshold))));
 }
 function nflVerifiedOnlySgpResponse(body){
  if(!body||!body.sgps||body.scope!=='game')return body;
