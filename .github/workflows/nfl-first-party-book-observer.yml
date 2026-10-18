@@ -23,4 +23,5 @@ jobs:
       - name: Verify per-game first-party player markets and no sportsbook price inference
         run: |
           node --test tests/nfl-first-party-book-observer-full-markets.test.js
+          node --test tests/nfl-book-offer-provenance.test.js
           node --test tests/nfl-snapshot-immutable-sync.test.js tests/public-nfl-sync-contract.test.js
