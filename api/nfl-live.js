@@ -5,7 +5,18 @@ const HISTORY_PREFIX='momentum-history/v1/nfl-';
 const ESPN='https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary';
 const NS='no-store, no-cache, must-revalidate';
 async function json(u){const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw Error('upstream_'+r.status);return r.json()}
-function scorerAbbr(txt){let m=txt.match(/\bpass\b[\s\S]*?\bto\s+([A-Z]\.[A-Za-z][A-Za-z.'-]*)\s+for\s+[\d-]+\s+yards?,\s*TOUCHDOWN/i);if(m)return m[1];m=txt.match(/(?:^|\)\s)([A-Z]\.[A-Za-z][A-Za-z.'-]*)\s+(?:left|right|up|scrambles)\b[\s\S]*?TOUCHDOWN/i);return m?.[1]||''}
+export function scorerAbbr(txt){
+ const play=String(txt||'');
+ if(/\b(?:touchdown overturned|touchdown nullified|no touchdown|touchdown called back)\b/i.test(play))return '';
+ // A passing TD belongs to the receiver, not the quarterback.
+ let m=play.match(/\bpass\b[\s\S]*?\bto\s+([A-Z]\.[A-Za-z][A-Za-z.'-]*)\s+for\s+[\d-]+\s+yards?,\s*TOUCHDOWN/i);
+ if(m)return m[1];
+ // ESPN may prepend substitutions, a formation or penalty text. Don't
+ // require the runner to be at the beginning or immediately after "(Shotgun)".
+ // Only identify the runner when a yardage touchdown is explicitly scored.
+ m=play.match(/(?:^|[\s.;()])([A-Z]\.[A-Za-z][A-Za-z.'-]*)\s+(?:left|right|up|scrambles)\b[\s\S]*?\bfor\s+[\d-]+\s+yards?,\s*TOUCHDOWN/i);
+ return m?.[1]||'';
+}
 function rosterIndex(d){const out=[];for(const t of (d.rosters||[])){const rows=t.roster||t.athletes||t.players||[];for(const r of rows){const a=r.athlete||r;if(a?.id)out.push(a)}}for(const b of (d.boxscore?.players||[]))for(const s of (b.statistics||[]))for(const a of (s.athletes||[])){const x=a.athlete||a;if(x?.id)out.push(x)}return [...new Map(out.map(a=>[String(a.id),a])).values()]}
 function norm(s){return String(s||'').toLowerCase().replace(/[^a-z]/g,'')}
 function surnameParts(full){const p=String(full||'').trim().split(/\s+/);const suffix=/^(jr\.?|sr\.?|ii|iii|iv|v)$/i;while(p.length>1&&suffix.test(p[p.length-1]))p.pop();return {first:p[0]||'',surname:p.slice(1).join(''),last:p[p.length-1]||''}}
