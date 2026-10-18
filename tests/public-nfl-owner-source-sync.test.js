@@ -48,7 +48,7 @@ test('stale public data is labeled and owner parity fails closed',()=>{
 });
 test('public synchronization metadata never contains private raw market diagnostics or provider credentials',()=>{
  const src=readFileSync(new URL('../lib/public-nfl-view.js',import.meta.url),'utf8');
- assert.match(src,/researchSync:\{source:'PUBLISHED_NFL_GAME_SNAPSHOT',version:updatedAt/);
+ assert.match(src,/researchSync:\{basis:'PUBLISHED_NFL_GAME_SNAPSHOT',version:updatedAt/);
  const publicPage=readFileSync(new URL('../picks.html',import.meta.url),'utf8');
  assert.ok(publicPage.includes("getJson('/api/public-nfl-game?'"));
  const ownerPage=readFileSync(new URL('../index.html',import.meta.url),'utf8');
