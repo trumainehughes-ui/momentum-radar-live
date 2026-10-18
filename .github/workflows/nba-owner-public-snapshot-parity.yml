@@ -1,0 +1,27 @@
+name: NBA Owner Public Snapshot Parity
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  nba-version-parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Validate NBA collector, snapshot reader and visitor API syntax
+        run: |
+          node --check api/nba-health.js
+          node --check api/nba-game.js
+          node --check lib/nba-pregame-snapshot-store.js
+      - name: Test immutable NBA versions and existing NFL synchronization
+        run: |
+          node --test tests/nba-immutable-pregame-snapshot.test.js
+          node --test tests/nfl-snapshot-immutable-sync.test.js tests/public-nfl-sync-contract.test.js

@@ -3,7 +3,7 @@ import {nbaVerifiedScheduledFallback,nbaEasternGameDay} from '../lib/nba-schedul
 import {nbaReadPregame,nbaPregameStatus} from './nba-health.js';
 const ESPN='https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary';
 export default async function handler(req,res){
- res.setHeader('Cache-Control','public, s-maxage=45, must-revalidate');
+ res.setHeader('Cache-Control','private, no-store, max-age=0');
  if(req.method!=='GET')return res.status(405).json({ok:false,error:'method_not_allowed'});
  const gameId=String(req.query?.gameId||'');
  if(!/^\d{7,12}$/.test(gameId))return res.status(400).json({ok:false,error:'invalid_nba_game_id'});
@@ -46,6 +46,7 @@ export default async function handler(req,res){
   if(snapshot){
    data.pregameReadiness=nbaPregameStatus(snapshot,{gameStatus:data.status});
    data.pregameCheckedAt=snapshot.checkedAt;
+   res.setHeader('X-Momentum-NBA-Snapshot-Version',String(snapshot.checkedAt));
    data.injuryRecheckedAt=snapshot.injuryCheckedAt;
    data.sgpModelVersion=snapshot.modelVersion||'legacy-unversioned';
    const current=data.pregameReadiness.freshness==='CURRENT';
