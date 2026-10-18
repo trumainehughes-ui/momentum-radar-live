@@ -85,7 +85,7 @@ test("book, ESPN event and actual quote odds must all match trusted source",()=>
 });
 test("net tier boundaries are consistent for all games",()=>{
  for(const [odds,risk,expectedProfit] of [
-  [2000,"Small",200],[3000,"Small",300],
+  [2000,"Small",200],[2999,"Small",299.9],[3000,"Medium",300],
   [3001,"Medium",300.1],[8000,"Medium",800],
   [10000,"Nuke",1000],[10001,"Nuke",1000.1],[25362,"Nuke",2536.2]
  ]){
