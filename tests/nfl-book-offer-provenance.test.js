@@ -92,3 +92,13 @@ test('wrong athlete, game, market or missing official selection ID is not bookab
   ...book,offerId:null,selectionId:'auth-selection-1001'
  },'DraftKings',now),true);
 });
+
+test('model timestamp cannot freshen an undated bookmaker price',()=>{
+ assert.equal(nflBookOfferEligible({...row,checkedAt:book.checkedAt},{
+  ...book,checkedAt:null
+ },'DraftKings',now),false);
+ for(const line of [0,-65,NaN])
+  assert.equal(nflBookOfferEligible(row,{...book,line},'DraftKings',now),false);
+ for(const odds of [1,-1,110.5,100001,-100001])
+  assert.equal(nflBookOfferEligible(row,{...book,odds},'DraftKings',now),false);
+});
