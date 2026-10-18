@@ -4,7 +4,7 @@ import {nflBookOfferEligible} from '../lib/nfl-book-offer-provenance.js';
 import {nflMeaningfulOpportunity} from '../lib/nfl-meaningful-opportunity.js';
 import {publishedNflModelTier} from '../lib/nfl-public-model-sgp-serializer.js';
 import { sportsbookCoverageAudit } from '../lib/sportsbook-source-policy.js';
-import { NFL_SGP_TIERS, assessNflSgpTier, fillNflSgpMarketMix, guardFinalNflSgpCards, modelNflSgpStatThreshold, nflLegMatchesGameRoster, selectNflAdaptiveNuke, selectNflAdaptiveTier } from '../lib/ai-mechanics/nfl-sgp-tiers.js';
+import { NFL_SGP_TIERS, classifyNflSgpOdds, assessNflSgpTier, fillNflSgpMarketMix, guardFinalNflSgpCards, modelNflSgpStatThreshold, nflLegMatchesGameRoster, selectNflAdaptiveNuke, selectNflAdaptiveTier } from '../lib/ai-mechanics/nfl-sgp-tiers.js';
 import {validNflDvpRank,capNflTierYardTarget,isNflConfirmedGameQb} from '../lib/ai-mechanics/nfl-projection-safety.js';
 import {nflDayAheadRoleEvidence} from '../lib/nfl-day-ahead-roles.js';
 import {summarizeNflNukeEvidence} from '../lib/nfl-nuke-evidence-diagnostics.js';
@@ -43,8 +43,10 @@ const CACHE=new Map(),TTL=15*60*1000,MARKET_SNAPSHOT_TTL=15*60*1000;
 const LAST_CALL=new Map(),BACKOFF=new Map(),MIN_UPSTREAM_GAP=15*60*1000,RATE_BACKOFF=15*60*1000;
 const RESPONSE_CACHE=new Map(),ANALYTICS_CACHE=new Map();const ANALYTICS_TTL=6*60*60*1000;let ODDS_QUOTA_BLOCKED_UNTIL=0,ODDS_QUOTA_DETAIL='';
 const SNAP_PREFIX='momentum-nfl-markets/v2/';
-// Net-profit targets on a $10 stake: Small $200–$300 (+2000–+3000), Medium $300–$800 (+3000–+8000), Nuke over $1,000 (+10001+).
-const SGP_ODDS_BANDS={Small:{min:2000,max:3000},Medium:{min:3000,max:8000},Nuke:{min:10001,max:Infinity}};
+// Share exact tier odds bands with the single official model policy.
+// Small: +2000..+2999; Medium: +3000..+8000; Nuke: +10000 and above.
+const SGP_ODDS_BANDS=Object.fromEntries(Object.entries(NFL_SGP_TIERS).map(
+ ([risk,tier])=>[risk,{min:tier.minOdds,max:tier.maxOdds}]));
 // Public sites are the sole odds authority; third-party odds APIs are disabled.
 const DIRECT_PUBLIC_ODDS_ONLY=true;
 // Mandatory website-first odds policy:
@@ -54,8 +56,8 @@ const DIRECT_PUBLIC_ODDS_ONLY=true;
 // 4) A listed individual prop is not a verified correlated SGP quote.
 // This contract is intentionally sport-portable so the future NBA module can use NBA.com / ESPN + public DK/FD the same way.
 const MARKET_SOURCE_POLICY={projection:['NFL.com','ESPN','team offense vs defense','DVP','injuries/roles','DraftKings public stats/trends','FanDuel public stats/trends'],marketResearch:['DraftKings public markets','FanDuel public markets'],apiAssist:[],apiRequired:false,publicBookResearchRequired:true,publicBookEvidence:['lines','alternate lines','American odds','recent-game results','hit-rate/trend context','player matchup notes','TD markets','passing/rushing/receiving/receptions markets'],rule:'combine_all_public_evidence_projection_first_api_optional'};
-function sgpOddsInBand(risk,odds){const b=SGP_ODDS_BANDS[risk];return !!b&&Number.isFinite(Number(odds))&&Number(odds)>=b.min&&Number(odds)<=b.max}
-function sgpPayoutLabel(risk){return risk==='Small'?'$10 stake → $200–$300 NET profit (book target +2000 to +3000)':risk==='Medium'?'$10 stake → $300–$800 NET profit (book target +3000 to +8000)':'$10 stake → OVER $1,000 NET profit (book odds greater than +10000)'}
+function sgpOddsInBand(risk,odds){const value=Number(odds);return Number.isSafeInteger(value)&&classifyNflSgpOdds(value)===risk}
+function sgpPayoutLabel(risk){return risk==='Small'?'$10 stake → $200–under $300 NET profit (target +2000 to +2999)':risk==='Medium'?'$10 stake → $300–$800 NET profit (target +3000 to +8000)':'$10 stake → $1,000+ NET profit (target +10000 or higher)'}
 function manualAtlNoTonightSgps(date,home,away){
  const teams=new Set([norm(home),norm(away)]);if(date!=='2026-10-05'||!teams.has('ATL')||!(teams.has('NO')||teams.has('NOS')))return null;
  const src='ESPN + NFL.com • 2026 Weeks 1–3 • matchup model';
