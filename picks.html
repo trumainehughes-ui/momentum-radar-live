@@ -422,30 +422,17 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   return [];
  }
  async function loadCurrentNflSgpResearch(date,gameId,token){
+  // Visitor pages use the sanitized, read-only snapshot and published
+  // observations. Never request the owner-only NFL markets endpoint.
   try{
-   const [m,published]=await Promise.all([
-    getJson('/api/nfl-markets?'+new URLSearchParams({date,gameId})),
-    getJson('/api/nfl-published-book-observations?'+new URLSearchParams({date,gameId})).catch(()=>null)
-   ]);
-   if(token!==state.loading||!state.selectedData||String(state.selected)!==String(gameId))return;
-   state.currentBookSgpModel=m;
+   const published=await getJson('/api/nfl-published-book-observations?'+
+    new URLSearchParams({date,gameId})).catch(()=>null);
+   if(token!==state.loading||!state.selectedData||
+    String(state.selected)!==String(gameId))return;
+   state.currentBookSgpModel=null;
    state.publishedBookObservations=published?.ok?published:null;
-   const teams=new Set([String(state.selectedData.home).toUpperCase(),String(state.selectedData.away).toUpperCase()]);
-   const cards=Array.isArray(m.sgps?.Analytics)?m.sgps.Analytics:[];
-   // Never convert a model target into a sportsbook-available leg.
-   // Only a fresh, exact bookmaker offer can be presented in a betting slip.
-   const exactOffer=l=>l?.sportsbookVerified===true&&l?.bookOffer?.available===true&&
-    ['DraftKings','FanDuel'].includes(l.bookOffer.book)&&
-    (l.category==='td'||Number(l.bookOffer.line)===Number(l.target))&&
-    Number.isFinite(Date.parse(l.bookOffer.checkedAt))&&
-    Date.now()-Date.parse(l.bookOffer.checkedAt)<=15*60000&&
-    Date.now()-Date.parse(l.bookOffer.checkedAt)>=-60000;
-   state.selectedData.researchParlays=cards.filter(c=>['Small','Medium','Nuke'].includes(c?.risk)&&Array.isArray(c.legs)&&c.legs.length>=3&&c.legs.length<=(c.risk==='Nuke'?10:7)&&c.legs.every(exactOffer)).map(c=>({
-    risk:c.risk,mode:'MODEL_ONLY',researchFromCurrentMarkets:true,researchFallback:true,
-    legs:c.legs.filter(l=>teams.has(String(l.team).toUpperCase())&&l.player&&l.category&&l.target!==undefined&&l.target!==null).map(l=>({player:l.player,team:l.team,category:l.category,target:l.category==='td'?'Anytime TD':String(l.target)+'+'}))
-   })).filter(c=>c.legs.length>=3);
    renderGame(state.selectedData);
-  }catch{/* Keep saved snapshot and its explicit freshness warning. */}
+  }catch{/* Preserve the public snapshot and its explicit freshness status. */}
  }
  function renderLocalBookParity(d){
   if(typeof window==='undefined'||typeof localStorage==='undefined')return '';
