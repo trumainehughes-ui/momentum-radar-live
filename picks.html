@@ -604,10 +604,67 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
       '<div class="sgp-leg-why">Why: '+esc(l.projectionNote||'Based on the latest published matchup data.')+'</div></li>';
     }).join('')+'</ol></section>';
   }).join('')+'</div>';
+  // Real sportsbook SGPs are kept separate by book. Server attestation is
+  // required for every exact line AND the authenticated combined SGP price.
+  // Never calculate a public FanDuel lineup from DraftKings observations.
+  const bookSlips=book=>{
+   const eligible=d.status==='CURRENT'&&d.updatedDataCurrent===true&&
+    d.inactivesVerified===true;
+   const cards=eligible&&Array.isArray(d.verifiedBookParlays)?
+    d.verifiedBookParlays.filter(c=>{
+     if(c?.book!==book||c.mode!=='VERIFIED_BOOK_SGP'||
+       c.combinedOddsVerified!==true||
+       !['Small','Medium','Nuke'].includes(c.risk)||
+       !Number.isFinite(Number(c.americanOdds))||
+       !Array.isArray(c.legs)||c.legs.length<3)return false;
+     const used=new Set();
+     return c.legs.every(l=>{
+      const offer=l?.bookOffer;
+      const cat=String(l?.category||'');
+      const target=Number(l.target);
+      const key=[l.player,l.team,cat,l.target].join('|');
+      if(!l?.player||!matchupTeams.has(String(l.team||'').toUpperCase())||
+       !['td','passing','rushing','receiving','receptions'].includes(cat)||
+       !offer||offer.book!==book||offer.attested!==true||
+       offer.available!==true||!Number.isFinite(Number(offer.odds))||
+       used.has(key))return false;
+      if(cat!=='td'&&(!Number.isFinite(target)||Number(offer.line)!==target))
+       return false;
+      used.add(key);return true;
+     });
+    }):[];
+   const content=cards.length?cards.map(card=>{
+    const price=Number(card.americanOdds);
+    const textPrice=(price>0?'+':'')+String(price);
+    return '<section class="sgp-slip" aria-label="'+esc(book+' '+card.risk)+' SGP">'+
+     '<div class="sgp-slip-head"><strong>'+esc(card.risk)+'</strong><span>'+
+     esc(textPrice)+' combined • '+esc(card.legs.length)+' legs</span></div>'+
+     '<ol class="sgp-leg-list">'+card.legs.map(l=>{
+      const label={td:'Anytime touchdown',passing:'Passing yards',
+       rushing:'Rushing yards',receiving:'Receiving yards',
+       receptions:'Receptions'}[l.category]||'Player prop';
+      const target=l.category==='td'?'Anytime TD':
+       String(l.target)+(l.category==='receptions'?'+ receptions':'+ yards');
+      return '<li class="sgp-leg"><div class="sgp-leg-name">'+esc(l.player)+'</div>'+
+       '<div class="sgp-leg-selection"><span>'+esc(label)+'</span><strong>'+
+       esc(target)+'</strong></div>'+
+       '<div class="sgp-leg-why">Why: '+
+       esc(l.projectionNote||'Current validated player and matchup research.')+'</div></li>';
+     }).join('')+'</ol></section>';
+   }).join(''):
+    '<p class="sgp-brief-status">No complete '+esc(book)+
+    ' lineup with verified individual lines, cleared players, and a bookmaker-issued combined SGP quote. No estimated payout is shown.</p>';
+   return '<section class="sgp-book-lineup" aria-label="'+esc(book)+' same-game parlays">'+
+    '<h3>'+esc(book)+' Same Game Parlays</h3><div class="sgp-slips">'+content+
+    '</div></section>';
+  };
+  const verifiedSections=bookSlips('FanDuel')+bookSlips('DraftKings');
   return '<p class="sgp-slip-intro">Current published matchup predictions • '+
    esc(fmtStamp(d.updatedAt))+'</p>'+
-   '<p class="sgp-brief-status">Model-only research, not sportsbook-verified lines or combined odds.</p>'+
-   syncedHtml+(ready&&!anyStale&&d.status==='CURRENT'&&quotes.length?renderOdds(quotes):'');
+   verifiedSections+
+   '<h3>NFL model research — not a sportsbook lineup</h3>'+
+   '<p class="sgp-brief-status">Research-only player projections, not sportsbook-verified lines or combined odds.</p>'+
+   syncedHtml;
   return modelChoiceHtml+tierYardageHtml+intro+staleNote+slips+verification+renderLocalBookParity(d)+research;
  }
  function offerHtml(x){const o=x.bookOffer;if(!o)return '';
