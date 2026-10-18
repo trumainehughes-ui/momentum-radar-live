@@ -19,5 +19,5 @@ jobs:
       - name: Validate ESPN historical evidence and sportsbook separation
         run: |
           node --check api/nfl-markets.js
-          node --test tests/nfl-espn-history-collection-budget.test.js
+          node --test tests/nfl-espn-history-collection-budget.test.js tests/nfl-full-practice-injury-clearance.test.js
           node --test tests/nfl-published-tier-metadata.test.js tests/nfl-meaningful-opportunity.test.js tests/nfl-snapshot-immutable-sync.test.js
