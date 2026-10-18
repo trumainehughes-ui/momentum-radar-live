@@ -65,16 +65,9 @@ test('aggregate coverage never claims all games ready when any scoped snapshot f
   games:2,checked:1,modelReady:3,modelPossible:6,
   pricedTiers:0,pricedGames:0,notCurrent:1});
 });
-test('operator coverage dashboard has bounded read-only calls and never pulls the sportsbook or paid collector',()=>{
- const page=readFileSync(new URL('../nfl-sgp-readiness.html',import.meta.url),'utf8');
+test('operator readiness calculations are retained but the unprotected static page is withheld from Phase 1',()=>{
  const home=readFileSync(new URL('../index.html',import.meta.url),'utf8');
- assert.match(page,/api\/nfl-schedule\?/);
- assert.match(page,/api\/nfl-sgp-status\?/);
- assert.match(page,/Array\.from\(\{length:Math\.min\(4,games\.length\)\}/);
- assert.match(page,/nflReadinessRow\(game,report,\{date:day\}\)/);
- assert.doesNotMatch(page,/api\/nfl-markets\?|api\/prop-line|CRON_SECRET|PLAYER_PROPS_API_KEY/);
- assert.doesNotMatch(page,/\.innerHTML\s*=/);
- assert.match(home,/href="\/nfl-sgp-readiness\.html"/);
  const publicHtml=readFileSync(new URL('../picks.html',import.meta.url),'utf8');
- assert.doesNotMatch(publicHtml,/href="\/nfl-sgp-readiness\.html"/);
+ assert.doesNotMatch(home,/href="\\/nfl-sgp-readiness\\.html"/);
+ assert.doesNotMatch(publicHtml,/href="\\/nfl-sgp-readiness\\.html"/);
 });
