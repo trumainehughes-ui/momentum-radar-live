@@ -1,5 +1,5 @@
 import { put, list } from '@vercel/blob';
-import {NFL_SGP_SNAPSHOT_SCHEMA,nflSgpSnapshotKey} from '../lib/nfl-sgp-snapshot-status.js';
+import {NFL_SGP_SNAPSHOT_SCHEMA,nflSgpSnapshotKey,nflSgpVersionedSnapshotPath,nflSgpFindLatestBlob} from '../lib/nfl-sgp-snapshot-status.js';
 import {nflBookOfferEligible} from '../lib/nfl-book-offer-provenance.js';
 import { sportsbookCoverageAudit } from '../lib/sportsbook-source-policy.js';
 import { assessNflSgpTier, fillNflSgpMarketMix, guardFinalNflSgpCards, modelNflSgpStatThreshold, nflLegMatchesGameRoster, selectNflAdaptiveNuke, selectNflAdaptiveTier } from '../lib/ai-mechanics/nfl-sgp-tiers.js';
@@ -151,16 +151,14 @@ function nflVerifiedOnlySgpResponse(body){
  sgps.rule='Only accepted bookmaker-priced SGPs appear as parlays; model estimates are not sportsbook offers.';
  return {...body,sgps};
 }
-async function readResponseSnapshot(key){
- // An instance-local cache must not mask a newer snapshot written by a
- // different serverless instance. Revalidate the shared Blob frequently.
+async function readResponseSnapshot(key,date,gameId,forceShared=false){
  const local=RESPONSE_CACHE.get(key);
- if(local&&Date.now()-local.localReadAt<5000)return local.snapshot;
+ if(!forceShared&&local&&Date.now()-local.localReadAt<5000)return local.snapshot;
  try{
-  const path=SNAP_PREFIX+encodeURIComponent(key)+'.json';
-  const x=await list({prefix:path,limit:5});
-  const b=x.blobs?.find(v=>v.pathname===path);
+  const b=gameId?await nflSgpFindLatestBlob({date,gameId}):null;
   if(!b)return null;
+  // Every immutable snapshot gets its own URL, so Vercel Blob's
+  // 60-second overwrite propagation cannot return a prior game version.
   const r=await timedFetch(b.url,{cache:'no-store'});
   if(!r.ok)return null;
   const snap=await r.json();
@@ -169,13 +167,14 @@ async function readResponseSnapshot(key){
   return snap;
  }catch{return null}
 }
-async function writeResponseSnapshot(key,body){
- const snap={at:Date.now(),body};
+async function writeResponseSnapshot(key,body,date,gameId,startedAt){
+ const snap={at:Date.now(),startedAt,body};
+ const pathname=nflSgpVersionedSnapshotPath(date,gameId,startedAt,
+  Math.random().toString(36).slice(2,12));
+ if(!pathname)return null;
  try{
-  // A generated response is not considered current until the shared Blob
-  // write succeeds. Never return a new owner result before public can read it.
-  await put(SNAP_PREFIX+encodeURIComponent(key)+'.json',JSON.stringify(snap),
-   {access:'public',addRandomSuffix:false,allowOverwrite:true});
+  await put(pathname,JSON.stringify(snap),
+   {access:'public',addRandomSuffix:false});
   RESPONSE_CACHE.set(key,{snapshot:snap,localReadAt:Date.now()});
   return snap.at;
  }catch(e){
@@ -652,7 +651,7 @@ const games=[];const activeWeek=Number(sc.week?.number||sc.events?.[0]?.week?.nu
 async function sgoUsage(key){try{const r=await timedFetch('https://api.sportsgameodds.com/v2/account/usage',{headers:{'x-api-key':key},cache:'no-store'});if(!r.ok)return null;const d=await r.json();return d?.data||null}catch{return null}}
 async function allEvents(date){let cached=CACHE.get(date),now=Date.now();if(!cached){cached=await readSnapshot(date);if(cached){CACHE.set(date,cached)}}if(cached&&now-cached.at<TTL)return cached.events;const sharedHold=await readMarketHold('sgo');if(sharedHold){const err=new Error('sportsbook_rate_limited_no_snapshot');err.retryAfterSeconds=Math.ceil((sharedHold.until-now)/1000);throw err}const pending=await readMarketHold('sgo-request-'+date);if(pending){const err=new Error('sportsbook_backup_recently_checked');err.retryAfterSeconds=Math.ceil((pending.until-now)/1000);throw err}const blockedUntil=BACKOFF.get(date)||0;if(now<blockedUntil){if(cached&&now-cached.at<MARKET_SNAPSHOT_TTL)return cached.events;const err=new Error('sportsbook_rate_limited_no_snapshot');err.retryAfterSeconds=Math.ceil((blockedUntil-now)/1000);throw err}const key=process.env.SPORTSGAMEODDS_API_KEY;if(!key)throw new Error('missing_api_key');const baseUrl=new URL(SGO);baseUrl.searchParams.set('leagueID','NFL');baseUrl.searchParams.set('oddsAvailable','true');baseUrl.searchParams.set('limit','100');baseUrl.searchParams.set('startsAfter',date+'T00:00:00Z');const e=new Date(date+'T23:59:59Z');e.setUTCHours(e.getUTCHours()+6);baseUrl.searchParams.set('startsBefore',e.toISOString());let events=[],cursor=null,pages=0;LAST_CALL.set(date,now);await writeMarketHold('sgo-request-'+date,MIN_UPSTREAM_GAP,'backup_request_budget');try{do{const u=new URL(baseUrl);if(cursor)u.searchParams.set('cursor',cursor);const d=await json(u,{headers:{'x-api-key':key}},3);const page=Array.isArray(d?.data)?d.data:Array.isArray(d)?d:[];events.push(...page);cursor=d?.nextCursor||null;pages++;if(!page.length)break}while(cursor&&pages<1);const byId=new Map();for(const ev of events){const id=String(ev?.eventID||ev?.id||'');if(id&&!byId.has(id))byId.set(id,ev)}events=byId.size?[...byId.values()]:events;CACHE.set(date,{at:Date.now(),events});await writeSnapshot(date,events);BACKOFF.delete(date);return events}catch(e){if(String(e.message||e).includes('upstream_429')){const usage=await sgoUsage(key);if(usage)e.sgoUsage=usage;const delayMs=sgoRateLimitHoldMs({retryAfterSeconds:e.retryAfterSeconds,usage});e.providerHoldMs=delayMs;BACKOFF.set(date,Date.now()+delayMs);await writeMarketHold('sgo',delayMs,'rate_limited')}if(cached&&now-cached.at<MARKET_SNAPSHOT_TTL)return cached.events;if(String(e.message||e).includes('upstream_429')){const err=new Error('sportsbook_rate_limited_no_snapshot');err.retryAfterSeconds=Math.ceil((e.providerHoldMs||RATE_BACKOFF)/1000);err.sgoUsage=e.sgoUsage||null;throw err}throw e}}
 export default async function handler(req,res){res.removeHeader('Pragma');res.removeHeader('Expires');Object.entries(NS).forEach(([k,v])=>res.setHeader(k,v));let requestStage='initializing';const requestStarted=Date.now();const hardDeadline=setTimeout(()=>{if(!res.headersSent&&!res.writableEnded){console.error('nfl_markets_request_deadline_exceeded',JSON.stringify({stage:requestStage,elapsedMs:Date.now()-requestStarted,gameId:String(req.query?.gameId||'').slice(0,24)}));res.setHeader('Cache-Control','no-store');res.status(503).json({ok:false,error:'market_refresh_timeout',retryable:true,degraded:true,fetchedAt:new Date().toISOString()})}},45000);res.once('close',()=>clearTimeout(hardDeadline));try{let gameId=String(req.query.gameId||''),date=String(req.query.date||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return res.status(400).json({ok:false,error:'date_required'});const responseKey=gameId?nflSgpSnapshotKey(date,gameId):
- (NFL_SGP_SNAPSHOT_SCHEMA+'-'+date+'-auto').replace(/[^A-Za-z0-9_-]/g,'');const clientCachePolicy=gameId?EDGE_GAME:EDGE_GOOD;requestStage='snapshot_read';const saved=await Promise.race([readResponseSnapshot(responseKey),new Promise(resolve=>setTimeout(()=>resolve(null),2500))]);if(shouldServeCachedNflMarkets(saved,req,{secret:process.env.CRON_SECRET,ttl:TTL})){res.setHeader('X-Momentum-Cache','HIT');res.setHeader('X-Momentum-Snapshot-Version',String(saved.at));res.setHeader('Cache-Control',clientCachePolicy);res.setHeader('CDN-Cache-Control',clientCachePolicy);res.setHeader('Vercel-CDN-Cache-Control',clientCachePolicy);return res.status(200).json(nflVerifiedOnlySgpResponse(saved.body))}if(!gameId){const empty={td:[],passing:[],rushing:[],receiving:[],receptions:[]};const body={ok:true,scope:'slate',gameId:null,date,categories:empty,sgps:{},provider:'Slate metadata only',degraded:true,analyticsAvailable:false,marketRows:0,oddsDebug:{stage:'slate_fast_path',note:'Use per-game NFL markets for verified player props and SGPs; slate response does not claim sportsbook coverage'},validation:{sgpEligibleMarketRows:0,bookSpecificSgpsRequired:true,combinedBookSgpQuoteAvailable:false},fetchedAt:new Date().toISOString()};res.setHeader('Cache-Control','public, s-maxage=60, stale-while-revalidate=120');res.setHeader('X-Momentum-Data','SLATE_METADATA_ONLY');return res.status(200).json(body)}let home='',away='';
+ (NFL_SGP_SNAPSHOT_SCHEMA+'-'+date+'-auto').replace(/[^A-Za-z0-9_-]/g,'');const clientCachePolicy=gameId?EDGE_GAME:EDGE_GOOD;requestStage='snapshot_read';const saved=await Promise.race([readResponseSnapshot(responseKey,date,gameId),new Promise(resolve=>setTimeout(()=>resolve(null),2500))]);if(shouldServeCachedNflMarkets(saved,req,{secret:process.env.CRON_SECRET,ttl:TTL})){res.setHeader('X-Momentum-Cache','HIT');res.setHeader('X-Momentum-Snapshot-Version',String(saved.at));res.setHeader('Cache-Control',clientCachePolicy);res.setHeader('CDN-Cache-Control',clientCachePolicy);res.setHeader('Vercel-CDN-Cache-Control',clientCachePolicy);return res.status(200).json(nflVerifiedOnlySgpResponse(saved.body))}if(!gameId){const empty={td:[],passing:[],rushing:[],receiving:[],receptions:[]};const body={ok:true,scope:'slate',gameId:null,date,categories:empty,sgps:{},provider:'Slate metadata only',degraded:true,analyticsAvailable:false,marketRows:0,oddsDebug:{stage:'slate_fast_path',note:'Use per-game NFL markets for verified player props and SGPs; slate response does not claim sportsbook coverage'},validation:{sgpEligibleMarketRows:0,bookSpecificSgpsRequired:true,combinedBookSgpQuoteAvailable:false},fetchedAt:new Date().toISOString()};res.setHeader('Cache-Control','public, s-maxage=60, stale-while-revalidate=120');res.setHeader('X-Momentum-Data','SLATE_METADATA_ONLY');return res.status(200).json(body)}let home='',away='';
  let kickoff=null;
  if(gameId){const s=await json(ESPN+'/summary?event='+encodeURIComponent(gameId));const c=s.header?.competitions?.[0]||{},cs=c.competitors||[];home=cs.find(x=>x.homeAway==='home')?.team?.abbreviation||'';away=cs.find(x=>x.homeAway==='away')?.team?.abbreviation||'';kickoff=c.date||null}
  let events=[],provider='Analytics / ESPN',directRows=null,oddsDebug={attempted:false,stage:'model_primary'};
@@ -1105,10 +1104,15 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
  // Both owner and public read this one persisted snapshot. Fail closed
  // instead of claiming that an unpublished refresh is current.
  requestStage='snapshot_publish';
- const publishedAt=await writeResponseSnapshot(responseKey,publicResponse);
+ const publishedAt=await writeResponseSnapshot(responseKey,publicResponse,date,gameId,requestStarted);
  if(!publishedAt)return res.status(503).json({
   ok:false,error:'shared_snapshot_publish_failed',
   retryable:true,degraded:true,fetchedAt:new Date().toISOString()});
- res.setHeader('X-Momentum-Snapshot-Version',String(publishedAt));
- return res.status(200).json(publicResponse);
+ // Do not send this invocation's result if a newer independently
+ // generated game version has already committed in shared storage.
+ const newest=await readResponseSnapshot(responseKey,date,gameId,true);
+ if(!newest?.body?.ok)return res.status(503).json({
+  ok:false,error:'shared_snapshot_readback_failed',retryable:true});
+ res.setHeader('X-Momentum-Snapshot-Version',String(newest.at));
+ return res.status(200).json(nflVerifiedOnlySgpResponse(newest.body));
  }catch(e){console.error('nfl_markets_refresh_failed',JSON.stringify({stage:requestStage,gameId:String(req.query?.gameId||'').slice(0,24),errorType:String(e?.name||'Error').slice(0,60),elapsedMs:Date.now()-requestStarted}));const msg=String(e?.message||e),rate=msg.includes('sportsbook_rate_limited');if(rate)res.setHeader('Retry-After',String(e.retryAfterSeconds||900));return res.status(rate?503:502).json({ok:false,error:msg,refreshFailureStage:requestStage,retryable:rate||/upstream_(429|5\d\d)/.test(msg),degraded:rate,fetchedAt:new Date().toISOString()})}}
