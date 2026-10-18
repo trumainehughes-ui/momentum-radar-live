@@ -61,6 +61,6 @@ test('market builder and public serializer count each athlete-market, not just a
  assert.match(api,/used\.has\(id\+'\\|'\+x\.cat\)/);
  assert.match(api,/used\.add\(id\+'\\|'\+x\.cat\)/);
  assert.match(api,/used\.has\(x\.playerID\+'\\|'\+x\.cat\)/);
- assert.match(publicView,/\+'\\|'\+String\(leg\?\.cat\|\|leg\?\.category/);
+ assert.match(publicView,/const identity=playerIdentity\+'\\|'\+marketIdentity/);
  assert.match(status,/legs\.length>=tier\.minLegs&&legs\.length<=tier\.maxLegs/);
 });
