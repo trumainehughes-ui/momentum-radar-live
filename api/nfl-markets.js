@@ -771,7 +771,19 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
     console.warn('sgo_backup_skipped',oddsDebug.sgoError);
    }
   }else if(!primaryBooksReady&&!DIRECT_PUBLIC_ODDS_ONLY){oddsDebug.backupReason=sgoEnabled?'Reserved for signed scheduled checkpoint or final pregame refresh; ordinary browser reload does not invoke backup provider.':'Backup sportsbook provider is not configured.';oddsDebug.stage=sgoEnabled?'backup_reserved':'backup_not_configured';}
- }let chosen=events;if(gameId)chosen=events.filter(e=>{const h=e.teams?.home||{},a=e.teams?.away||{};const hs=[h.teamID,h.names?.short,h.names?.medium,h.names?.long].map(norm),as=[a.teamID,a.names?.short,a.names?.medium,a.names?.long].map(norm);return hs.includes(norm(home))&&as.includes(norm(away))});const rawRows=directRows||chosen.flatMap(e=>Object.values(e.odds||{}).filter(o=>o&&!['all','home','away'].includes(String(o.statEntityID||'').toLowerCase())).map(o=>market(o,e.eventID||e.id)));const emptyStatBoards={passing:[],rushing:[],receiving:[],receptions:[],td:[]};const statBoardsPromise=gameId?Promise.race([analyticsStatBoards(date,[home,away]),new Promise(resolve=>setTimeout(()=>resolve(emptyStatBoards),6500))]):Promise.resolve(emptyStatBoards);const base=process.env.VERCEL_PROJECT_PRODUCTION_URL?'https://'+process.env.VERCEL_PROJECT_PRODUCTION_URL:'https://momentum-radar-live.vercel.app';requestStage='eligibility_and_roles';const [eligibility,roles]=await Promise.all([Promise.race([gameEligibility(gameId,{date,home,away}),new Promise(resolve=>setTimeout(()=>resolve({blockedIds:new Set(),blockedNames:new Set(),rosterById:new Map(),rosterByName:new Map(),checked:false,injuryChecked:false,injuryEvidence:[],teamIdsByAbbr:new Map()}),10000))]),Promise.race([gameRoleGate(gameId,base),new Promise(resolve=>setTimeout(()=>resolve({checked:false,roles:new Map(),players:[]}),8500))])]);const rows=gameId?eligibilityFilter(rawRows,eligibility):rawRows;const categories={};for(const c of ['td','passing','rushing','receiving','receptions'])categories[c]=pickRows(rows,c,10);// Game-scoped model TD candidates are built below from the same already-loaded ESPN box scores.
+ }let chosen=events;if(gameId)chosen=events.filter(e=>{const h=e.teams?.home||{},a=e.teams?.away||{};const hs=[h.teamID,h.names?.short,h.names?.medium,h.names?.long].map(norm),as=[a.teamID,a.names?.short,a.names?.medium,a.names?.long].map(norm);return hs.includes(norm(home))&&as.includes(norm(away))});const rawRows=directRows||chosen.flatMap(e=>Object.values(e.odds||{}).filter(o=>o&&!['all','home','away'].includes(String(o.statEntityID||'').toLowerCase())).map(o=>market(o,e.eventID||e.id)));const emptyStatBoards={passing:[],rushing:[],receiving:[],receptions:[],td:[]};
+// ESPN's matchup summary collection involves team rosters plus completed
+// games. A six-second race could silently discard ALL rushing and passing
+// projections even though ESPN's completed-game evidence existed.
+const HISTORICAL_STAT_BOARDS_TIMEOUT_MS=18000;
+let historicalStatBoardsTimedOut=false;
+const statBoardsPromise=gameId?Promise.race([
+ analyticsStatBoards(date,[home,away]),
+ new Promise(resolve=>setTimeout(()=>{
+  historicalStatBoardsTimedOut=true;
+  resolve(emptyStatBoards);
+ },HISTORICAL_STAT_BOARDS_TIMEOUT_MS))
+]):Promise.resolve(emptyStatBoards);const base=process.env.VERCEL_PROJECT_PRODUCTION_URL?'https://'+process.env.VERCEL_PROJECT_PRODUCTION_URL:'https://momentum-radar-live.vercel.app';requestStage='eligibility_and_roles';const [eligibility,roles]=await Promise.all([Promise.race([gameEligibility(gameId,{date,home,away}),new Promise(resolve=>setTimeout(()=>resolve({blockedIds:new Set(),blockedNames:new Set(),rosterById:new Map(),rosterByName:new Map(),checked:false,injuryChecked:false,injuryEvidence:[],teamIdsByAbbr:new Map()}),10000))]),Promise.race([gameRoleGate(gameId,base),new Promise(resolve=>setTimeout(()=>resolve({checked:false,roles:new Map(),players:[]}),8500))])]);const rows=gameId?eligibilityFilter(rawRows,eligibility):rawRows;const categories={};for(const c of ['td','passing','rushing','receiving','receptions'])categories[c]=pickRows(rows,c,10);// Game-scoped model TD candidates are built below from the same already-loaded ESPN box scores.
 const publicRefs=gameId?manualAtlNoTonightSgps(date,home,away)?.[0]?.publicMarketSnapshot?.references||[]:[];
 // Public ATD observations must become real category rows even when an upstream API supplies no TD base row.
 if(gameId&&categories.td.length===0){const seen=new Set();categories.td=publicRefs.filter(r=>String(r.market||'').toLowerCase().includes('anytime td')).map(r=>{const rr=roleFor(roles,{name:r.player})||null,key=norm(r.player);if(seen.has(key))return null;seen.add(key);return{name:r.player,playerID:rr?.playerId||key,team:rr?.team||'',position:rr?.position||'',eventID:gameId,category:'td',projection:'Anytime TD',projectionUnit:'touchdown',projectionMethod:'Momentum Radar TD matchup model + verified public sportsbook market',analyticsOnly:false,confidence:60,reason:'Verified current-game anytime touchdown market; final confidence is adjusted by role, usage, matchup and injury eligibility.'}}).filter(Boolean)}
@@ -800,6 +812,36 @@ function publicOfferFor(name,cat){
 }
 
 requestStage='historical_stats';const statBoards=await statBoardsPromise;
+ const countedByMarket=Object.fromEntries(['passing','rushing','receiving','receptions','td']
+  .map(c=>[c,Array.isArray(statBoards[c])?statBoards[c].length:0]));
+ oddsDebug.espnHistoricalStatBoards={
+  source:'ESPN_COMPLETED_GAME_BOXSCORES',
+  rowsByCategory:countedByMarket,
+  timedOut:historicalStatBoardsTimedOut,
+  status:historicalStatBoardsTimedOut?'ESPN_COLLECTION_TIMED_OUT':
+   Object.values(countedByMarket).some(n=>n>0)?'COMPLETED_GAME_EVIDENCE_READY':
+   'MISSING_COMPLETED_GAME_EVIDENCE'
+ };
+ // Audit game-scoped major-usage players before and after official roster
+ // and role checks. This diagnoses incomplete ESPN player inventories without
+ // allowing a missing athlete to bypass injury/roster verification.
+ const rosterCandidateAudit=(statBoards.rushing||[])
+  .filter(x=>String(x.eventID)===String(gameId)&&
+   [norm(home),norm(away)].includes(norm(x.team)))
+  .sort((a,b)=>(Number(b.usagePerGame?.rushYards)||0)-
+   (Number(a.usagePerGame?.rushYards)||0))
+  .slice(0,8).map(x=>{
+   const id=String(x.playerID||''),name=norm(x.name);
+   return{name:String(x.name||'').slice(0,65),team:String(x.team||''),
+    position:String(x.position||''),avgRushingYards:x.usagePerGame?.rushYards,
+    games:x.gamesPlayed,
+    onESPNCurrentRoster:Boolean(eligibility?.rosterById?.has(id)||
+     eligibility?.rosterByName?.has(name)),
+    injuryHold:Boolean(eligibility?.blockedIds?.has(id)||
+     eligibility?.blockedNames?.has(name)),
+    inESPNGameRole:Boolean(roleFor(roles,x))};
+  });
+ oddsDebug.espnHistoricalStatBoards.gameScopedRushingAudit=rosterCandidateAudit;
  // Day-ahead verified-roster usage enables *provisional* non-QB model-only
  // SGP legs for games absent from old hardcoded starter evidence.
  const depthChartDiagnostics=[];
