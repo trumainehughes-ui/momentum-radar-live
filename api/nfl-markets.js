@@ -822,6 +822,26 @@ requestStage='historical_stats';const statBoards=await statBoardsPromise;
    Object.values(countedByMarket).some(n=>n>0)?'COMPLETED_GAME_EVIDENCE_READY':
    'MISSING_COMPLETED_GAME_EVIDENCE'
  };
+ // Audit game-scoped major-usage players before and after official roster
+ // and role checks. This diagnoses incomplete ESPN player inventories without
+ // allowing a missing athlete to bypass injury/roster verification.
+ const rosterCandidateAudit=(statBoards.rushing||[])
+  .filter(x=>String(x.eventID)===String(gameId)&&
+   [norm(home),norm(away)].includes(norm(x.team)))
+  .sort((a,b)=>(Number(b.usagePerGame?.rushYards)||0)-
+   (Number(a.usagePerGame?.rushYards)||0))
+  .slice(0,8).map(x=>{
+   const id=String(x.playerID||''),name=norm(x.name);
+   return{name:String(x.name||'').slice(0,65),team:String(x.team||''),
+    position:String(x.position||''),avgRushingYards:x.usagePerGame?.rushYards,
+    games:x.gamesPlayed,
+    onESPNCurrentRoster:Boolean(eligibility?.rosterById?.has(id)||
+     eligibility?.rosterByName?.has(name)),
+    injuryHold:Boolean(eligibility?.blockedIds?.has(id)||
+     eligibility?.blockedNames?.has(name)),
+    inESPNGameRole:Boolean(roleFor(roles,x))};
+  });
+ oddsDebug.espnHistoricalStatBoards.gameScopedRushingAudit=rosterCandidateAudit;
  // Day-ahead verified-roster usage enables *provisional* non-QB model-only
  // SGP legs for games absent from old hardcoded starter evidence.
  const depthChartDiagnostics=[];
