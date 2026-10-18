@@ -1036,7 +1036,14 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   const cards=(Array.isArray(d.sgps)?d.sgps:[]);
   const html=['Small','Medium','Nuke'].map(name=>{
    const c=cards.find(x=>x.risk===name);
-   if(!c||c.status!=='MODEL_CANDIDATE'||!Array.isArray(c.legs)||!c.legs.length)
+   const legs=Array.isArray(c?.legs)?c.legs:[];
+   const min=name==='Small'?4:5,max=name==='Nuke'?7:min;
+   const markets=new Set(legs.map(l=>String(l.name||l.playerId||'')+'|'+
+    String(l.team||'')+'|'+String(l.category||'')));
+   const categories=new Set(legs.map(l=>String(l.category||'')).filter(Boolean));
+   const compositionReady=legs.length>=min&&legs.length<=max&&
+    markets.size===legs.length&&categories.size>=3;
+   if(!c||c.status!=='MODEL_CANDIDATE'||!compositionReady)
     return '<section class="sgp-slip nba-sgp-card"><div class="sgp-slip-head"><strong>'+
      name+'</strong><span>Awaiting selections</span></div>'+
      '<p class="sub" style="padding:14px">'+esc(c?.reason||d.pregameReadiness?.reason||
