@@ -1,0 +1,23 @@
+name: NFL ESPN Historical Stats Readiness
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  matchup-history:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Validate ESPN historical evidence and sportsbook separation
+        run: |
+          node --check api/nfl-markets.js
+          node --test tests/nfl-espn-history-collection-budget.test.js
+          node --test tests/nfl-published-tier-metadata.test.js tests/nfl-meaningful-opportunity.test.js tests/nfl-snapshot-immutable-sync.test.js
