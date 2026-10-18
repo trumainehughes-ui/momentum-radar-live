@@ -116,9 +116,12 @@ function existingSgpLegEligible(body,leg,book){
  return pools.some(k=>(body.categories?.[k]||[]).some(x=>
   norm(x?.name||x?.player)===name&&nflCanonTeam(x?.team)===team&&
   verifiedOffensiveOpportunity(x,x,k)&&
-  x?.bookOffer?.available===true&&
-  (!book||x.bookOffer.book===book)&&
-  (cat==='td'||Number(x.bookOffer.line)===Number(leg?.target??leg?.threshold))));
+  // Bookmaker inventory is a collection: a DraftKings listing cannot
+  // satisfy a FanDuel card, even when the player and category match.
+  (Array.isArray(x?.books)?x.books:[x?.bookOffer]).some(offer=>
+   offer?.available===true&&
+   (!book||offer.book===book)&&
+   (cat==='td'||Number(offer.line)===Number(leg?.target??leg?.threshold)))));
 }
 function nflVerifiedOnlySgpResponse(body){
  if(!body||!body.sgps||body.scope!=='game')return body;
