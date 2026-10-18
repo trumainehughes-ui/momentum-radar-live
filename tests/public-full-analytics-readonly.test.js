@@ -166,7 +166,7 @@ test('public site auto-refresh reads saved responses only and retains matchup ta
  const code=html.slice(refreshStart,refreshEnd);
  assert.ok(code.includes('/api/public-nfl-game?'));
  assert.ok(code.includes('/api/public-nfl-rankings?'));
- assert.ok(code.includes('5*60*1000'));
+ assert.ok(code.includes('30*1000'));
  assert.ok(code.includes('state.selectedData=d'));
  assert.ok(code.includes('if(document.hidden'));
  assert.ok(!code.includes('/api/nfl-markets'));
