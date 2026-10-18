@@ -96,7 +96,7 @@ async function load(){
     let report={ok:false};
     try{report=await json('/api/nfl-sgp-status?'+new URLSearchParams({
      date:day,gameId:String(game.gameId)}))}catch{}
-    output[index]=nflReadinessRow(game,report);
+    output[index]=nflReadinessRow(game,report,{date:day});
    }
   }));
   if(token!==active)return;
