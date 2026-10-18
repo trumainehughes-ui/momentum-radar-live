@@ -44,11 +44,12 @@ test("observed combined quote trumps a different independent-leg estimate",()=>{
 test("Small and Medium target NET profit bands; Nuke minimum +10000",()=>{
  assert.equal(classifyNflSgpOdds(1999),"OUTSIDE_TIER_BANDS");
  assert.equal(classifyNflSgpOdds(2000),"Small");
- assert.equal(classifyNflSgpOdds(3000),"Small");
+ assert.equal(classifyNflSgpOdds(2999),"Small");
+ assert.equal(classifyNflSgpOdds(3000),"Medium");
  assert.equal(classifyNflSgpOdds(3001),"Medium");
  assert.equal(classifyNflSgpOdds(8000),"Medium");
  assert.equal(classifyNflSgpOdds(8001),"OUTSIDE_TIER_BANDS");
- assert.equal(classifyNflSgpOdds(10000),"OUTSIDE_TIER_BANDS");
+ assert.equal(classifyNflSgpOdds(10000),"Nuke");
  assert.equal(classifyNflSgpOdds(10001),"Nuke");
 });
 test("production hotfix rejects all-TD Small model and marks it unpublishable",()=>{
