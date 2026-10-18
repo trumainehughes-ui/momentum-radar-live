@@ -67,8 +67,8 @@ test('small/medium/nuke comparison targets change with risk, never claim real sp
  assert.match(html,/AI Rushing forecast: 115 yards/);
  assert.match(html,/Small suggested comparison target: <b>90 yards/);
  assert.match(html,/Nuke suggested comparison target: <b>140 yards/);
- assert.match(html,/Player yardage outlook:.*Rushing 70 yards.*Receiving 25 yards/);
- assert.match(html,/Player yardage outlook:.*Rushing 115 yards.*Receiving 30 yards/);
+ assert.match(html,/TD chance is separate from yardage/);
+ assert.match(html,/Combined sportsbook SGP price not verified/);
  assert.match(html,/Anytime touchdown • model candidate only/);
  assert.match(html,/NOT a listed betting line/);
  assert.doesNotMatch(html,/Exact sportsbook selection pending/);
