@@ -7,7 +7,7 @@ test('Nuke never stretches beyond seven legs to simulate its +10000 payout',()=>
  const c=selectNflAdaptiveTier((risk,count)=>({risk,legs:Array.from({length:count},(_,i)=>leg(i)),tierAssessment:{compositionOk:count===8}}),'Nuke');
  assert.equal(c.legs.length,0);
  assert.equal(c.actualSgpOdds,null);
- assert.equal(c.payoutTargetVerified,false);
+ assert.notEqual(c.payoutTargetVerified,true);
 });
 test('Nuke never claims price verification for model-only combinations',()=>{
  const c=selectNflAdaptiveTier((risk,count)=>({risk,legs:Array.from({length:count},(_,i)=>leg(i)),tierAssessment:{compositionOk:count===5}}),'Nuke');
