@@ -7,6 +7,7 @@ const NS='no-store, no-cache, must-revalidate';
 async function json(u){const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw Error('upstream_'+r.status);return r.json()}
 export function scorerAbbr(txt){
  const play=String(txt||'');
+ if(/\b(?:touchdown overturned|touchdown nullified|no touchdown|touchdown called back)\b/i.test(play))return '';
  // A passing TD belongs to the receiver, not the quarterback.
  let m=play.match(/\bpass\b[\s\S]*?\bto\s+([A-Z]\.[A-Za-z][A-Za-z.'-]*)\s+for\s+[\d-]+\s+yards?,\s*TOUCHDOWN/i);
  if(m)return m[1];
