@@ -26,8 +26,9 @@ function render(d){
  return context.render(d);
 }
 function game(yards){
- return{home:'JAX',away:'HOU',status:'CURRENT',updatedDataCurrent:true,
-  updatedAt:'2026-10-18T14:00:00Z',verifiedQuotes:[],modelResearchTiers:[
+ return{ok:true,date:'2026-10-18',gameId:'401873004',
+  home:'JAX',away:'HOU',status:'CURRENT',updatedDataCurrent:true,
+  updatedAt:new Date().toISOString(),verifiedQuotes:[],modelResearchTiers:[
    {risk:'Nuke',mode:'MODEL_RESEARCH',requiredLegs:5,complete:false,legs:[
     {player:'Parker Washington',team:'JAX',category:'receiving',projection:yards},
     {player:'Parker Washington',team:'JAX',category:'td',modelChancePct:41}]}
