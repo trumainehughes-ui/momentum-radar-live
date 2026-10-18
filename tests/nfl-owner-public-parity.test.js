@@ -65,8 +65,8 @@ test('unmatched game, date, team, statuses, timestamps and injury evidence fail 
   {o:source,p:{...view,status:'LAST_SAVED'}},
   {o:source,p:{...view,updatedDataCurrent:false}},
   {o:source,p:{...view,updatedAt:new Date(now-16*60000).toISOString()}},
-  {o:source,p:{...view,updatedAt:new Date(now-4000).toISOString()}},
-  {o:source,p:{...view,categories:{...view.categories,passing:[{...safeRow(held),name:'Player missing in snapshot'}]}}},
+  {o:source,p:{...view,updatedAt:new Date(now+61000).toISOString()}},
+  {o:source,p:{...view,categories:{...view.categories,passing:[{...safeRow(held),name:'',team:'XXX'}]}}},
   {o:source,p:null}
  ];
  for(const {o,p} of invalid){
@@ -93,8 +93,21 @@ test('owner matchup consumes same /api/public-nfl-game as customer while keeping
  assert.match(ownerHtml,/fetch\('\/api\/public-nfl-game\?'/);
  assert.match(publicHtml,/getJson\('\/api\/public-nfl-game\?'/);
  assert.match(ownerHtml,/ownerNflPublishedParity\(raw,publishedGame/);
- assert.match(ownerHtml,/Analytics:\[\],DraftKings:/);
+ assert.match(ownerHtml,/Analytics:\[\],DraftKings:\[\],FanDuel:\[\]/);
  assert.match(ownerHtml,/nflPublishedSgpParityHtml\(d\.publicParity\)/);
  assert.match(ownerHtml,/const d=\{\.\.\.raw,categories:parity\.categories/);
  assert.match(ownerHtml,/getNFLMarkets\(id,forceMarkets\)/);
+});
+
+test('older raw cache cannot suppress a newer published player forecast or resurrect a held-out player',()=>{
+ const older=original();
+ older.fetchedAt=new Date(now-5*60*1000).toISOString();
+ const canonical=ownerNflPublishedParity(older,published(),{date,gameId,now});
+ assert.equal(canonical.ok,true);
+ assert.equal(canonical.diagnosticSnapshotMatches,false);
+ assert.deepEqual(canonical.categories.passing.map(x=>x.name),['Cleared Quarterback']);
+ assert.equal(canonical.categories.passing[0].projection,230);
+ assert.equal(canonical.categories.passing[0].bestBook,null);
+ assert.deepEqual(canonical.publicResearchTiers[0].legs.map(l=>l.player),rawLegs.map(x=>x.name));
+ assert.equal(canonical.bookParlays.length,0);
 });
