@@ -117,3 +117,22 @@ test('AI is still embedded, but Optimal does not override Groq or bookmaker gate
  assert.match(pub,/optimal-sgp-crosscheck-bootstrap.js/);
  assert.match(browse,/No substitute betting lines are generated/);
 });
+
+test('Vercel Blob round trip re-validates authorized published projection rows',async()=>{
+ const original=normalizeOptimalReference(fixture,{now});
+ const reread=normalizeOptimalReference(original,{now});
+ assert.equal(reread.ok,true);
+ assert.equal(reread.players.length,4);
+ const prefix='momentum-optimal-research/v1/nfl/2026-10-18/401872996/';
+ const reverse=String(9999999999999-Date.parse(original.observedAt)).padStart(13,'0');
+ const route=makeOptimalProjectionReferenceHandler({
+  now:()=>now,
+  blobList:async()=>({blobs:[{pathname:prefix+reverse+'-abc12345.json',url:'https://storage.example/ref'}]}),
+  fetcher:async()=>({ok:true,json:async()=>original}),env:{}});
+ const res=response();
+ await route({method:'GET',query:{league:'nfl',date:fixture.date,gameId:fixture.gameId}},res);
+ assert.equal(res.statusCode,200);
+ assert.equal(res.body.players.length,4);
+ assert.equal(res.body.status,'AUTHORIZED_OPTIMAL_RESEARCH_REFERENCE');
+ assert.equal(res.body.combinedBookQuoteVerified,false);
+});
