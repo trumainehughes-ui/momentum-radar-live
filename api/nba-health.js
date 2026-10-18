@@ -249,7 +249,8 @@ export default async function handler(req,res){
    home=parts.find(x=>x.homeAway==='home'),away=parts.find(x=>x.homeAway==='away');
   return [String(ev.id),{gameId:String(ev.id),status:String(c.status?.type?.state||ev.status?.type?.state)==='pre'?'SCHEDULED':'CLOSED',
    kickoff:ev.date,seasonYear:ev?.season?.year||null,seasonType:ev?.season?.type||null,
-   stage:ev?.season?.type===1?'PRESEASON':'REGULAR SEASON',
+   stage:ev?.season?.type===2?'REGULAR SEASON':
+    ev?.season?.type===1?'PRESEASON':'OTHER',
    home:{id:String(home?.team?.id||''),abbr:home?.team?.abbreviation},
    away:{id:String(away?.team?.id||''),abbr:away?.team?.abbreviation}}]
  })).values()].filter(g=>g.status==='SCHEDULED'&&g.stage==='REGULAR SEASON'&&nbaPregameStage(g,null).stage!=='OUTSIDE_WINDOW');
