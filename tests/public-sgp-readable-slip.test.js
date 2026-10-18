@@ -17,7 +17,9 @@ function setup(){
    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   })[s]),
   renderPublicBookResearch:()=>'<div>Public odds detail</div>',
-  renderOdds:q=>'<div>BOOK QUOTE '+q[0]?.americanOdds+'</div>'
+  renderOdds:q=>'<div>BOOK QUOTE '+q[0]?.americanOdds+'</div>',
+  URL,
+  publicWhy:(_leg,cat)=>cat==='td'?'Scoring opportunity evidence.':'Market-specific matchup evidence.'
  };
  vm.runInNewContext(snippet+';this.sgps=renderParlays;this.prop=sgpSelectionDisplay;',context);
  return context;
