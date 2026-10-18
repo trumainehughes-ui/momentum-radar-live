@@ -608,8 +608,10 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   // required for every exact line AND the authenticated combined SGP price.
   // Never calculate a public FanDuel lineup from DraftKings observations.
   const bookSlips=book=>{
-   const eligible=d.status==='CURRENT'&&d.updatedDataCurrent===true&&
-    d.inactivesVerified===true;
+   // Complete, source-verified day-ahead parlays may exist before official
+   // game-day inactives are published. Each leg is still screened for holds
+   // by the server, and the visitor must recheck before kickoff.
+   const eligible=d.status==='CURRENT'&&d.updatedDataCurrent===true;
    const cards=eligible&&Array.isArray(d.verifiedBookParlays)?
     d.verifiedBookParlays.filter(c=>{
      if(c?.book!==book||c.mode!=='VERIFIED_BOOK_SGP'||
@@ -654,9 +656,11 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    }).join(''):
     '<p class="sgp-brief-status">No complete '+esc(book)+
     ' lineup with verified individual lines, cleared players, and a bookmaker-issued combined SGP quote. No estimated payout is shown.</p>';
+   const inactivesNote=cards.length&&d.inactivesVerified!==true?
+    '<p class="sgp-brief-status">Official game-day inactives are not final. Recheck each player and exact sportsbook price 30 minutes before kickoff.</p>':'';
    return '<section class="sgp-book-lineup" aria-label="'+esc(book)+' same-game parlays">'+
-    '<h3>'+esc(book)+' Same Game Parlays</h3><div class="sgp-slips">'+content+
-    '</div></section>';
+    '<h3>'+esc(book)+' Same Game Parlays</h3>'+inactivesNote+
+    '<div class="sgp-slips">'+content+'</div></section>';
   };
   const verifiedSections=bookSlips('FanDuel')+bookSlips('DraftKings');
   return '<p class="sgp-slip-intro">Current published matchup predictions • '+
