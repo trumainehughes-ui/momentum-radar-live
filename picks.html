@@ -143,7 +143,8 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
 .player .small{font-size:12px;color:#bbccd6;line-height:1.5;margin-top:9px}
 </style><script type="module" src="/public-sgp-browser-bootstrap.js"></script>
 <script type="module" src="/public-automatic-dk-book-bootstrap.js"></script>
-<script type="module" src="/nfl-model-choice-bootstrap.js"></script><script type="module" src="/nfl-sgp-model-yardage-bootstrap.js"></script><script type="module" src="/nfl-public-compact-sgp-bootstrap.js"></script><script type="module" src="/nfl-public-matchup-intelligence-bootstrap.js"></script>
+<script type="module" src="/nfl-model-choice-bootstrap.js"></script><script type="module" src="/nfl-sgp-model-yardage-bootstrap.js"></script>
+<script type="module" src="/optimal-sgp-crosscheck-bootstrap.js"></script><script type="module" src="/nfl-public-compact-sgp-bootstrap.js"></script><script type="module" src="/nfl-public-matchup-intelligence-bootstrap.js"></script>
 </head>
 <body>
 <header><div class="container nav"><a class="brand" href="/picks" aria-label="Momentum Radar home"><span class="logo" aria-hidden="true">↗</span><span>Momentum <span style="color:#50e7ac">Radar</span></span></a><div class="toplinks"><span class="navpill">SPORTS INSIGHTS</span><button class="soft" id="refresh" type="button">↻ Refresh</button></div></div></header>
@@ -1116,7 +1117,13 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   // Stale bookmaker prices remain blocked by existing public data gates.
   const aiSummary=state.aiLoading?'AI review loading':state.aiData?.status==='SAVED_AI_REVIEW'?'AI review available':state.aiData?.status==='HISTORICAL_AI_REVIEW'?'Historical AI review':'AI review pending';
   const aiStrip='<div class="panel" style="margin:12px 0;padding:12px 16px;border-color:#366274" aria-label="AI game intelligence status"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><strong>✨ Momentum AI</strong><div class="small">'+esc(aiSummary)+' · Projections are model estimates, not sportsbook quotes</div></div><button type="button" class="soft" data-view="ai">Open AI analysis →</button></div></div>';
-  $('#match-content').innerHTML=tabs+aiStrip+'<div class="detail-body">'+body+'</div>';
+  const optimalBox=['sgps','ai'].includes(state.detailTab)?
+   '<div id="optimal-sgp-crosscheck"></div>':'';
+  $('#match-content').innerHTML=tabs+aiStrip+'<div class="detail-body">'+body+optimalBox+'</div>';
+  if(optimalBox&&window.momentumOptimalCrosscheck)
+   void window.momentumOptimalCrosscheck.showOptimalCrosscheck({
+    league:'nfl',date:state.date,gameId:String(state.selected),
+    model:state.currentBookSgpModel||d,target:'#optimal-sgp-crosscheck'});
  }
  async function loadSavedAi(date,gameId){
   state.aiLoading=true;state.aiData=null; if(state.selectedData)renderGame(state.selectedData);
