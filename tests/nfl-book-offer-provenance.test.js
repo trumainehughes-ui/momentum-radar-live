@@ -102,3 +102,29 @@ test('model timestamp cannot freshen an undated bookmaker price',()=>{
  for(const odds of [1,-1,110.5,100001,-100001])
   assert.equal(nflBookOfferEligible(row,{...book,odds},'DraftKings',now),false);
 });
+
+test('official playerId alias is eligible only when it exactly matches observed selection',()=>{
+ const alternate={...row,playerID:undefined,playerId:'athlete-12'};
+ assert.equal(nflBookOfferEligible(alternate,book,'DraftKings',now),true);
+ assert.equal(nflBookOfferEligible({...row,playerId:'athlete-12'},book,'DraftKings',now),true);
+ // An ambiguous or contradictory source identity must never create a bettable prop.
+ assert.equal(nflBookOfferEligible({...row,playerId:'athlete-99'},book,'DraftKings',now),false);
+ assert.equal(nflBookOfferEligible({...alternate,playerId:'athlete-99'},book,'DraftKings',now),false);
+ assert.equal(nflBookOfferEligible({...alternate,playerId:''},book,'DraftKings',now),false);
+ assert.equal(nflBookOfferEligible(alternate,{...book,playerId:'athlete-99'},'DraftKings',now),false);
+ assert.equal(nflBookOfferEligible(alternate,{...book,sourceProvider:'The Odds API'},'DraftKings',now),false);
+ assert.equal(nflBookOfferEligible(alternate,{...book,offerId:null},'DraftKings',now),false);
+ assert.equal(nflBookOfferEligible(alternate,{...book,checkedAt:'2026-10-17T11:40:00Z'},'DraftKings',now),false);
+});
+
+test('official player_td yes/no market needs no invented numeric yardage line',()=>{
+ const touchdownRow={eventID:row.eventID,playerId:'athlete-12',
+  marketName:'player_td',statID:'touchdowns',periodID:'game',betTypeID:'yn',sideID:'yes'};
+ const offeredTd={...book,category:'td',line:null,odds:+175};
+ assert.equal(nflBookOfferEligible(touchdownRow,offeredTd,'DraftKings',now),true);
+ assert.equal(nflBookOfferEligible(touchdownRow,{...offeredTd,category:'rushing'},'DraftKings',now),false);
+ assert.equal(nflBookOfferEligible(touchdownRow,{...offeredTd,playerId:'wrong-athlete'},'DraftKings',now),false);
+ assert.equal(nflBookOfferEligible({...touchdownRow,marketName:'player_rush_yds'},
+  offeredTd,'DraftKings',now),false);
+ assert.equal(nflBookOfferEligible(touchdownRow,{...offeredTd,checkedAt:null},'DraftKings',now),false);
+});
