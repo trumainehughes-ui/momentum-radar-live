@@ -36,3 +36,17 @@ test('a book offer does not override lack of offensive playing time',()=>{
  assert.equal(build({...profile,bookOffer,offensiveSnapShare:0.60,usageGames:5,targetsPerGame:4.5}).rows.length,1);
  assert.equal(build({...profile,bookOffer,starterVerified:true,recommendationEligible:false}).rows.length,0);
 });
+
+test('backup running back requires demonstrated carries, not roster presence',()=>{
+ const bookOffer={available:true,book:'DraftKings',line:44.5,odds:-110,
+  checkedAt:new Date().toISOString(),sourceUrl:'https://sportsbook.draftkings.com/'};
+ const runner={name:'Rotational RB',team:'HOU',position:'RB',projection:45,
+  gamesPlayed:5,offensiveSnapShare:0.55,usageGames:5,carriesPerGame:3,bookOffer};
+ const m=market(profile);
+ m.categories={rushing:[runner]};
+ m.sgps={Analytics:[{risk:'Small',legs:[{player:'Rotational RB',team:'HOU',category:'rushing'}]}]};
+ const run=()=>buildNflModelChoiceBoard({market:m,gameId,date,home:'HOU',away:'JAX'});
+ assert.equal(run().rows.length,0);
+ runner.carriesPerGame=8;
+ assert.equal(run().rows.length,1);
+});
