@@ -44,7 +44,10 @@ test('incomplete model snapshot updates do not display partial Nuke legs as a pa
   assert.ok(!html.includes('Anytime touchdown</span>'));
   assert.ok(!html.includes('+10000 combined'));
  }
- assert.equal(oldHtml,newHtml);
+ // Visible readiness must remain identical even if independently loaded
+ // game snapshots carry different actual publication timestamps.
+ const withoutVersion=html=>html.replace(/ data-published-game-version="[^"]*"/g,'');
+ assert.equal(withoutVersion(oldHtml),withoutVersion(newHtml));
 });
 test('public SGP uses the same published snapshot API and never calls owner refresh',()=>{
  assert.match(route,/nflSgpFindLatestBlob\(\{date,gameId\}\)/);
