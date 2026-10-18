@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NFL SGP Readiness • Momentum Radar</title>
+<style>
+:root{color-scheme:dark;background:#07131c;color:#f0f7fc;font:15px system-ui,Arial}
+*{box-sizing:border-box}body{max-width:1180px;margin:auto;padding:16px 16px 80px;line-height:1.48}
+a{color:#8fdcff}h1{margin:12px 0 2px;font-size:clamp(22px,4vw,32px)}
+h2{font-size:18px;margin:0 0 10px}p,.muted{color:#b5c9d7}
+.top,.controls,.summary{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.top{justify-content:space-between}.controls{margin:18px 0}
+input,button{color:#f0f7fc;background:#132a39;border:1px solid #557589;padding:10px 13px;border-radius:9px;font:inherit;min-height:44px}
+button{background:#175342;border-color:#48b895;cursor:pointer;font-weight:800}
+button:disabled{opacity:.7;cursor:wait}label{font-weight:750}
+.summary{margin-bottom:14px}.metric,.game{border:1px solid #2d4b5b;border-radius:13px;background:#0b1e2a;padding:15px}
+.metric{flex:1 1 190px}.metric b{font-size:23px;color:#6df0bc;display:block}.metric small{color:#b5c9d7}
+.rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.game-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.game h2{font-size:17px}
+.state{font-size:12px;color:#c9e6f5}.unready{color:#ffc886}.good{color:#80efc2}
+.tiergrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.tier{border:1px solid #365465;border-radius:10px;background:#102634;padding:10px;font-size:12px}
+.tier strong{display:block;font-size:15px;color:#b8e9ff}.tier p{font-size:12px;margin:4px 0}
+.alert{padding:12px;border:1px solid #8c6a41;border-radius:10px;background:#28231d;color:#ffe0b8;margin-bottom:13px}
+.source{border-top:1px solid #284959;margin-top:13px;padding-top:8px;overflow-wrap:anywhere}
+#status{font-size:13px;min-height:22px}.foot{margin-top:20px}
+@media(max-width:760px){.rows{grid-template-columns:1fr}.tiergrid{grid-template-columns:1fr 1fr}}
+@media(max-width:400px){.tiergrid{grid-template-columns:1fr}body{padding:11px}}
+</style></head>
+<body>
+<div class="top"><div><a href="/">← Momentum Radar home</a><h1>NFL Same Game Parlay readiness</h1>
+<p style="margin:0">All games, Small / Medium / Nuke, and actual sportsbook quote coverage.</p></div>
+<a href="/picks">View customer site ↗</a></div>
+<div class="controls"><label for="date">NFL game date</label><input id="date" type="date">
+<button id="refresh" type="button">Refresh read-only status</button><span id="status" role="status"></span></div>
+<div id="summary" class="summary" aria-label="Game coverage totals"></div>
+<p class="alert"><strong>Model-ready is not bet-ready.</strong> Only authenticated DraftKings or FanDuel combined SGP quotes with screened exact offers can be treated as book-priced. This page does not place bets, infer odds, run the collector, or spend provider credits.</p>
+<div id="rows" class="rows"></div>
+<p class="muted foot">Source: this deployment's saved <code>/api/nfl-schedule</code> and <code>/api/nfl-sgp-status</code> read-only endpoints. Coverage can change after a collector refresh or game status change. Refreshing this page does not refresh sportsbooks.</p>
+<script type="module">
+import {nflReadinessRow,nflReadinessTotals} from './lib/nfl-sgp-readiness-board.js';
+const $=id=>document.getElementById(id);
+const btn=$('refresh'),dateInput=$('date'),status=$('status'),rows=$('rows'),summary=$('summary');
+const tiers=['Small','Medium','Nuke'];
+const el=(tag,cls,text)=>{const node=document.createElement(tag);if(cls)node.className=cls;
+ if(text!==undefined)node.textContent=String(text);return node};
+function easternDate(){
+ const p=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',
+  month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+ const v=x=>p.find(y=>y.type===x)?.value||'';
+ return [v('year'),v('month'),v('day')].join('-');
+}
+dateInput.value=easternDate();
+async function json(path){
+ const r=await fetch(path,{cache:'no-store',signal:AbortSignal.timeout(13000)});
+ if(!r.ok)throw Error('HTTP '+r.status);
+ const data=await r.json();if(data?.ok!==true)throw Error('No current saved data');
+ return data;
+}
+function formatKickoff(value){const date=new Date(value);
+ return Number.isFinite(date.getTime())?new Intl.DateTimeFormat('en-US',{
+  timeZone:'America/Denver',weekday:'short',hour:'numeric',minute:'2-digit',
+  timeZoneName:'short'}).format(date):'Time unconfirmed';
+}
+function metric(label,value){const root=el('div','metric');root.append(el('b','',value),el('small','',label));return root}
+function renderRow(row){
+ const root=el('section','game'),head=el('div','game-head'),left=el('div');
+ left.append(el('h2','',row.matchup),el('div','muted',formatKickoff(row.kickoff)+' · '+row.gameStatus));
+ head.append(left,el('strong',row.snapshotStatus==='CURRENT'?'good':'unready',
+  row.snapshotStatus==='CURRENT'?'Snapshot current':'Snapshot unavailable / expired'));root.append(head);
+ const tierGrid=el('div','tiergrid');
+ for(const tier of row.tiers){
+  const card=el('div','tier');card.append(el('strong','',tier.risk));
+  card.append(el('p',tier.modelReady?'good':'unready',
+   tier.modelReady?tier.modelLegs+' research legs ready':'Research NOT READY'));
+  card.append(el('p',tier.bookmakerPriced?'good':'unready',
+   tier.bookmakerPriced?'Book-priced: '+tier.quotedBooks.join(', '):'No verified combined quote'));
+  tierGrid.append(card);
+ }
+ root.append(tierGrid);
+ root.append(el('div','muted source','Source status: '+row.sourceStatus+
+  (row.checkedAt?' · Saved '+formatKickoff(row.checkedAt):'')));
+ return root;
+}
+let active=0;
+async function load(){
+ const token=++active,day=dateInput.value;
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(day))return;
+ btn.disabled=true;status.textContent='Checking current saved data…';
+ try{
+  const schedule=await json('/api/nfl-schedule?'+new URLSearchParams({date:day}));
+  const games=(Array.isArray(schedule.games)?schedule.games:[]).slice(0,20);
+  let next=0;const output=new Array(games.length);
+  // Bounded parallel reads; no paid APIs or speculative sportsbook lookup.
+  await Promise.all(Array.from({length:Math.min(4,games.length)},async()=>{
+   while(token===active&&next<games.length){
+    const index=next++,game=games[index];
+    let report={ok:false};
+    try{report=await json('/api/nfl-sgp-status?'+new URLSearchParams({
+     date:day,gameId:String(game.gameId)}))}catch{}
+    output[index]=nflReadinessRow(game,report);
+   }
+  }));
+  if(token!==active)return;
+  rows.replaceChildren(...output.filter(Boolean).map(renderRow));
+  const total=nflReadinessTotals(output.filter(Boolean));
+  summary.replaceChildren(metric('NFL games',total.games),
+   metric('Current snapshots',total.checked+' / '+total.games),
+   metric('Complete AI research tiers',total.modelReady+' / '+total.modelPossible),
+   metric('Book-priced SGP tiers',total.pricedTiers+' / '+total.modelPossible));
+  status.textContent='Read-only coverage updated '+new Date().toLocaleTimeString();
+ }catch{
+  if(token===active){rows.replaceChildren(el('p','alert',
+   'Slate could not be loaded. Check the date and retry. No sportsbook data was changed.'));
+   summary.replaceChildren();status.textContent='Read-only data temporarily unavailable.'}
+ }finally{if(token===active)btn.disabled=false}
+}
+btn.addEventListener('click',load);dateInput.addEventListener('change',load);
+setInterval(()=>{if(!document.hidden&&!btn.disabled)load()},60000);
+load();
+</script></body></html>
