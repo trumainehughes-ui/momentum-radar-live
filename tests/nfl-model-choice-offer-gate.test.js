@@ -50,3 +50,14 @@ test('backup running back requires demonstrated carries, not roster presence',()
  runner.carriesPerGame=8;
  assert.equal(run().rows.length,1);
 });
+
+test('DraftKings-listed receiver does not imply FanDuel availability',()=>{
+ const dk={available:true,book:'DraftKings',line:49.5,odds:-110,
+  checkedAt:new Date().toISOString(),sourceUrl:'https://sportsbook.draftkings.com/'};
+ const fd={available:false,book:'FanDuel',line:null,odds:null,
+  checkedAt:new Date().toISOString(),sourceUrl:'https://sportsbook.fanduel.com/'};
+ const result=build({...profile,starterVerified:true,books:[fd,dk]});
+ assert.equal(result.rows.length,1);
+ assert.equal(result.rows[0].name,'Jaylin Noel');
+ assert.equal(build({...profile,starterVerified:true,books:[fd]}).rows.length,0);
+});
