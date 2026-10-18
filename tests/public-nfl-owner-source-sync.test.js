@@ -27,7 +27,7 @@ test('published public metadata declares one injury-screened saved game version 
  const published=publicNflGameView({at,body:base},{date,gameId,now});
  assert.equal(published.ok,true);
  assert.equal(published.status,'CURRENT');
- assert.deepEqual(published.researchSync,{source:'PUBLISHED_NFL_GAME_SNAPSHOT',
+ assert.deepEqual(published.researchSync,{basis:'PUBLISHED_NFL_GAME_SNAPSHOT',
   version:new Date(at).toISOString(),injuryScreened:true,gameId,date});
  const owner=ownerNflPublishedParity(base,published,{date,gameId,now});
  assert.equal(owner.ok,true);
