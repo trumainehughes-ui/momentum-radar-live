@@ -73,20 +73,21 @@ test('reject foreign games, old scores, invalid percentile ordering, and unrelat
 });
 function response(){return {statusCode:200,headers:{},setHeader(k,v){this.headers[k]=v;return this},
  status(n){this.statusCode=n;return this},json(obj){this.body=obj;return this}}}
-test('public GET is read-only and default has no synced data or invented projections',async()=>{
+test('unlicensed public GET refuses access before touching storage or data',async()=>{
  const route=makeOptimalProjectionReferenceHandler({
   now:()=>now,blobList:async()=>({blobs:[]}),
   blobPut:async()=>{throw Error('must not write')},
   fetcher:async()=>{throw Error('must not fetch')},env:{}});
  const res=response();
  await route({method:'GET',query:{league:'nfl',date:fixture.date,gameId:fixture.gameId}},res);
- assert.equal(res.statusCode,200);
- assert.equal(res.body.status,'NO_CURRENT_OPTIMAL_REFERENCE');
+ assert.equal(res.statusCode,451);
+ assert.equal(res.body.status,'DISABLED_LICENSE_REQUIRED');
  assert.equal(res.body.bookmakerSgpQuoteVerified,false);
 });
 test('POST needs independent 32-character authorized publishing secret',async()=>{
  let writes=0;
- const env={MOMENTUM_OPTIMAL_IMPORT_KEY:'x'.repeat(40)};
+ const env={MOMENTUM_OPTIMAL_IMPORT_KEY:'x'.repeat(40),
+  MOMENTUM_OPTIMAL_COMMERCIAL_LICENSE_APPROVED:'true'};
  const handler=makeOptimalProjectionReferenceHandler({now:()=>now,env,
   blobList:async()=>({blobs:[]}),
   blobPut:async()=>{writes++}});
@@ -113,8 +114,8 @@ test('AI is still embedded, but Optimal does not override Groq or bookmaker gate
  assert.match(pub,/AI Game Analyzer/);
  assert.match(pub,/showAi\(d\)/);
  assert.match(endpoint,/api.groq.com\/openai\/v1\/chat\/completions/);
- assert.match(main,/optimal-sgp-crosscheck-bootstrap.js/);
- assert.match(pub,/optimal-sgp-crosscheck-bootstrap.js/);
+ assert.doesNotMatch(main,/optimal-sgp-crosscheck-bootstrap.js/);
+ assert.doesNotMatch(pub,/optimal-sgp-crosscheck-bootstrap.js/);
  assert.match(browse,/No substitute betting lines are generated/);
 });
 
@@ -128,11 +129,28 @@ test('Vercel Blob round trip re-validates authorized published projection rows',
  const route=makeOptimalProjectionReferenceHandler({
   now:()=>now,
   blobList:async()=>({blobs:[{pathname:prefix+reverse+'-abc12345.json',url:'https://storage.example/ref'}]}),
-  fetcher:async()=>({ok:true,json:async()=>original}),env:{}});
+  fetcher:async()=>({ok:true,json:async()=>original}),
+  env:{MOMENTUM_OPTIMAL_COMMERCIAL_LICENSE_APPROVED:'true'}});
  const res=response();
  await route({method:'GET',query:{league:'nfl',date:fixture.date,gameId:fixture.gameId}},res);
  assert.equal(res.statusCode,200);
  assert.equal(res.body.players.length,4);
  assert.equal(res.body.status,'AUTHORIZED_OPTIMAL_RESEARCH_REFERENCE');
  assert.equal(res.body.combinedBookQuoteVerified,false);
+});
+
+test('configured import token is still blocked without commercial redistribution license',async()=>{
+ let reads=0,writes=0;
+ const handler=makeOptimalProjectionReferenceHandler({now:()=>now,
+  blobList:async()=>{reads++;return {blobs:[]}},
+  blobPut:async()=>{writes++},env:{MOMENTUM_OPTIMAL_IMPORT_KEY:'x'.repeat(40)}});
+ for(const method of ['GET','POST']){
+  const res=response();
+  await handler({method,query:{league:fixture.league,date:fixture.date,gameId:fixture.gameId},
+   body:fixture,headers:{authorization:'Bearer '+'x'.repeat(40)}},res);
+  assert.equal(res.statusCode,451);
+  assert.equal(res.body.status,'DISABLED_LICENSE_REQUIRED');
+ }
+ assert.equal(reads,0);
+ assert.equal(writes,0);
 });
