@@ -66,7 +66,7 @@ test('unmatched game, date, team, statuses, timestamps and injury evidence fail 
   {o:source,p:{...view,updatedDataCurrent:false}},
   {o:source,p:{...view,updatedAt:new Date(now-16*60000).toISOString()}},
   {o:source,p:{...view,updatedAt:new Date(now-4000).toISOString()}},
-  {o:source,p:{...view,categories:{...view.categories,passing:[safeRow(held)]}}},
+  {o:source,p:{...view,categories:{...view.categories,passing:[{...safeRow(held),name:'Player missing in snapshot'}]}}},
   {o:source,p:null}
  ];
  for(const {o,p} of invalid){
