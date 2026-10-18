@@ -150,5 +150,10 @@ test('front-end uses model yardage lines on home preview game player cards parla
   assert.ok(html.includes("'Model TD chance: '+Math.round(Number(x.modelTdPercent))+'%'"));
   assert.match(html,/\$\{'Model: '\+nflProjection\(x,cat\)\}/);
   assert.match(html,/nflModelLine\(x,x.cat\)/);
-  assert.match(html,/const target=nflModelLine\(x,cat\)/);
+  const begin=html.indexOf('async function loadNFLMulti(){');
+  const end=html.indexOf('async function loadNFLHistory(){',begin);
+  const multi=html.slice(begin,end);
+  assert.match(multi,/const selected=small\?\.legs\?\.\[0\]/);
+  assert.doesNotMatch(multi,/getNFLMarkets\(|nflModelLine\(x,cat\)/);
+  assert.match(multi,/This is NOT a sportsbook parlay/);
 });

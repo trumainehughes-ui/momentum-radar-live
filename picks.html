@@ -725,7 +725,10 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     '<div class="sgp-slips">'+content+'</div></section>';
   };
   const verifiedSections=bookSlips('FanDuel')+bookSlips('DraftKings');
-  return '<p class="sgp-slip-intro">'+
+  // Expose the same published snapshot version on both views for safe,
+  // automated rendered-page parity checks; do not expose raw market data.
+  return '<p class="sgp-slip-intro" data-published-game-version="'+
+   esc(d?.researchSync?.version||d?.updatedAt||'')+'">'+
    (snapshotFresh?'Current published matchup predictions • '+
      esc(fmtStamp(d.updatedAt)):
     'NOT READY • '+esc(d.status==='LAST_SAVED'?
