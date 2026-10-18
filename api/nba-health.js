@@ -1,4 +1,4 @@
-import {list,put} from '@vercel/blob';
+import {nbaFindLatestPregameBlob,nbaWritePregameSnapshot} from '../lib/nba-pregame-snapshot-store.js';
 import {blobCredentialMode} from '../lib/blob-storage-config.js';
 import {timingSafeEqual} from 'node:crypto';
 import {nbaPrepareEvidence} from '../lib/nba-pregame-model.js';
@@ -37,9 +37,10 @@ async function json(url,timeout=10_000){
 export async function nbaReadPregame(id,{strict=false}={}){
  if(!/^\d{7,12}$/.test(String(id)))return null;
  try{
-  const key=path(id),a=await list({prefix:key,limit:3}),
-   hit=a.blobs?.find(b=>b.pathname===key);
+  const hit=await nbaFindLatestPregameBlob(id);
   if(!hit)return null;
+  // An immutable URL has no old-overwrite CDN race, unlike the legacy
+  // single nba-GAMEID.json key. Owner and public read the same newest file.
   const d=await json(hit.url,6500);
   return d.gameId===String(id)&&Array.isArray(d?.sgps)?d:null;
  }catch(e){if(strict)throw Error('nba_snapshot_read_unavailable');return null}
@@ -98,8 +99,7 @@ export function nbaPregameStatus(snapshot,{now=Date.now(),gameStatus='SCHEDULED'
   reason:current?snapshot.reason||'No verified pregame player models available.':freshness.reason};
 }
 export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=nbaPrepareEvidence,
- fetchJson=json,review=pregameAiAudit,write=async data=>put(path(game.gameId),JSON.stringify(data),{
-  access:'public',addRandomSuffix:false,allowOverwrite:true})}={}){
+ fetchJson=json,review=pregameAiAudit,write=nbaWritePregameSnapshot}={}){
  const plan=nbaPregameStage(game,prior,{now});
  if(!plan.due)return {gameId:game.gameId,status:'held',stage:plan.stage};
  let observed=null;
