@@ -73,7 +73,24 @@
    '<div class="note">ESPN detailed game preview is not yet available. This matchup was rechecked against the ESPN scoreboard; reported injuries and starters may still be unverified.</div>':'';
   const source=summaryPending+stale+'<div class="refresh">Pregame model: '+safe(stage)+basis+' • AI review: '+safe(readiness?.aiReviewStatus||'PENDING')+' • Last model/injury check: '+safe(freshness)+
    ' • Injury evidence: '+safe(injury)+' ('+safe(readiness?.injuryReportStatus||'UNVERIFIED')+')</div>';
-  return source+rows.map(s=>{
+  const renderBook=book=>{
+   const verified=rows.filter(s=>s.book===book&&s.combinedBookQuoteVerified===true&&
+    s.publishable===true&&Number.isFinite(Number(s.actualSgpOdds))&&
+    Array.isArray(s.legs)&&s.legs.length>=3&&s.legs.every(l=>
+     l.bookOffer?.available===true&&l.bookOffer.book===book));
+   const cards=verified.map(s=>'<div class="nflSgpMini"><b>'+safe(s.risk)+
+    ' • '+safe(book)+'</b><div class="meta">Verified combined quote: '+
+    safe(s.actualSgpOdds)+'</div>'+s.legs.map(l=>
+    '<div class="nflMarketLine">'+safe(l.name||l.player)+' • '+
+    safe(l.category)+' '+safe(l.threshold??l.target)+'</div>').join('')+'</div>').join('');
+   return '<section class="nba-book-sgp" aria-label="'+safe(book)+' NBA SGPs">'+
+    '<h3>'+safe(book)+' Same Game Parlays</h3>'+
+    (cards||'<div class="note">No independently verified '+safe(book)+
+     ' NBA SGP quote and lineup yet. Other sportsbooks\' markets are not substituted.</div>')+
+    '</section>';
+  };
+  return source+renderBook('FanDuel')+renderBook('DraftKings')+
+   '<details><summary>NBA model-only research (not sportsbook lineups)</summary>'+rows.map(s=>{
    const ready=s.status==='MODEL_CANDIDATE'&&Array.isArray(s.legs)&&s.legs.length>0;
    // Each player/market is an independent row; do not collapse different props.
    const distinct=ready?s.legs.filter((l,i,all)=>all.findIndex(x=>
@@ -92,7 +109,7 @@
     '<div class="note">'+safe(s.reason||'No verified model data.')+'</div>'+
     (s.requires?'<div class="refresh">'+safe(s.requires)+'</div>':'')+'</div>';
   }).join('')+
-   '<div class="note">Automatically rebuilt when eligible evidence changes. ESPN roster listing does not verify a starter, and these projected alternate thresholds are NOT sportsbook offers. AI review cannot override eligibility or invent odds.</div>';
+   '<div class="note">Automatically rebuilt when eligible evidence changes. ESPN roster listing does not verify a starter, and these projected alternate thresholds are NOT sportsbook offers. AI review cannot override eligibility or invent odds.</div>'+'</details>';
  }
  async function openGame(id){
   const game=data?.games?.find(x=>x.gameId===id);if(!game)return;
