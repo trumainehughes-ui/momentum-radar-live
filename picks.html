@@ -421,30 +421,17 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   return [];
  }
  async function loadCurrentNflSgpResearch(date,gameId,token){
+  // Visitor pages use the sanitized, read-only snapshot and published
+  // observations. Never request the owner-only NFL markets endpoint.
   try{
-   const [m,published]=await Promise.all([
-    getJson('/api/nfl-markets?'+new URLSearchParams({date,gameId})),
-    getJson('/api/nfl-published-book-observations?'+new URLSearchParams({date,gameId})).catch(()=>null)
-   ]);
-   if(token!==state.loading||!state.selectedData||String(state.selected)!==String(gameId))return;
-   state.currentBookSgpModel=m;
+   const published=await getJson('/api/nfl-published-book-observations?'+
+    new URLSearchParams({date,gameId})).catch(()=>null);
+   if(token!==state.loading||!state.selectedData||
+    String(state.selected)!==String(gameId))return;
+   state.currentBookSgpModel=null;
    state.publishedBookObservations=published?.ok?published:null;
-   const teams=new Set([String(state.selectedData.home).toUpperCase(),String(state.selectedData.away).toUpperCase()]);
-   const cards=Array.isArray(m.sgps?.Analytics)?m.sgps.Analytics:[];
-   // Never convert a model target into a sportsbook-available leg.
-   // Only a fresh, exact bookmaker offer can be presented in a betting slip.
-   const exactOffer=l=>l?.sportsbookVerified===true&&l?.bookOffer?.available===true&&
-    ['DraftKings','FanDuel'].includes(l.bookOffer.book)&&
-    (l.category==='td'||Number(l.bookOffer.line)===Number(l.target))&&
-    Number.isFinite(Date.parse(l.bookOffer.checkedAt))&&
-    Date.now()-Date.parse(l.bookOffer.checkedAt)<=15*60000&&
-    Date.now()-Date.parse(l.bookOffer.checkedAt)>=-60000;
-   state.selectedData.researchParlays=cards.filter(c=>['Small','Medium','Nuke'].includes(c?.risk)&&Array.isArray(c.legs)&&c.legs.length>=3&&c.legs.length<=(c.risk==='Nuke'?10:7)&&c.legs.every(exactOffer)).map(c=>({
-    risk:c.risk,mode:'MODEL_ONLY',researchFromCurrentMarkets:true,researchFallback:true,
-    legs:c.legs.filter(l=>teams.has(String(l.team).toUpperCase())&&l.player&&l.category&&l.target!==undefined&&l.target!==null).map(l=>({player:l.player,team:l.team,category:l.category,target:l.category==='td'?'Anytime TD':String(l.target)+'+'}))
-   })).filter(c=>c.legs.length>=3);
    renderGame(state.selectedData);
-  }catch{/* Keep saved snapshot and its explicit freshness warning. */}
+  }catch{/* Preserve the public snapshot and its explicit freshness status. */}
  }
  function renderLocalBookParity(d){
   if(typeof window==='undefined'||typeof localStorage==='undefined')return '';
@@ -584,17 +571,40 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    '<div class="sgp-research-inner">'+renderPublicBookResearch()+'</div></section>';
   // Public-only concise presentation. Internal Momentum Radar retains its
   // expanded SGP evidence and model controls.
-  const publicCompact=typeof window!=='undefined'&&
-   window.momentumPublicCompactNflSgp;
-  if(publicCompact){
-   const brief=publicCompact.renderPublicCompactNflSgpCards(
-    publicCompact.buildPublicCompactNflSgpCards({
-     market:state.currentBookSgpModel,date:state.date,
-     gameId:state.selected,home:d.home,away:d.away,
-     saved:anyStale
-    }));
-   return brief+(ready&&!anyStale&&quotes.length?renderOdds(quotes):'');
-  }
+  // Customer-facing projections are rendered exclusively from the public
+  // read-only snapshot for this exact game. Do not rebuild from a separate
+  // /api/nfl-markets request, compact model, or browser-local forecast.
+  const savedTiers=Array.isArray(d.parlays)?d.parlays:[];
+  const syncedHtml='<div class="sgp-slips">'+['Small','Medium','Nuke'].map(risk=>{
+   const card=savedTiers.find(c=>c?.risk===risk&&
+    ['MODEL_ONLY','STALE_MODEL_ONLY'].includes(c.mode)&&
+    Array.isArray(c.legs)&&c.legs.length>0);
+   if(!card)return '<section class="sgp-slip"><div class="sgp-slip-head"><strong>'+
+    esc(risk)+'</strong></div><p class="sgp-brief-status">Awaiting this game\'s latest published predictions.</p></section>';
+   const keys=new Set();
+   const legs=card.legs.filter(l=>{
+    const key=[l.player,l.team,l.category,l.target].map(x=>String(x||'')).join('|');
+    if(keys.has(key))return false;
+    keys.add(key);
+    return true;
+   });
+   return '<section class="sgp-slip"><div class="sgp-slip-head"><strong>'+
+    esc(risk)+'</strong><span>'+esc(legs.length)+' projections</span></div>'+
+    '<ol class="sgp-leg-list">'+legs.map(l=>{
+     const category=String(l.category||'').toLowerCase();
+     const name={td:'Anytime touchdown',receiving:'Receiving yards',
+      rushing:'Rushing yards',passing:'Passing yards',receptions:'Receptions'}[category]||
+      'Player prop';
+     return '<li class="sgp-leg"><div class="sgp-leg-name">'+esc(l.player)+'</div>'+
+      '<div class="sgp-leg-selection"><span>'+esc(name)+'</span><strong>'+
+      esc(category==='td'?'Anytime TD':l.target)+'</strong></div>'+
+      '<div class="sgp-leg-why">Why: '+esc(publicWhy(l,category))+'</div></li>';
+    }).join('')+'</ol></section>';
+  }).join('')+'</div>';
+  return '<p class="sgp-slip-intro">Current published matchup predictions • '+
+   esc(fmtStamp(d.updatedAt))+'</p>'+
+   '<p class="sgp-brief-status">Model-only research, not sportsbook-verified lines or combined odds.</p>'+
+   syncedHtml+(quotes.length?renderOdds(quotes):'');
   return modelChoiceHtml+tierYardageHtml+intro+staleNote+slips+verification+renderLocalBookParity(d)+research;
  }
  function offerHtml(x){const o=x.bookOffer;if(!o)return '';
@@ -1148,6 +1158,9 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
   if(id){
    try{const d=await getJson('/api/public-nfl-game?'+new URLSearchParams({date,gameId:id}));
     if(state.league==='nfl'&&state.date===date&&String(state.selected)===String(id)){
+     const incoming=Date.parse(d.updatedAt||'');
+     const current=Date.parse(state.selectedData?.updatedAt||'');
+     if(Number.isFinite(current)&&(!Number.isFinite(incoming)||incoming<current))return;
      state.selectedData=d;$('#freshness').textContent=(d.status==='LAST_SAVED'?'Model preview • ':'')+fmtStamp(d.updatedAt);
      renderGame(d);
      if(d.status==='LAST_SAVED'&&!state.recheckLoading)loadNflRecheckStatus(date,id);
@@ -1180,7 +1193,8 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
   if(event.key==='momentum-radar-public-book-observations-v1'&&state.league==='nfl'&&
     state.detailTab==='sgps'&&state.selectedData)renderGame(state.selectedData);
  });
- setInterval(refreshReadOnlyPredictions,5*60*1000);
+ setInterval(refreshReadOnlyPredictions,30*1000);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshReadOnlyPredictions()});
  $('#refresh').addEventListener('click',()=>state.selected?refreshReadOnlyPredictions():loadSlate(false));
  // Move the same public read-only ranking/Best-of-Slate DOM directly below
  // the NFL tabs. No duplicate API requests or independent renderers.
