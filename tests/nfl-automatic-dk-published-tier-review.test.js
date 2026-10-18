@@ -124,3 +124,19 @@ test('published offers preserve distinct matchup team identities',()=>{
  assert.deepEqual(r.tiers[0].offers.map(x=>x.team),['ATL','CHI']);
  assert.equal(r.tiers[0].complete,false);
 });
+
+test('same exact bookmaker line keeps latest observed price regardless of incoming order',()=>{
+ const original=row('Drake London','receiving',65,+110);
+ const newer={...original,odds:+125,observedAt:new Date(now-30_000).toISOString()};
+ const older={...original,odds:+115,observedAt:new Date(now-15*60_000).toISOString()};
+ const model={sgps:{Analytics:[{risk:'Small',legs:[{
+  player:'Drake London',team:'ATL',category:'receiving'
+ }]}]},categories:{receiving:[{name:'Drake London',team:'ATL',projection:73}]}};
+ for(const order of [[older,newer],[newer,older]]){
+  const r=automaticPublishedDKReview({...context,model,report:{offers:order}});
+  assert.equal(r.offers.length,1);
+  assert.equal(r.offers[0].odds,+125);
+  assert.equal(r.tiers[0].offers[0].odds,+125);
+  assert.equal(r.tiers[0].bookmakerSgpQuoteVerified,false);
+ }
+});
