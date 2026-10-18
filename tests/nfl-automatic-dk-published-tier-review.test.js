@@ -86,3 +86,41 @@ test('both production and public pages load automatic first-party data without m
  assert.ok(picks.includes('src="/public-automatic-dk-book-bootstrap.js"'));
  assert.ok(bootstrap.includes('automaticPublishedDKReview'));
 });
+
+test('published research keeps same athlete separate touchdown and rushing markets, never duplicate same market',()=>{
+ const model={sgps:{Analytics:[{risk:'Small',legs:[
+  {name:'Bijan Robinson',team:'ATL',cat:'td'},
+  {name:'Bijan Robinson',team:'ATL',cat:'rushing'},
+  {name:'Bijan Robinson',team:'ATL',cat:'rushing'},
+  {name:'Drake London',team:'ATL',cat:'receiving'}
+ ]}]},categories:{
+  rushing:[{name:'Bijan Robinson',team:'ATL',projection:105}],
+  receiving:[{name:'Drake London',team:'ATL',projection:74}]
+ }};
+ const report={offers:[
+  row('Bijan Robinson','td',null,+145),
+  row('Bijan Robinson','rushing',90,-115),
+  row('Bijan Robinson','rushing',90,-115),
+  row('Drake London','receiving',65,-110)
+ ]};
+ const r=automaticPublishedDKReview({...context,model,report});
+ assert.deepEqual(r.tiers[0].offers.map(x=>x.category),['td','rushing','receiving']);
+ assert.deepEqual(r.tiers[0].offers.map(x=>x.line),[null,90,65]);
+ assert.equal(r.offers.length,3);
+ assert.equal(r.tiers[0].bookmakerSgpQuoteVerified,false);
+});
+test('published offers preserve distinct matchup team identities',()=>{
+ const one=row('Jordan Smith','receiving',45,-110,'ATL');
+ const two=row('Jordan Smith','receiving',45,-115,'CHI');
+ const model={sgps:{Analytics:[{risk:'Small',legs:[
+   {player:'Jordan Smith',team:'ATL',category:'receiving'},
+   {player:'Jordan Smith',team:'CHI',category:'receiving'}
+  ]}]},categories:{receiving:[
+   {name:'Jordan Smith',team:'ATL',projection:52},
+   {name:'Jordan Smith',team:'CHI',projection:60}
+  ]}};
+ const r=automaticPublishedDKReview({...context,model,report:{offers:[one,two]}});
+ assert.equal(r.offers.length,2);
+ assert.deepEqual(r.tiers[0].offers.map(x=>x.team),['ATL','CHI']);
+ assert.equal(r.tiers[0].complete,false);
+});
