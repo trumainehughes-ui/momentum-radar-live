@@ -99,6 +99,7 @@ h2{font-size:26px;letter-spacing:-.035em;margin:0 0 5px}h3{font-size:18px;letter
 .sgp-leg-name{color:#f2f8fc;font-size:16px;line-height:1.35;font-weight:850;overflow-wrap:anywhere;margin-bottom:6px}
 .sgp-leg-selection{display:flex;gap:8px;justify-content:space-between;align-items:baseline;color:#bfd5df;font-size:13px;line-height:1.4}
 .sgp-leg-selection strong{color:#85efc1;font-size:16px;font-weight:850;text-align:right;white-space:nowrap}
+.sgp-leg-why{color:#b6cfdb;font-size:12px;line-height:1.5;margin-top:7px;overflow-wrap:anywhere}
 .market-observed{font-size:13px;font-weight:700;color:#8cebc7;margin-top:9px;line-height:1.5}
 .market-observed small{display:block;color:#9db8c6;font-size:11px;font-weight:500;margin-top:3px}
 .weather-values{display:flex;flex-wrap:wrap;gap:12px;margin:9px 0 8px;font-weight:850;font-size:17px;color:#9aefc9}
@@ -421,30 +422,17 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   return [];
  }
  async function loadCurrentNflSgpResearch(date,gameId,token){
+  // Visitor pages use the sanitized, read-only snapshot and published
+  // observations. Never request the owner-only NFL markets endpoint.
   try{
-   const [m,published]=await Promise.all([
-    getJson('/api/nfl-markets?'+new URLSearchParams({date,gameId})),
-    getJson('/api/nfl-published-book-observations?'+new URLSearchParams({date,gameId})).catch(()=>null)
-   ]);
-   if(token!==state.loading||!state.selectedData||String(state.selected)!==String(gameId))return;
-   state.currentBookSgpModel=m;
+   const published=await getJson('/api/nfl-published-book-observations?'+
+    new URLSearchParams({date,gameId})).catch(()=>null);
+   if(token!==state.loading||!state.selectedData||
+    String(state.selected)!==String(gameId))return;
+   state.currentBookSgpModel=null;
    state.publishedBookObservations=published?.ok?published:null;
-   const teams=new Set([String(state.selectedData.home).toUpperCase(),String(state.selectedData.away).toUpperCase()]);
-   const cards=Array.isArray(m.sgps?.Analytics)?m.sgps.Analytics:[];
-   // Never convert a model target into a sportsbook-available leg.
-   // Only a fresh, exact bookmaker offer can be presented in a betting slip.
-   const exactOffer=l=>l?.sportsbookVerified===true&&l?.bookOffer?.available===true&&
-    ['DraftKings','FanDuel'].includes(l.bookOffer.book)&&
-    (l.category==='td'||Number(l.bookOffer.line)===Number(l.target))&&
-    Number.isFinite(Date.parse(l.bookOffer.checkedAt))&&
-    Date.now()-Date.parse(l.bookOffer.checkedAt)<=15*60000&&
-    Date.now()-Date.parse(l.bookOffer.checkedAt)>=-60000;
-   state.selectedData.researchParlays=cards.filter(c=>['Small','Medium','Nuke'].includes(c?.risk)&&Array.isArray(c.legs)&&c.legs.length>=3&&c.legs.length<=(c.risk==='Nuke'?10:7)&&c.legs.every(exactOffer)).map(c=>({
-    risk:c.risk,mode:'MODEL_ONLY',researchFromCurrentMarkets:true,researchFallback:true,
-    legs:c.legs.filter(l=>teams.has(String(l.team).toUpperCase())&&l.player&&l.category&&l.target!==undefined&&l.target!==null).map(l=>({player:l.player,team:l.team,category:l.category,target:l.category==='td'?'Anytime TD':String(l.target)+'+'}))
-   })).filter(c=>c.legs.length>=3);
    renderGame(state.selectedData);
-  }catch{/* Keep saved snapshot and its explicit freshness warning. */}
+  }catch{/* Preserve the public snapshot and its explicit freshness status. */}
  }
  function renderLocalBookParity(d){
   if(typeof window==='undefined'||typeof localStorage==='undefined')return '';
@@ -492,17 +480,9 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    action+'</section>';
  }
  function renderParlays(d){
-  const tierDetails=typeof window!=='undefined'?window.momentumNflSgpModelYardage?.buildNflProjectedSgpTierDetails({
-   market:state.currentBookSgpModel,date:state.date,gameId:state.selected,
-   home:d.home,away:d.away}):null;
-  const tierYardageHtml=typeof window!=='undefined'&&tierDetails?.tiers?.length?
-   window.momentumNflSgpModelYardage.renderNflProjectedSgpTierDetails(tierDetails):'';
-  const modelBoard=typeof window!=='undefined'?window.momentumNflModelChoice?.buildNflModelChoiceBoard({
-   market:state.currentBookSgpModel,date:state.date,gameId:state.selected,
-   home:d.home,away:d.away}):null;
-  const modelChoiceHtml=typeof window==='undefined'?'':modelBoard?.rows?.length?
-   window.momentumNflModelChoice.renderNflModelChoiceBoard(modelBoard):
-   '<p class="sgp-brief-status">Model yardage forecasts will appear once current game and injury/role evidence is screened. Players with OUT/IR designations are not shown.</p>';
+  // The public SGP view must use the same persisted game/market version
+  // as the owner page. Never construct independent projections or tier
+  // thresholds in this visitor renderer.
   const quotes=(d.verifiedQuotes||[]).filter(q=>q&&['DraftKings','FanDuel'].includes(q.book)&&
    ['Small','Medium','Nuke'].includes(q.risk)&&Number.isFinite(Number(q.americanOdds))&&
    Number(q.americanOdds)!==0);
@@ -514,7 +494,9 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   // A public SGP slip must never combine teams from other matchups or
   // display saved stale selections as if they were actionable game picks.
   const matchupTeams=new Set([String(d.home||'').toUpperCase(),String(d.away||'').toUpperCase()]);
-  const candidateModels=Array.isArray(d.researchParlays)?d.researchParlays:[];
+  // Public SGPs originate from the same verified, quoted cards used by
+  // the owner API. Never build a second independent model-based lineup.
+  const candidateModels=Array.isArray(d.parlays)?d.parlays:[];
   const models=candidateModels.filter(c=>{
    // Public SGP slips must not show projection-only targets, even with
    // research disclaimers. Require a fresh exact official sportsbook price
@@ -525,18 +507,20 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    if(!c.legs.every(l=>{
     const o=l.bookOffer;
     if(o?.available!==true||o.book!==firstBook)return false;
-    let hostname='';
-    try{const url=new URL(o.sourceUrl);if(url.protocol!=='https:')return false;hostname=url.hostname}catch{return false}
-    if(o.book==='DraftKings'&&hostname!=='sportsbook.draftkings.com')return false;
-    if(o.book==='FanDuel'&&!['co.sportsbook.fanduel.com','sportsbook.fanduel.com'].includes(hostname))return false;
+    // Only server-attested sportsbook offers from the canonical snapshot
+    // can become displayed SGP selections. Source URLs stay server-side.
+    if(o.attested!==true)return false;
     const age=Date.now()-Date.parse(String(o.checkedAt||''));
     return Number.isFinite(age)&&age>=-60000&&age<=15*60000&&
      (l.category==='td'||l.target!=null&&o.line!=null&&Number(o.line)===Number(l.target))&&
      Number.isFinite(Number(o.odds));
    }))return false;
+   if(c.combinedOddsVerified!==true||!quotes.some(q=>
+    q.book===firstBook&&q.risk===c.risk&&
+    Number(q.americanOdds)===Number(c.americanOdds)))return false;
    if(!['Small','Medium','Nuke'].includes(c?.risk)||
-      c.mode!=='MODEL_ONLY'||c.outdated===true||
-      (!c.researchFromCurrentMarkets&&(d.status==='LAST_SAVED'||d.updatedDataCurrent===false))||
+      c.mode!=='VERIFIED_BOOK_SGP'||c.outdated===true||
+      (d.status==='LAST_SAVED'||d.updatedDataCurrent===false)||
       !Array.isArray(c.legs))return false;
    if(c.legs.length<3||c.legs.length>(c.risk==='Nuke'?10:7))return false;
    const names=new Set();
@@ -546,9 +530,12 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     c.legs.every(l=>{
      const name=String(l?.player||'').trim().toUpperCase();
      const team=String(l?.team||'').toUpperCase();
-     if(!name||names.has(name)||!matchupTeams.has(team)||
-       !l?.category||!l?.target)return false;
-     names.add(name);return true;
+     const market=String(l?.category||'').trim().toLowerCase();
+     const target=String(l?.target||'').trim();
+     const key=[name,team,market,target].join('|');
+     if(!name||names.has(key)||!matchupTeams.has(team)||
+       !market||!target)return false;
+     names.add(key);return true;
     });
   });
   const anyStale=d.status==='LAST_SAVED'||d.updatedDataCurrent===false||
@@ -557,24 +544,25 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    '<p class="sgp-slip-stale"><strong>Needs refresh · Saved model selections</strong> — these were generated earlier. Player status, injury reports and exact sportsbook lines must be rechecked before using any pick.</p>'+
    '<p class="sgp-auto-check" role="status">'+esc(renderAutoRecheckStatus())+'</p>':'';
 
-  const slips=models.length?
-   '<div class="sgp-slips">'+models.map(c=>
-    '<section class="sgp-slip" aria-label="'+esc(c.risk)+' same-game parlay">'+
-    '<div class="sgp-slip-head"><strong>'+esc(c.risk)+'</strong><span'+
-     (c.mode==='STALE_MODEL_ONLY'||c.outdated?' class="sgp-stale-label"':'')+
-     '>'+esc(c.legs.length)+' legs'+
-     (c.mode==='STALE_MODEL_ONLY'||c.outdated?' · Needs refresh':'')+
-     '</span></div>'+
+  const renderBookSlips=book=>{
+   const selections=models.filter(c=>c.legs[0]?.bookOffer?.book===book);
+   const content=selections.length?selections.map(c=>
+    '<section class="sgp-slip" aria-label="'+esc(book+' '+c.risk)+' same-game parlay">'+
+    '<div class="sgp-slip-head"><strong>'+esc(c.risk)+'</strong><span>'+
+     esc(c.legs.length)+' legs</span></div>'+
     '<ol class="sgp-leg-list">'+c.legs.map(l=>{
      const pick=sgpSelectionDisplay(l);
      return '<li class="sgp-leg"><div class="sgp-leg-name">'+esc(l.player)+'</div>'+
       '<div class="sgp-leg-selection"><span>'+esc(pick.label)+'</span><strong>'+
-       esc(pick.target)+'</strong></div></li>';
-    }).join('')+'</ol></section>').join('')+'</div>':
-   '<div class="sgp-auto-check" role="status">'+
-     'SGP selections are being refreshed for this matchup. '+
-     'Current player eligibility and sportsbook pricing are checked separately.'+
-     '</div>';
+       esc(pick.target)+'</strong></div>'+
+      '<div class="sgp-leg-why">Why: '+esc(publicWhy(l,String(l.category||'').toLowerCase()))+'</div></li>';
+    }).join('')+'</ol></section>').join(''):
+    '<p class="sgp-auto-check" role="status">No fully verified '+esc(book)+
+    ' SGP lineup for this matchup. Player availability and offered lines are checked independently.</p>';
+   return '<section class="sgp-book-lineup" aria-label="'+esc(book)+' SGP lineups">'+
+    '<h3>'+esc(book)+' Same Game Parlays</h3><div class="sgp-slips">'+content+'</div></section>';
+  };
+  const slips=renderBookSlips('FanDuel')+renderBookSlips('DraftKings');
   const intro='<p class="sgp-slip-intro">Player selections for each parlay tier.</p>'+(models.some(c=>c.researchFallback)?'<p class="sgp-brief-status">Research-only model combinations built from current game projections. Targets are NOT confirmed sportsbook markets, and no combined payout is quoted. Check player status and every selection at the sportsbook.</p>':'');
   const verification=ready&&!anyStale?
    '<p class="sgp-brief-status">Sportsbook-issued combined quotes below. Recheck selections before betting.</p>'+renderOdds(quotes):
@@ -582,20 +570,9 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   const research='<section class="sgp-research-details" aria-label="Public sportsbook player odds">'+
    '<div class="sgp-research-heading">Public DraftKings and FanDuel player odds</div>'+
    '<div class="sgp-research-inner">'+renderPublicBookResearch()+'</div></section>';
-  // Public-only concise presentation. Internal Momentum Radar retains its
-  // expanded SGP evidence and model controls.
-  const publicCompact=typeof window!=='undefined'&&
-   window.momentumPublicCompactNflSgp;
-  if(publicCompact){
-   const brief=publicCompact.renderPublicCompactNflSgpCards(
-    publicCompact.buildPublicCompactNflSgpCards({
-     market:state.currentBookSgpModel,date:state.date,
-     gameId:state.selected,home:d.home,away:d.away,
-     saved:anyStale
-    }));
-   return brief+(ready&&!anyStale&&quotes.length?renderOdds(quotes):'');
-  }
-  return modelChoiceHtml+tierYardageHtml+intro+staleNote+slips+verification+renderLocalBookParity(d)+research;
+  // There is exactly one sportsbook slip renderer. A public compact
+  // model renderer would silently replace the canonical selections.
+  return intro+staleNote+slips+verification+research;
  }
  function offerHtml(x){const o=x.bookOffer;if(!o)return '';
   return '<div class="small">Verified individual '+esc(o.book)+' line'+
@@ -1148,6 +1125,10 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
   if(id){
    try{const d=await getJson('/api/public-nfl-game?'+new URLSearchParams({date,gameId:id}));
     if(state.league==='nfl'&&state.date===date&&String(state.selected)===String(id)){
+     // A slower, older response must never roll the public view backwards.
+     const incoming=Date.parse(d.updatedAt||'');
+     const shown=Date.parse(state.selectedData?.updatedAt||'');
+     if(Number.isFinite(shown)&&(!Number.isFinite(incoming)||incoming<shown))return;
      state.selectedData=d;$('#freshness').textContent=(d.status==='LAST_SAVED'?'Model preview • ':'')+fmtStamp(d.updatedAt);
      renderGame(d);
      if(d.status==='LAST_SAVED'&&!state.recheckLoading)loadNflRecheckStatus(date,id);
@@ -1180,7 +1161,8 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
   if(event.key==='momentum-radar-public-book-observations-v1'&&state.league==='nfl'&&
     state.detailTab==='sgps'&&state.selectedData)renderGame(state.selectedData);
  });
- setInterval(refreshReadOnlyPredictions,5*60*1000);
+ setInterval(refreshReadOnlyPredictions,30*1000);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshReadOnlyPredictions()});
  $('#refresh').addEventListener('click',()=>state.selected?refreshReadOnlyPredictions():loadSlate(false));
  // Move the same public read-only ranking/Best-of-Slate DOM directly below
  // the NFL tabs. No duplicate API requests or independent renderers.

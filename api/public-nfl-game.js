@@ -1,12 +1,11 @@
-import {list} from '@vercel/blob';
-import {nflSgpSnapshotPath} from '../lib/nfl-sgp-snapshot-status.js';
+import {nflSgpSnapshotPath,nflSgpFindLatestBlob} from '../lib/nfl-sgp-snapshot-status.js';
 import {publicNflGameView} from '../lib/public-nfl-view.js';
 import {publicSharpReview} from '../lib/public-sharp-review.js';
 
 // Fan-facing saved prediction data ONLY. No paid odds, ESPN, AI, admin APIs,
 // market regeneration, mutations, or live sportsbook verification.
 export default async function handler(req,res){
- res.setHeader('Cache-Control','public, s-maxage=45, must-revalidate');
+ res.setHeader('Cache-Control','private, no-store, max-age=0');
  if(req.method!=='GET')return res.status(405).json({ok:false,error:'method_not_allowed'});
  const date=String(req.query?.date||''),gameId=String(req.query?.gameId||'');
  const path=nflSgpSnapshotPath(date,gameId);
@@ -16,8 +15,7 @@ export default async function handler(req,res){
  if(day<today-2||day>today+30)
   return res.status(400).json({ok:false,error:'date_outside_public_window'});
  try{
-  const records=await list({prefix:path,limit:5});
-  const file=(records.blobs||[]).find(x=>x.pathname===path);
+  const file=await nflSgpFindLatestBlob({date,gameId});
   if(!file)return res.status(200).json({ok:true,date,gameId,status:'PENDING',
    message:'Matchup analysis is waiting for its first saved update.',
    categories:{td:[],passing:[],rushing:[],receiving:[],receptions:[]},
@@ -26,6 +24,7 @@ export default async function handler(req,res){
    signal:AbortSignal.timeout(7000)});
   if(!response.ok)throw Error('snapshot_read_unavailable');
   const snap=await response.json();
+  res.setHeader('X-Momentum-Snapshot-Version',String(snap?.at||''));
   const safe=publicNflGameView(snap,{date,gameId,includeLastSaved:true});
   if(!safe.ok)return res.status(200).json({ok:true,date,gameId,status:'REVIEW',
     message:'Game predictions could not be validated.',

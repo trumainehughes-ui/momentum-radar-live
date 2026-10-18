@@ -44,11 +44,12 @@ test("observed combined quote trumps a different independent-leg estimate",()=>{
 test("Small and Medium target NET profit bands; Nuke minimum +10000",()=>{
  assert.equal(classifyNflSgpOdds(1999),"OUTSIDE_TIER_BANDS");
  assert.equal(classifyNflSgpOdds(2000),"Small");
- assert.equal(classifyNflSgpOdds(3000),"Small");
+ assert.equal(classifyNflSgpOdds(2999),"Small");
+ assert.equal(classifyNflSgpOdds(3000),"Medium");
  assert.equal(classifyNflSgpOdds(3001),"Medium");
  assert.equal(classifyNflSgpOdds(8000),"Medium");
  assert.equal(classifyNflSgpOdds(8001),"OUTSIDE_TIER_BANDS");
- assert.equal(classifyNflSgpOdds(10000),"OUTSIDE_TIER_BANDS");
+ assert.equal(classifyNflSgpOdds(10000),"Nuke");
  assert.equal(classifyNflSgpOdds(10001),"Nuke");
 });
 test("production hotfix rejects all-TD Small model and marks it unpublishable",()=>{
@@ -57,7 +58,8 @@ test("production hotfix rejects all-TD Small model and marks it unpublishable",(
  assert.ok(api.includes("const mix=fillNflSgpMarketMix({risk,count,pool:riskPool,legs,add})"));
  assert.ok(api.includes("const mix=fillNflSgpMarketMix({risk,count,pool:rotated,legs,add})"));
  assert.ok(api.includes("modelOnly:true,candidateComplete:tierAssessment.compositionOk,publishable:false"));
- assert.ok(api.includes("sgps.Analytics=(sgps.Analytics||[]).map(s=>({...s,publishable:false"));
+ assert.ok(api.includes("c?.mode==='MODEL_ONLY'&&c?.publishable===false"));
+ assert.ok(api.includes("marketSelectionStatus:'NO_EXACT_DRAFTKINGS_OR_FANDUEL_OFFER'"));
  assert.ok(!api.includes("sgps.Analytics=buildAnalyticsSgp(categories,ctx).map(s=>({...s,publishable:true"));
  assert.ok(api.includes("CACHE_SCHEMA='v92-strict-nuke-profit-20261011'"));
 });

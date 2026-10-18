@@ -1,0 +1,21 @@
+name: SGP market separation tests
+on:
+  pull_request:
+    paths:
+      - 'lib/nfl-sgp-model-yardage-cards.js'
+      - 'public-nba.js'
+      - 'tests/sgp-market-separation.test.js'
+      - '.github/workflows/sgp-market-separation.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Run SGP market regression tests
+        run: node --test tests/sgp-market-separation.test.js

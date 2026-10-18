@@ -17,7 +17,9 @@ function setup(){
    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   })[s]),
   renderPublicBookResearch:()=>'<div>Public odds detail</div>',
-  renderOdds:q=>'<div>BOOK QUOTE '+q[0]?.americanOdds+'</div>'
+  renderOdds:q=>'<div>BOOK QUOTE '+q[0]?.americanOdds+'</div>',
+  URL,
+  publicWhy:(_leg,cat)=>cat==='td'?'Scoring opportunity evidence.':'Market-specific matchup evidence.'
  };
  vm.runInNewContext(snippet+';this.sgps=renderParlays;this.prop=sgpSelectionDisplay;',context);
  return context;
@@ -48,15 +50,35 @@ const picks={verifiedQuotes:[],inactivesVerified:false,updatedDataCurrent:false,
    leg('C.J. Stroud','passing','310+ yards'),
    leg('Jakobi Meyers','receptions','4+ receptions')]}
  ]};
-test('renders Small / Medium / Nuke with 4/5/7 clear leg rows and exact targets',()=>{
+test('rejects model-only legs that have no verified sportsbook offers',()=>{
  const html=setup().sgps(picks);
+ assert.equal((html.match(/class="sgp-slip"/g)||[]).length,0);
+ assert.ok(html.includes('SGP selections are being refreshed'));
+ assert.ok(html.includes('Combined sportsbook odds and player lines are not verified'));
+});
+const verifiedLeg=(player,team,category,target)=>leg(player,category,target,{
+ team,bookOffer:{available:true,book:'DraftKings',line:category==='td'?null:target,
+  odds:-110,checkedAt:new Date().toISOString(),
+  sourceUrl:'https://sportsbook.draftkings.com/'}
+});
+const verifiedPicks={
+ home:'JAX',away:'HOU',status:'CURRENT',updatedDataCurrent:true,
+ inactivesVerified:false,verifiedQuotes:[],
+ researchParlays:['Small','Medium','Nuke'].map(risk=>({
+  risk,mode:'MODEL_ONLY',researchFromCurrentMarkets:true,
+  legs:[verifiedLeg('Trevor Lawrence','JAX','passing',170),
+   verifiedLeg('Parker Washington','JAX','td','Anytime TD'),
+   verifiedLeg('Parker Washington','JAX','receiving',45)]
+ }))
+};
+test('renders each verified player market separately in all three tiers',()=>{
+ const html=setup().sgps(verifiedPicks);
  assert.equal((html.match(/class="sgp-slip"/g)||[]).length,3);
- assert.equal((html.match(/class="sgp-leg"/g)||[]).length,16);
- for(const risk of ['Small','Medium','Nuke'])assert.ok(html.includes('>'+risk+'</strong>'));
- for(const expected of ['Trevor Lawrence','Passing yards','170+',
-  'Xavier Hutchinson','Receiving yards','30+','Parker Washington',
-  'Anytime touchdown','Score a TD','Brenton Strange','Receptions','2+',
-  'Bhayshul Tuten','Rushing yards','60+','C.J. Stroud','310+'])
+ assert.equal((html.match(/class="sgp-leg"/g)||[]).length,9);
+ assert.equal((html.match(/class="sgp-leg-why"/g)||[]).length,9);
+ assert.equal((html.match(/Parker Washington/g)||[]).length,6);
+ for(const expected of ['Passing yards','170+','Receiving yards','45+',
+  'Anytime touchdown','Score a TD','Small','Medium','Nuke'])
   assert.ok(html.includes(expected),expected);
 });
 test('suppresses confidence, model narration and repeated verification paragraphs',()=>{
@@ -70,9 +92,9 @@ test('suppresses confidence, model narration and repeated verification paragraph
 });
 test('public bookmaker details stay available but are collapsed until requested',()=>{
  const html=setup().sgps(picks);
- assert.ok(html.includes('<details class="sgp-research-details">'));
- assert.ok(html.includes('<summary>Public sportsbook price research (optional)</summary>'));
- assert.ok(!html.includes('<details class="sgp-research-details" open'));
+ assert.ok(html.includes('<section class="sgp-research-details"'));
+ assert.ok(html.includes('Public DraftKings and FanDuel player odds'));
+ assert.ok(!html.includes(' class="sgp-research-details" open'));
  assert.ok(html.includes('Public odds detail'));
 });
 test('already-authenticated combined sportsbook quote remains distinct and visible',()=>{
@@ -83,10 +105,12 @@ test('already-authenticated combined sportsbook quote remains distinct and visib
  assert.ok(html.includes('Sportsbook-issued combined quotes'));
  assert.ok(!html.includes('Model picks only'));
 });
-test('escapes user-controlled player names rather than injecting HTML',()=>{
- const html=setup().sgps({...picks,parlays:[{risk:'Small',mode:'MODEL_ONLY',
-  legs:[leg('<img src=x onerror=alert(1)>','passing','170+ yards'),
-   leg('Test Player','td','Anytime TD')]}]});
+test('escapes untrusted names inside a verified selection',()=>{
+ const payload=verifiedLeg('<img src=x onerror=alert(1)>','JAX','passing',170);
+ const html=setup().sgps({...verifiedPicks,researchParlays:[{
+  risk:'Small',mode:'MODEL_ONLY',researchFromCurrentMarkets:true,
+  legs:[payload,verifiedLeg('Parker Washington','JAX','td','Anytime TD'),
+   verifiedLeg('Trevor Lawrence','JAX','passing',170)]}]});
  assert.ok(html.includes('&lt;img'));
  assert.ok(!html.includes('<img'));
  assert.doesNotThrow(()=>new vm.Script(script));
@@ -98,21 +122,12 @@ test('public SGP styling allows a readable single-column phone layout',()=>{
  assert.ok(page.includes('Simple player and prop selections'));
 });
 
-test('older saved NFL game still shows all Small, Medium and Nuke model slips rather than a false empty message',()=>{
- const snapshot={...picks,status:'LAST_SAVED',updatedDataCurrent:false,
-  inactivesVerified:false,verifiedQuotes:[],
-  parlays:picks.parlays.map(x=>({...x,mode:'STALE_MODEL_ONLY',outdated:true}))};
- const html=setup().sgps(snapshot);
- assert.equal((html.match(/class="sgp-slip"/g)||[]).length,3);
- assert.equal((html.match(/class="sgp-leg"/g)||[]).length,16);
- for(const risk of ['Small','Medium','Nuke'])assert.ok(html.includes('>'+risk+'</strong>'));
- assert.ok(html.includes('Needs refresh · Saved model selections'));
- assert.equal((html.match(/Needs refresh<\/span>/g)||[]).length,3);
- assert.ok(html.includes('Trevor Lawrence'));
- assert.ok(html.includes('Parker Washington'));
- assert.ok(!html.includes('No model parlay selections are available'));
+test('saved unverified NFL models cannot be promoted into current sportsbook slips',()=>{
+ const html=setup().sgps({...picks,status:'LAST_SAVED',
+  parlays:picks.parlays.map(x=>({...x,mode:'STALE_MODEL_ONLY',outdated:true}))});
+ assert.equal((html.match(/class="sgp-slip"/g)||[]).length,0);
+ assert.ok(html.includes('SGP selections are being refreshed'));
  assert.ok(!html.includes('BOOK QUOTE'));
- assert.equal((html.match(/Model picks only/g)||[]).length,1);
 });
 test('stale game cannot display a purported verified combined price even if quote metadata leaks through',()=>{
  const snapshot={...picks,status:'LAST_SAVED',updatedDataCurrent:false,
@@ -129,6 +144,6 @@ test('unknown or malformed model candidate remains hidden rather than being prom
    {risk:'Medium',mode:'MODEL_ONLY',
     legs:[leg('Player One','td','Anytime TD'),{player:'Broken'}]}]};
  const html=setup().sgps(snapshot);
- assert.ok(html.includes('No complete model SGP tier was generated'));
+ assert.ok(html.includes('SGP selections are being refreshed'));
  assert.ok(!html.includes('sgp-leg-name'));
 });
