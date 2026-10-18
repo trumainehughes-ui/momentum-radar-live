@@ -7,7 +7,8 @@ const now=Date.parse('2026-10-17T12:00:00Z');
 const row={eventID:'401872999',playerID:'athlete-12',
  marketName:'player_rush_yds',line:65.5};
 const book={book:'DraftKings',available:true,odds:-115,line:65.5,
- checkedAt:new Date(now-20_000).toISOString(),
+ offerId:'selection-1001',gameId:'401872999',playerId:'athlete-12',
+ category:'rushing',checkedAt:new Date(now-20_000).toISOString(),
  sourceUrl:'https://sportsbook.draftkings.com/event/401872999',sourceProvider:'DIRECT_OFFICIAL_SPORTSBOOK'};
 
 test('timestamped official-book individual market remains eligible',()=>{
@@ -76,4 +77,18 @@ test('HTTPS on another company, a fake subdomain, or wrong book is never officia
  assert.equal(nflBookOfferEligible(row,{
   ...book,sourceProvider:'SportsGameOdds'
  },'DraftKings',now),false);
+});
+
+test('wrong athlete, game, market or missing official selection ID is not bookable',()=>{
+ const changes=[
+  {offerId:null},{gameId:'401872996'},{playerId:'another-athlete'},
+  {category:'receiving'},{market:'player_reception_yds',category:null},
+  {category:'td'}
+ ];
+ for(const change of changes)
+  assert.equal(nflBookOfferEligible(row,{...book,...change},'DraftKings',now),false,
+   JSON.stringify(change));
+ assert.equal(nflBookOfferEligible(row,{
+  ...book,offerId:null,selectionId:'auth-selection-1001'
+ },'DraftKings',now),true);
 });
