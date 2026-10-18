@@ -10,25 +10,28 @@ const html=cell=>'<table><tbody><tr>'+
  ['HOU Texans @ JAX Jaguars','10/18, 09:30AM','Anytime TD Scorer','Parker Washington']
  .map(x=>'<td>'+x+'</td>').join('')+
  '<td>'+cell+'</td></tr></tbody></table>';
-test('extract exact sportsbook event and public outcome ID without inventing a price',()=>{
- const cell=oddsCell('https://sportsbook.draftkings.com/event/34118244?outcomes=0QA378200505','+155');
+test('extract exact sportsbook event and player-linked public outcome anchor without inventing a price',()=>{
+ const cell=oddsCell('https://sportsbook.draftkings.com/event/34118244?outcomes=0QA378200505#2317691306_13L88808Q1-849064763Q20','+155');
  const value=draftKingsSportsbookSelectionLink(cell);
  assert.equal(value.bookEventId,'34118244');
- assert.equal(value.bookSelectionId,'0QA378200505');
- assert.equal(value.bookSelectionUrl,'https://sportsbook.draftkings.com/event/34118244?outcomes=0QA378200505');
+ assert.equal(value.bookMarketRouteId,'0QA378200505');
+ assert.equal(value.bookOutcomeAnchor,'2317691306_13L88808Q1-849064763Q20');
+ assert.equal(value.bookSelectionUrl,'https://sportsbook.draftkings.com/event/34118244?outcomes=0QA378200505#2317691306_13L88808Q1-849064763Q20');
  const [offer]=parseDraftKingsNetworkNflProps(html(cell),{date,home:'JAX',away:'HOU'});
  assert.equal(offer.player,'Parker Washington');
- assert.equal(offer.bookSelectionId,'0QA378200505');
+ assert.equal(offer.bookOutcomeAnchor,'2317691306_13L88808Q1-849064763Q20');
+ assert.equal(offer.bookSelectionId,undefined);
  assert.equal(offer.odds,155);
  assert.equal(offer.verification,'PUBLIC_PAGE_OBSERVATION_ONLY');
  assert.ok(!offer.combinedBookQuoteVerified);
  assert.ok(!offer.available);
 });
 test('official slugged event links and encoded query strings are handled safely',()=>{
- const link='https://sportsbook.draftkings.com/event/hou-texans-@-jax-jaguars/34118244?outcomes=0QA378200505&amp;source=dkn';
+ const link='https://sportsbook.draftkings.com/event/hou-texans-@-jax-jaguars/34118244?outcomes=0QA378200505&amp;source=dkn#2317691306_13L88808Q1-849064763Q20';
  const value=draftKingsSportsbookSelectionLink(oddsCell(link,'+155'));
  assert.equal(value.bookEventId,'34118244');
- assert.equal(value.bookSelectionId,'0QA378200505');
+ assert.equal(value.bookMarketRouteId,'0QA378200505');
+ assert.equal(value.bookOutcomeAnchor,'2317691306_13L88808Q1-849064763Q20');
 });
 test('reject sportsbook lookalikes, third parties, path spoofing and unrelated web links',()=>{
  for(const href of [
@@ -54,4 +57,18 @@ test('public displays first-party selection links but never upgrades DKN list to
  assert.match(ui,/u\.hostname==='sportsbook\.draftkings\.com'/);
  assert.match(ui,/target="_blank" rel="noopener noreferrer"/);
  assert.match(ui,/not authenticated current sportsbook selections or combined parlay odds/);
+});
+
+test('different players may share the outcomes query but must have distinct deep-link anchors',()=>{
+ const first=draftKingsSportsbookSelectionLink(oddsCell(
+  'https://sportsbook.draftkings.com/event/34118244?outcomes=0QA378200505#2317691306_13L88808Q1-849064763Q20','+155'));
+ const second=draftKingsSportsbookSelectionLink(oddsCell(
+  'https://sportsbook.draftkings.com/event/34118244?outcomes=0QA378200505#2317691305_13L88808Q11230695518Q20','+135'));
+ assert.equal(first.bookMarketRouteId,second.bookMarketRouteId);
+ assert.notEqual(first.bookOutcomeAnchor,second.bookOutcomeAnchor);
+ assert.notEqual(first.bookSelectionUrl,second.bookSelectionUrl);
+ assert.equal(first.bookSelectionId,undefined);
+ assert.equal(second.bookSelectionId,undefined);
+ assert.equal(draftKingsSportsbookSelectionLink(oddsCell(
+  'https://sportsbook.draftkings.com/event/34118244?outcomes=0QA378200505','+155')),null);
 });
