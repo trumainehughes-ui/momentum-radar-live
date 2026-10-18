@@ -12,6 +12,7 @@ import {filterCompleteNflBookSgps} from '../lib/nfl-book-sgp-candidates.js';
 import {evaluateNflBookQuoteReadiness} from '../lib/nfl-book-quote-readiness.js';
 import {evaluateSportBookSgpLineup,sportResearchVerificationStatus} from '../lib/sport-sgp-verification-gate.js';
 import {nflPublicMarketResponse} from '../lib/nfl-public-market-response.js';
+import {nflPublicBookTrustedOrigin} from './nfl-public-book-research.js';
 import {mergeAuthorizedPropLineRows,nflAuthorizedBookSgpRows} from '../lib/nfl-propline-authorized-merge.js';
 import {shouldServeCachedNflMarkets,signedNflCollectorLock} from '../lib/nfl-market-response-cache.js';
 import {chooseNflCheckpointQuotes} from '../lib/nfl-checkpoint-quote-selection.js';
@@ -644,10 +645,11 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
   if(modelOnlyPrimer)oddsDebug.stage='ESPN_MODEL_ONLY_SUNDAY_PRIMER';
   if(!modelOnlyPrimer&&DIRECT_PUBLIC_ODDS_ONLY)try{
    requestStage='first_party_sportsbook_websites';
-   const deploymentHost=String(process.env.VERCEL_URL||'').toLowerCase();
-   const safeHost=/^momentum-radar-live-[a-z0-9-]+\.vercel\.app$/.test(deploymentHost)?
-    deploymentHost:'momentum-radar-live.vercel.app';
-   const url='https://'+safeHost+'/api/nfl-public-book-research?date='+
+   // A preview must never silently pull a production game's sportsbook
+   // observations. Unknown deployment identity fails closed and remains model-only.
+   const trustedOrigin=nflPublicBookTrustedOrigin(process.env);
+   if(!trustedOrigin)throw Error('first_party_collector_deployment_identity_unverified');
+   const url=trustedOrigin+'/api/nfl-public-book-research?date='+
     encodeURIComponent(date)+'&gameId='+encodeURIComponent(gameId);
    const response=await timedFetch(url,{cache:'no-store',signal:AbortSignal.timeout(12500)});
    if(!response.ok)throw Error('public_books_http_'+response.status);
