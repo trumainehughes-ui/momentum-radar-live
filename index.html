@@ -329,7 +329,9 @@ function nflPublishedSgpParityHtml(parity){
   Date.now()-Date.parse(q.quotedAt)<=15*60000&&
   Array.isArray(q.legs)&&q.legs.length>=4&&q.legs.every(l=>
    l.bookOffer?.attested===true&&l.bookOffer?.book===q.book)):[];
- return '<div class="card" data-owner-nfl-parity="1" style="grid-column:1/-1"><b>Published Small / Medium / Nuke • same player forecasts as customer site</b>'+
+ return '<div class="card" data-owner-nfl-parity="1" data-published-game-version="'+
+  nflEscape(parity?.updatedAt||'')+
+  '" style="grid-column:1/-1"><b>Published Small / Medium / Nuke • same player forecasts as customer site</b>'+
   '<div class="note">One screened game snapshot for both sites • '+nflEscape(parity?.updatedAt||'Awaiting current saved update')+'. These are model projections, NOT verified sportsbook selections or correlated prices. Advanced bookmaker-source and injury diagnostics remain separate.</div>'+
   ['Small','Medium','Nuke'].map(risk=>{
    const t=tiers.find(x=>x?.risk===risk);
