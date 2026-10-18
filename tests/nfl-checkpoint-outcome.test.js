@@ -31,3 +31,25 @@ test('checkpoint audit rejects arbitrary tier names and invalid state',()=>{
  assert.equal(result.quoteRejections[1].status.length,70);
  assert.equal(sanitizeNflCheckpointOutcome({...input,status:'UNKNOWN'}),null);
 });
+
+
+test('checkpoint never verifies +2600 five-leg Nuke even if flagged verified',()=>{
+ const legs=[
+  {name:'Javonte Williams',cat:'td'},
+  {name:'Jordan Love',cat:'passing'},
+  {name:'Christian Watson',cat:'receiving'},
+  {name:'Matthew Golden',cat:'receiving'},
+  {name:'George Pickens',cat:'receptions'}
+ ];
+ const card={risk:'Nuke',legs,actualSgpOdds:2600,combinedBookQuoteVerified:true,publishable:true};
+ const market={ok:true,oddsDebug:{providerNativeRows:5},sgps:{DraftKings:[card],FanDuel:[],combinedBookQuoteVerified:true}};
+ const result=classifyNflCheckpointMarket(market);
+ assert.equal(result.verifiedBookTiers,0);
+ assert.equal(result.status,'PROVIDER_SELECTIONS_UNQUOTED');
+});
+
+test('checkpoint rejects malformed composition even with +10000 quote',()=>{
+ const card={risk:'Nuke',legs:[{name:'A',cat:'td'}],actualSgpOdds:10000,combinedBookQuoteVerified:true,publishable:true};
+ const market={ok:true,oddsDebug:{providerNativeRows:1},sgps:{DraftKings:[card],FanDuel:[],combinedBookQuoteVerified:true}};
+ assert.equal(classifyNflCheckpointMarket(market).verifiedBookTiers,0);
+});
