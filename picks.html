@@ -574,10 +574,10 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   // Customer-facing projections are rendered exclusively from the public
   // read-only snapshot for this exact game. Do not rebuild from a separate
   // /api/nfl-markets request, compact model, or browser-local forecast.
-  const savedTiers=Array.isArray(d.parlays)?d.parlays:[];
+  const savedTiers=Array.isArray(d.modelResearchTiers)?d.modelResearchTiers:[];
   const syncedHtml='<div class="sgp-slips">'+['Small','Medium','Nuke'].map(risk=>{
    const card=savedTiers.find(c=>c?.risk===risk&&
-    ['MODEL_ONLY','STALE_MODEL_ONLY'].includes(c.mode)&&
+    c.mode==='MODEL_RESEARCH'&&
     Array.isArray(c.legs)&&c.legs.length>0);
    if(!card)return '<section class="sgp-slip"><div class="sgp-slip-head"><strong>'+
     esc(risk)+'</strong></div><p class="sgp-brief-status">Awaiting this game\'s latest published predictions.</p></section>';
@@ -589,7 +589,8 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     return true;
    });
    return '<section class="sgp-slip"><div class="sgp-slip-head"><strong>'+
-    esc(risk)+'</strong><span>'+esc(legs.length)+' projections</span></div>'+
+    esc(risk)+'</strong><span>'+esc(legs.length)+' / '+esc(card.requiredLegs)+
+    ' researched legs'+(card.complete?'':' · Not ready')+'</span></div>'+
     '<ol class="sgp-leg-list">'+legs.map(l=>{
      const category=String(l.category||'').toLowerCase();
      const name={td:'Anytime touchdown',receiving:'Receiving yards',
@@ -597,7 +598,9 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
       'Player prop';
      return '<li class="sgp-leg"><div class="sgp-leg-name">'+esc(l.player)+'</div>'+
       '<div class="sgp-leg-selection"><span>'+esc(name)+'</span><strong>'+
-      esc(category==='td'?'Anytime TD':l.target)+'</strong></div>'+
+      esc(category==='td'?
+       (l.modelChancePct==null?'TD model not ready':l.modelChancePct+'% modeled TD chance'):
+       (Number.isFinite(Number(l.projection))?l.projection+' projected '+(category==='receptions'?'receptions':'yards'):'Projection not ready'))+'</strong></div>'+
       '<div class="sgp-leg-why">Why: '+esc(l.projectionNote||'Based on the latest published matchup data.')+'</div></li>';
     }).join('')+'</ol></section>';
   }).join('')+'</div>';
