@@ -6,8 +6,8 @@ const pub=readFileSync(new URL('../picks.html',import.meta.url),'utf8');
 const admin=readFileSync(new URL('../index.html',import.meta.url),'utf8');
 test('public SGP never falls back to model-generated betting slips',()=>{
  assert.match(pub,/const candidateModels=Array\.isArray\(d\.researchParlays\)\?d\.researchParlays:\[\]/);
- assert.match(pub,/c\.legs\.every\(exactOffer\)/);
- assert.match(pub,/l\?\.sportsbookVerified===true/);
+ assert.match(pub,/c\.legs\.every\(l=>/);
+ assert.match(pub,/o\?\.available!==true/);
 });
 test('production SGP does not print unverified model thresholds as picks',()=>{
  assert.match(admin,/Projection-only thresholds are intentionally hidden/);
