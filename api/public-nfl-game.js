@@ -1,5 +1,4 @@
-import {list} from '@vercel/blob';
-import {nflSgpSnapshotPath} from '../lib/nfl-sgp-snapshot-status.js';
+import {nflSgpSnapshotPath,nflSgpFindLatestBlob} from '../lib/nfl-sgp-snapshot-status.js';
 import {publicNflGameView} from '../lib/public-nfl-view.js';
 import {publicSharpReview} from '../lib/public-sharp-review.js';
 
@@ -16,9 +15,7 @@ export default async function handler(req,res){
  if(day<today-2||day>today+30)
   return res.status(400).json({ok:false,error:'date_outside_public_window'});
  try{
-  const records=await list({prefix:path,limit:5});
-  const file=(records.blobs||[]).filter(x=>x.pathname===path)
-   .sort((a,b)=>Date.parse(b.uploadedAt||0)-Date.parse(a.uploadedAt||0))[0];
+  const file=await nflSgpFindLatestBlob({date,gameId});
   if(!file)return res.status(200).json({ok:true,date,gameId,status:'PENDING',
    message:'Matchup analysis is waiting for its first saved update.',
    categories:{td:[],passing:[],rushing:[],receiving:[],receptions:[]},
