@@ -106,6 +106,9 @@ test('matchup game page visibly displays two-way source, model hold status and s
  assert.ok(html.includes("nflEscape(x.status||'PENDING')"));
  assert.ok(html.includes('ESPN/official report status is not proof of confirmed inactive'));
  assert.ok(html.includes('Momentum scores do not guarantee positive expected value'));
- assert.ok(html.includes("sourceChecks+sourceHelp+sportsbookFeedNote+\n '</div>'+reviewHtml+"));
- assert.ok(html.includes("$('#nflSGP').innerHTML=reviewHtml+['DraftKings','FanDuel']"));
+ assert.ok(html.includes('sourceChecks+sourceHelp+sportsbookFeedNote+'));
+ assert.ok(html.includes("'<details class=\"card\" style=\"grid-column:1/-1\"><summary"));
+ assert.ok(html.includes('nflRefreshInjuryPanel(g.gameId)'));
+ assert.ok(html.includes("['DraftKings','FanDuel'].map(book=>"));
+ assert.ok(html.includes('modelChoiceHtml+sgpYardageHtml+autoDkHtml+bookCaptureHtml+capturedDraftHtml+reviewHtml+'));
 });
