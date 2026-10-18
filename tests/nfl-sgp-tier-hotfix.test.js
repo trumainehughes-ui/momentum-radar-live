@@ -58,7 +58,8 @@ test("production hotfix rejects all-TD Small model and marks it unpublishable",(
  assert.ok(api.includes("const mix=fillNflSgpMarketMix({risk,count,pool:riskPool,legs,add})"));
  assert.ok(api.includes("const mix=fillNflSgpMarketMix({risk,count,pool:rotated,legs,add})"));
  assert.ok(api.includes("modelOnly:true,candidateComplete:tierAssessment.compositionOk,publishable:false"));
- assert.ok(api.includes("sgps.Analytics=(sgps.Analytics||[]).map(s=>({...s,publishable:false"));
+ assert.ok(api.includes("c?.mode==='MODEL_ONLY'&&c?.publishable===false"));
+ assert.ok(api.includes("marketSelectionStatus:'NO_EXACT_DRAFTKINGS_OR_FANDUEL_OFFER'"));
  assert.ok(!api.includes("sgps.Analytics=buildAnalyticsSgp(categories,ctx).map(s=>({...s,publishable:true"));
  assert.ok(api.includes("CACHE_SCHEMA='v92-strict-nuke-profit-20261011'"));
 });
