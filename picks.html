@@ -1077,7 +1077,12 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   const fdHealth=state.nbaBookResearch?.sourceHealth?.FanDuel;
   const nbaSourceNote=fdHealth?.requiresMachineReadableMarketFeed===true?
    '<div class="panel" style="margin:12px 0;padding:12px 16px"><strong>NBA sportsbook source check</strong><p class="sub">FanDuel Colorado prices have not been verified by this collector. Model projections are not sportsbook quotes.</p></div>':'';
-  $('#match-content').innerHTML=tabs+nbaSourceNote+'<div class="detail-body">'+body+'</div>';
+  const crosscheckSlot=state.nbaTab==='sgps'?'<div id="optimal-sgp-crosscheck"></div>':'';
+  $('#match-content').innerHTML=tabs+nbaSourceNote+'<div class="detail-body">'+body+crosscheckSlot+'</div>';
+  if(crosscheckSlot&&window.momentumOptimalCrosscheck)
+   void window.momentumOptimalCrosscheck.showOptimalCrosscheck({
+    league:'nba',date:state.date,gameId:String(state.selected),
+    model:d,target:'#optimal-sgp-crosscheck'});
  }
  async function loadNbaPublicBook(date,gameId){
   const key=String(gameId);
