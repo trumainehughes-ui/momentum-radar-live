@@ -51,3 +51,14 @@ test('separate TD and receiving selections render as independent public legs whe
  assert.match(html,/Receiving yards/);
  assert.equal((html.match(/class="sgp-leg-why"/g)||[]).length,3);
 });
+
+test('internal sportsbook matcher retains distinct markets for same player',()=>{
+ const owner=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const start=owner.indexOf('const matched=[],used=new Set();');
+ const end=owner.indexOf('const choice=window.momentumSelectBookAlternate?.(',start);
+ assert.ok(start>=0&&end>start);
+ const selection=owner.slice(start,end);
+ assert.match(selection,/used\.has\(marketKey\)/);
+ assert.match(selection,/used\.add\(marketKey\)/);
+ assert.doesNotMatch(selection,/used\.has\(name\)/);
+});
