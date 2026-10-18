@@ -276,7 +276,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  // Public NFL modules mirror production's consumer-facing navigation.
  const rankedModules=new Set(['td','passing','rushing','receiving','receptions']);
  const gameModules=new Set(['games','sgps']);
- const allowedModules=new Set([...rankedModules,...gameModules,'best']);
+ const allowedModules=new Set([...rankedModules,...gameModules,'best','live']);
  function renderNflModule(){
   const nfl=state.league==='nfl',module=allowedModules.has(state.module)?state.module:'games';
   const ranking=nfl&&rankedModules.has(module);
