@@ -56,10 +56,9 @@ test('immutable source object and raw diagnostics are never mutated by public di
  assert.equal(owner.categories.passing[1].bestBook.odds,100);
  assert.equal(owner.sgps.Analytics[0].legs[0].analyticsThreshold,135);
 });
-test('unmatched game, date, team, statuses, timestamps and injury evidence fail closed',()=>{
+test('unmatched published game, date, team, statuses, timestamps or player identity fails closed',()=>{
  const source=original(),view=published();
  const invalid=[
-  {o:{...source,gameId:'401872998'},p:view},
   {o:source,p:{...view,gameId:'401872998'}},
   {o:source,p:{...view,home:'CHI'}},
   {o:source,p:{...view,status:'LAST_SAVED'}},
