@@ -422,7 +422,11 @@ async function nflOpen(id,forceMarkets=false){let independentPropsHtml='';let ve
   date:$('#nflDate')?.value||new Date(g.kickoff).toISOString().slice(0,10),gameId:id
  }),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null)
 ]).then(async ([raw,publishedGame,published,autoDK])=>{
+ // A late response from a previously selected matchup must never overwrite
+ // the active matchup's published player list or SGP cards.
+ if(!nflSelected||String(nflSelected.gameId)!==String(id)||!nflData?.date)return;
  const parityModule=await import('/lib/nfl-owner-public-parity.js');
+ if(!nflSelected||String(nflSelected.gameId)!==String(id))return;
  const parity=parityModule.ownerNflPublishedParity(raw,publishedGame,{
   date:nflData?.date||$('#nflDate')?.value||'',gameId:id});
  // Never mutate the cached raw collector response. Owner projections and
