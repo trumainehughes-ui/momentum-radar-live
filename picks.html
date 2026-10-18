@@ -507,15 +507,17 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    if(!c.legs.every(l=>{
     const o=l.bookOffer;
     if(o?.available!==true||o.book!==firstBook)return false;
-    let hostname='';
-    try{const url=new URL(o.sourceUrl);if(url.protocol!=='https:')return false;hostname=url.hostname}catch{return false}
-    if(o.book==='DraftKings'&&hostname!=='sportsbook.draftkings.com')return false;
-    if(o.book==='FanDuel'&&!['co.sportsbook.fanduel.com','sportsbook.fanduel.com'].includes(hostname))return false;
+    // Only server-attested sportsbook offers from the canonical snapshot
+    // can become displayed SGP selections. Source URLs stay server-side.
+    if(o.attested!==true)return false;
     const age=Date.now()-Date.parse(String(o.checkedAt||''));
     return Number.isFinite(age)&&age>=-60000&&age<=15*60000&&
      (l.category==='td'||l.target!=null&&o.line!=null&&Number(o.line)===Number(l.target))&&
      Number.isFinite(Number(o.odds));
    }))return false;
+   if(c.combinedOddsVerified!==true||!quotes.some(q=>
+    q.book===firstBook&&q.risk===c.risk&&
+    Number(q.americanOdds)===Number(c.americanOdds)))return false;
    if(!['Small','Medium','Nuke'].includes(c?.risk)||
       c.mode!=='VERIFIED_BOOK_SGP'||c.outdated===true||
       (d.status==='LAST_SAVED'||d.updatedDataCurrent===false)||
