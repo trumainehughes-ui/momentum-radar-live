@@ -1,0 +1,23 @@
+name: NFL Official DraftKings Selection Links
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  selection-links:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Syntax and first-party selection link verification
+        run: |
+          node --check lib/nfl-public-sportsbook-observer.js
+          node --test tests/nfl-dk-bookmaker-selection-links.test.js
+          node --test tests/nfl-first-party-book-observer-full-markets.test.js tests/nfl-book-offer-provenance.test.js
