@@ -120,8 +120,13 @@ test('anytime TD uses current completed weeks and counts one game per player',()
  assert.ok(src.includes('const gp=Math.max(1,u.games.size),oppPG=opps/gp'));
  assert.ok(!src.includes('u.games++;usage.set(id,u)'));
 });
-test('verified sportsbook availability is set only by provider and qualified prop rows',()=>{
+test('NFL market metadata reports direct first-party offers, not unlicensed third-party odds APIs',()=>{
  const src=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
- assert.ok(src.includes("sportsbookVerificationAvailable:Boolean(gameId&&sgpRows.length>0&&['The Odds API','SportsGameOdds (backup)'].includes(provider))"));
- assert.ok(src.includes('combinedBookSgpQuoteAvailable:false'));
+ assert.ok(src.includes('const DIRECT_PUBLIC_ODDS_ONLY=true'));
+ assert.ok(src.includes('const exactSiteOffers='));
+ assert.ok(src.includes("String(o.gameId||'')===String(gameId)"));
+ assert.ok(src.includes("Number.isFinite(Date.parse(o.observedAt||''))"));
+ assert.ok(src.includes('sgpEligibleMarketRows:sgpGateDiagnostics.eligible'));
+ assert.ok(src.includes('combinedBookSgpQuoteAvailable:sgpResponse.combinedBookQuoteVerified'));
+ assert.ok(src.includes('Only verified bookmaker quotes can be presented as bettable parlays.'));
 });
