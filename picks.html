@@ -520,6 +520,14 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    risk==='Nuke'?n>=10000:false;
  }
  function renderParlays(d){
+  // Customer SGPs must be scoped to exactly the currently selected game.
+  // Saved, expired, cross-game or malformed payloads never become live picks.
+  const updatedAtMs=Date.parse(String(d?.updatedAt||''));
+  const snapshotFresh=d?.ok===true&&d?.status==='CURRENT'&&
+   d?.updatedDataCurrent===true&&String(d?.gameId||'')===String(state.selected||'')&&
+   String(d?.date||'')===String(state.date||'')&&
+   Number.isFinite(updatedAtMs)&&updatedAtMs<=Date.now()+60*1000&&
+   Date.now()-updatedAtMs<=15*60*1000;
   const tierDetails=typeof window!=='undefined'?window.momentumNflSgpModelYardage?.buildNflProjectedSgpTierDetails({
    market:state.currentBookSgpModel,date:state.date,gameId:state.selected,
    home:d.home,away:d.away}):null;
@@ -615,7 +623,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   // Customer-facing projections are rendered exclusively from the public
   // read-only snapshot for this exact game. Do not rebuild from a separate
   // /api/nfl-markets request, compact model, or browser-local forecast.
-  const savedTiers=Array.isArray(d.modelResearchTiers)?d.modelResearchTiers:[];
+  const savedTiers=snapshotFresh&&Array.isArray(d.modelResearchTiers)?d.modelResearchTiers:[];
   const syncedHtml='<div class="sgp-slips">'+['Small','Medium','Nuke'].map(risk=>{
    const card=savedTiers.find(c=>c?.risk===risk&&
     c.mode==='MODEL_RESEARCH'&&
@@ -658,13 +666,16 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    // Complete, source-verified day-ahead parlays may exist before official
    // game-day inactives are published. Each leg is still screened for holds
    // by the server, and the visitor must recheck before kickoff.
-   const eligible=d.status==='CURRENT'&&d.updatedDataCurrent===true;
+   const eligible=snapshotFresh;
    const cards=eligible&&Array.isArray(d.verifiedBookParlays)?
     d.verifiedBookParlays.filter(c=>{
      if(c?.book!==book||c.mode!=='VERIFIED_BOOK_SGP'||
        c.combinedOddsVerified!==true||
        !['Small','Medium','Nuke'].includes(c.risk)||
-       !Number.isFinite(Number(c.americanOdds))||
+       !Number.isSafeInteger(Number(c.americanOdds))||
+       !Number.isFinite(Date.parse(c.quotedAt||''))||
+       Date.parse(c.quotedAt)>Date.now()+60*1000||
+       Date.now()-Date.parse(c.quotedAt)>15*60*1000||
        !nflPublicTierMarketMixReady(c.risk,c.legs)||
        !nflPublicTierPriceReady(c.risk,c.americanOdds))return false;
      const used=new Set();
@@ -677,6 +688,9 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
        !['td','passing','rushing','receiving','receptions'].includes(cat)||
        !offer||offer.book!==book||offer.attested!==true||
        offer.available!==true||!Number.isFinite(Number(offer.odds))||
+       !Number.isFinite(Date.parse(offer.checkedAt||''))||
+       Date.parse(offer.checkedAt)>Date.now()+60*1000||
+       Date.now()-Date.parse(offer.checkedAt)>15*60*1000||
        used.has(key))return false;
       if(cat!=='td'&&(!Number.isFinite(target)||Number(offer.line)!==target))
        return false;
@@ -711,8 +725,12 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     '<div class="sgp-slips">'+content+'</div></section>';
   };
   const verifiedSections=bookSlips('FanDuel')+bookSlips('DraftKings');
-  return '<p class="sgp-slip-intro">Current published matchup predictions • '+
-   esc(fmtStamp(d.updatedAt))+'</p>'+
+  return '<p class="sgp-slip-intro">'+
+   (snapshotFresh?'Current published matchup predictions • '+
+     esc(fmtStamp(d.updatedAt)):
+    'NOT READY • '+esc(d.status==='LAST_SAVED'?
+     'Previously saved predictions are expired. Waiting for current game and injury review.':
+     'No fresh game-scoped prediction snapshot is available.'))+'</p>'+
    verifiedSections+
    '<h3>NFL model research — not a sportsbook lineup</h3>'+
    '<p class="sgp-brief-status">Model-only research • Player projections are not sportsbook-verified lines or combined odds.</p>'+
