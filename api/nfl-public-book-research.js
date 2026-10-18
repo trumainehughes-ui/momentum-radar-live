@@ -6,7 +6,20 @@ import {
 } from '../lib/nfl-public-sportsbook-observer.js';
 
 const PUBLIC_SOURCE_TIMEOUT=6500;
-const BASE='https://momentum-radar-live.vercel.app';
+// Fetch roster/schedule evidence from this exact deployment. A Vercel
+// preview must never silently join its public sportsbook observations to
+// a different version of the production game snapshot.
+export function nflPublicBookTrustedOrigin(env=process.env){
+ const deployment=String(env.VERCEL_URL||'').toLowerCase().trim();
+ if(/^momentum-radar-live-[a-z0-9-]+[.]vercel[.]app$/.test(deployment))
+  return 'https://'+deployment;
+ if(env.VERCEL_ENV==='production'){
+  const production=String(env.VERCEL_PROJECT_PRODUCTION_URL||'').toLowerCase();
+  if(production==='momentum-radar-live.vercel.app')
+   return 'https://'+production;
+ }
+ return null;
+}
 const read=async(url,timeout=PUBLIC_SOURCE_TIMEOUT)=>{
  const r=await fetch(url,{cache:'no-store',
   headers:{Accept:'text/html,application/xhtml+xml'},
@@ -19,7 +32,9 @@ const read=async(url,timeout=PUBLIC_SOURCE_TIMEOUT)=>{
  return{status:'FETCH_OK',html:text.slice(0,2_000_000)};
 };
 export default async function handler(req,res){
- res.setHeader('Cache-Control','public,s-maxage=300,stale-while-revalidate=60');
+ // Observed sportsbook prices are time-sensitive. CDN caching for five
+ // minutes would contradict the 30-second game page refresh contract.
+ res.setHeader('Cache-Control','private,no-store,max-age=0');
  if(req.method!=='GET')return res.status(405).json({ok:false,error:'method_not_allowed'});
  const date=String(req.query?.date||''),gameId=String(req.query?.gameId||'');
  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(Date.parse(date+'T12:00:00Z'))||
@@ -29,7 +44,10 @@ export default async function handler(req,res){
  if(dateTime<now-86400_000||dateTime>now+14*86400_000)
   return res.status(400).json({ok:false,error:'outside_active_schedule'});
  try{
-  const resp=await fetch(BASE+'/api/nfl-schedule?date='+encodeURIComponent(date),{
+  const origin=nflPublicBookTrustedOrigin();
+  if(!origin)return res.status(503).json({
+   ok:false,error:'sportsbook_observer_deployment_identity_unverified'});
+  const resp=await fetch(origin+'/api/nfl-schedule?date='+encodeURIComponent(date),{
    cache:'no-store',signal:AbortSignal.timeout(8500)});
   if(!resp.ok)throw Error('schedule_http_'+resp.status);
   const slate=await resp.json();
@@ -41,7 +59,7 @@ export default async function handler(req,res){
    return res.status(503).json({ok:false,error:'team_identity_missing'});
   // Use the separately sanitized matchup player list for game/player identity
   // to prevent public-index listings attributed to the wrong team from leaking.
-  const saved=await fetch(BASE+'/api/public-nfl-game?date='+
+  const saved=await fetch(origin+'/api/public-nfl-game?date='+
    encodeURIComponent(date)+'&gameId='+encodeURIComponent(gameId),{
     cache:'no-store',signal:AbortSignal.timeout(8000)}).then(r=>r.ok?r.json():null)
    .catch(()=>null);
