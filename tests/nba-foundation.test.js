@@ -96,14 +96,17 @@ test('Small/Medium/Nuke enforce tier mix, roster, team identity and book eligibi
   category:['points','rebounds','assists','threes','pra','points','rebounds'][i],
   projection:20,threshold:30,verifiedMarket:true}));
  const opts={gameId:'401900101',home:'MIA',away:'BOS',verifiedPlayers:roles};
- assert.equal(validateNbaSgp('Small',input.slice(0,2),opts).publishable,true);
- assert.equal(validateNbaSgp('Medium',input.slice(0,4),opts).publishable,true);
+ assert.equal(validateNbaSgp('Small',input.slice(0,4),opts).publishable,true);
+ assert.equal(validateNbaSgp('Medium',input.slice(0,5),opts).publishable,true);
  assert.equal(validateNbaSgp('Nuke',input.slice(0,7),opts).publishable,true);
+ assert.ok(validateNbaSgp('Small',input.slice(0,2),opts).reasons.includes('invalid_leg_count'));
+ assert.ok(validateNbaSgp('Medium',input.slice(0,4),opts).reasons.includes('invalid_leg_count'));
+
  assert.ok(validateNbaSgp('Nuke',input.slice(0,4),opts).reasons.includes('invalid_leg_count'));
  assert.ok(validateNbaSgp('Nuke',input.slice(0,5).map(x=>({...x,threshold:20})),opts).reasons.includes('nuke_target_not_elevated'));
  assert.ok(validateNbaSgp('Nuke',input.slice(0,5).map(x=>({...x,verifiedMarket:false})),opts).reasons.includes('market_not_verified'));
- assert.ok(validateNbaSgp('Small',[input[0],{...input[0]}],opts).reasons.includes('duplicated_player'));
- assert.ok(validateNbaSgp('Small',[input[0],{...input[1],team:'NYK'}],opts).reasons.includes('unverified_game_roster_availability'));
+ assert.ok(validateNbaSgp('Small',[...input.slice(0,3),{...input[0]}],opts).reasons.includes('duplicated_player_market'));
+ assert.ok(validateNbaSgp('Small',[...input.slice(0,3),{...input[3],team:'NYK'}],opts).reasons.includes('unverified_game_roster_availability'));
 });
 test('NBA API requires dates or ESPN IDs and returns fail-closed structured responses',async()=>{
  const bad=response();await game({method:'GET',query:{gameId:'nba-fake'}},bad);
