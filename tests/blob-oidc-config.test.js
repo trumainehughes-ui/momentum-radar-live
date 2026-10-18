@@ -73,7 +73,7 @@ test('NBA collector OIDC passes storage preflight on Vercel and fails only if so
   assert.equal(response.statusCode,200);
   assert.equal(response.body.ok,true);
   assert.equal(response.body.games,0);
-  assert.equal(calls.length,2,'both day scopes checked');
+  assert.equal(calls.length,3,'today and two upcoming NBA slates checked');
  }finally{globalThis.fetch=oldFetch;reset()}
 });
 test('NFL collector OIDC passes preflight and preserves public auth protection',async()=>{
