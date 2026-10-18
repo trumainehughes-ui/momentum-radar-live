@@ -68,6 +68,6 @@ test('aggregate coverage never claims all games ready when any scoped snapshot f
 test('operator readiness calculations are retained but the unprotected static page is withheld from Phase 1',()=>{
  const home=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  const publicHtml=readFileSync(new URL('../picks.html',import.meta.url),'utf8');
- assert.doesNotMatch(home,/href="\\/nfl-sgp-readiness\\.html"/);
- assert.doesNotMatch(publicHtml,/href="\\/nfl-sgp-readiness\\.html"/);
+ assert.equal(home.includes('href="/nfl-sgp-readiness.html"'),false);
+ assert.equal(publicHtml.includes('href="/nfl-sgp-readiness.html"'),false);
 });
