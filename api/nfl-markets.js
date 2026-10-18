@@ -151,7 +151,19 @@ function nflVerifiedOnlySgpResponse(body){
  return {...body,sgps};
 }
 async function readResponseSnapshot(key){const local=RESPONSE_CACHE.get(key);if(local)return local;try{const path=SNAP_PREFIX+encodeURIComponent(key)+'.json',x=await list({prefix:path,limit:5}),b=x.blobs?.find(v=>v.pathname===path);if(!b)return null;const r=await timedFetch(b.url,{cache:'no-store'});if(!r.ok)return null;const snap=await r.json();RESPONSE_CACHE.set(key,snap);return snap}catch{return null}}
-async function writeResponseSnapshot(key,body){const snap={at:Date.now(),body};RESPONSE_CACHE.set(key,snap);try{await put(SNAP_PREFIX+encodeURIComponent(key)+'.json',JSON.stringify(snap),{access:'public',addRandomSuffix:false,allowOverwrite:true})}catch(e){console.error('market_snapshot_write_failed',String(e?.message||e))}}
+async function writeResponseSnapshot(key,body){
+ const snap={at:Date.now(),body};
+ try{
+  // Publish first; only advertise the new version in the local response
+  // cache once the shared snapshot is successfully written.
+  await put(SNAP_PREFIX+encodeURIComponent(key)+'.json',JSON.stringify(snap),
+   {access:'public',addRandomSuffix:false,allowOverwrite:true});
+  RESPONSE_CACHE.set(key,snap);
+ }catch(e){
+  console.error('market_snapshot_write_failed',String(e?.message||e));
+  RESPONSE_CACHE.delete(key);
+ }
+}
 const RAW_SNAP_PREFIX='momentum-nfl-sgo-events/v2/';
 async function readSnapshot(date){const c=CACHE.get(date);if(c)return c;try{const path=RAW_SNAP_PREFIX+encodeURIComponent(date)+'.json',x=await list({prefix:path,limit:5}),b=x.blobs?.find(v=>v.pathname===path);if(!b)return null;const r=await timedFetch(b.url,{cache:'no-store'});if(!r.ok)return null;const snap=await r.json();if(!Array.isArray(snap?.events))return null;CACHE.set(date,snap);return snap}catch(e){console.error('raw_market_snapshot_read_failed',String(e?.message||e));return null}}
 async function writeSnapshot(date,events){const s={at:Date.now(),events};CACHE.set(date,s);try{await put(RAW_SNAP_PREFIX+encodeURIComponent(date)+'.json',JSON.stringify(s),{access:'public',addRandomSuffix:false,allowOverwrite:true})}catch(e){console.error('raw_market_snapshot_write_failed',String(e?.message||e))}}
