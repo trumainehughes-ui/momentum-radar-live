@@ -27,17 +27,17 @@ function render(d){
 }
 function game(yards){
  return{home:'JAX',away:'HOU',status:'CURRENT',updatedDataCurrent:true,
-  updatedAt:'2026-10-18T14:00:00Z',verifiedQuotes:[],parlays:[
-   {risk:'Nuke',mode:'MODEL_ONLY',legs:[
-    {player:'Parker Washington',team:'JAX',category:'receiving',target:yards+'+ yards'},
-    {player:'Parker Washington',team:'JAX',category:'td',target:'Anytime TD'}]}
+  updatedAt:'2026-10-18T14:00:00Z',verifiedQuotes:[],modelResearchTiers:[
+   {risk:'Nuke',mode:'MODEL_RESEARCH',requiredLegs:5,complete:false,legs:[
+    {player:'Parker Washington',team:'JAX',category:'receiving',projection:yards},
+    {player:'Parker Washington',team:'JAX',category:'td',modelChancePct:41}]}
   ]};
 }
 test('new public snapshot replaces 90 with 60; no independently rebuilt tiers',()=>{
  const oldHtml=render(game(90)),newHtml=render(game(60));
- assert.ok(oldHtml.includes('90+ yards'));
- assert.ok(newHtml.includes('60+ yards'));
- assert.ok(!newHtml.includes('90+ yards'));
+ assert.ok(oldHtml.includes('90 projected yards'));
+ assert.ok(newHtml.includes('60 projected yards'));
+ assert.ok(!newHtml.includes('90 projected yards'));
  assert.ok(newHtml.includes('Anytime touchdown'));
  assert.ok(newHtml.includes('Model-only research'));
 });
@@ -53,4 +53,11 @@ test('snapshots are versioned per game rather than overwritten',async()=>{
  const path=nflSgpVersionedSnapshotPath('2026-10-18','401873004',1790000000000,'test');
  assert.ok(path.startsWith(nflSgpSnapshotVersionPrefix('2026-10-18','401873004')));
  assert.ok(path.endsWith('.json'));
+});
+
+test('incomplete same-game model tier is always marked not ready',()=>{
+ const html=render(game(60));
+ assert.ok(html.includes('2 / 5 researched legs'));
+ assert.ok(html.includes('Not ready'));
+ assert.ok(!html.includes('combined verified quote'));
 });
