@@ -95,7 +95,7 @@ test('public price join shows exact game-scoped DraftKings observation and times
  assert.ok(html.includes('Price may change'));
 });
 test('public Sharp card is brief and uses matched public price rather than an unrelated stale offer',()=>{
- const a=script.indexOf('function showSharp(d){'),b=script.indexOf('function showLive(d){',a);
+ const a=script.indexOf('function showSharp(d){'),b=script.indexOf('function renderNflLiveSlate(){',a);
  assert.ok(a>0&&b>a);
  const context={esc:x=>String(x??''),labels:{td:'Anytime TD'},
   publicObservation:()=>({book:'DraftKings',odds:155}),
