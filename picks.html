@@ -494,6 +494,31 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
      'No current game odds have been captured in this browser.')+'</p>')+
    action+'</section>';
  }
+ function nflPublicTierCountReady(risk,legs){
+  const n=Array.isArray(legs)?legs.length:0;
+  return risk==='Small'?n===4:risk==='Medium'?n===5:
+   risk==='Nuke'?n>=5&&n<=7:false;
+ }
+ function nflPublicTierMarketMixReady(risk,legs){
+  if(!nflPublicTierCountReady(risk,legs))return false;
+  const cats=legs.map(l=>String(l.category||l.cat||'').toLowerCase());
+  const yards=cats.filter(c=>['passing','rushing','receiving'].includes(c));
+  const requiredYards=risk==='Small'?2:3;
+  const maxTd=risk==='Nuke'?2:1;
+  const keys=legs.map(l=>String(l.player||l.name||'').toUpperCase()+'|'+
+   String(l.team||'').toUpperCase()+'|'+String(l.category||l.cat||'').toLowerCase());
+  return new Set(keys).size===keys.length&&
+   new Set(cats).size>=3&&
+   yards.length>=requiredYards&&new Set(yards).size>=2&&
+   cats.filter(c=>c==='td').length<=maxTd;
+ }
+ function nflPublicTierPriceReady(risk,odds){
+  const n=Number(odds);
+  if(!Number.isSafeInteger(n))return false;
+  return risk==='Small'?n>=2000&&n<3000:
+   risk==='Medium'?n>=3000&&n<=8000:
+   risk==='Nuke'?n>=10000:false;
+ }
  function renderParlays(d){
   const tierDetails=typeof window!=='undefined'?window.momentumNflSgpModelYardage?.buildNflProjectedSgpTierDetails({
    market:state.currentBookSgpModel,date:state.date,gameId:state.selected,
@@ -541,7 +566,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
       c.mode!=='MODEL_ONLY'||c.outdated===true||
       (!c.researchFromCurrentMarkets&&(d.status==='LAST_SAVED'||d.updatedDataCurrent===false))||
       !Array.isArray(c.legs))return false;
-   if(c.legs.length<3||c.legs.length>(c.risk==='Nuke'?10:7))return false;
+   if(!nflPublicTierMarketMixReady(c.risk,c.legs))return false;
    const names=new Set();
    return matchupTeams.size===2&&matchupTeams.has(String(d.home||'').toUpperCase())&&
     matchupTeams.has(String(d.away||'').toUpperCase())&&
@@ -604,6 +629,12 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     keys.add(key);
     return true;
    });
+   if(card.complete!==true||!nflPublicTierMarketMixReady(risk,legs))
+    return '<section class="sgp-slip"><div class="sgp-slip-head"><strong>'+esc(risk)+
+      ' · NOT READY</strong></div><p class="sgp-brief-status">'+esc(legs.length)+
+      ' eligible research selections; this tier requires a complete '+
+      esc(risk==='Nuke'?'5–7':risk==='Medium'?'5':'4')+
+      '-leg, mixed-market lineup. No verified combined sportsbook payout.</p></section>';
    return '<section class="sgp-slip"><div class="sgp-slip-head"><strong>'+
     esc(risk)+'</strong><span>'+esc(legs.length)+' / '+esc(card.requiredLegs)+
     ' researched legs'+(card.complete?'':' · Not ready')+'</span></div>'+
@@ -634,7 +665,8 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
        c.combinedOddsVerified!==true||
        !['Small','Medium','Nuke'].includes(c.risk)||
        !Number.isFinite(Number(c.americanOdds))||
-       !Array.isArray(c.legs)||c.legs.length<3)return false;
+       !nflPublicTierMarketMixReady(c.risk,c.legs)||
+       !nflPublicTierPriceReady(c.risk,c.americanOdds))return false;
      const used=new Set();
      return c.legs.every(l=>{
       const offer=l?.bookOffer;
