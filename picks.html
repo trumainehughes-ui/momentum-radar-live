@@ -546,9 +546,12 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     c.legs.every(l=>{
      const name=String(l?.player||'').trim().toUpperCase();
      const team=String(l?.team||'').toUpperCase();
-     if(!name||names.has(name)||!matchupTeams.has(team)||
-       !l?.category||!l?.target)return false;
-     names.add(name);return true;
+     const market=String(l?.category||'').trim().toLowerCase();
+     const target=String(l?.target||'').trim();
+     const key=[name,team,market,target].join('|');
+     if(!name||names.has(key)||!matchupTeams.has(team)||
+       !market||!target)return false;
+     names.add(key);return true;
     });
   });
   const anyStale=d.status==='LAST_SAVED'||d.updatedDataCurrent===false||
@@ -569,7 +572,8 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
      const pick=sgpSelectionDisplay(l);
      return '<li class="sgp-leg"><div class="sgp-leg-name">'+esc(l.player)+'</div>'+
       '<div class="sgp-leg-selection"><span>'+esc(pick.label)+'</span><strong>'+
-       esc(pick.target)+'</strong></div></li>';
+       esc(pick.target)+'</strong></div>'+ 
+      '<div class="sgp-leg-why">Why: '+esc(publicWhy(l,String(l.category||'').toLowerCase()))+'</div></li>';
     }).join('')+'</ol></section>').join('')+'</div>':
    '<div class="sgp-auto-check" role="status">'+
      'SGP selections are being refreshed for this matchup. '+
