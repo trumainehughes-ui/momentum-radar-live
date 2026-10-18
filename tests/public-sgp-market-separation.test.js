@@ -9,6 +9,7 @@ test('public SGP uniqueness is per player, team, market and target',()=>{
 });
 test('public SGP shows individual market rationale without adding an unverified price',()=>{
  assert.match(page,/class="sgp-leg-why">Why: /);
+ assert.match(page,/\.sgp-leg-why\{color:/);
  assert.match(page,/publicWhy\(l,String\(l\.category\|\|''\)\.toLowerCase\(\)\)/);
  assert.match(page,/Combined sportsbook odds and player lines are not verified/);
 });
