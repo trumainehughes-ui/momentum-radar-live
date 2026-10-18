@@ -14,7 +14,8 @@ const end=script.indexOf('function offerHtml(',start);
 assert.ok(start>=0&&end>start,'SGP public renderer found');
 
 function publicFunctions(){
- const context={state:{currentBookSgpModel:null,recheckLoading:false},
+ const context={state:{currentBookSgpModel:null,recheckLoading:false,
+   date:'2026-10-18',selected:'401872996'},
   window:{},esc:x=>String(x??''),fmtStamp:()=> 'Updated',
   renderOdds:()=>'',renderPublicBookResearch:()=>'',renderLocalBookParity:()=>'',renderAutoRecheckStatus:()=>'Scheduled',
   URL};
@@ -56,6 +57,7 @@ test('Nuke classification starts at actual +10000, $1000 net profit on $10',()=>
 });
 test('two research selections show Nuke NOT READY, never two-leg customer SGP slip',()=>{
  const view=publicFunctions().render({
+  ok:true,date:'2026-10-18',gameId:'401872996',updatedAt:new Date().toISOString(),
   home:'ATL',away:'CHI',status:'CURRENT',updatedDataCurrent:true,
   categories:{},inactivesVerified:true,verifiedBookParlays:[],verifiedQuotes:[],
   modelResearchTiers:[{
@@ -69,7 +71,8 @@ test('two research selections show Nuke NOT READY, never two-leg customer SGP sl
  assert.doesNotMatch(view,/<ol class="sgp-leg-list">/);
 });
 test('public sportsbook section rejects wrong payout and short Nuke despite quote-like metadata',()=>{
- const base={home:'ATL',away:'CHI',status:'CURRENT',updatedDataCurrent:true,
+ const base={ok:true,date:'2026-10-18',gameId:'401872996',
+  updatedAt:new Date().toISOString(),home:'ATL',away:'CHI',status:'CURRENT',updatedDataCurrent:true,
   inactivesVerified:true,modelResearchTiers:[],verifiedQuotes:[],
   verifiedBookParlays:[],categories:{}};
  const fake=legs.map((leg,i)=>({...leg,bookOffer:{
