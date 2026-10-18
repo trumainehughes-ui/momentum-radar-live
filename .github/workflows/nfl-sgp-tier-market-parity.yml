@@ -1,0 +1,29 @@
+name: NFL SGP Tier and Market Parity
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tier-market:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Verify SGP builder and public view syntax
+        run: |
+          node --check api/nfl-markets.js
+          node --check lib/ai-mechanics/nfl-sgp-tiers.js
+          node --check lib/nfl-sgp-snapshot-status.js
+          node --check lib/public-nfl-view.js
+      - name: Verify tier counts, player markets, quotes and snapshot consistency
+        run: |
+          node --test tests/nfl-sgp-tier-market-parity.test.js
+          node --test tests/public-book-specific-sgp-parity.test.js tests/nfl-snapshot-immutable-sync.test.js tests/public-nfl-sync-contract.test.js
+          node --test tests/nfl-meaningful-opportunity.test.js
