@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {nflOfficialTransactionHolds,nflOfficialHoldMatches} from '../lib/nfl-official-transaction-holds.js';
 const player={playerID:'4570037',name:'Terrance Ferguson',team:'LAR',
- position:'TE',eventID:'401873008',cat:'receiving'};
+ position:'TE',eventID:'401873004',cat:'receiving'};
 test('Rams Terrance Ferguson official IR transaction remains a hard hold against Cardinals Week 6',()=>{
  const holds=nflOfficialTransactionHolds({
-  date:'2026-10-18',gameId:'401873008',home:'LAR',away:'ARI'});
+  date:'2026-10-18',gameId:'401873004',home:'LAR',away:'ARI'});
  assert.ok(holds.some(x=>nflOfficialHoldMatches(player,x)&&x.status==='IR'));
  assert.ok(holds.some(x=>x.name==='Terrance Ferguson'&&x.sourceUrl?.includes('therams.com/team/transactions')));
 });
