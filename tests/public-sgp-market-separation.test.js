@@ -26,6 +26,7 @@ test('separate TD and receiving selections render as independent public legs whe
   fmtStamp:()=> 'Updated now',
   esc:v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),
   renderPublicBookResearch:()=>'',renderOdds:()=>'',renderLocalBookParity:()=>'',
+  publicWhy:(_leg,cat)=>cat==='td'?'Touchdown scoring opportunities.':'Recent yardage and matchup.',
   window:undefined
  };
  vm.runInNewContext(source.slice(first,last)+';this.render=renderParlays;',context);
