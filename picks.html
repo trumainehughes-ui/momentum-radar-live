@@ -598,13 +598,13 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
      return '<li class="sgp-leg"><div class="sgp-leg-name">'+esc(l.player)+'</div>'+
       '<div class="sgp-leg-selection"><span>'+esc(name)+'</span><strong>'+
       esc(category==='td'?'Anytime TD':l.target)+'</strong></div>'+
-      '<div class="sgp-leg-why">Why: '+esc(publicWhy(l,category))+'</div></li>';
+      '<div class="sgp-leg-why">Why: '+esc(l.projectionNote||'Based on the latest published matchup data.')+'</div></li>';
     }).join('')+'</ol></section>';
   }).join('')+'</div>';
   return '<p class="sgp-slip-intro">Current published matchup predictions • '+
    esc(fmtStamp(d.updatedAt))+'</p>'+
    '<p class="sgp-brief-status">Model-only research, not sportsbook-verified lines or combined odds.</p>'+
-   syncedHtml+(quotes.length?renderOdds(quotes):'');
+   syncedHtml+(ready&&!anyStale&&d.status==='CURRENT'&&quotes.length?renderOdds(quotes):'');
   return modelChoiceHtml+tierYardageHtml+intro+staleNote+slips+verification+renderLocalBookParity(d)+research;
  }
  function offerHtml(x){const o=x.bookOffer;if(!o)return '';
