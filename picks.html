@@ -548,25 +548,25 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    '<p class="sgp-slip-stale"><strong>Needs refresh · Saved model selections</strong> — these were generated earlier. Player status, injury reports and exact sportsbook lines must be rechecked before using any pick.</p>'+
    '<p class="sgp-auto-check" role="status">'+esc(renderAutoRecheckStatus())+'</p>':'';
 
-  const slips=models.length?
-   '<div class="sgp-slips">'+models.map(c=>
-    '<section class="sgp-slip" aria-label="'+esc(c.risk)+' same-game parlay">'+
-    '<div class="sgp-slip-head"><strong>'+esc(c.risk)+'</strong><span'+
-     (c.mode==='STALE_MODEL_ONLY'||c.outdated?' class="sgp-stale-label"':'')+
-     '>'+esc(c.legs.length)+' legs'+
-     (c.mode==='STALE_MODEL_ONLY'||c.outdated?' · Needs refresh':'')+
-     '</span></div>'+
+  const renderBookSlips=book=>{
+   const selections=models.filter(c=>c.legs[0]?.bookOffer?.book===book);
+   const content=selections.length?selections.map(c=>
+    '<section class="sgp-slip" aria-label="'+esc(book+' '+c.risk)+' same-game parlay">'+
+    '<div class="sgp-slip-head"><strong>'+esc(c.risk)+'</strong><span>'+
+     esc(c.legs.length)+' legs</span></div>'+
     '<ol class="sgp-leg-list">'+c.legs.map(l=>{
      const pick=sgpSelectionDisplay(l);
      return '<li class="sgp-leg"><div class="sgp-leg-name">'+esc(l.player)+'</div>'+
       '<div class="sgp-leg-selection"><span>'+esc(pick.label)+'</span><strong>'+
-       esc(pick.target)+'</strong></div>'+ 
+       esc(pick.target)+'</strong></div>'+
       '<div class="sgp-leg-why">Why: '+esc(publicWhy(l,String(l.category||'').toLowerCase()))+'</div></li>';
-    }).join('')+'</ol></section>').join('')+'</div>':
-   '<div class="sgp-auto-check" role="status">'+
-     'SGP selections are being refreshed for this matchup. '+
-     'Current player eligibility and sportsbook pricing are checked separately.'+
-     '</div>';
+    }).join('')+'</ol></section>').join(''):
+    '<p class="sgp-auto-check" role="status">No fully verified '+esc(book)+
+    ' SGP lineup for this matchup. Player availability and offered lines are checked independently.</p>';
+   return '<section class="sgp-book-lineup" aria-label="'+esc(book)+' SGP lineups">'+
+    '<h3>'+esc(book)+' Same Game Parlays</h3><div class="sgp-slips">'+content+'</div></section>';
+  };
+  const slips=renderBookSlips('FanDuel')+renderBookSlips('DraftKings');
   const intro='<p class="sgp-slip-intro">Player selections for each parlay tier.</p>'+(models.some(c=>c.researchFallback)?'<p class="sgp-brief-status">Research-only model combinations built from current game projections. Targets are NOT confirmed sportsbook markets, and no combined payout is quoted. Check player status and every selection at the sportsbook.</p>':'');
   const verification=ready&&!anyStale?
    '<p class="sgp-brief-status">Sportsbook-issued combined quotes below. Recheck selections before betting.</p>'+renderOdds(quotes):
