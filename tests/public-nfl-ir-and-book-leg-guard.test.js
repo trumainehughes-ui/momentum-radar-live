@@ -42,7 +42,7 @@ function snapshot(){
    ],DraftKings:[],FanDuel:[]}};
  return{at:now-60_000,body:r};
 }
-test('official Rams IR transaction is scoped to the actual Oct 12 Rams game',()=>{
+test('official Rams IR transaction continues across later games and is scoped by team and date',()=>{
  const holds=nflOfficialTransactionHolds({gameId,date,home:'LAR',away:'BUF'});
  assert.equal(holds.length,1);
  assert.equal(holds[0].playerId,'4570037');
@@ -51,8 +51,11 @@ test('official Rams IR transaction is scoped to the actual Oct 12 Rams game',()=
  assert.match(holds[0].sourceUrl,/therams\.com\/team\/transactions/);
  for(const changed of [
   {gameId,date:'2026-10-19',home:'LAR',away:'BUF'},
-  {gameId:'401872993',date,home:'LAR',away:'BUF'},
-  {gameId,date,home:'NYJ',away:'BUF'}
+  {gameId:'401873004',date:'2026-10-18',home:'LAR',away:'ARI'}
+ ])assert.ok(nflOfficialTransactionHolds(changed).some(x=>x.name==='Terrance Ferguson'));
+ for(const changed of [
+  {gameId,date,home:'NYJ',away:'BUF'},
+  {gameId,date:'2026-10-01',home:'LAR',away:'BUF'}
  ])assert.deepEqual(nflOfficialTransactionHolds(changed),[]);
 });
 test('ESPN roster groups and athlete status retain reserve information',()=>{

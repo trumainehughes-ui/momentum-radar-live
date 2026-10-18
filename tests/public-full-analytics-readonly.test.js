@@ -59,7 +59,8 @@ test('public read-only game includes matchups, positional DVP, injuries and rich
  assert.equal(d.matchup.sides.length,2);
  assert.equal(d.matchup.sides[0].positions[0].metrics[0].defenseRank,4);
  assert.equal(d.projectedScore.scores[0].points,24);
- assert.deepEqual(d.injuries.map(x=>x.name),['Someone Questionable']);
+ assert.deepEqual(d.injuries.map(x=>x.name),['Someone Questionable','Terrance Ferguson']);
+ assert.ok(d.injuries.some(x=>x.name==='Terrance Ferguson'&&x.status==='IR'))
  const serialized=JSON.stringify(d);
  for(const key of ['TEST_SECRET','bookOutcomeId','sourceUrl','privateAudit','apiKey',
   'providerEventId','oddsDebug'])assert.ok(!serialized.includes(key),key);
