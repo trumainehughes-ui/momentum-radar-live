@@ -108,10 +108,10 @@ test('visitor sees separate book sections and no cross-book substituted legs',()
  assert.equal((h.match(/class="sgp-leg-why"/g)||[]).length,8);
  const fd=h.split('FanDuel Same Game Parlays')[1].split('DraftKings Same Game Parlays')[0];
  const dk=h.split('DraftKings Same Game Parlays')[1].split('NFL model research')[0];
- assert.ok(fd.includes('60+ yards'));
- assert.ok(!fd.includes('55+ yards'));
- assert.ok(dk.includes('55+ yards'));
- assert.ok(!dk.includes('60+ yards'));
+ assert.ok(fd.includes('<strong>60+ yards</strong>'));
+ assert.ok(!fd.includes('<strong>55+ yards</strong>'));
+ assert.ok(dk.includes('<strong>55+ yards</strong>'));
+ assert.ok(!dk.includes('<strong>60+ yards</strong>'));
 });
 test('unverified models render as research, never book-price cards',()=>{
  const noQuote=sample();
