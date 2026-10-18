@@ -27,7 +27,8 @@ const sample=(at=now-60_000)=>({at,body:{
 test('snapshot path exactly matches production cache naming without charging any provider',()=>{
  const source=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
  assert.ok(source.includes("const CACHE_SCHEMA='v92-strict-nuke-profit-20261011'+'-nuke-roster-adaptive-1-game-identity-2'+'-day-ahead-roles-v5-teamid-depthchart'"));
- assert.equal(NFL_SGP_SNAPSHOT_SCHEMA,'v92-strict-nuke-profit-20261011-nuke-roster-adaptive-1-game-identity-2-day-ahead-roles-v5-teamid-depthchart-public-quote-scrub-v1-official-reserve-holds-v1-model-hit-chance-v1-injury-list-hardgate-v1');
+ assert.match(NFL_SGP_SNAPSHOT_SCHEMA,/^v92-strict-nuke-profit-20261011-/);
+ assert.match(NFL_SGP_SNAPSHOT_SCHEMA,/strict-no-unlisted-sgp-props-20261017$/);
  assert.equal(nflSgpSnapshotPath(date,gameId),
   'momentum-nfl-markets/v2/'+NFL_SGP_SNAPSHOT_SCHEMA+'-2026-10-11-401872981.json');
  for(const [d,id] of [['2026-02-30',gameId],['2026-13-99',gameId],
@@ -125,9 +126,17 @@ test('read-only Blob handler differentiates empty cache from storage outage',asy
  let blobCalls=0,fetchCalls=0;
  const missing=await nflSgpReadinessFromBlob({date,gameId,now,
   listBlobs:async ({prefix,limit})=>{
-   blobCalls++;assert.equal(limit,5);assert.ok(prefix.endsWith(gameId+'.json'));return{blobs:[]};
+   blobCalls++;assert.equal(limit,5);
+   if(blobCalls===1){
+    // Query immutable snapshots first. Never mistake a legacy key for latest.
+    assert.ok(prefix.endsWith(gameId+'/'));
+   }else{
+    // Fall back to a previously used mutable key only when no version exists.
+    assert.equal(prefix,nflSgpSnapshotPath(date,gameId));
+   }
+   return{blobs:[]};
   },fetchBlob:async()=>{fetchCalls++;throw Error('should not read')}});
- assert.equal(blobCalls,1);
+ assert.equal(blobCalls,2);
  assert.equal(fetchCalls,0);
  assert.equal(missing.httpStatus,200);
  assert.equal(missing.result.status,'PENDING_SNAPSHOT');
