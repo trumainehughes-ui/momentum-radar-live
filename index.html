@@ -321,7 +321,7 @@ function nflPublishedSgpParityHtml(parity){
  const tiers=Array.isArray(parity?.publicResearchTiers)?parity.publicResearchTiers:[];
  const ready=parity?.ok===true;
  return '<div class="card" style="grid-column:1/-1"><b>Published Small / Medium / Nuke • same player forecasts as customer site</b>'+
-  '<div class="note">One screened game snapshot for both sites. These are model projections, NOT verified sportsbook selections or correlated prices. Advanced bookmaker-source and injury diagnostics remain separate.</div>'+
+  '<div class="note">One screened game snapshot for both sites • '+nflEscape(parity?.updatedAt||'Awaiting current saved update')+'. These are model projections, NOT verified sportsbook selections or correlated prices. Advanced bookmaker-source and injury diagnostics remain separate.</div>'+
   ['Small','Medium','Nuke'].map(risk=>{
    const t=tiers.find(x=>x?.risk===risk);
    if(!ready||!t)return '<div class="nflSgpMini" data-risk="'+nflEscape(risk)+'"><b>'+
@@ -363,8 +363,7 @@ async function nflOpen(id,forceMarkets=false){let independentPropsHtml='';let ve
  // primary SGP research MUST use the same screened public snapshot, including
  // injury holds; unsynced versions fail closed rather than show old models.
  const d={...raw,categories:parity.categories,sgps:{...raw.sgps,
-   Analytics:[],DraftKings:parity.ok?raw.sgps?.DraftKings||[]:[],
-   FanDuel:parity.ok?raw.sgps?.FanDuel||[]:[]},publicParity:parity};
+   Analytics:[],DraftKings:[],FanDuel:[]},publicParity:parity};
  d.publishedBookObservations=published?.ok?published:null;
  d.automaticPublishedBookResearch=autoDK?.ok?autoDK:null;
  verifiedMarketsLoaded=true;const o=d.outcomePrediction,ob=$('#nflOutcome');if(ob&&o){const a=o.teamA,b=o.teamB;ob.innerHTML='<div class="nflMarketLine"><b>Projected Final Score: '+a+' '+o.projectedFinalScore[a]+' - '+b+' '+o.projectedFinalScore[b]+'</b><div class="meta">Win Probability: '+a+' '+o.winProbability[a]+'% | '+b+' '+o.winProbability[b]+'%</div><div class="note"><b>Analytical Edge:</b> '+o.analyticalEdge+'</div></div>'}$('#nflProps').innerHTML=['td','passing','rushing','receiving','receptions'].map(cat=>{const rows=d.categories?.[cat]||[];return `<h4>${nflLabels[cat]}</h4>${rows.length?rows.slice(0,5).map(x=>{const e=x.edgeAnalytics||{},h=x.recentHitRates||{},l5=h.last5,l10=h.last10,market=e.sportsbookLine!=null?`Line ${e.sportsbookLine}`:'Model projection',proj=e.modelProjection!=null?`Model ${cat==='receptions'?e.modelProjection:nflYards5(e.modelProjection)}`:'',edge=e.rawEdge!=null?`Edge ${e.rawEdge>0?'+':''}${e.rawEdge}${e.edgePct!=null?` (${e.edgePct>0?'+':''}${e.edgePct}%)`:''}`:'',hits=[l5?`L5 ${l5.hits}/${l5.sample}`:'',l10?`L10 ${l10.hits}/${l10.sample}`:''].filter(Boolean).join(' • '),form=x.recentForm?.label&&x.recentForm.label!=='EARLY_SAMPLE'?` • ${x.recentForm.label}`:x.recentForm?.label==='EARLY_SAMPLE'?' • Early sample':'';return `<div class="nflMarketLine"><b>${x.name}</b><div class="meta">${'Model: '+nflProjection(x,cat)}${x.bestBook?` • ${x.bestBook.book} ${+x.bestBook.odds>0?'+':''}${x.bestBook.odds}`:''}</div>${[market,proj,edge].filter(Boolean).length?`<div class="note">${[market,proj,edge].filter(Boolean).join(' • ')}</div>`:''}${hits?`<div class="note">${hits}${form}</div>`:''}<div class="note">${x.momentumScore!=null&&Number.isFinite(Number(x.momentumScore))?'Momentum rating: '+x.momentumScore+'/100 (not hit probability)':'Projection based on available production and matchup data'}</div></div>`}).join(''):'<div class="note">Momentum Radar projections with current public DraftKings/FanDuel market context.</div>'}`}).join('');const quotaBlocked=String(d.oddsDebug?.error||d.oddsDebug?.sgoError||'').includes('OUT_OF_USAGE_CREDITS')||d.degraded;
