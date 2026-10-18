@@ -23,6 +23,14 @@ export function makeOptimalProjectionReferenceHandler({
   res.setHeader('X-Content-Type-Options','nosniff');
   if(!['GET','POST'].includes(req.method))
    return res.status(405).json({ok:false,error:'method_not_allowed'});
+  // Optimal's standard API license is personal, noncommercial and prohibits
+  // redistribution/competing products. No collection or public delivery may
+  // occur until written commercial/redistribution rights are obtained.
+  // This opt-in is a release control, NOT a substitute for the actual grant.
+  if(env.MOMENTUM_OPTIMAL_COMMERCIAL_LICENSE_APPROVED!=='true')
+   return res.status(451).json({ok:false,status:'DISABLED_LICENSE_REQUIRED',
+    error:'optimal_commercial_redistribution_license_required',
+    bookmakerSgpQuoteVerified:false});
   const source=req.method==='POST'?req.body||{}:req.query||{};
   const league=String(source.league||'').toLowerCase(),
    date=String(source.date||''),gameId=String(source.gameId||'');
