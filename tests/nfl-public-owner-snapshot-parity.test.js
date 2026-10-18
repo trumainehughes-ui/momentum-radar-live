@@ -28,3 +28,9 @@ test('owner only caches a snapshot after successful shared publication',()=>{
  const code=writer.slice(start,end);
  assert.ok(code.indexOf('await put(')<code.indexOf('RESPONSE_CACHE.set(key,snap)'));
 });
+
+test('FanDuel and DraftKings source rows are resolved independently',()=>{
+ assert.match(view,/function safeOffer\(x,now,requiredBook=null\)/);
+ assert.match(view,/offers\.find\(o=>o\.book===requiredBook\)/);
+ assert.match(view,/safeOffer\(source,now,q\.book\)/);
+});
