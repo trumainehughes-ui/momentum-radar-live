@@ -62,7 +62,7 @@ function ui(){
  vm.runInNewContext(js.slice(a,b)+';this.render=renderNbaGame;this.offers=nbaObservedPrice;',ctx);
  return{ctx,area};
 }
-test('NBA Small Medium Nuke display clean player, market, and threshold',()=>{
+test('NBA Small Medium Nuke reject two-leg mock parlays instead of presenting a bettable card',()=>{
  const {ctx,area}=ui();
  const data={ok:true,status:'SCHEDULED',sgps:['Small','Medium','Nuke'].map((risk,i)=>({
   risk,status:'MODEL_CANDIDATE',legs:[
@@ -74,11 +74,31 @@ test('NBA Small Medium Nuke display clean player, market, and threshold',()=>{
  ctx.render(data);
  const html=area['#match-content'].innerHTML;
  assert.ok(html.includes('Small'));assert.ok(html.includes('Medium'));assert.ok(html.includes('Nuke'));
- assert.ok(html.includes('Jayson Tatum'));assert.ok(html.includes('25+'));
- assert.ok(html.includes('Cade Cunningham'));assert.ok(html.includes('Assists'));
+ assert.equal((html.match(/NOT READY/g)||[]).length,3);
+ assert.ok(!html.includes('Jayson Tatum'));assert.ok(!html.includes('Cade Cunningham'));
  assert.ok(!html.includes('sportsbook-issued combined quote confirmed'));
+});
+test('NBA full diversified research tier shows names and targets but not verified sportsbook payouts',()=>{
+ const {ctx,area}=ui();
+ const all=[
+  {name:'Jayson Tatum',playerId:'100',team:'BOS',category:'points',threshold:25},
+  {name:'Cade Cunningham',playerId:'200',team:'DET',category:'assists',threshold:6},
+  {name:'Jaylen Brown',playerId:'300',team:'BOS',category:'rebounds',threshold:5},
+  {name:'Derrick White',playerId:'400',team:'BOS',category:'threes',threshold:3},
+  {name:'Another Starter',playerId:'500',team:'DET',category:'points',threshold:16}
+ ].map(l=>({...l,gameId:game.gameId}));
+ ctx.render({ok:true,status:'SCHEDULED',sgps:[
+  {risk:'Small',status:'MODEL_CANDIDATE',legs:all.slice(0,4)},
+  {risk:'Medium',status:'MODEL_CANDIDATE',legs:all},
+  {risk:'Nuke',status:'MODEL_CANDIDATE',legs:all}
+ ],pregameReadiness:{freshness:'CURRENT'}});
+ const html=area['#match-content'].innerHTML;
+ assert.match(html,/Jayson Tatum/);assert.match(html,/25\+/);
+ assert.match(html,/Cade Cunningham/);assert.match(html,/Assists/);
+ assert.equal((html.match(/NOT READY/g)||[]).length,0);
  assert.ok(html.includes('Combined DraftKings/FanDuel SGP prices are not confirmed'));
 });
+
 test('No NBA snapshot results in an accurate empty/pending view, not fake 5+ leg bets',()=>{
  const {ctx,area}=ui();ctx.state.nbaTab='sgps';
  ctx.render({ok:true,status:'SCHEDULED',
