@@ -87,7 +87,7 @@ test("net tier boundaries are consistent for all games",()=>{
  for(const [odds,risk,expectedProfit] of [
   [2000,"Small",200],[3000,"Small",300],
   [3001,"Medium",300.1],[8000,"Medium",800],
-  [10001,"Nuke",1000.1],[25362,"Nuke",2536.2]
+  [10000,"Nuke",1000],[10001,"Nuke",1000.1],[25362,"Nuke",2536.2]
  ]){
   const checked=check(quote({americanOdds:odds}),{risk});
   assert.equal(checked.tierVerified,true,String(odds));
