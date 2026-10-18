@@ -34,8 +34,13 @@ test('public and production read the same captured official-book observation sto
  assert.ok(home.includes(LOCAL_BOOK_KEY));
  assert.ok(capture.includes('CAPTURE_STORAGE_KEY'));
  assert.ok(picks.includes('src="/public-sgp-browser-bootstrap.js"'));
- assert.ok(picks.includes('state.currentBookSgpModel=m;'));
- assert.ok(picks.includes('renderLocalBookParity(d)+research'));
+ assert.ok(picks.includes('state.currentBookSgpModel=null;'));
+ assert.ok(picks.includes('state.publishedBookObservations=published?.ok?published:null;'));
+ assert.ok(picks.includes("'/api/nfl-published-book-observations?'"));
+ assert.ok(!picks.includes('state.currentBookSgpModel=m;'));
+ assert.ok(picks.includes('const bookSlips=book=>{'));
+ assert.ok(picks.includes('const syncedHtml='));
+ assert.ok(picks.includes('const snapshotFresh=d?.ok===true'));
  assert.ok(picks.includes("event.key==='momentum-radar-public-book-observations-v1'"));
 });
 test('public matchups evaluate only listed 125+ or 150+ instead of inventing 135',()=>{
