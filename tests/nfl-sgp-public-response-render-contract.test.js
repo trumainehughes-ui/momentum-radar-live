@@ -27,17 +27,16 @@ const market={
  ]}
 };
 const context={market,gameId,date,home:'ATL',away:'CHI'};
-test('Small/Medium/Nuke actual public model response now yields visible numeric player forecasts',()=>{
+test('incomplete Small Medium Nuke research shows NOT READY with no partial athlete forecasts or invented prices',()=>{
  const out=buildNflProjectedSgpTierDetails(context),page=renderNflProjectedSgpTierDetails(out);
  assert.equal(out.tiers.length,3);
- for(const x of ['Small','Medium','Nuke'])assert.ok(page.includes(x+' • AI yardage projection candidates'));
- for(const x of ['Rome Odunze','Bijan Robinson','Drake London','Kyle Pitts'])assert.ok(page.includes(x));
- assert.ok(page.includes('AI Receiving forecast: 55 yards'));
- assert.ok(page.includes('AI Rushing forecast: 115 yards'));
- assert.ok(page.includes('suggested comparison target'));
- assert.ok(!page.includes('Exact sportsbook selection pending'));
- assert.ok(page.includes('NOT a listed betting line'));
- assert.ok(!page.includes('Actual combined odds'));
+ assert.ok(out.tiers.every(t=>t.compositionComplete===false));
+ for(const risk of ['Small','Medium','Nuke'])assert.ok(page.includes(risk+' • NOT READY'));
+ for(const name of ['Rome Odunze','Bijan Robinson','Drake London','Kyle Pitts'])
+  assert.ok(!page.includes(name),name);
+ assert.doesNotMatch(page,/AI Receiving forecast: 55 yards|AI Rushing forecast: 115 yards/);
+ assert.doesNotMatch(page,/135\+|135 yards|Actual combined odds/);
+ assert.match(page,/exact offers must be verified/);
 });
 test('cross-game and other teams never leak into displayed tier card',()=>{
  const m={...market,sgps:{Analytics:[{risk:'Small',legs:[

@@ -47,13 +47,13 @@ const maker=(pool)=> (risk,count)=>{
  return {risk,legs,tierAssessment:mix.assessment,candidateComplete:mix.filled,
    reason:mix.reason,requiredLegs:count,modelOnly:true,combinedBookQuoteVerified:false};
 };
-test('Nuke tries 7 then 6 then 5; builds valid five-leg mixed yardage when available',()=>{
+test('Nuke scans 5 through 7 and chooses shortest qualifying model lineup without a book quote',()=>{
  const attempts=[];
  const produce=maker(good.slice(0,5));
  const candidate=selectNflAdaptiveNuke((risk,count)=>{
   attempts.push(count);return produce(risk,count);
  });
- assert.deepEqual(attempts,[7,6,5]);
+ assert.deepEqual(attempts,[5,6,7]);
  assert.equal(candidate.adaptiveLegCount,5);
  assert.equal(candidate.legs.length,5);
  assert.equal(candidate.tierAssessment.compositionOk,true);
@@ -62,7 +62,7 @@ test('Nuke tries 7 then 6 then 5; builds valid five-leg mixed yardage when avail
  assert.ok(candidate.legs.every(x=>x.analyticsThreshold>x.projection));
  assert.equal(candidate.combinedBookQuoteVerified,false);
 });
-test('Nuke still keeps 7 when all seven valid above-projection options exist',()=>{
+test('Nuke prefers five elevated evidence-supported legs to seven without a bookmaker quote',()=>{
  const seven=[...good,{name:'Roster RB Two',playerID:'1007',team:'PHI',opponent:'JAX',eventID:gameId,
     cat:'rushing',projection:40,analyticsThreshold:55}];
  const r2={...rosters,rosterById:new Map([...rosters.rosterById,['1007',{team:'PHI',name:'Roster RB Two',id:'1007'}]]),
@@ -76,8 +76,9 @@ test('Nuke still keeps 7 when all seven valid above-projection options exist',()
   return {risk,legs,requiredLegs:count,tierAssessment:m.assessment,candidateComplete:m.filled};
  };
  const r=selectNflAdaptiveNuke(make);
- assert.equal(r.adaptiveLegCount,7);
- assert.equal(r.legs.length,7);
+ assert.equal(r.adaptiveLegCount,5);
+ assert.equal(r.legs.length,5);
+ assert.notEqual(r.combinedBookQuoteVerified,true);
 });
 test('insufficient yardage or a Nuke target below projection returns NOT READY rather than fake odds',()=>{
  for(const p of [
@@ -89,7 +90,7 @@ test('insufficient yardage or a Nuke target below projection returns NOT READY r
   assert.equal(r.candidateComplete,false);
   assert.equal(r.combinedBookQuoteVerified,false);
   assert.equal(r.estimatedOdds,null);
-  assert.match(r.reason,/supported elevated yardage/);
+  assert.match(r.reason,/adaptive-leg candidate|roster|market diversity|tier-specific projection/i);
  }
 });
 test('final gate rejects cross-game Nuke even when it has six valid categories',()=>{
@@ -103,6 +104,9 @@ test('market route builds Nuke from vetted roster pool before last-resort presen
  assert.ok(api.includes('if(!nflLegMatchesGameRoster(x,identity))continue;'));
  assert.ok(api.includes("const nuke=selectNflAdaptiveNuke(make);"));
  assert.ok(api.includes('buildAnalyticsSgp(categories,ctx,roles,{gameId,home,away,rosterChecked:'));
- assert.ok(api.includes('sgps=pruneSgpsForEligibility(sgps,eligibility,{gameId,home,away})'));
+ assert.ok(api.includes('response.sgps.Analytics=(analyticsSgps||[]).filter(c=>'));
+ assert.ok(api.includes('c.legs.length>0&&eligibility.checked===true&&c.legs.every(l=>'));
+ assert.ok(api.includes('safeTeams.has(String(l.team||\'\').toUpperCase())'));
+ assert.ok(api.includes('!eligibility.blockedIds.has(id)'));
  assert.ok(api.includes("CACHE_SCHEMA='v92-strict-nuke-profit-20261011'+'-nuke-roster-adaptive-1-game-identity-2'"));
 });

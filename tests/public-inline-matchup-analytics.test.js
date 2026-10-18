@@ -66,7 +66,7 @@ test('public accordion retains all game analytics and auto refresh without extra
  assert.ok(html.includes('game-expand-slot{grid-column:1/-1'));
  assert.ok(html.includes('game-expand-slot{scroll-margin-top:72px'));
  assert.ok(html.includes("$('#match-content').addEventListener('click'"));
- assert.ok(html.includes('setInterval(refreshReadOnlyPredictions,5*60*1000)'));
+ assert.ok(html.includes('setInterval(refreshReadOnlyPredictions,30*1000)'));
  assert.ok(!html.includes('if(state.games.length)openGame(String(state.games[0].gameId))'));
  assert.equal((html.match(/id="game-section"/g)||[]).length,1);
  for(const name of ['Overview','Anytime TD','Player Props','Matchup Edge',

@@ -1,0 +1,26 @@
+name: NFL Nuke Screenshot Regression
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  nuke-screenshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Validate public and model renderers
+        run: |
+          node --check lib/nfl-sgp-model-yardage-cards.js
+          node --check lib/public-nfl-view.js
+          node --check lib/ai-mechanics/nfl-sgp-tiers.js
+      - name: Screenshot Nuke, +10000 boundary, and published snapshot tests
+        run: |
+          node --test tests/nfl-public-nuke-strict-tier.test.js tests/nfl-sgp-model-yardage-cards.test.js tests/nfl-sgp-tier-boundaries.test.js tests/nfl-sgp-tier-market-parity.test.js tests/public-nfl-sync-contract.test.js

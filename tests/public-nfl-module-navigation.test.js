@@ -115,7 +115,7 @@ test('navigation retains sanitized public APIs and inline matchups; no new betti
   "moduleContent.appendChild($('#extra-section'))",
   "state.detailTab=state.module==='sgps'?'sgps':state.module==='live'?'live':'overview'",
   "if(state.detailTab==='live'){$('#match-content').innerHTML=showLive({});loadPublicLive(String(id));}",
-  "setInterval(refreshReadOnlyPredictions,5*60*1000)",
+  "setInterval(refreshReadOnlyPredictions,30*1000)",
   "/api/public-nfl-game?",
   "/api/public-nfl-live?",
   "/api/public-nfl-rankings?"

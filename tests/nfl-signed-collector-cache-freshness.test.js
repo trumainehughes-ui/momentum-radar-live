@@ -48,7 +48,9 @@ test('production collector signs per-game market refresh only inside protected c
  assert.ok(health.includes("'&lockRun=1&ts='+Date.now()"));
  assert.ok(health.includes("headers:{Authorization:'Bearer '+process.env.CRON_SECRET}"));
  assert.ok(markets.includes('shouldServeCachedNflMarkets(saved,req,{secret:process.env.CRON_SECRET,ttl:TTL})'));
- assert.ok(markets.includes('(signedNflCollectorLock(req,process.env.CRON_SECRET)||authorizedChange)?4500:1200'));
+ assert.ok(markets.includes('shouldServeCachedNflMarkets(saved,req,{secret:process.env.CRON_SECRET,ttl:TTL})'));
+ assert.ok(markets.includes('const clientCachePolicy=gameId?EDGE_GAME:EDGE_GOOD'));
+ assert.ok(markets.includes('const publishedAt=await writeResponseSnapshot(responseKey,publicResponse,date,gameId,requestStarted)'));
  assert.ok(health.includes('bookCheckpoint.marketResponse||await r.json()'));
  assert.ok(markets.includes("if(authorizedChange&&gameId&&!DIRECT_PUBLIC_ODDS_ONLY)"));
  assert.ok(health.includes("const injuryWatch=await checkNflScheduledInjuryChanges(g,{"));

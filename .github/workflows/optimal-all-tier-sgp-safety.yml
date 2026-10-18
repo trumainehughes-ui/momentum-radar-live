@@ -1,0 +1,27 @@
+name: Optimal AI and All-Tier SGP Safety
+on:
+  pull_request:
+    branches: [main, fix/nfl-nuke-no-partial-sgp-20261018]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  optimal-all-tier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Syntax checks for AI and projection integrations
+        run: |
+          node --check lib/optimal-projection-crosscheck.js
+          node --check api/optimal-projection-reference.js
+          node --check optimal-sgp-crosscheck-bootstrap.js
+          node --check lib/nfl-sgp-model-yardage-cards.js
+      - name: Validate all SGP tiers and authorized projection bridge
+        run: |
+          node --test tests/optimal-projection-crosscheck.test.js tests/nfl-sgp-model-yardage-cards.test.js tests/nfl-public-nuke-strict-tier.test.js tests/nfl-sgp-tier-market-parity.test.js tests/nba-adaptive-tier-policy.test.js tests/nfl-sgp-odds-boundary-source.test.js tests/nfl-market-deployment-origin-guard.test.js

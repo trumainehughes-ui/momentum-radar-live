@@ -123,3 +123,23 @@ test('live SGP status includes sanitized quote readiness without new paid source
  assert.ok(src.includes('nflSavedBookQuoteDiagnostics(raw,{fresh,verifiedQuotes:bookQuotes})'));
  assert.ok(!src.includes('PLAYER_PROPS_API_KEY'));
 });
+
+test('direct DraftKings/FanDuel website research never suggests an unavailable authenticated SGP quote will automatically refresh',()=>{
+ const input={ok:true,gameId,oddsDebug:{
+  oddsApisDisabled:true,directPublicResearchStatus:'PUBLIC_OFFERS_MATCHED',
+  providerNativeRows:0,propLineChangeType:null,authorizedQuoteCandidates:0,
+  rawError:'DO NOT EXPOSE THIS TOKEN'},validation:{sgpEligibleMarketRows:0},
+  sgps:{Analytics:[{risk:'Nuke',legs:[{name:'private person'}]}],
+   DraftKings:[],FanDuel:[]}};
+ const x=nflSavedBookQuoteDiagnostics(input,{fresh:true});
+ assert.equal(x.status,'FIRST_PARTY_PUBLIC_RESEARCH_NO_AUTHENTICATED_SGP_QUOTE');
+ assert.equal(x.eligibleMarketRows,0);
+ assert.equal(x.authorizedRefreshObserved,false);
+ assert.ok(x.books.every(b=>b.risks.every(r=>r.quoted===false)));
+ assert.ok(!JSON.stringify(x).includes('DO NOT EXPOSE THIS TOKEN'));
+ assert.ok(!JSON.stringify(x).includes('private person'));
+ const quoted=nflSavedBookQuoteDiagnostics(input,{fresh:true,
+  verifiedQuotes:[{book:'DraftKings',risk:'Small'}]});
+ assert.equal(quoted.status,'VERIFIED_BOOK_QUOTES_PRESENT',
+  'genuine validated bookmaker quotes take precedence over no-quote source status');
+});

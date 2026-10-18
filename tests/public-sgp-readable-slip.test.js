@@ -3,132 +3,120 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 
+// The customer SGP view now uses game-scoped public modelResearchTiers and
+// server-verified verifiedBookParlays. Legacy client-built/parlay fields are
+// deliberately ignored. These tests assert the currently shipped contract.
 const page=readFileSync(new URL('../picks.html',import.meta.url),'utf8');
 const script=page.match(/<script>([\s\S]*?)<\/script>/)?.[1]||'';
-const first=script.indexOf('function sgpSelectionDisplay(l){');
-const last=script.indexOf('function offerHtml(x){',first);
-assert.ok(first>0&&last>first,'SGP renderer is available');
-const snippet=script.slice(first,last);
-function setup(){
- const context={
-  state:{recheckLoading:false,recheckStatus:null},
-  fmtStamp:()=> 'Updated Oct 17, 1:30 AM',
-  esc:v=>String(v??'').replace(/[&<>"']/g,s=>({
-   '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  })[s]),
-  renderPublicBookResearch:()=>'<div>Public odds detail</div>',
-  renderOdds:q=>'<div>BOOK QUOTE '+q[0]?.americanOdds+'</div>'
- };
- vm.runInNewContext(snippet+';this.sgps=renderParlays;this.prop=sgpSelectionDisplay;',context);
- return context;
+const start=script.indexOf('function nflPublicTierCountReady(risk,legs){');
+const end=script.indexOf('function offerHtml(x){',start);
+assert.ok(start>0&&end>start,'current scoped SGP renderer is available');
+const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({
+ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const players=[
+ ['Trevor Lawrence','JAX','passing',225],
+ ['Bhayshul Tuten','JAX','rushing',75],
+ ['Parker Washington','JAX','receiving',65],
+ ['Brenton Strange','JAX','receptions',4],
+ ['Woody Marks','HOU','td','Anytime TD'],
+ ['C.J. Stroud','HOU','passing',255],
+ ['Xavier Hutchinson','HOU','receiving',55]
+];
+const leg=i=>({player:players[i][0],team:players[i][1],
+ category:players[i][2],target:players[i][3],
+ projection:players[i][2]==='td'?null:players[i][3],
+ projectionNote:'Based on usage, injury screening, and opponent matchup.'});
+const tier=(risk,n)=>({risk,mode:'MODEL_RESEARCH',complete:true,requiredLegs:n,
+ legs:Array.from({length:n},(_,i)=>leg(i))});
+function base(extra={}){
+ return {ok:true,date:'2026-10-18',gameId:'401872996',home:'JAX',away:'HOU',
+  status:'CURRENT',updatedDataCurrent:true,updatedAt:new Date().toISOString(),
+  modelResearchTiers:[tier('Small',4),tier('Medium',5),tier('Nuke',7)],
+  verifiedBookParlays:[],...extra};
 }
-const leg=(player,category,target,extra={})=>({
- player,category,target,hitProbabilityPct:99,projectionNote:'Heavy stats, explanatory history',
- ...extra
-});
-const picks={verifiedQuotes:[],inactivesVerified:false,updatedDataCurrent:false,
- parlays:[
-  {risk:'Small',mode:'MODEL_ONLY',legCount:4,explanation:'Long complex explanation',
-   legs:[leg('Trevor Lawrence','passing','170+ yards'),
-    leg('Xavier Hutchinson','receiving','30+ yards'),
-    leg('Parker Washington','td','Anytime TD'),
-    leg('Brenton Strange','receptions','2+ receptions')]},
-  {risk:'Medium',mode:'MODEL_ONLY',legCount:5,legs:[
-   leg('Bhayshul Tuten','rushing','60+ yards'),
-   leg('C.J. Stroud','passing','255+ yards'),
-   leg('Trevor Lawrence','passing','215+ yards'),
-   leg('Parker Washington','td','Anytime TD'),
-   leg('Xavier Hutchinson','receptions','2+ receptions')]},
-  {risk:'Nuke',mode:'MODEL_ONLY',legCount:7,legs:[
-   leg('Brenton Strange','receiving','60+ yards'),
-   leg('Woody Marks','receiving','40+ yards'),
-   leg('Parker Washington','receiving','85+ yards'),
-   leg('Bhayshul Tuten','td','Anytime TD'),
-   leg('Brian Thomas Jr.','receptions','3+ receptions'),
-   leg('C.J. Stroud','passing','310+ yards'),
-   leg('Jakobi Meyers','receptions','4+ receptions')]}
- ]};
-test('renders Small / Medium / Nuke with 4/5/7 clear leg rows and exact targets',()=>{
- const html=setup().sgps(picks);
- assert.equal((html.match(/class="sgp-slip"/g)||[]).length,3);
+function render(data){
+ const c={state:{date:'2026-10-18',selected:'401872996',currentBookSgpModel:null},
+  esc,fmtStamp:()=> 'Recent snapshot',renderPublicBookResearch:()=>'<div>Unverified public research</div>',
+  renderAutoRecheckStatus:()=>'',renderOdds:()=>'',sgpSelectionDisplay:()=>({label:'',target:''})};
+ vm.runInNewContext(script.slice(start,end)+';this.draw=renderParlays;',c);
+ return c.draw(data);
+}
+function bookSmall(overrides={}){
+ const now=new Date().toISOString();
+ return {book:'DraftKings',risk:'Small',mode:'VERIFIED_BOOK_SGP',
+  combinedOddsVerified:true,americanOdds:2500,quotedAt:now,
+  legs:Array.from({length:4},(_,i)=>({
+   ...leg(i),bookOffer:{book:'DraftKings',attested:true,available:true,
+    odds:-110,checkedAt:now,...(players[i][2]==='td'?{}:{line:players[i][3]})}
+  })),...overrides};
+}
+test('public tiers show 4, 5, 7 distinct player-market research rows, never implied book odds',()=>{
+ const html=render(base());
+ assert.equal((html.match(/researched legs/g)||[]).length,3);
  assert.equal((html.match(/class="sgp-leg"/g)||[]).length,16);
  for(const risk of ['Small','Medium','Nuke'])assert.ok(html.includes('>'+risk+'</strong>'));
- for(const expected of ['Trevor Lawrence','Passing yards','170+',
-  'Xavier Hutchinson','Receiving yards','30+','Parker Washington',
-  'Anytime touchdown','Score a TD','Brenton Strange','Receptions','2+',
-  'Bhayshul Tuten','Rushing yards','60+','C.J. Stroud','310+'])
-  assert.ok(html.includes(expected),expected);
+ for(const name of ['Trevor Lawrence','Parker Washington','Brenton Strange','Woody Marks'])
+  assert.ok(html.includes(name),name);
+ assert.match(html,/Why: Based on usage, injury screening/);
+ assert.doesNotMatch(html,/\+2500 combined/);
+ assert.match(html,/Model-only research/);
 });
-test('suppresses confidence, model narration and repeated verification paragraphs',()=>{
- const html=setup().sgps(picks);
- for(const removed of ['Estimated hit probability','uncalibrated model',
-  'Long complex explanation','Heavy stats, explanatory history',
-  'No sportsbook-verified parlays available yet','Sportsbook verification pending.'])
-  assert.ok(!html.includes(removed),removed);
- assert.equal((html.match(/Model picks only/g)||[]).length,1);
- assert.ok(html.includes('Combined sportsbook odds and player lines are not verified'));
+test('public card avoids technical score, probabilities, and inferred sportsbook lines',()=>{
+ const html=render(base());
+ for(const forbidden of ['Estimated hit probability','Heavy stats, explanatory history',
+  'Long complex explanation','Model suggested sportsbook odds','AI forecast'])
+  assert.ok(!html.includes(forbidden),forbidden);
+ assert.match(html,/Player projections are not sportsbook-verified lines or combined odds/);
 });
-test('public bookmaker details stay available but are collapsed until requested',()=>{
- const html=setup().sgps(picks);
- assert.ok(html.includes('<details class="sgp-research-details">'));
- assert.ok(html.includes('<summary>Public sportsbook price research (optional)</summary>'));
- assert.ok(!html.includes('<details class="sgp-research-details" open'));
- assert.ok(html.includes('Public odds detail'));
+test('book research stays separate from bookmaker-issued quoted parlays',()=>{
+ const html=render(base({verifiedBookParlays:[bookSmall()]}));
+ assert.match(html,/DraftKings Same Game Parlays/);
+ assert.match(html,/\+2500 combined/);
+ assert.match(html,/FanDuel Same Game Parlays/);
+ assert.match(html,/No complete FanDuel lineup/);
+ assert.match(html,/NFL model research — not a sportsbook lineup/);
 });
-test('already-authenticated combined sportsbook quote remains distinct and visible',()=>{
- const html=setup().sgps({...picks,verifiedQuotes:[{
-  book:'DraftKings',risk:'Small',americanOdds:2500
- }],inactivesVerified:true,updatedDataCurrent:true});
- assert.ok(html.includes('BOOK QUOTE 2500'));
- assert.ok(html.includes('Sportsbook-issued combined quotes'));
- assert.ok(!html.includes('Model picks only'));
+test('verified combined sportsbook price needs a fresh quote and every attested same-book leg',()=>{
+ const old=new Date(Date.now()-16*60*1000).toISOString();
+ const bad=bookSmall();bad.legs[0].bookOffer.attested=false;
+ assert.doesNotMatch(render(base({verifiedBookParlays:[bad]})),/\+2500 combined/);
+ const mismatched=bookSmall();mismatched.legs[1].bookOffer.book='FanDuel';
+ assert.doesNotMatch(render(base({verifiedBookParlays:[mismatched]})),/\+2500 combined/);
+ assert.doesNotMatch(render(base({verifiedBookParlays:[bookSmall({quotedAt:old})]})),/\+2500 combined/);
+ assert.doesNotMatch(render(base({verifiedQuotes:[{book:'DraftKings',americanOdds:2500}]})),/\+2500 combined/);
 });
-test('escapes user-controlled player names rather than injecting HTML',()=>{
- const html=setup().sgps({...picks,parlays:[{risk:'Small',mode:'MODEL_ONLY',
-  legs:[leg('<img src=x onerror=alert(1)>','passing','170+ yards'),
-   leg('Test Player','td','Anytime TD')]}]});
- assert.ok(html.includes('&lt;img'));
- assert.ok(!html.includes('<img'));
+test('complete quoted SGP is withheld for wrong-game, old or malformed snapshot',()=>{
+ for(const item of [{gameId:'401872998'},{date:'2026-10-19'},
+  {status:'LAST_SAVED',updatedDataCurrent:false},
+  {updatedAt:new Date(Date.now()-16*60*1000).toISOString()}]){
+  const html=render(base({...item,verifiedBookParlays:[bookSmall()]}));
+  assert.match(html,/NOT READY/);
+  assert.doesNotMatch(html,/\+2500 combined|Trevor Lawrence/);
+ }
+});
+test('HTML-escaped names can show in complete model research without injecting markup',()=>{
+ const t=tier('Small',4);t.legs[0].player='<img src=x onerror=alert(1)>';
+ const html=render(base({modelResearchTiers:[t]}));
+ assert.match(html,/&lt;img src=x/);
+ assert.doesNotMatch(html,/<img src=x/);
  assert.doesNotThrow(()=>new vm.Script(script));
 });
-test('public SGP styling allows a readable single-column phone layout',()=>{
+test('mobile slips maintain readable single-column layout',()=>{
  assert.ok(page.includes('.sgp-leg-name{'));
  assert.ok(page.includes('font-size:16px'));
  assert.ok(page.includes('@media(max-width:570px){.sgp-slips{grid-template-columns:minmax(0,1fr)'));
- assert.ok(page.includes('Simple player and prop selections'));
 });
-
-test('older saved NFL game still shows all Small, Medium and Nuke model slips rather than a false empty message',()=>{
- const snapshot={...picks,status:'LAST_SAVED',updatedDataCurrent:false,
-  inactivesVerified:false,verifiedQuotes:[],
-  parlays:picks.parlays.map(x=>({...x,mode:'STALE_MODEL_ONLY',outdated:true}))};
- const html=setup().sgps(snapshot);
- assert.equal((html.match(/class="sgp-slip"/g)||[]).length,3);
- assert.equal((html.match(/class="sgp-leg"/g)||[]).length,16);
- for(const risk of ['Small','Medium','Nuke'])assert.ok(html.includes('>'+risk+'</strong>'));
- assert.ok(html.includes('Needs refresh · Saved model selections'));
- assert.equal((html.match(/Needs refresh<\/span>/g)||[]).length,3);
- assert.ok(html.includes('Trevor Lawrence'));
- assert.ok(html.includes('Parker Washington'));
- assert.ok(!html.includes('No model parlay selections are available'));
- assert.ok(!html.includes('BOOK QUOTE'));
- assert.equal((html.match(/Model picks only/g)||[]).length,1);
+test('saved older snapshot cannot show historic selections as current bets',()=>{
+ const html=render(base({status:'LAST_SAVED',updatedDataCurrent:false,
+  verifiedBookParlays:[bookSmall()]}));
+ assert.match(html,/Previously saved predictions are expired/);
+ assert.doesNotMatch(html,/<ol class="sgp-leg-list">|\+2500 combined/);
 });
-test('stale game cannot display a purported verified combined price even if quote metadata leaks through',()=>{
- const snapshot={...picks,status:'LAST_SAVED',updatedDataCurrent:false,
-  inactivesVerified:true,verifiedQuotes:[{book:'DraftKings',risk:'Small',americanOdds:2000}],
-  parlays:picks.parlays.map(x=>({...x,mode:'STALE_MODEL_ONLY',outdated:true}))};
- const html=setup().sgps(snapshot);
- assert.ok(!html.includes('BOOK QUOTE'));
- assert.ok(html.includes('Combined sportsbook odds and player lines are not verified'));
-});
-test('unknown or malformed model candidate remains hidden rather than being promoted by individual market price',()=>{
- const snapshot={...picks,status:'CURRENT',updatedDataCurrent:true,
-  parlays:[{risk:'Small',mode:'UNVERIFIED_INDIVIDUAL_MARKET',
-    legs:[leg('Test Player','td','Anytime TD'),leg('Second Player','td','Anytime TD')]},
-   {risk:'Medium',mode:'MODEL_ONLY',
-    legs:[leg('Player One','td','Anytime TD'),{player:'Broken'}]}]};
- const html=setup().sgps(snapshot);
- assert.ok(html.includes('No complete model SGP tier was generated'));
- assert.ok(!html.includes('sgp-leg-name'));
+test('incomplete and all-touchdown tiers show NOT READY without leaking player picks',()=>{
+ const short=tier('Nuke',7);short.legs=short.legs.slice(0,2);
+ const allTd=tier('Small',4);allTd.legs=allTd.legs.map(l=>({...l,category:'td'}));
+ const html=render(base({modelResearchTiers:[short,allTd]}));
+ assert.match(html,/Nuke · NOT READY/);
+ assert.match(html,/Small · NOT READY/);
+ assert.doesNotMatch(html,/<ol class="sgp-leg-list">/);
 });

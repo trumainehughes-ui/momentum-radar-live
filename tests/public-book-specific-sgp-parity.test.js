@@ -5,7 +5,8 @@ import vm from 'node:vm';
 import {publicNflGameView} from '../lib/public-nfl-view.js';
 
 const date='2026-10-18',gameId='401872996';
-const at=Date.parse('2026-10-18T12:00:00Z');
+// Use a current fixture so the public 15-minute quote-age check is exercised.
+const at=Date.now()-60_000;
 const now=at+20_000;
 const metadata=[
  ['C.J. Stroud','101','HOU','passing','QB',280],
@@ -90,7 +91,8 @@ const first=script.indexOf('function sgpSelectionDisplay(l){');
 const last=script.indexOf('function offerHtml(',first);
 assert.ok(first>0&&last>first);
 function render(d){
- const context={state:{currentBookSgpModel:null,recheckLoading:false},
+ const context={state:{currentBookSgpModel:null,recheckLoading:false,
+   selected:gameId,date},
   window:{},esc:x=>String(x??''),fmtStamp:()=> 'Updated',
   renderOdds:()=>'',renderPublicBookResearch:()=>'',
   renderLocalBookParity:()=>'',

@@ -62,11 +62,13 @@ test('NFL active response is scrubbed after quote calls and before public JSON a
  const code=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
  const quote=code.indexOf('await Promise.all(quoteCandidates.map');
  const redact=code.indexOf('const publicResponse=nflPublicMarketResponse(response);');
- const save=code.indexOf('writeResponseSnapshot(responseKey,publicResponse)');
- const send=code.indexOf('return res.status(200).json(publicResponse);');
- assert.ok(quote>0&&redact>quote&&save>redact&&send>save);
+ const save=code.indexOf('writeResponseSnapshot(responseKey,publicResponse,date,gameId,requestStarted)');
+ const verify=code.indexOf('const newest=await readResponseSnapshot(responseKey,date,gameId,true);');
+ const send=code.indexOf('return res.status(200).json(nflVerifiedOnlySgpResponse(newest.body));');
+ assert.ok(quote>0&&redact>quote&&save>redact&&verify>save&&send>verify);
  assert.ok(code.includes('quoteRequest:safeQuote'));
  assert.ok(code.includes('candidate.quoteRequest.legs.length'));
  assert.ok(code.includes("'-public-quote-scrub-v1'"));
- assert.ok(NFL_SGP_SNAPSHOT_SCHEMA.endsWith('-public-quote-scrub-v1-official-reserve-holds-v1-model-hit-chance-v1-injury-list-hardgate-v1'));
+ assert.ok(NFL_SGP_SNAPSHOT_SCHEMA.includes('-public-quote-scrub-v1'));
+ assert.ok(NFL_SGP_SNAPSHOT_SCHEMA.endsWith('-strict-no-unlisted-sgp-props-20261017'));
 });

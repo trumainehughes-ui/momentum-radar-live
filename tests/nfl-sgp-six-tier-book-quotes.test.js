@@ -59,10 +59,14 @@ test('every tier independently requires an authenticated, fresh correctly priced
  assert.ok(quoteSource.includes('verifyPropLineSgpResponse({league,gameId,eventId,bookmaker,legs},data)'));
 });
 test('frontend shows actual combined positive odds only when verified; model tiers stay visible when partial',()=>{
- assert.ok(html.includes('bookQuoteVerified=s=>'));
+ assert.ok(html.includes('const bookQuoteVerified=(s,book)=>'));
+ assert.ok(html.includes("s?.combinedBookQuoteVerified===true&&s?.publishable===true"));
  assert.ok(html.includes('Actual combined ${book} odds: +${Number(s.actualSgpOdds)}'));
  assert.ok(html.includes('(Number(s.actualSgpOdds)/10).toFixed(2)'));
- assert.ok(html.includes('ALL THREE MOMENTUM RADAR MODEL TIERS'));
+ assert.ok(html.includes('MODEL RESEARCH • NOT BOOKMAKER QUOTES'));
+ assert.ok(html.includes("['DraftKings','FanDuel'].map(book=>"));
+ assert.ok(html.includes('Exact-line coverage:'));
+ assert.ok(html.includes('a bookmaker-issued correlated combined SGP quote is required'));
  assert.ok(html.includes('a bookmaker-issued correlated combined SGP quote is required'));
  assert.ok(!html.includes('Combined bookmaker price is automatically estimated'));
 });

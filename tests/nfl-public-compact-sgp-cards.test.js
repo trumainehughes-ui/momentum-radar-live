@@ -27,12 +27,17 @@ const market={ok:true,scope:'game',gameId,date,validation:{injuryEvidence:[
  {risk:'Small',legs:[{player:'Rome Odunze',team:'CHI',category:'receiving'},
   {player:'Bijan Robinson',team:'ATL',category:'rushing'},
   {player:"D'Andre Swift",team:'CHI',category:'td'},
-  {player:'Unavailable Player',team:'ATL',category:'rushing'}]},
+  {player:'Luther Burden III',team:'CHI',category:'receiving'}]},
  {risk:'Medium',legs:[{player:'Luther Burden III',team:'CHI',category:'receiving'},
-  {player:'Bijan Robinson',team:'ATL',category:'td'}]},
+  {player:'Bijan Robinson',team:'ATL',category:'td'},
+  {player:'Rome Odunze',team:'CHI',category:'receiving'},
+  {player:"D'Andre Swift",team:'CHI',category:'rushing'},
+  {player:'Kalif Raymond',team:'CHI',category:'receiving'}]},
  {risk:'Nuke',legs:[{player:'Bijan Robinson',team:'ATL',category:'rushing'},
   {player:'Rome Odunze',team:'CHI',category:'receiving'},
-  {player:"D'Andre Swift",team:'CHI',category:'td'}]}
+  {player:"D'Andre Swift",team:'CHI',category:'td'},
+  {player:'Luther Burden III',team:'CHI',category:'receiving'},
+  {player:'Kalif Raymond',team:'CHI',category:'receiving'}]}
  ]}};
 const cfg={market,gameId,date,home:'ATL',away:'CHI'};
 
@@ -76,7 +81,12 @@ test('no numeric projections or cross-game selections can be invented',()=>{
 test('escapes user-visible names and uses only actual production model data',()=>{
  const evil='<svg onload=alert(1)>';
  const m={...market,categories:{...market.categories,rushing:[p(evil,'ATL',75,71,'rushing')]},
-  sgps:{Analytics:[{risk:'Small',legs:[{player:evil,team:'ATL',category:'rushing'}]}]}};
+  sgps:{Analytics:[{risk:'Small',legs:[
+   {player:evil,team:'ATL',category:'rushing'},
+   {player:'Rome Odunze',team:'CHI',category:'receiving'},
+   {player:"D'Andre Swift",team:'CHI',category:'td'},
+   {player:'Luther Burden III',team:'CHI',category:'receiving'}
+  ]}]}};
  const html=renderPublicCompactNflSgpCards(buildPublicCompactNflSgpCards({...cfg,market:m}));
  assert.match(html,/&lt;svg onload=alert\(1\)&gt;/);
  assert.doesNotMatch(html,/<svg onload/);
@@ -85,8 +95,12 @@ test('only public /picks uses compact render; internal homepage retains detailed
  const pub=readFileSync(new URL('../picks.html',import.meta.url),'utf8');
  const prod=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert.ok(pub.includes('nfl-public-compact-sgp-bootstrap.js'));
- assert.ok(pub.includes('window.momentumPublicCompactNflSgp'));
- assert.ok(pub.indexOf('if(publicCompact){')<pub.indexOf('return modelChoiceHtml+tierYardageHtml+intro+'));
+ // The new customer presentation reads published signed game snapshots;
+ // the compact helper is dormant and may not bypass that contract.
+ assert.ok(pub.includes('modelResearchTiers'));
+ assert.ok(pub.includes('verifiedBookParlays'));
+ assert.ok(pub.includes('nflPublicTierMarketMixReady'));
+ assert.ok(!pub.includes('if(publicCompact){'));
  assert.ok(!prod.includes('nfl-public-compact-sgp-bootstrap.js'));
  assert.ok(prod.includes('modelChoiceHtml+sgpYardageHtml'));
 });
@@ -94,4 +108,14 @@ test('saved model predictions have a short provenance note',()=>{
  const html=renderPublicCompactNflSgpCards(buildPublicCompactNflSgpCards({...cfg,saved:true}));
  assert.match(html,/Previously saved predictions/);
  assert.doesNotMatch(html,/Sportsbook-issued combined quotes below/);
+});
+
+test('legacy compact renderer never displays partial tier names or unsupported numeric props',()=>{
+ const incomplete={...market,sgps:{Analytics:[{
+  risk:'Nuke',legs:[{player:'Bijan Robinson',team:'ATL',category:'rushing'},
+   {player:'Rome Odunze',team:'CHI',category:'receiving'}]
+ }]}};
+ const out=renderPublicCompactNflSgpCards(buildPublicCompactNflSgpCards({...cfg,market:incomplete}));
+ assert.match(out,/Nuke • NOT READY/);
+ assert.doesNotMatch(out,/140 yards|Bijan Robinson|Rome Odunze/);
 });

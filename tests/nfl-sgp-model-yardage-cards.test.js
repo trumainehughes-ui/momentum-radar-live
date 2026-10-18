@@ -64,15 +64,15 @@ test('small/medium/nuke comparison targets change with risk, never claim real sp
  assert.equal(r.bookmakerSgpQuoteVerified,false);
  assert.ok(r.tiers.every(t=>t.bookmakerSgpQuoteVerified===false));
  const html=renderNflProjectedSgpTierDetails(r);
- assert.match(html,/AI Rushing forecast: 115 yards/);
- assert.match(html,/Small suggested comparison target: <b>90 yards/);
- assert.match(html,/Nuke suggested comparison target: <b>140 yards/);
- assert.match(html,/Player yardage outlook:.*Rushing 70 yards.*Receiving 25 yards/);
- assert.match(html,/Player yardage outlook:.*Rushing 115 yards.*Receiving 30 yards/);
- assert.match(html,/Anytime touchdown • model candidate only/);
- assert.match(html,/NOT a listed betting line/);
- assert.doesNotMatch(html,/Exact sportsbook selection pending/);
+ assert.match(html,/Small • NOT READY/);
+ assert.match(html,/Medium • NOT READY/);
+ assert.match(html,/Nuke • NOT READY/);
+ assert.doesNotMatch(html,/AI Rushing forecast: 115 yards/);
+ assert.doesNotMatch(html,/Small suggested comparison target/);
+ assert.doesNotMatch(html,/Nuke suggested comparison target/);
+ assert.doesNotMatch(html,/Anytime touchdown • model candidate only/);
  assert.doesNotMatch(html,/Actual combined odds/);
+ assert.equal(r.tiers.every(t=>t.compositionComplete===false),true);
 });
 test('wrong game, wrong team, injury-held, unconfirmed QB excluded without invented numbers',()=>{
  for(const v of [{gameId:'401872998'},{date:'2026-10-20'},{home:'NYG'}])
@@ -104,7 +104,8 @@ test('unsafe names are HTML escaped',()=>{
  sgps:{Analytics:[{risk:'Small',legs:[{player:evil,team:'ATL',category:'rushing'}]}]}};
  const html=renderNflProjectedSgpTierDetails(buildNflProjectedSgpTierDetails({...ctx,market:m}));
  assert.doesNotMatch(html,/<img src=x/);
- assert.match(html,/&lt;img src=x/);
+ assert.match(html,/Small • NOT READY/);
+ assert.doesNotMatch(html,/&lt;img src=x/);
 });
 test('both owner and public matchup views now show tier yardage, not empty exact-line pending cards',()=>{
  const main=readFileSync(new URL('../index.html',import.meta.url),'utf8');
@@ -115,4 +116,62 @@ test('both owner and public matchup views now show tier yardage, not empty exact
  assert.ok(main.includes('modelChoiceHtml+sgpYardageHtml+autoDkHtml'));
  assert.ok(publicHtml.includes('modelChoiceHtml+tierYardageHtml+intro'));
  assert.ok(!main.includes('Exact sportsbook selection pending'));
+});
+
+test('screenshot case: two receiving projections never render as a completed Nuke',()=>{
+ const m={...market,categories:{...market.categories,receiving:[
+  pl('Parker Washington','CHI','receiving',75,'WR'),
+  pl('Brenton Strange','CHI','receiving',45,'TE')]},
+  sgps:{Analytics:[{risk:'Nuke',legs:[
+   {player:'Parker Washington',team:'CHI',category:'receiving'},
+   {player:'Brenton Strange',team:'CHI',category:'receiving'}]
+  }]}};
+ const details=buildNflProjectedSgpTierDetails({...ctx,market:m});
+ const nuke=details.tiers.find(t=>t.risk==='Nuke');
+ assert.equal(nuke.legs.length,2);
+ assert.equal(nuke.compositionComplete,false);
+ const html=renderNflProjectedSgpTierDetails(details);
+ assert.match(html,/Nuke • NOT READY/);
+ assert.match(html,/2 eligible model selections/);
+ assert.match(html,/Nuke requires 5–7/);
+ assert.doesNotMatch(html,/Nuke • AI yardage projection candidates/);
+ assert.doesNotMatch(html,/Parker Washington/);
+ assert.doesNotMatch(html,/Brenton Strange/);
+ assert.doesNotMatch(html,/\+10000 combined/);
+});
+test('Nuke model rendering requires 5–7 valid diversified markets, not just five players',()=>{
+ const m={...market,sgps:{Analytics:[{risk:'Nuke',legs:[
+   {player:'Rome Odunze',team:'CHI',category:'receiving'},
+   {player:'Luther Burden III',team:'CHI',category:'receiving'},
+   {player:'Kalif Raymond',team:'CHI',category:'receiving'},
+   {player:'IR Player',team:'CHI',category:'receiving'},
+   {player:'Bijan Robinson',team:'ATL',category:'receiving'}
+ ]}]}};
+ const details=buildNflProjectedSgpTierDetails({...ctx,market:m});
+ assert.equal(details.tiers[0].compositionComplete,false);
+ assert.match(renderNflProjectedSgpTierDetails(details),/Nuke • NOT READY/);
+});
+
+test('complete Small and Medium diversified AI forecasts remain visible as research only',()=>{
+ const m={...market,sgps:{Analytics:[
+ {risk:'Small',legs:[
+  {player:'Rome Odunze',team:'CHI',category:'receiving'},
+  {player:'Bijan Robinson',team:'ATL',category:'rushing'},
+  {player:'Rome Odunze',team:'CHI',category:'receptions'},
+  {player:"D'Andre Swift",team:'CHI',category:'td'}]},
+ {risk:'Medium',legs:[
+  {player:'Rome Odunze',team:'CHI',category:'receiving'},
+  {player:'Bijan Robinson',team:'ATL',category:'rushing'},
+  {player:'Luther Burden III',team:'CHI',category:'receiving'},
+  {player:'Rome Odunze',team:'CHI',category:'receptions'},
+  {player:"D'Andre Swift",team:'CHI',category:'td'}]}
+ ]}};
+ const result=buildNflProjectedSgpTierDetails({...ctx,market:m});
+ assert.deepEqual(result.tiers.map(x=>x.compositionComplete),[true,true]);
+ const html=renderNflProjectedSgpTierDetails(result);
+ assert.match(html,/Small • AI yardage projection candidates/);
+ assert.match(html,/Medium • AI yardage projection candidates/);
+ assert.match(html,/AI Rushing forecast: 115 yards/);
+ assert.match(html,/Anytime touchdown • model candidate only/);
+ assert.doesNotMatch(html,/Actual combined odds/);
 });

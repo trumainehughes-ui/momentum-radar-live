@@ -26,20 +26,25 @@ function render(d){
  return context.render(d);
 }
 function game(yards){
- return{home:'JAX',away:'HOU',status:'CURRENT',updatedDataCurrent:true,
-  updatedAt:'2026-10-18T14:00:00Z',verifiedQuotes:[],modelResearchTiers:[
+ return{ok:true,date:'2026-10-18',gameId:'401873004',
+  home:'JAX',away:'HOU',status:'CURRENT',updatedDataCurrent:true,
+  updatedAt:new Date().toISOString(),verifiedQuotes:[],modelResearchTiers:[
    {risk:'Nuke',mode:'MODEL_RESEARCH',requiredLegs:5,complete:false,legs:[
     {player:'Parker Washington',team:'JAX',category:'receiving',projection:yards},
     {player:'Parker Washington',team:'JAX',category:'td',modelChancePct:41}]}
   ]};
 }
-test('new public snapshot replaces 90 with 60; no independently rebuilt tiers',()=>{
+test('incomplete model snapshot updates do not display partial Nuke legs as a parlay',()=>{
  const oldHtml=render(game(90)),newHtml=render(game(60));
- assert.ok(oldHtml.includes('90 projected yards'));
- assert.ok(newHtml.includes('60 projected yards'));
- assert.ok(!newHtml.includes('90 projected yards'));
- assert.ok(newHtml.includes('Anytime touchdown'));
- assert.ok(newHtml.includes('Model-only research'));
+ for(const html of [oldHtml,newHtml]){
+  assert.ok(html.includes('Nuke · NOT READY'));
+  assert.ok(html.includes('2 eligible research selections'));
+  assert.ok(!html.includes('90 projected yards'));
+  assert.ok(!html.includes('60 projected yards'));
+  assert.ok(!html.includes('Anytime touchdown</span>'));
+  assert.ok(!html.includes('+10000 combined'));
+ }
+ assert.equal(oldHtml,newHtml);
 });
 test('public SGP uses the same published snapshot API and never calls owner refresh',()=>{
  assert.match(route,/nflSgpFindLatestBlob\(\{date,gameId\}\)/);
@@ -57,7 +62,7 @@ test('snapshots are versioned per game rather than overwritten',async()=>{
 
 test('incomplete same-game model tier is always marked not ready',()=>{
  const html=render(game(60));
- assert.ok(html.includes('2 / 5 researched legs'));
- assert.ok(html.includes('Not ready'));
+ assert.ok(html.includes('2 eligible research selections'));
+ assert.ok(html.includes('Nuke · NOT READY'));
  assert.ok(!html.includes('combined verified quote'));
 });

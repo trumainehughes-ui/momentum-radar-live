@@ -7,7 +7,10 @@ test('game-specific market responses never use public stale CDN price caches',()
  assert.ok(api.includes("const EDGE_GOOD='public, s-maxage=60, must-revalidate'"));
  assert.ok(api.includes("const EDGE_GAME='private, no-store'"));
  assert.ok(api.includes("const clientCachePolicy=gameId?EDGE_GAME:EDGE_GOOD"));
- assert.equal((api.match(/res\.setHeader\('Cache-Control',clientCachePolicy\)/g)||[]).length,2);
+ assert.equal((api.match(/res\.setHeader\('Cache-Control',clientCachePolicy\)/g)||[]).length,1);
+ assert.ok(api.includes("res.setHeader('Cache-Control','private, no-store')"));
+ assert.ok(api.includes("res.setHeader('CDN-Cache-Control',clientCachePolicy)"));
+ assert.ok(api.includes("res.setHeader('Vercel-CDN-Cache-Control',clientCachePolicy)"));
  assert.ok(api.includes("CACHE_SCHEMA='v92-strict-nuke-profit-20261011'"));
  assert.ok(!api.includes('stale-while-revalidate=21600'));
 });
@@ -22,7 +25,10 @@ test('NLF game screen never calls individual prop candidates verified SGP ticket
 
 test('degraded feed never revives old sportsbook price snapshots',()=>{
  assert.ok(api.includes('MARKET_SNAPSHOT_TTL=15*60*1000'));
- assert.ok(api.includes('await Promise.race([writeResponseSnapshot(responseKey,publicResponse)'));
+ assert.ok(api.includes('const publishedAt=await writeResponseSnapshot(responseKey,publicResponse,date,gameId,requestStarted);'));
+ assert.ok(api.includes('if(!publishedAt)return res.status(503)'));
+ assert.ok(api.includes('readResponseSnapshot(responseKey,date,gameId,true)'));
+ assert.ok(api.includes("error:'shared_snapshot_readback_failed'"));
  assert.ok(api.includes('const publicResponse=nflPublicMarketResponse(response);'));
  assert.ok(!api.includes("X-Momentum-Cache','PERSISTENT_STALE"));
  assert.ok(!api.includes('STALE=6*60*60*1000'));

@@ -2,6 +2,7 @@
 // and /picks. Neither GET nor POST claims bookmaker acceptance of an SGP quote.
 import {list,put} from '@vercel/blob';
 import {timingSafeEqual} from 'node:crypto';
+import {nflPublicBookTrustedOrigin} from './nfl-public-book-research.js';
 import {
  bookObservationPath,validObservationScope,
  sanitizePublishedBookObservations,keepCurrentPublishedBookRows
@@ -12,12 +13,10 @@ function secureAuth(actual,secret){
  const a=Buffer.from(String(actual||'')),b=Buffer.from('Bearer '+secret);
  return a.length===b.length&&timingSafeEqual(a,b);
 }
-function safeHost(env){
- const host=String(env.VERCEL_URL||'').toLowerCase();
- return /^[a-z0-9-]+\.vercel\.app$/.test(host)?host:'momentum-radar-live.vercel.app';
-}
 async function jsonFromApp(path,env,fetcher){
- const r=await fetcher('https://'+safeHost(env)+path,{
+ const origin=nflPublicBookTrustedOrigin(env);
+ if(!origin)throw Error('published_observation_deployment_identity_unverified');
+ const r=await fetcher(origin+path,{
   cache:'no-store',signal:AbortSignal.timeout(12000)
  });
  if(!r.ok)throw Error('official_app_check_http_'+r.status);

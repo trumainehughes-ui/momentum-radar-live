@@ -49,8 +49,9 @@ test('small, medium and nuke adaptive generator never chooses shorter than the p
   assert.equal(card.selectionObjective,'MODEL_RESEARCH_ONLY_PRICE_NOT_VERIFIED');
  }
 });
-test('Nuke $10 stake requires a book-issued combined price above +10000',()=>{
- assert.equal(classifyNflSgpOdds(10000),'OUTSIDE_TIER_BANDS');
+test('Nuke $10 stake requires a bookmaker-issued combined price at or above +10000',()=>{
+ assert.equal(classifyNflSgpOdds(9999),'OUTSIDE_TIER_BANDS');
+ assert.equal(classifyNflSgpOdds(10000),'Nuke');
  assert.equal(classifyNflSgpOdds(10001),'Nuke');
  assert.equal(classifyNflSgpOdds(3000),'Medium');
 });

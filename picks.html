@@ -494,7 +494,40 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
      'No current game odds have been captured in this browser.')+'</p>')+
    action+'</section>';
  }
+ function nflPublicTierCountReady(risk,legs){
+  const n=Array.isArray(legs)?legs.length:0;
+  return risk==='Small'?n===4:risk==='Medium'?n===5:
+   risk==='Nuke'?n>=5&&n<=7:false;
+ }
+ function nflPublicTierMarketMixReady(risk,legs){
+  if(!nflPublicTierCountReady(risk,legs))return false;
+  const cats=legs.map(l=>String(l.category||l.cat||'').toLowerCase());
+  const yards=cats.filter(c=>['passing','rushing','receiving'].includes(c));
+  const requiredYards=risk==='Small'?2:3;
+  const maxTd=risk==='Nuke'?2:1;
+  const keys=legs.map(l=>String(l.player||l.name||'').toUpperCase()+'|'+
+   String(l.team||'').toUpperCase()+'|'+String(l.category||l.cat||'').toLowerCase());
+  return new Set(keys).size===keys.length&&
+   new Set(cats).size>=3&&
+   yards.length>=requiredYards&&new Set(yards).size>=2&&
+   cats.filter(c=>c==='td').length<=maxTd;
+ }
+ function nflPublicTierPriceReady(risk,odds){
+  const n=Number(odds);
+  if(!Number.isSafeInteger(n))return false;
+  return risk==='Small'?n>=2000&&n<3000:
+   risk==='Medium'?n>=3000&&n<=8000:
+   risk==='Nuke'?n>=10000:false;
+ }
  function renderParlays(d){
+  // Customer SGPs must be scoped to exactly the currently selected game.
+  // Saved, expired, cross-game or malformed payloads never become live picks.
+  const updatedAtMs=Date.parse(String(d?.updatedAt||''));
+  const snapshotFresh=d?.ok===true&&d?.status==='CURRENT'&&
+   d?.updatedDataCurrent===true&&String(d?.gameId||'')===String(state.selected||'')&&
+   String(d?.date||'')===String(state.date||'')&&
+   Number.isFinite(updatedAtMs)&&updatedAtMs<=Date.now()+60*1000&&
+   Date.now()-updatedAtMs<=15*60*1000;
   const tierDetails=typeof window!=='undefined'?window.momentumNflSgpModelYardage?.buildNflProjectedSgpTierDetails({
    market:state.currentBookSgpModel,date:state.date,gameId:state.selected,
    home:d.home,away:d.away}):null;
@@ -541,7 +574,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
       c.mode!=='MODEL_ONLY'||c.outdated===true||
       (!c.researchFromCurrentMarkets&&(d.status==='LAST_SAVED'||d.updatedDataCurrent===false))||
       !Array.isArray(c.legs))return false;
-   if(c.legs.length<3||c.legs.length>(c.risk==='Nuke'?10:7))return false;
+   if(!nflPublicTierMarketMixReady(c.risk,c.legs))return false;
    const names=new Set();
    return matchupTeams.size===2&&matchupTeams.has(String(d.home||'').toUpperCase())&&
     matchupTeams.has(String(d.away||'').toUpperCase())&&
@@ -590,7 +623,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   // Customer-facing projections are rendered exclusively from the public
   // read-only snapshot for this exact game. Do not rebuild from a separate
   // /api/nfl-markets request, compact model, or browser-local forecast.
-  const savedTiers=Array.isArray(d.modelResearchTiers)?d.modelResearchTiers:[];
+  const savedTiers=snapshotFresh&&Array.isArray(d.modelResearchTiers)?d.modelResearchTiers:[];
   const syncedHtml='<div class="sgp-slips">'+['Small','Medium','Nuke'].map(risk=>{
    const card=savedTiers.find(c=>c?.risk===risk&&
     c.mode==='MODEL_RESEARCH'&&
@@ -604,6 +637,12 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     keys.add(key);
     return true;
    });
+   if(card.complete!==true||!nflPublicTierMarketMixReady(risk,legs))
+    return '<section class="sgp-slip"><div class="sgp-slip-head"><strong>'+esc(risk)+
+      ' · NOT READY</strong></div><p class="sgp-brief-status">'+esc(legs.length)+
+      ' eligible research selections; this tier requires a complete '+
+      esc(risk==='Nuke'?'5–7':risk==='Medium'?'5':'4')+
+      '-leg, mixed-market lineup. No verified combined sportsbook payout.</p></section>';
    return '<section class="sgp-slip"><div class="sgp-slip-head"><strong>'+
     esc(risk)+'</strong><span>'+esc(legs.length)+' / '+esc(card.requiredLegs)+
     ' researched legs'+(card.complete?'':' · Not ready')+'</span></div>'+
@@ -627,14 +666,18 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    // Complete, source-verified day-ahead parlays may exist before official
    // game-day inactives are published. Each leg is still screened for holds
    // by the server, and the visitor must recheck before kickoff.
-   const eligible=d.status==='CURRENT'&&d.updatedDataCurrent===true;
+   const eligible=snapshotFresh;
    const cards=eligible&&Array.isArray(d.verifiedBookParlays)?
     d.verifiedBookParlays.filter(c=>{
      if(c?.book!==book||c.mode!=='VERIFIED_BOOK_SGP'||
        c.combinedOddsVerified!==true||
        !['Small','Medium','Nuke'].includes(c.risk)||
-       !Number.isFinite(Number(c.americanOdds))||
-       !Array.isArray(c.legs)||c.legs.length<3)return false;
+       !Number.isSafeInteger(Number(c.americanOdds))||
+       !Number.isFinite(Date.parse(c.quotedAt||''))||
+       Date.parse(c.quotedAt)>Date.now()+60*1000||
+       Date.now()-Date.parse(c.quotedAt)>15*60*1000||
+       !nflPublicTierMarketMixReady(c.risk,c.legs)||
+       !nflPublicTierPriceReady(c.risk,c.americanOdds))return false;
      const used=new Set();
      return c.legs.every(l=>{
       const offer=l?.bookOffer;
@@ -645,6 +688,9 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
        !['td','passing','rushing','receiving','receptions'].includes(cat)||
        !offer||offer.book!==book||offer.attested!==true||
        offer.available!==true||!Number.isFinite(Number(offer.odds))||
+       !Number.isFinite(Date.parse(offer.checkedAt||''))||
+       Date.parse(offer.checkedAt)>Date.now()+60*1000||
+       Date.now()-Date.parse(offer.checkedAt)>15*60*1000||
        used.has(key))return false;
       if(cat!=='td'&&(!Number.isFinite(target)||Number(offer.line)!==target))
        return false;
@@ -679,8 +725,12 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     '<div class="sgp-slips">'+content+'</div></section>';
   };
   const verifiedSections=bookSlips('FanDuel')+bookSlips('DraftKings');
-  return '<p class="sgp-slip-intro">Current published matchup predictions • '+
-   esc(fmtStamp(d.updatedAt))+'</p>'+
+  return '<p class="sgp-slip-intro">'+
+   (snapshotFresh?'Current published matchup predictions • '+
+     esc(fmtStamp(d.updatedAt)):
+    'NOT READY • '+esc(d.status==='LAST_SAVED'?
+     'Previously saved predictions are expired. Waiting for current game and injury review.':
+     'No fresh game-scoped prediction snapshot is available.'))+'</p>'+
    verifiedSections+
    '<h3>NFL model research — not a sportsbook lineup</h3>'+
    '<p class="sgp-brief-status">Model-only research • Player projections are not sportsbook-verified lines or combined odds.</p>'+
@@ -1003,9 +1053,16 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   const cards=(Array.isArray(d.sgps)?d.sgps:[]);
   const html=['Small','Medium','Nuke'].map(name=>{
    const c=cards.find(x=>x.risk===name);
-   if(!c||c.status!=='MODEL_CANDIDATE'||!Array.isArray(c.legs)||!c.legs.length)
+   const legs=Array.isArray(c?.legs)?c.legs:[];
+   const min=name==='Small'?4:5,max=name==='Nuke'?7:min;
+   const markets=new Set(legs.map(l=>String(l.name||l.playerId||'')+'|'+
+    String(l.team||'')+'|'+String(l.category||'')));
+   const categories=new Set(legs.map(l=>String(l.category||'')).filter(Boolean));
+   const compositionReady=legs.length>=min&&legs.length<=max&&
+    markets.size===legs.length&&categories.size>=3;
+   if(!c||c.status!=='MODEL_CANDIDATE'||!compositionReady)
     return '<section class="sgp-slip nba-sgp-card"><div class="sgp-slip-head"><strong>'+
-     name+'</strong><span>Awaiting selections</span></div>'+
+     name+'</strong><span>'+(legs.length?'NOT READY':'Awaiting selections')+'</span></div>'+
      '<p class="sub" style="padding:14px">'+esc(c?.reason||d.pregameReadiness?.reason||
       'No game-eligible model legs yet.')+'</p></section>';
    return '<section class="sgp-slip nba-sgp-card"><div class="sgp-slip-head"><strong>'+

@@ -44,11 +44,11 @@ test("observed combined quote trumps a different independent-leg estimate",()=>{
 test("Small and Medium target NET profit bands; Nuke minimum +10000",()=>{
  assert.equal(classifyNflSgpOdds(1999),"OUTSIDE_TIER_BANDS");
  assert.equal(classifyNflSgpOdds(2000),"Small");
- assert.equal(classifyNflSgpOdds(3000),"Small");
+ assert.equal(classifyNflSgpOdds(3000),"Medium");
  assert.equal(classifyNflSgpOdds(3001),"Medium");
  assert.equal(classifyNflSgpOdds(8000),"Medium");
  assert.equal(classifyNflSgpOdds(8001),"OUTSIDE_TIER_BANDS");
- assert.equal(classifyNflSgpOdds(10000),"OUTSIDE_TIER_BANDS");
+ assert.equal(classifyNflSgpOdds(10000),"Nuke");
  assert.equal(classifyNflSgpOdds(10001),"Nuke");
 });
 test("production hotfix rejects all-TD Small model and marks it unpublishable",()=>{
@@ -57,7 +57,10 @@ test("production hotfix rejects all-TD Small model and marks it unpublishable",(
  assert.ok(api.includes("const mix=fillNflSgpMarketMix({risk,count,pool:riskPool,legs,add})"));
  assert.ok(api.includes("const mix=fillNflSgpMarketMix({risk,count,pool:rotated,legs,add})"));
  assert.ok(api.includes("modelOnly:true,candidateComplete:tierAssessment.compositionOk,publishable:false"));
- assert.ok(api.includes("sgps.Analytics=(sgps.Analytics||[]).map(s=>({...s,publishable:false"));
+ assert.ok(api.includes("response.sgps.Analytics=(analyticsSgps||[]).filter(c=>"));
+ assert.ok(api.includes("c.tierAssessment?.compositionOk===true"));
+ assert.ok(api.includes(")).map(publishedNflModelTier).filter(Boolean)"));
+ assert.ok(api.includes("sgps.Analytics=(Array.isArray(sgps.Analytics)?sgps.Analytics:[]).filter(c=>"));
  assert.ok(!api.includes("sgps.Analytics=buildAnalyticsSgp(categories,ctx).map(s=>({...s,publishable:true"));
  assert.ok(api.includes("CACHE_SCHEMA='v92-strict-nuke-profit-20261011'"));
 });
@@ -85,9 +88,9 @@ test("positive American odds for a $10 stake are NET profit, not return",()=>{
 });
 test("NFL model text describes NET payout targets, never total return",()=>{
  const api=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
- assert.ok(api.includes("$200–$300 NET profit"));
+ assert.ok(api.includes("$200–under $300 NET profit"));
  assert.ok(api.includes("$300–$800 NET profit"));
- assert.ok(api.includes("OVER $1,000 NET profit"));
- assert.ok(api.includes("min:2000,max:3000"));
- assert.ok(api.includes("min:3000,max:8000"));
+ assert.ok(api.includes("$1,000+ NET profit"));
+ assert.ok(api.includes("Object.entries(NFL_SGP_TIERS).map("));
+ assert.ok(api.includes("classifyNflSgpOdds(value)===risk"));
 });

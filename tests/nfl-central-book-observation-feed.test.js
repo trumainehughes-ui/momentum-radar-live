@@ -13,7 +13,7 @@ const f=(line,odds,book='FanDuel')=>({
  verification:'VISIBLE_BOOK_PAGE_USER_OBSERVATION_ONLY'
 });
 const body={date,gameId,book:'FanDuel',offers:[f(125,300),f(150,640)]};
-function harness({key=secret,gameStatus='SCHEDULED',roster=true,writeFails=false}={}){
+function harness({key=secret,gameStatus='SCHEDULED',roster=true,writeFails=false,envOverride={}}={}){
  const blobs=new Map(),paths=[];
  const schedule={games:[{gameId,status:gameStatus,home:{abbr:'ATL',name:'Atlanta Falcons'},
   away:{abbr:'CHI',name:'Chicago Bears'}}]};
@@ -31,7 +31,9 @@ function harness({key=secret,gameStatus='SCHEDULED',roster=true,writeFails=false
   throw Error('unexpected_url');
  };
  const handler=makeOfficialBookFeedHandler({
-  env:{MOMENTUM_BOOK_PUBLISH_KEY:key,VERCEL_URL:'momentum-radar-live.vercel.app'},
+  env:{MOMENTUM_BOOK_PUBLISH_KEY:key,VERCEL_ENV:'production',
+   VERCEL_PROJECT_PRODUCTION_URL:'momentum-radar-live.vercel.app',
+   VERCEL_URL:'momentum-radar-live-7f5d8ab23-example.vercel.app',...envOverride},
   now:()=>now,fetcher:fakeFetch,
   storageList:async({prefix})=>({blobs:blobs.has(prefix)?[
    {pathname:prefix,url:'https://fake-blob.test/'+encodeURIComponent(prefix)}]:[]}),
@@ -116,4 +118,26 @@ test('both production and public sites receive central authorized records but do
  assert.ok(capture.includes("finally{$('publishKey').value=''"));
  assert.ok(!capture.includes("localStorage.setItem('publishKey'"));
  assert.ok(capture.includes('CRON_SECRET'));
+});
+
+test('publishing validates roster against the same preview and never silently falls back to production',async()=>{
+ const bad=harness({envOverride:{VERCEL_ENV:'preview',
+   VERCEL_URL:'evil-preview.vercel.app'}});
+ const result=await bad.call('POST',body,'Bearer '+secret);
+ assert.equal(result.statusCode,503);
+ assert.equal(result.data.error,'official_game_check_unavailable');
+ assert.equal(bad.paths.length,0);
+ const missing=harness({envOverride:{VERCEL_ENV:'preview',VERCEL_URL:''}});
+ assert.equal((await missing.call('POST',body,'Bearer '+secret)).statusCode,503);
+ assert.equal(missing.paths.length,0);
+ const good=harness({envOverride:{VERCEL_ENV:'preview',
+   VERCEL_URL:'momentum-radar-live-7f5d8ab23-example.vercel.app'}});
+ assert.equal((await good.call('POST',body,'Bearer '+secret)).statusCode,201);
+ assert.equal(good.paths.length,1);
+});
+test('publishing endpoint uses exactly the shared trusted origin helper',()=>{
+ const src=readFileSync(new URL('../api/nfl-published-book-observations.js',import.meta.url),'utf8');
+ assert.ok(src.includes('const origin=nflPublicBookTrustedOrigin(env)'));
+ assert.ok(src.includes("if(!origin)throw Error('published_observation_deployment_identity_unverified')"));
+ assert.ok(!src.includes(":'momentum-radar-live.vercel.app'"));
 });

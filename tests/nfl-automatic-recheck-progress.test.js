@@ -84,6 +84,8 @@ test('stale public SGP shows automatic check schedule, status and existing picks
  assert.ok(page.includes('loadNflRecheckStatus(date,id)'));
  assert.ok(page.includes('loadNflRecheckStatus(state.date,String(id))'));
  assert.ok(page.includes('state.selected?refreshReadOnlyPredictions():loadSlate(false)'));
- assert.ok(page.includes("['MODEL_ONLY','STALE_MODEL_ONLY'].includes(c.mode)"));
+ assert.ok(page.includes("const snapshotFresh=d?.ok===true&&d?.status==='CURRENT'"));
+ assert.ok(page.includes('const savedTiers=snapshotFresh&&Array.isArray(d.modelResearchTiers)'));
+ assert.ok(page.includes('Previously saved predictions are expired'));
  assert.ok(!page.includes("getJson('/api/nfl-markets?"));
 });
