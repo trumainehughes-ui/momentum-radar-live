@@ -696,7 +696,7 @@ async function loadNFLMulti(){
  try{
   const {ownerNflPublishedParity}=await import('/lib/nfl-owner-public-parity.js');
   const researched=[];
-  // Do not call /api/nfl-markets or create paid sportsbook/AI traffic for
+  // Do not call the raw owner collector or create paid sportsbook/AI traffic for
   // a customer-facing multi-game model. Reuse the SAME published snapshots.
   for(let i=0;i<games.length;i+=4){
    const batch=games.slice(i,i+4);
