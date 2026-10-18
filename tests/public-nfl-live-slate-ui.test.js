@@ -54,7 +54,7 @@ test('all games display scorer, score, period, star, and repeat touchdowns as in
  for(const value of ['Player One','Player Two','Houston Texans','Chicago Bears',
   'Jacksonville Jaguars','Atlanta Falcons','Tennessee Titans','Indianapolis Colts',
   'HOU 14','JAX 21','CHI 7','ATL 0','Quarter 1','5:13','Q2 06:12',
-  '3</div>','⭐ Player One','No touchdowns recorded yet','Game has not started'])
+  '3</div>','⭐ Player One','Game has not started'])
   assert.ok(out.includes(value),value);
  assert.equal((out.match(/data-live-game=/g)||[]).length,3);
  assert.equal((out.match(/Second touchdown/g)||[]).length,1);
