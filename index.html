@@ -360,6 +360,56 @@ function nflPublishedSgpParityHtml(parity){
     (l.target!=null?' '+nflEscape(l.target):'')+'</div>').join('')+
    '</div>').join('')+'</div>';
 }
+function nflSharedPropsHtml(parity){
+ if(parity?.ok!==true)return '<div class="note">Published injury-screened player projections are not current. Waiting for the next saved matchup update.</div>';
+ return ['td','passing','rushing','receiving','receptions'].map(cat=>{
+  const rows=parity.categories?.[cat]||[];
+  const header='<h4>'+nflEscape(nflLabels[cat]||cat)+'</h4>';
+  return header+(rows.length?rows.slice(0,10).map(x=>{
+   const isTd=cat==='td',amount=isTd?(x.modelTdPercent+'% modeled touchdown chance'):
+    (x.projection+' projected '+(cat==='receptions'?'receptions':'yards'));
+   return '<div class="nflMarketLine"><b>'+nflEscape(x.name)+'</b>'+
+    '<div class="meta">'+nflEscape(amount)+'</div><div class="note">'+
+    nflEscape(x.reason||'Published matchup projection')+
+    '</div></div>';
+  }).join(''):'<div class="note">No current injury-screened player projection.</div>');
+ }).join('');
+}
+function nflSharedOutcomeHtml(published){
+ const score=published?.projectedScore;
+ if(!Array.isArray(score?.scores)||score.scores.length!==2)
+  return '<div class="note">Published matchup score estimate is not current or not ready.</div>';
+ const odds=new Map((score.chances||[]).map(x=>[x.team,x.percent]));
+ return '<div class="nflMarketLine"><b>Projected Final Score: '+
+  score.scores.map(x=>nflEscape(x.team)+' '+nflEscape(x.points)).join(' - ')+
+  '</b><div class="meta">Win Probability: '+
+  score.scores.map(x=>nflEscape(x.team)+' '+nflEscape(odds.get(x.team)??'—')+'%').join(' | ')+
+  '</div><div class="note">Published model estimate • Same forecast as customer site</div></div>';
+}
+const nflOwnerPublishedVersions=new Map();
+async function nflPollPublishedMatchup(){
+ if(typeof document==='undefined'||document.hidden||!nflSelected||!nflData?.date)return;
+ const id=String(nflSelected.gameId),date=String(nflData.date);
+ try{
+  const r=await fetch('/api/public-nfl-game?'+new URLSearchParams({date,gameId:id}),
+   {cache:'no-store'});
+  if(!r.ok)return;
+  const report=await r.json();
+  if(!report?.ok||!nflSelected||String(nflSelected.gameId)!==id||nflData?.date!==date)
+   return;
+  if(nflOwnerPublishedVersions.get(id)===report.updatedAt)return;
+  const mod=await import('/lib/nfl-owner-public-parity.js');
+  const parity=mod.ownerNflPublishedParity(null,report,{date,gameId:id});
+  if(!nflSelected||String(nflSelected.gameId)!==id||nflData?.date!==date)return;
+  const node=document.querySelector('[data-owner-nfl-parity]');
+  if(node)node.outerHTML=nflPublishedSgpParityHtml(parity);
+  const props=$('#nflProps'),outcome=$('#nflOutcome');
+  if(props)props.innerHTML=nflSharedPropsHtml(parity);
+  if(outcome)outcome.innerHTML=nflSharedOutcomeHtml(parity.ok?report:null);
+  nflOwnerPublishedVersions.set(id,report.updatedAt||'NOT_READY');
+ }catch{/* Never use stale raw market props when a published read fails. */}
+}
+if(typeof setInterval==='function')setInterval(nflPollPublishedMatchup,30*1000);
 async function nflOpen(id,forceMarkets=false){let independentPropsHtml='';let verifiedMarketsLoaded=false;const g=nflData?.games?.find(x=>x.gameId===id);if(!g)return;nflSelected=g;if(typeof window.momentumAiGameChanged==='function')window.momentumAiGameChanged(g);const aiMount=document.getElementById('nflAiMount');if(aiMount)aiMount.style.display='none';document.querySelectorAll('[data-matchtab]').forEach(b=>b.classList.toggle('active',b.dataset.matchtab==='props'));$('#nflHome').style.display='none';nflBindMatchTabs();$('#nflGame').style.display='block';$('#nflGameHead').innerHTML=`<div class="card"><div class="rank">WEEK ${g.week} • ${g.status} • ${g.readiness}</div><div class="name">${g.away.name} @ ${g.home.name}</div><div class="meta">🕒 ${nflTime(g.kickoff)} • ${g.venue||''}</div><div class="refresh">Last updated ${new Date(g.lastUpdated).toLocaleTimeString()} • Markets: ${g.marketFeed}</div></div>`;$('#nflDvp').innerHTML='<div class="msg">Loading matchup rankings…</div>';nflRefreshInjuryPanel(id);loadNFLDvp(g);loadNFLWeather(g);$('#nflProps').innerHTML='<div class="msg">Loading touchdown and yardage leaders for this matchup…</div>';Promise.all([
  getNFLMarkets(id,forceMarkets),
  fetch('/api/public-nfl-game?'+new URLSearchParams({
@@ -378,6 +428,7 @@ async function nflOpen(id,forceMarkets=false){let independentPropsHtml='';let ve
  // Never mutate the cached raw collector response. Owner projections and
  // primary SGP research MUST use the same screened public snapshot, including
  // injury holds; unsynced versions fail closed rather than show old models.
+ nflOwnerPublishedVersions.set(id,publishedGame?.updatedAt||'NOT_READY');
  const d={...raw,categories:parity.categories,sgps:{...raw.sgps,
    Analytics:[],DraftKings:[],FanDuel:[]},publicParity:parity};
  d.publishedBookObservations=published?.ok?published:null;
@@ -593,6 +644,7 @@ if(analyticsMode&&Number(d.validation?.sgpEligibleMarketRows||0)===0){
 
 }
 // Player forecast choices do not depend on sportsbook market availability.
+ if(d.publicParity)$('#nflProps').innerHTML=nflSharedPropsHtml(d.publicParity);
  if(modelBoard?.rows?.length)$('#nflProps').innerHTML=modelChoiceHtml+$('#nflProps').innerHTML;
  if(window.momentumParlayWatch)window.momentumParlayWatch.decorate(g,d);
 
