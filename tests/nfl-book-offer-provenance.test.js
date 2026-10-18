@@ -116,3 +116,15 @@ test('official playerId alias is eligible only when it exactly matches observed 
  assert.equal(nflBookOfferEligible(alternate,{...book,offerId:null},'DraftKings',now),false);
  assert.equal(nflBookOfferEligible(alternate,{...book,checkedAt:'2026-10-17T11:40:00Z'},'DraftKings',now),false);
 });
+
+test('official player_td yes/no market needs no invented numeric yardage line',()=>{
+ const touchdownRow={eventID:row.eventID,playerId:'athlete-12',
+  marketName:'player_td',statID:'touchdowns',periodID:'game',betTypeID:'yn',sideID:'yes'};
+ const offeredTd={...book,category:'td',line:null,odds:+175};
+ assert.equal(nflBookOfferEligible(touchdownRow,offeredTd,'DraftKings',now),true);
+ assert.equal(nflBookOfferEligible(touchdownRow,{...offeredTd,category:'rushing'},'DraftKings',now),false);
+ assert.equal(nflBookOfferEligible(touchdownRow,{...offeredTd,playerId:'wrong-athlete'},'DraftKings',now),false);
+ assert.equal(nflBookOfferEligible({...touchdownRow,marketName:'player_rush_yds'},
+  offeredTd,'DraftKings',now),false);
+ assert.equal(nflBookOfferEligible(touchdownRow,{...offeredTd,checkedAt:null},'DraftKings',now),false);
+});
