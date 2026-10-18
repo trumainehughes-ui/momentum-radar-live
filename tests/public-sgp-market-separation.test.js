@@ -21,6 +21,7 @@ test('separate TD and receiving selections render as independent public legs whe
  const last=source.indexOf('function offerHtml(x){',first);
  assert.ok(first>0&&last>first);
  const context={
+  URL,
   state:{selected:null,currentBookSgpModel:null,recheckLoading:false,recheckStatus:null},
   fmtStamp:()=> 'Updated now',
   esc:v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),
