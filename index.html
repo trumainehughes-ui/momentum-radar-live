@@ -325,6 +325,9 @@ function nflPublishedSgpParityHtml(parity){
   ['DraftKings','FanDuel'].includes(q.book)&&
   ['Small','Medium','Nuke'].includes(q.risk)&&
   Number.isSafeInteger(Number(q.americanOdds))&&Number(q.americanOdds)>0&&
+  (q.risk==='Small'?(Number(q.americanOdds)>=2000&&Number(q.americanOdds)<=3000):
+   q.risk==='Medium'?(Number(q.americanOdds)>=3000&&Number(q.americanOdds)<=8000):
+   Number(q.americanOdds)>=10000)&&
   Date.now()-Date.parse(q.quotedAt)>-60000&&
   Date.now()-Date.parse(q.quotedAt)<=15*60000&&
   Array.isArray(q.legs)&&q.legs.length>=4&&q.legs.every(l=>
