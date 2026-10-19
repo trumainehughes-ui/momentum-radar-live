@@ -450,7 +450,7 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
       isNflConfirmedGameQb({position:pos,role});
     return confirmed||nflProjectedDepthChartQbEligible(role);
    };
-  const add=x=>{if(!eligible(x))return false;if(x.cat==='td'&&legs.filter(v=>v.cat==='td').length>=(risk==='Small'?1:2))return false;const id=x.playerID||norm(x.name);if(used.has(id+'|'+x.cat))return false;
+  const add=x=>{if(!eligible(x))return false;if(x.cat==='td'&&legs.filter(v=>v.cat==='td').length>=(risk==='Nuke'?2:1))return false;const id=x.playerID||norm(x.name);if(used.has(id+'|'+x.cat))return false;
    const candidateKey=String(id)+'|'+x.cat;
    if(priorKeys.some(previous=>previous.has(candidateKey)&&
       legs.filter(v=>previous.has(String(v.playerID||norm(v.name))+'|'+v.cat)).length>=maxShared))return false;
@@ -460,8 +460,6 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
   // Yardage must be supported before any anytime TD; never pad Small/Medium with TDs.
   const mix=fillNflSgpMarketMix({risk,count,pool:riskPool,legs,add});
   const tierAssessment=mix.assessment;
-  if(tierAssessment.compositionOk&&!selectedTierKeys.has(risk))
-   selectedTierKeys.set(risk,new Set(legs.map(v=>String(v.playerID||norm(v.name))+'|'+v.cat)));
   if(!tierAssessment.compositionOk)return{book:'Combined',mode:'DATA_MODEL',risk,legs:[],tierAssessment,modelOnly:true,candidateComplete:false,publishable:false,combinedBookQuoteVerified:false,estimatedOdds:null,momentumScore:null,sgpScore:null,correlation:sgpCorrelation([]),explanation:null,marketMix:[],requiredLegs:count,verifiedLegs:0,reason:mix.reason};
   const corr=sgpCorrelation(legs),avg=legs.length?Math.round(legs.reduce((s,x)=>s+(Number(x.momentumScore)||50),0)/legs.length):null;
   return{book:'Combined',mode:'DATA_MODEL',risk,legs,tierAssessment,modelOnly:true,candidateComplete:tierAssessment.compositionOk,publishable:false,combinedBookQuoteVerified:false,estimatedOdds:null,momentumScore:avg,sgpScore:avg==null?null:Math.max(1,Math.min(99,Math.round(avg*.8+corr.score*.2))),correlation:corr,explanation:sgpExplanation(risk,legs,corr),marketMix:[...cats],verifiedAt:new Date().toISOString(),requiredLegs:count,verifiedLegs:0,reason:legs.length===count?'Analytics Build — starter/high-usage production is matchup-adjusted using offense production and opponent defense-vs-position. Small targets the floor, Medium the adjusted expectation, and Nuke the supported ceiling; every market competes on model evidence. Verify availability at your sportsbook before placing.':'Not enough starter/high-usage analytics data to complete this build yet.'};
@@ -475,13 +473,17 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
    category:x.cat,roleEligible,ceilingSupported:x.cat==='td'||
    modelNflSgpStatThreshold(x,x.cat,'Nuke',analyticsLine(x,x.cat,'Nuke',ctx))!==null};
  }));
+ const small=selectNflAdaptiveTier(make,'Small');
+ if(small?.tierAssessment?.compositionOk)selectedTierKeys.set('Small',new Set(small.legs.map(v=>String(v.playerID||norm(v.name))+'|'+v.cat)));
+ const medium=selectNflAdaptiveTier(make,'Medium');
+ if(medium?.tierAssessment?.compositionOk)selectedTierKeys.set('Medium',new Set(medium.legs.map(v=>String(v.playerID||norm(v.name))+'|'+v.cat)));
  const nuke=selectNflAdaptiveNuke(make);
  const nukeWithEvidence={...nuke,nukeEvidence,
   reason:nuke?.legs?.length?nuke.reason:
    (nuke?.reason||'Nuke not ready')+' Blocker: '+nukeEvidence.blocker+'. '+nukeEvidence.uniqueEligibleAthletes+
     ' eligible athletes; '+nukeEvidence.supportedYardageRows+' ceiling-backed yardage rows across '+
     nukeEvidence.distinctYardageMarkets+' yardage markets.'};
- const nukeHasStat=Boolean(nukeWithEvidence?.legs?.some(x=>x.cat!=='td'));return[{...selectNflAdaptiveTier(make,'Small'),poolDiagnostics,payoutTarget:sgpPayoutLabel('Small'),targetOddsBand:SGP_ODDS_BANDS.Small},{...selectNflAdaptiveTier(make,'Medium'),payoutTarget:sgpPayoutLabel('Medium'),targetOddsBand:SGP_ODDS_BANDS.Medium,poolDiagnostics},{...(nukeHasStat?nukeWithEvidence:{...nukeWithEvidence,legs:[],marketMix:[],reason:nukeWithEvidence.reason}),payoutTarget:sgpPayoutLabel('Nuke'),targetOddsBand:SGP_ODDS_BANDS.Nuke,poolDiagnostics}];
+ const nukeHasStat=Boolean(nukeWithEvidence?.legs?.some(x=>x.cat!=='td'));return[{...small,poolDiagnostics,payoutTarget:sgpPayoutLabel('Small'),targetOddsBand:SGP_ODDS_BANDS.Small},{...medium,payoutTarget:sgpPayoutLabel('Medium'),targetOddsBand:SGP_ODDS_BANDS.Medium,poolDiagnostics},{...(nukeHasStat?nukeWithEvidence:{...nukeWithEvidence,legs:[],marketMix:[],reason:nukeWithEvidence.reason}),payoutTarget:sgpPayoutLabel('Nuke'),targetOddsBand:SGP_ODDS_BANDS.Nuke,poolDiagnostics}];
 }
 async function gameRoleGate(gameId,base){if(!gameId)return{checked:false,roles:new Map()};try{const r=await timedFetch(base+'/api/nfl-game?gameId='+encodeURIComponent(gameId)+'&ts='+Date.now(),{cache:'no-store'});if(!r.ok)return{checked:false,roles:new Map()};const d=await r.json(),m=new Map();for(const x of d.playerProjections||[]){if(x.playerId)m.set(String(x.playerId),x);if(x.name)m.set('name:'+norm(x.name),x)}return{checked:true,roles:m,players:d.playerProjections||[],source:d.source||null,gameScopedStarters:d.gameScopedStarters||null}}catch{return{checked:false,roles:new Map()}}}
 function roleFor(gate,x){const roles=gate?.roles||new Map();return roles.get(String(x.playerID||x.playerId||''))||roles.get('name:'+norm(x.name))||null}
