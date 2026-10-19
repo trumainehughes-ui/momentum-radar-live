@@ -46,7 +46,7 @@ test('live gate applies to verified combined slips while preserving model-only r
  const pub=readFileSync(new URL('../lib/public-nfl-view.js',import.meta.url),'utf8');
  assert.match(pub,/const playableBookParlays=finalRosterReady\?verifiedBookParlays:\[\]/);
  assert.match(pub,/verifiedBookParlays:stale\?\[\]:playableBookParlays/);
- assert.match(pub,/categories,parlays:stale\|\|!finalRosterReady\?\[\]:parlays/);
+ assert.ok(pub.includes('categories,parlays:stale?[]:parlays'));
  const market=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
  assert.ok(market.includes("const response={ok:true,gameId,date,scope:'game',home,away,kickoff,"));
 });
