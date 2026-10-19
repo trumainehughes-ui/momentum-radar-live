@@ -28,7 +28,7 @@ export default async function handler(req,res){
  if(!secret)return res.status(503).json({ok:false,error:'ingest_not_configured'});
  const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
  if(!auth(token,secret))return res.status(401).json({ok:false,error:'unauthorized'});
- if(Number(req.headers['content-length']||0)>20000)return res.status(413).json({ok:false,error:'payload_too_large'});
+ if(Number(req.headers['content-length']||0)>20000||JSON.stringify(req.body??null).length>20000)return res.status(413).json({ok:false,error:'payload_too_large'});
  let data;try{data=validateResearch(req.body);}catch(e){return res.status(400).json({ok:false,error:e.message});}
  try{
   const id=randomUUID();
