@@ -18,7 +18,7 @@ test('plugin inbox refuses unauthorized requests before touching storage',async(
 });
 test('plugin inbox enforces JSON payload limit without Content-Length',async()=>{
  process.env.MOMENTUM_RESEARCH_INGEST_KEY='unit-test-secret-that-is-long-enough-123456789';
- try{const res=response();await handler(req({extra:'x'.repeat(21000)},{authorization:'Bearer test-secret'}),res);assert.equal(res.statusCode,413);}finally{
+ try{const res=response();await handler(req({extra:'x'.repeat(21000)},{authorization:'Bearer unit-test-secret-that-is-long-enough-123456789'}),res);assert.equal(res.statusCode,413);}finally{
  if(saved===undefined)delete process.env.MOMENTUM_RESEARCH_INGEST_KEY;else process.env.MOMENTUM_RESEARCH_INGEST_KEY=saved;
  }
 });
