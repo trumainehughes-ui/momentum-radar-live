@@ -431,7 +431,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   if(s.phase==='WAITING_DAY_AHEAD_WINDOW')
    return 'Automatic ESPN, injury, model and sportsbook checks begin '+at+'. Updated picks will appear after a screened model is saved.';
   const last=s.lastAttempt;
-  if(!last)return 'Automatic pregame rechecks are scheduled every 15 minutes. Next eligible cycle: '+at+'.';
+  if(!last)return 'Automatic injury and model rechecks are scheduled every 15 minutes; paid sportsbook quote checks are disabled. Next eligible cycle: '+at+'.';
   const when=fmtStamp(last.checkedAt).replace(/^Updated /,'');
   const ai=last.aiReview==='REVIEWED'?'AI model review completed':
    last.aiReview==='UNAVAILABLE'?'AI review source unavailable':
@@ -439,7 +439,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   const book=last.bookCheckpoint==='MARKET_REFRESHED'?
    'sportsbook checkpoint attempted':
    last.bookCheckpoint==='NOT_DUE'?'sportsbook checkpoint not due':
-   'sportsbook prices not confirmed';
+   'bookmaker combined price not verified';
   return 'Last automated check '+when+' · '+ai+' · '+book+'. Next scheduled cycle: '+at+'.';
  }
  async function loadNflRecheckStatus(date,gameId){
@@ -639,7 +639,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     }).join('')+'</ol></section>').join('')+'</div>':
    '<div class="sgp-auto-check" role="status">'+
      'SGP selections are being refreshed for this matchup. '+
-     'Current player eligibility and sportsbook pricing are checked separately.'+
+     'Current player eligibility is reviewed separately. A verified DraftKings or FanDuel combined price is required before a playable parlay appears.'+
      '</div>';
   const intro='<p class="sgp-slip-intro">Player selections for each parlay tier.</p>'+(models.some(c=>c.researchFallback)?'<p class="sgp-brief-status">Research-only model combinations built from current game projections. Targets are NOT confirmed sportsbook markets, and no combined payout is quoted. Check player status and every selection at the sportsbook.</p>':'');
   const verification=ready&&!anyStale?
