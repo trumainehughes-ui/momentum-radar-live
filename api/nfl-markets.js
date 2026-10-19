@@ -1076,7 +1076,7 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
   injuryChecked:eligibility.checked===true,
   blockedPlayerCount:Math.max(eligibility.blockedIds.size,eligibility.blockedNames.size)
  });
- const response={ok:true,gameId,date,scope:'game',home,away,provider,categories,
+ const response={ok:true,gameId,date,scope:'game',home,away,kickoff,provider,categories,
   matchupEvidence:professionalReview,
   sgps:sgpResponse,marketRows:(directRows||[]).length,
   degraded:!hasCompleteBookLegCandidate,

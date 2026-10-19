@@ -17,6 +17,8 @@ test('all registered leagues use the same day-before, T-90 and T-30 phases',()=>
  assert.equal(at(36*60+1).due,false);
  assert.equal(at(24*60).stage,'DAY_AHEAD_BUILD');
  assert.equal(at(90).stage,'PREGAME_VALIDATION');
+ assert.equal(at(46).stage,'PREGAME_VALIDATION');
+ assert.equal(at(44).stage,'FINAL_T_MINUS_30');
  assert.equal(at(30).stage,'FINAL_T_MINUS_30');
  assert.equal(at(15).stage,'FINAL_T_MINUS_30');
  assert.equal(at(0).due,false);

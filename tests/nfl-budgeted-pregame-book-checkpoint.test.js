@@ -29,7 +29,8 @@ const opts=(store,now=dayAhead)=>({now,env:{MOMENTUM_PAID_SCHEDULED_CHECKPOINTS:
 test('only the previous NFL game-date and T-minus-30 qualify for a paid checkpoint',()=>{
  assert.equal(nflPricingCheckpointStage(game(),{now:dayAhead}),'DAY_AHEAD');
  assert.equal(nflPricingCheckpointStage(game(),{now:thirty}),'FINAL_T_MINUS_30');
- assert.equal(nflPricingCheckpointStage(game(),{now:thirty-1000}),null);
+ assert.equal(nflPricingCheckpointStage(game(),{now:thirty-1000}),'FINAL_T_MINUS_30');
+ assert.equal(nflPricingCheckpointStage(game(),{now:thirty-16*60000}),null);
  assert.equal(nflPricingCheckpointStage(game(),{now:Date.parse('2026-10-11T13:00:00Z')}),null);
  assert.equal(nflPricingCheckpointStage(game(),{now:Date.parse('2026-10-11T17:01:00Z')}),null);
  assert.equal(nflPricingCheckpointStage({...game(),status:'LIVE'},{now:thirty}),null);
