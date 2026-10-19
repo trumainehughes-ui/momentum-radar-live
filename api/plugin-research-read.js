@@ -27,7 +27,7 @@ export default async function handler(req,res){
  res.setHeader('Cache-Control','no-store');
  if(req.method!=='GET')return res.status(405).json({ok:false,error:'method_not_allowed'});
  const secret=process.env.MOMENTUM_RESEARCH_INGEST_KEY;
- if(!secret)return res.status(503).json({ok:false,error:'research_not_configured'});
+ if(!secret||secret.length<32)return res.status(503).json({ok:false,error:'research_not_configured'});
  if(!authorized(String(req.headers.authorization||'').replace(/^Bearer\s+/i,''),secret))return res.status(401).json({ok:false,error:'unauthorized'});
  const league=String(req.query?.league||'').toLowerCase(),gameId=String(req.query?.gameId||'');
  if(!['nfl','nba'].includes(league)||!/^[a-zA-Z0-9_-]{5,64}$/.test(gameId))return res.status(400).json({ok:false,error:'invalid_query'});
