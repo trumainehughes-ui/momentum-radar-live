@@ -82,7 +82,7 @@ export function historySnap(g,m,prior=null){
    }
   }
  const now=Date.now(),ms=Date.parse(g.kickoff)-now,
-  stage=ms<=30*60000?'FINAL_T_MINUS_30':ms<=90*60000?'PREGAME_VALIDATION':'DAY_AHEAD_BUILD';
+  stage=ms<=45*60000?'FINAL_T_MINUS_30':ms<=90*60000?'PREGAME_VALIDATION':'DAY_AHEAD_BUILD';
  return {league:'nfl',gameId:g.gameId,lockedAt:new Date().toISOString(),
   firstLockedAt:prior?.firstLockedAt||prior?.lockedAt||new Date().toISOString(),
   revision:Number(prior?.revision||0)+1,lockStage:stage,lockSource:'SERVER_COLLECTOR',
@@ -120,7 +120,7 @@ async function autoLock(base,games){
   });
   const date=day(new Date(g.kickoff)),
    mins=(Date.parse(g.kickoff)-Date.now())/60000,
-   finalCheck=mins<=30?'&finalCheck=1':'',
+   finalCheck=mins<=45?'&finalCheck=1':'',
    url=base+'/api/nfl-markets?date='+date+'&gameId='+encodeURIComponent(g.gameId)+
     finalCheck+'&lockRun=1&ts='+Date.now();
   // A single delayed game must not exhaust the whole cron execution.
