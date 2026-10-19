@@ -50,6 +50,14 @@ export default async function handler(req,res){
    data.injuryRecheckedAt=snapshot.injuryCheckedAt;
    data.sgpModelVersion=snapshot.modelVersion||'legacy-unversioned';
    const current=data.pregameReadiness.freshness==='CURRENT';
+   // Public read-only positional context: never present historical allowances
+   // as verified betting markets, defender assignments, or current picks.
+   data.nbaPositionContext=current&&snapshot.nbaPositionEvidence?
+    {status:snapshot.nbaPositionEvidence.status,
+     asOf:snapshot.nbaPositionEvidence.asOf,
+     source:snapshot.nbaPositionEvidence.source,
+     limitation:snapshot.nbaPositionEvidence.limitation,
+     teams:snapshot.nbaPositionEvidence.teams}:null;
    if(data.pregameSourceMode==='SCOREBOARD_VERIFIED_FALLBACK'&&current&&
      snapshot.injuryReportStatus==='ESPN_REPORTED_INJURIES_RECHECKED'&&
      Array.isArray(snapshot.verifiedInjuries)){
