@@ -11,14 +11,14 @@ test('plugin reader fails closed without configured secret',async()=>{
  }
 });
 test('plugin reader rejects wrong authorization',async()=>{
- process.env.MOMENTUM_RESEARCH_INGEST_KEY='test-secret';
+ process.env.MOMENTUM_RESEARCH_INGEST_KEY='unit-test-secret-that-is-long-enough-123456789';
  try{const res=response();await handler(request('wrong'),res);assert.equal(res.statusCode,401);}finally{
  if(saved===undefined)delete process.env.MOMENTUM_RESEARCH_INGEST_KEY;else process.env.MOMENTUM_RESEARCH_INGEST_KEY=saved;
  }
 });
 test('plugin reader rejects invalid game identifiers before reading Blob',async()=>{
- process.env.MOMENTUM_RESEARCH_INGEST_KEY='test-secret';
- try{const res=response();await handler(request('test-secret',{league:'nfl',gameId:'../../private'}),res);assert.equal(res.statusCode,400);}finally{
+ process.env.MOMENTUM_RESEARCH_INGEST_KEY='unit-test-secret-that-is-long-enough-123456789';
+ try{const res=response();await handler(request('unit-test-secret-that-is-long-enough-123456789',{league:'nfl',gameId:'../../private'}),res);assert.equal(res.statusCode,400);}finally{
  if(saved===undefined)delete process.env.MOMENTUM_RESEARCH_INGEST_KEY;else process.env.MOMENTUM_RESEARCH_INGEST_KEY=saved;
  }
 });
