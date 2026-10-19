@@ -39,3 +39,14 @@ test('missing injury evidence does not authorize refresh',async()=>{
  assert.equal(result.tokenIssued,false);
  assert.equal(result.changesDetected,0);
 });
+
+test('invalid detector status cannot authorize paid refresh',async()=>{
+ const result=await checkNflScheduledInjuryChanges(game,{
+  base,cronSecret:'test-only',fetchChange:async()=>({ok:true,json:async()=>({
+   ok:true,gameId:game.gameId,status:'insufficient_injury_evidence',
+   invalidations:[{gameId:game.gameId}],changeTokenIssued:true
+  })})
+ });
+ assert.equal(result.changesDetected,0);
+ assert.equal(result.tokenIssued,false);
+});
