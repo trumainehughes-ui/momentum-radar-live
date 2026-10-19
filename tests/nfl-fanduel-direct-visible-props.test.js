@@ -72,13 +72,15 @@ test('NFL market route refuses third-party odds API use and reads only confirmed
 });
 
 test('production public research does not claim FanDuel roster mismatch when only DK supplied odds',async()=>{
+ const activeDate=new Date().toISOString().slice(0,10);
  const {default:handler}=await import('../api/nfl-public-book-research.js');
  const savedFetch=globalThis.fetch;
  const savedDeployment=process.env.VERCEL_URL;
  const savedEnv=process.env.VERCEL_ENV;
  process.env.VERCEL_URL='momentum-radar-live-integration123.vercel.app';
  process.env.VERCEL_ENV='preview';
- const html='<table><tr><td>CHI Bears @ ATL Falcons</td><td>10/18, 01:00PM</td>'+
+ const activeDay=new Date(activeDate+'T12:00:00Z');
+ const html='<table><tr><td>CHI Bears @ ATL Falcons</td><td>'+ (activeDay.getUTCMonth()+1)+'/'+activeDay.getUTCDate()+', 01:00PM</td>'+
   '<td>Anytime TD Scorer</td><td>Bijan Robinson</td><td>−290</td></tr></table>';
  const mock=(body,contentType='application/json')=>({
   ok:true,status:200,headers:{get:x=>x==='content-type'?contentType:null},
@@ -87,10 +89,10 @@ test('production public research does not claim FanDuel roster mismatch when onl
  globalThis.fetch=async url=>{
   const u=String(url);
   if(u.includes('/api/nfl-schedule?'))return mock({
-   ok:true,date:'2026-10-18',games:[{gameId:'401872999',
+   ok:true,date:activeDate,games:[{gameId:'401872999',
     home:{abbr:'ATL',name:'Atlanta Falcons'},away:{abbr:'CHI',name:'Chicago Bears'}}]});
   if(u.includes('/api/public-nfl-game?'))return mock({
-   ok:true,status:'CURRENT',date:'2026-10-18',gameId:'401872999',
+   ok:true,status:'CURRENT',date:activeDate,gameId:'401872999',
    categories:{td:[{name:'Bijan Robinson',playerID:'4429',team:'ATL'}]}});
   if(u.includes('dknetwork.draftkings.com'))return mock(html,'text/html');
   if(u.includes('co.sportsbook.fanduel.com'))return mock(
@@ -102,7 +104,7 @@ test('production public research does not claim FanDuel roster mismatch when onl
  const res={headers:{},setHeader(k,v){this.headers[k]=v;return this},
   status(v){this.statusCode=v;return this},json(v){this.body=v;return this}};
  try{
-  await handler({method:'GET',query:{date:'2026-10-18',gameId:'401872999'}},res);
+  await handler({method:'GET',query:{date:activeDate,gameId:'401872999'}},res);
   assert.equal(res.statusCode,200);
   assert.equal(res.body.sourceHealth.DraftKings.observedPropRows,1);
   assert.equal(res.body.sourceHealth.FanDuel.observedPropRows,0);
