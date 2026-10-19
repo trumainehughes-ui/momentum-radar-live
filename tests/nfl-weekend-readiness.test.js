@@ -55,7 +55,7 @@ test('empty, invalid Small Medium Nuke cards are reported as NOT_READY',()=>{
 });
 test('five-leg Nuke can be complete while sportsbook combined odds remain unverified',()=>{
  const tiers=nflTierReadiness({sgps:{Analytics:[
-  {risk:'Nuke',legs:Array.from({length:5},()=>({cat:'passing'})),
+  {risk:'Nuke',legs:['passing','rushing','receiving','receptions','td'].map((cat,i)=>({name:'Athlete'+i,playerID:String(900+i),cat})),
    requiredLegs:5,tierAssessment:{compositionOk:true}}
  ]}});
  assert.equal(tiers.Nuke.status,'MODEL_CANDIDATE');
@@ -70,7 +70,7 @@ test('history snapshots exclude invalid SGP builds and yardage rows without thre
   sgps:{Analytics:[
    {risk:'Small',requiredLegs:4,legs:[],tierAssessment:{compositionOk:false}},
    {risk:'Medium',requiredLegs:5,legs:[{name:'RB',cat:'rushing',analyticsThreshold:70}],tierAssessment:{compositionOk:false}},
-   {risk:'Nuke',requiredLegs:5,legs:Array.from({length:5},(_,i)=>({name:'P'+i,cat:'receiving',analyticsThreshold:70,projection:55})),tierAssessment:{compositionOk:true}}
+   {risk:'Nuke',requiredLegs:5,legs:['passing','rushing','receiving','receptions','td'].map((cat,i)=>({name:'P'+i,playerID:String(900+i),cat,analyticsThreshold:cat==='td'?null:70,projection:cat==='td'?null:55})),tierAssessment:{compositionOk:true}}
   ],DraftKings:[]}
  };
  const s=historySnap(g,m);
