@@ -72,6 +72,7 @@ test('NFL market route refuses third-party odds API use and reads only confirmed
 });
 
 test('production public research does not claim FanDuel roster mismatch when only DK supplied odds',async()=>{
+ const activeDate=new Date().toISOString().slice(0,10);
  const {default:handler}=await import('../api/nfl-public-book-research.js');
  const savedFetch=globalThis.fetch;
  const savedDeployment=process.env.VERCEL_URL;
@@ -87,10 +88,10 @@ test('production public research does not claim FanDuel roster mismatch when onl
  globalThis.fetch=async url=>{
   const u=String(url);
   if(u.includes('/api/nfl-schedule?'))return mock({
-   ok:true,date:'2026-10-18',games:[{gameId:'401872999',
+   ok:true,date:activeDate,games:[{gameId:'401872999',
     home:{abbr:'ATL',name:'Atlanta Falcons'},away:{abbr:'CHI',name:'Chicago Bears'}}]});
   if(u.includes('/api/public-nfl-game?'))return mock({
-   ok:true,status:'CURRENT',date:'2026-10-18',gameId:'401872999',
+   ok:true,status:'CURRENT',date:activeDate,gameId:'401872999',
    categories:{td:[{name:'Bijan Robinson',playerID:'4429',team:'ATL'}]}});
   if(u.includes('dknetwork.draftkings.com'))return mock(html,'text/html');
   if(u.includes('co.sportsbook.fanduel.com'))return mock(
@@ -102,7 +103,7 @@ test('production public research does not claim FanDuel roster mismatch when onl
  const res={headers:{},setHeader(k,v){this.headers[k]=v;return this},
   status(v){this.statusCode=v;return this},json(v){this.body=v;return this}};
  try{
-  await handler({method:'GET',query:{date:'2026-10-18',gameId:'401872999'}},res);
+  await handler({method:'GET',query:{date:activeDate,gameId:'401872999'}},res);
   assert.equal(res.statusCode,200);
   assert.equal(res.body.sourceHealth.DraftKings.observedPropRows,1);
   assert.equal(res.body.sourceHealth.FanDuel.observedPropRows,0);
