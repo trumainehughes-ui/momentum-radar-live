@@ -1,0 +1,27 @@
+name: NFL Public Release Readiness
+on:
+  push:
+    branches: [feature/nfl-verified-starter-matchup-exploits-v2]
+    paths:
+      - scripts/nfl-public-release-audit.mjs
+      - .github/workflows/nfl-public-release-audit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  read-only-public-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Validate audit syntax
+        run: node --check scripts/nfl-public-release-audit.mjs
+      - name: Check upcoming NFL public snapshots
+        env:
+          MOMENTUM_AUDIT_ORIGIN: https://momentum-radar-live.vercel.app
+        run: node scripts/nfl-public-release-audit.mjs
