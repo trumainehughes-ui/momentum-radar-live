@@ -8,7 +8,7 @@ export function trustedResearchBlob(blob,prefix){
  if(typeof blob?.pathname!=='string'||!blob.pathname.startsWith(prefix))return false;
  try{const u=new URL(blob.url);
   return u.protocol==='https:'&&u.username===''&&u.password===''&&u.port===''&&
-   /^[a-z0-9-]+\\.public\\.blob\\.vercel-storage\\.com$/i.test(u.hostname)&&
+   /^[a-z0-9-]+\.public\.blob\.vercel-storage\.com$/i.test(u.hostname)&&
    u.pathname.endsWith('/'+blob.pathname)&&u.search===''&&u.hash==='';
  }catch{return false;}
 }
