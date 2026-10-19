@@ -766,6 +766,9 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     '<div class="sgp-slips">'+content+'</div></section>';
   };
   const verifiedSections=bookSlips('FanDuel')+bookSlips('DraftKings');
+  const finalInactivesWarning=d?.finalRosterCheck?.required===true&&
+   d?.finalRosterCheck?.ready!==true?
+   '<p class="sgp-slip-stale" role="status"><strong>Game-day roster verification incomplete.</strong> Official final inactives and a current injury check are required before a playable parlay is displayed. Model research below is not a sportsbook offer.</p>':'';
   // Expose the same published snapshot version on both views for safe,
   // automated rendered-page parity checks; do not expose raw market data.
   return '<p class="sgp-slip-intro" data-published-game-version="'+
@@ -775,7 +778,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     'NOT READY • '+esc(d.status==='LAST_SAVED'?
      'Previously saved predictions are expired. Waiting for current game and injury review.':
      'No fresh game-scoped prediction snapshot is available.'))+'</p>'+
-   verifiedSections+
+   finalInactivesWarning+verifiedSections+
    '<h3>NFL model research — not a sportsbook lineup</h3>'+
    '<p class="sgp-brief-status">Model-only research • Player projections are not sportsbook-verified lines or combined odds.</p>'+
    syncedHtml;
