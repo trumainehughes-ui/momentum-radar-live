@@ -9,7 +9,8 @@ test('day-ahead window opens Wednesday and never extends beyond 30 hours',()=>{
  assert.equal(nflPricingCheckpointStage(game,{now:Date.parse('2026-10-14T19:00:00Z')}),'DAY_AHEAD');
  assert.equal(nflPricingCheckpointStage(game,{now:Date.parse('2026-10-14T17:30:00Z')}),null);
 });
-test('final checkpoint only inside last thirty minutes',()=>{
- assert.equal(nflPricingCheckpointStage(game,{now:Date.parse('2026-10-15T23:44:00Z')}),null);
+test('final checkpoint opens between T-minus-45 and T-minus-30',()=>{
+ assert.equal(nflPricingCheckpointStage(game,{now:Date.parse('2026-10-15T23:29:00Z')}),null);
+ assert.equal(nflPricingCheckpointStage(game,{now:Date.parse('2026-10-15T23:31:00Z')}),'FINAL_T_MINUS_30');
  assert.equal(nflPricingCheckpointStage(game,{now:Date.parse('2026-10-15T23:50:00Z')}),'FINAL_T_MINUS_30');
 });
