@@ -30,7 +30,15 @@ export default async function handler(req,res){
     message:'Game predictions could not be validated.',
     categories:{td:[],passing:[],rushing:[],receiving:[],receptions:[]},
     parlays:[],verifiedQuotes:[]});
-  return res.status(200).json({...safe,
+  // Public, read-only tier diagnostics based exclusively on sanitized output.
+  // Never expose raw snapshots, athlete holds, unverified book prices or secrets.
+  const modelTierStatus=['Small','Medium','Nuke'].map(risk=>{
+   const tier=(safe.modelResearchTiers||[]).find(x=>x.risk===risk);
+   return {risk,status:tier?.complete===true?'MODEL_RESEARCH_READY':
+    tier?'MODEL_RESEARCH_INCOMPLETE':'NO_VALID_MODEL_TIER',
+    legCount:Number(tier?.legCount)||0};
+  });
+  return res.status(200).json({...safe,modelTierStatus,
    sharpReview:publicSharpReview(safe,{sport:'nfl'})});
  }catch{
   res.setHeader('Cache-Control','private, no-store');
