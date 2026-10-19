@@ -29,7 +29,7 @@ export default async function handler(req,res){
   const records=[];
   for(const b of (blobs||[]).slice(0,20)){
    if(!b.pathname.startsWith(prefix)||!/^https:\/\/[a-z0-9.-]+\.public\.blob\.vercel-storage\.com\//i.test(String(b.url||'')))continue;
-   const response=await fetch(b.url,{signal:AbortSignal.timeout(2500),cache:'no-store'});
+   const response=await fetch(b.url,{signal:AbortSignal.timeout(2500),cache:'no-store',redirect:'error'});
    if(!response.ok)continue;
    try{const raw=await response.text();if(raw.length>24000)continue;
     const data=unsealResearch(JSON.parse(raw),secret);
