@@ -137,12 +137,10 @@ test('NBA public odds can display for roster-checked players before AI pregame m
   injuries:gameReport.injuries}).map(x=>x.player),['Jayson Tatum']);
 });
 
-test('public NBA game API exposes positional context only for current snapshots',()=>{
+test('public NBA game API uses freshness-gated positional context adapter',()=>{
  const source=readFileSync(new URL('../api/nba-game.js',import.meta.url),'utf8');
- assert.match(source,/data\.nbaPositionContext=current&&snapshot\.nbaPositionEvidence/);
- assert.match(source,/status:snapshot\.nbaPositionEvidence\.status/);
- assert.match(source,/limitation:snapshot\.nbaPositionEvidence\.limitation/);
- assert.match(source,/teams:snapshot\.nbaPositionEvidence\.teams/);
+ assert.ok(source.includes("import {publicNbaPositionContext}"));
+ assert.ok(source.includes('data.nbaPositionContext=publicNbaPositionContext(snapshot,{current})'));
 });
 
 test('public position adapter withholds stale evidence and preserves limitations',async()=>{
