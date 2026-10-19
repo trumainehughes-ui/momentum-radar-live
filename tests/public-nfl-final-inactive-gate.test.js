@@ -50,3 +50,9 @@ test('live gate applies to verified combined slips while preserving model-only r
  const market=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
  assert.ok(market.includes("const response={ok:true,gameId,date,scope:'game',home,away,kickoff,"));
 });
+test('public SGP page clearly states why game-day books are withheld',()=>{
+ const html=readFileSync(new URL('../picks.html',import.meta.url),'utf8');
+ assert.match(html,/Game-day roster verification incomplete/);
+ assert.match(html,/Official final inactives and a current injury check/);
+ assert.match(html,/finalInactivesWarning\+verifiedSections/);
+});
