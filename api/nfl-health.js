@@ -196,7 +196,11 @@ async function autoLock(base,games){
    sgpRevisionAudit:snap.sgpRevisionAudit,
    propCategoriesUpdated:changed?snap.propCategories:[],
    matchupReviewed:true,
-   modelTierReadiness:snap.modelTierReadiness};
+   modelTierReadiness:snap.modelTierReadiness,
+   analyticsTierCounts:Object.fromEntries(['Small','Medium','Nuke'].map(risk=>[
+    risk,(m.sgps?.Analytics||[]).filter(x=>x.risk===risk).length])),
+   publicModelTierCounts:Object.fromEntries(['Small','Medium','Nuke'].map(risk=>[
+    risk,snap.sgps.filter(x=>x.risk===risk&&x.source==='DATA_MODEL').length]))};
  },{concurrency:MAX_NFL_COLLECTOR_CONCURRENCY});
 }
 export default async function handler(req,res){
@@ -271,6 +275,13 @@ export default async function handler(req,res){
    // Log counts only; no athlete identities, selections or sportsbook data.
    emptyModelTierRefreshes:historyLocks.filter(x=>
     ['locked','updated'].includes(x.status)&&Number(x.sgps||0)===0).length,
+   publicTierCounts:historyLocks.reduce((acc,x)=>{
+    for(const risk of ['Small','Medium','Nuke']){
+     const key=risk;
+     acc[key]=(acc[key]||0)+Number(x.publicModelTierCounts?.[risk]||0);
+    }
+    return acc;
+   },{}),
    modelTierReadinessCounts:historyLocks.reduce((acc,x)=>{
     const entries=Array.isArray(x.modelTierReadiness)?x.modelTierReadiness:
      Object.values(x.modelTierReadiness||{});
