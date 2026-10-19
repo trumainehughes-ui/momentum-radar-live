@@ -11,3 +11,6 @@ This endpoint is a **research inbox only**. It does not generate or verify sport
 4. Requests are manually initiated. ChatGPT plugin access does **not** imply autonomous scheduled publishing or provide the bearer token to ChatGPT.
 5. A separate, reviewed consumer must decrypt with the same secret, validate stored observations, enforce game/player identities and freshness, and incorporate them into projections before the data can affect Momentum Radar. Never promote research to actual DraftKings/FanDuel offers or correlated SGP quotes.
 6. Do not activate this endpoint until access-control, storage privacy, request limits, and provider redistribution permissions are reviewed.
+
+## Research retrieval
+An authorized GET to `/api/plugin-research-read?league=nfl&gameId=<id>` using the same bearer token decrypts stored research for that game. This is a **read-only research view**, not an automated model or SGP update. Provider rights and a reviewed projection-consumer contract remain prerequisites for any automated promotion into matchup analytics.
