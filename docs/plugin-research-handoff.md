@@ -16,3 +16,6 @@ This endpoint is a **research inbox only**. It does not generate or verify sport
 An authorized GET to `/api/plugin-research-read?league=nfl&gameId=<id>` using the same bearer token decrypts stored research for that game. This is a **read-only research view**, not an automated model or SGP update. Provider rights and a reviewed projection-consumer contract remain prerequisites for any automated promotion into matchup analytics.
 
 The reader also returns `projectionContext`, a bounded game-specific research adapter output. It explicitly contains empty `bookOffers` and `combinedSgpQuotes` and sets `readyForAutomaticPublishing:false`. This is **not** wired into the live AI generation process. Research should only be incorporated after independent official game/player identity verification and an explicit reviewed model integration.
+
+## Verification gate
+Run `npm test` on the development branch, including `tests/plugin-research-roundtrip.test.js` and the two API handler test files. These tests validate the production encryption/decryption functions and guarded matchup adapter without network access or Blob writes. A separate authenticated preview deployment test must still verify a real POST/GET Blob round trip, then confirm the public site and sportsbook offer verification are unchanged. Do not use production credentials or provider-restricted data in tests.
