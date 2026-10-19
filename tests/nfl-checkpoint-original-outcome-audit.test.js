@@ -31,7 +31,7 @@ const store=()=>{
  return{data,calls,putBlob,listBlobs,fetchBlob};
 };
 const config=(blob,extra={})=>({
- now,base:'https://momentum-radar-live.vercel.app',
+ now,env:{MOMENTUM_PAID_SCHEDULED_CHECKPOINTS:'enabled'},base:'https://momentum-radar-live.vercel.app',
  secret:'dummy-test-signature',configured:true,putBlob:blob.putBlob,
  listBlobs:blob.listBlobs,fetchBlob:blob.fetchBlob,
  createToken:()=>('a'.repeat(64)),...extra
