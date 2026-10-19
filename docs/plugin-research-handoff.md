@@ -19,3 +19,6 @@ The reader also returns `projectionContext`, a bounded game-specific research ad
 
 ## Verification gate
 Run `npm test` on the development branch, including `tests/plugin-research-roundtrip.test.js` and the two API handler test files. These tests validate the production encryption/decryption functions and guarded matchup adapter without network access or Blob writes. A separate authenticated preview deployment test must still verify a real POST/GET Blob round trip, then confirm the public site and sportsbook offer verification are unchanged. Do not use production credentials or provider-restricted data in tests.
+
+## Private matchup enrichment bridge
+An authenticated POST to `/api/plugin-research-matchup` accepts `{"league":"NFL","gameId":"401873006","matchup":{"picks":[]}}` with the same dedicated bearer token. It reads encrypted research for the requested game and returns the original matchup with a bounded `pluginResearch` section. This is a manually invoked, nonpublishing adapter: it cannot authorize offers, update SGP prices, or run automatically from the ChatGPT plugin. Requires the preview Blob token before any storage-backed test. Review provider data rights and add a separately authenticated AI consumer before connecting this to scheduled analysis.
