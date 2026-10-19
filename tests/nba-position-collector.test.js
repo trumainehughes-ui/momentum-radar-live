@@ -39,3 +39,18 @@ test('box-score position is accepted when roster position is absent',()=>{
   asOf:'2026-10-19T00:00:00Z'});
  assert.equal(x.teams.BOS.allowedByPosition.PG.assists,8);
 });
+
+test('duplicate player rows do not inflate opponent position allowances',()=>{
+ const g=game('9','2026-10-17T00:00:00Z');
+ g.players.push({...g.players[0]});
+ const out=nbaVerifiedPositionSamples({historical:[g],roster,
+  asOf:'2026-10-19T00:00:00Z'});
+ assert.equal(out.teams.BOS.allowedByPosition.PG.points,20);
+ assert.equal(out.teams.BOS.allowedByPosition.PG.assists,8);
+});
+test('invalid duplicate game identity cannot suppress a valid box score',()=>{
+ const invalid={...game('9','2026-10-16T00:00:00Z'),matchup:{home:{abbr:'BOS'},away:{abbr:'BOS'}}};
+ const out=nbaVerifiedPositionSamples({historical:[invalid,game('9','2026-10-17T00:00:00Z')],
+  roster,asOf:'2026-10-19T00:00:00Z'});
+ assert.equal(out.teams.BOS.allowedByPosition.PG.points,20);
+});
