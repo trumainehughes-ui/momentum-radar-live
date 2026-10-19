@@ -1,6 +1,6 @@
 // Isolated ChatGPT plugin research inbox. Never turns projections into sportsbook offers.
 import {put} from '@vercel/blob';
-import {timingSafeEqual} from 'node:crypto';
+import {timingSafeEqual,randomUUID,randomBytes,createHash,createCipheriv} from 'node:crypto';
 const allowed=new Set(['DraftKings','Optimal Sports Projections']);
 function auth(a,b){if(!a||!b)return false;const x=Buffer.from(a),y=Buffer.from(b);return x.length===y.length&&timingSafeEqual(x,y);}
 export function validateResearch(body){
@@ -31,9 +31,14 @@ export default async function handler(req,res){
  if(Number(req.headers['content-length']||0)>20000)return res.status(413).json({ok:false,error:'payload_too_large'});
  let data;try{data=validateResearch(req.body);}catch(e){return res.status(400).json({ok:false,error:e.message});}
  try{
-  const id=crypto.randomUUID();
+  const id=randomUUID();
   const path='momentum-plugin-research/v1/'+data.league.toLowerCase()+'/'+data.gameId+'/'+id+'.json';
-  await put(path,JSON.stringify(data),{access:'public',addRandomSuffix:false,contentType:'application/json'});
+  const key=createHash('sha256').update('momentum-plugin-research-v1:').update(secret).digest();
+  const iv=randomBytes(12);
+  const cipher=createCipheriv('aes-256-gcm',key,iv);
+  const ciphertext=Buffer.concat([cipher.update(JSON.stringify(data),'utf8'),cipher.final()]);
+  const sealed={format:'AES-256-GCM',version:1,iv:iv.toString('base64'),tag:cipher.getAuthTag().toString('base64'),ciphertext:ciphertext.toString('base64')};
+  await put(path,JSON.stringify(sealed),{access:'public',addRandomSuffix:false,contentType:'application/json'});
   return res.status(202).json({ok:true,recordId:id,classification:data.classification,usedForSportsbookOdds:false,note:'Research stored for future reviewed ingestion; not automatically used by the SGP engine.'});
  }catch{return res.status(503).json({ok:false,error:'storage_unavailable'});}
 }
