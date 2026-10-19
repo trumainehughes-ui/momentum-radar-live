@@ -14,7 +14,9 @@ export default async function handler(req,res){
  if(Number(req.headers['content-length']||0)>24000||size>24000)return res.status(413).json({ok:false,error:'payload_too_large'});
  const {league,gameId,matchup}=req.body||{};
  if(!['NFL','NBA'].includes(league)||typeof gameId!=='string'||!/^[a-zA-Z0-9_-]{5,64}$/.test(gameId)||
- !matchup||typeof matchup!=='object'||Array.isArray(matchup))return res.status(400).json({ok:false,error:'invalid_matchup_request'});
+ !matchup||typeof matchup!=='object'||Array.isArray(matchup)||
+ (matchup.gameId!==undefined&&String(matchup.gameId)!==gameId)||
+ (matchup.league!==undefined&&String(matchup.league).toUpperCase()!==league))return res.status(400).json({ok:false,error:'invalid_matchup_request'});
  if(!process.env.BLOB_READ_WRITE_TOKEN)return res.status(503).json({ok:false,error:'research_storage_not_configured'});
  try{
   const {projectionContext}=await readPluginResearchContext({league:league.toLowerCase(),gameId,secret});
