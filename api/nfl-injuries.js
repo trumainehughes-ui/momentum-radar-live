@@ -57,6 +57,8 @@ export default async function handler(req,res){
   ...report,kickoff,minutesToKickoff:mins,refreshMinutes,refreshSeconds,
   rosterSignals,rosterSignalsAvailable:rosterGroups.length>0,
   verifiedGameStarterFlags:starters.starters.map(s=>({playerId:s.playerId,team:nflCanonTeam(s.team),
+   name:rosterSignals.find(x=>x.playerId===s.playerId&&x.team===nflCanonTeam(s.team))?.name||null,
+   position:rosterSignals.find(x=>x.playerId===s.playerId&&x.team===nflCanonTeam(s.team))?.position||null,
    starterVerified:true,checkedAt:s.checkedAt,source:s.source})),
   gameStarterEvidence:{checked:starters.checked===true,teamsChecked:starters.teamsChecked||0,
    startersConfirmed:starters.startersConfirmed===true,
