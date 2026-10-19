@@ -8,7 +8,7 @@ export default async function handler(req,res){
  if(req.method!=='POST')return res.status(405).json({ok:false,error:'method_not_allowed'});
  const secret=process.env.MOMENTUM_RESEARCH_INGEST_KEY;
  if(!secret||secret.length<32)return res.status(503).json({ok:false,error:'research_not_configured'});
- const token=String(req.headers.authorization||'').replace(/^Bearer\\s+/i,'');
+ const token=String(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
  if(!authorized(token,secret))return res.status(401).json({ok:false,error:'unauthorized'});
  let size;try{size=JSON.stringify(req.body??null).length;}catch{return res.status(400).json({ok:false,error:'invalid_payload'});}
  if(Number(req.headers['content-length']||0)>24000||size>24000)return res.status(413).json({ok:false,error:'payload_too_large'});
