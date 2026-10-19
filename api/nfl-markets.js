@@ -448,7 +448,11 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
   const eligible=x=>{
     const pos=String(x?.position||'').toUpperCase(),role=roleFor(roles,x);
     if(!x||!['QB','RB','WR','TE'].includes(pos))return false;
-    if(pos!=='QB')return true;
+    // High usage alone does not establish a starting role. A confirmed or
+    // expected starter designation is required for all skill positions.
+    // Unconfirmed rotation players remain in analytics, not model SGP slips.
+    if(pos!=='QB')return role?.starterVerified===true||
+      ['CONFIRMED_STARTER','EXPECTED_STARTER'].includes(String(role?.starterStatus||'').toUpperCase());
     // Existing "HIGH_USAGE_ROLE" flags are not a confirmed QB starter.
     // Day-ahead model allows ESPN depth-chart QB1 ONLY after game roster,
     // injury eligibility and 2+ game passing samples have been verified.
