@@ -74,6 +74,8 @@ test('NFL market route refuses third-party odds API use and reads only confirmed
 test('production public research does not claim FanDuel roster mismatch when only DK supplied odds',async()=>{
  const {default:handler}=await import('../api/nfl-public-book-research.js');
  const savedFetch=globalThis.fetch;
+ const savedDateNow=Date.now;
+ Date.now=()=>Date.parse('2026-10-17T15:00:00Z');
  const savedDeployment=process.env.VERCEL_URL;
  const savedEnv=process.env.VERCEL_ENV;
  process.env.VERCEL_URL='momentum-radar-live-integration123.vercel.app';
@@ -109,6 +111,7 @@ test('production public research does not claim FanDuel roster mismatch when onl
   assert.equal(res.body.sourceHealth.FanDuel.state,'JAVASCRIPT_RENDERED_STOREFRONT');
   assert.equal(res.body.sourceHealth.FanDuel.requiresMachineReadableMarketFeed,true);
  }finally{
+  Date.now=savedDateNow;
   globalThis.fetch=savedFetch;
   if(savedDeployment===undefined)delete process.env.VERCEL_URL;
   else process.env.VERCEL_URL=savedDeployment;
