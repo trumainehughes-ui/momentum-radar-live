@@ -2,6 +2,7 @@
 // Never feeds raw research into sportsbook offer or SGP verification.
 import {list} from '@vercel/blob';
 import {createHash,createDecipheriv,timingSafeEqual} from 'node:crypto';
+import {buildPluginProjectionContext} from '../lib/plugin-projection-context.js';
 function authorized(a,b){if(!a||!b)return false;const x=Buffer.from(a),y=Buffer.from(b);return x.length===y.length&&timingSafeEqual(x,y);}
 export function unsealResearch(sealed,secret){
  if(sealed?.format!=='AES-256-GCM'||sealed.version!==1)throw Error('unsupported_envelope');
@@ -34,6 +35,7 @@ export default async function handler(req,res){
     if(data.league.toLowerCase()===league&&data.gameId===gameId)records.push(data);
    }catch{/* Skip invalid or tampered entries. */}
   }
-  return res.status(200).json({ok:true,league,gameId,records,classification:'RESEARCH_ONLY',sportsbookVerified:false,combinedSgpOdds:null,note:'Authenticated research view; not wired to live predictions or sportsbook quote publication.'});
+  const projectionContext=buildPluginProjectionContext(records,{league,gameId});
+  return res.status(200).json({ok:true,league,gameId,records,projectionContext,classification:'RESEARCH_ONLY',sportsbookVerified:false,combinedSgpOdds:null,note:'Authenticated research context; not wired to live predictions or sportsbook quote publication.'});
  }catch{return res.status(503).json({ok:false,error:'research_read_unavailable'});}
 }
