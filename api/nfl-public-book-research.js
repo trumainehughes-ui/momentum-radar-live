@@ -112,9 +112,14 @@ export default async function handler(req,res){
   report.participationPolicy='SUPPORTING_SIGNAL_ONLY_OFFICIAL_ROSTER_AND_INJURY_RULES_OVERRIDE';
   report.sourceHealth={
    DraftKings:{state:report.books[0].status,
+    directStorefrontStatus:dkDirect.status,
+    directStorefrontPropsParsed:false,
+    publishedListingStatus:dk.status,
     observedPropRows:report.offers.filter(x=>x.book==='DraftKings').length,
     verifiedPropRows:0,sourceUrl:DKN_NFL_PROPS_URL},
    FanDuel:{state:report.books[1].status,
+    directStorefrontStatus:fd.status,
+    directStorefrontPropsParsed:false,
     observedPropRows:report.offers.filter(x=>x.book==='FanDuel').length,
     verifiedPropRows:0,sourceUrl:FANDUEL_NFL_PUBLIC_URL,
     requiresMachineReadableMarketFeed:fdStatus==='JAVASCRIPT_RENDERED_STOREFRONT',
@@ -124,7 +129,9 @@ export default async function handler(req,res){
    vettedRows:report.offers.length,excludedRows:report.excludedUnmatchedPublicRows,
    categories:[...new Set(report.offers.map(x=>x.category))].sort(),
    booksWithVettedRows:[...new Set(report.offers.map(x=>x.book))].sort(),
-   completeSportsbookMarketCoverage:false,combinedSgpQuoteVerified:false};
+   completeSportsbookMarketCoverage:false,combinedSgpQuoteVerified:false,
+   directStorefrontOfferIngestion:false,
+   blocker:'FIRST_PARTY_STOREFRONTS_FETCHED_BUT_NO_VERIFIED_DIRECT_PROP_EXTRACTION'};
   res.setHeader('X-Momentum-Public-Market-Source',report.status);
   return res.status(200).json({...report,gameId,checkedAt:new Date().toISOString()});
  }catch{
