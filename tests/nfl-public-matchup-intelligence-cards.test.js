@@ -75,8 +75,67 @@ test('no-data message and public-only usage',()=>{
  const pub=readFileSync(new URL('../picks.html',import.meta.url),'utf8');
  const internal=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert.match(pub,/nfl-public-matchup-intelligence-bootstrap\.js/);
- assert.match(pub,/publicMatchupCards\(match\)/);
- assert.match(pub,/projected\+publicMatchupCards\(sides\)/);
+ assert.match(pub,/publicMatchupCards\(match,d.categories\)/);
+ assert.match(pub,/projected\+publicMatchupCards\(sides,d.categories\)/);
  assert.match(pub,/momentum-public-matchup-intelligence-ready/);
  assert.doesNotMatch(internal,/nfl-public-matchup-intelligence-bootstrap\.js/);
+});
+
+test('player exploit needs verified starter, recent sample, and historical ceiling',()=>{
+ const side={offense:'ATL',defense:'CHI',offenseGames:5,defenseGames:5,positions:[{position:'RB',metrics:[{metric:'rushYards',offensePerGame:110,defenseAllowedPerGame:135}]}]};
+ const candidate={name:'Sample Starter',team:'ATL',position:'RB',starterVerified:true,gameSample:5,avgPerGame:67,projection:75,range:{ceiling:110}};
+ const yes=renderPublicMatchupIntelligence([side],{rushing:[candidate]});
+ assert.match(yes,/Player to watch: Sample Starter/);
+ assert.match(yes,/Historical variability ceiling/);
+ assert.match(yes,/110 yards/);
+ const no=renderPublicMatchupIntelligence([side],{rushing:[{...candidate,starterVerified:false}]});
+ assert.doesNotMatch(no,/Player to watch: Sample Starter/);
+ assert.match(no,/No eligible, sufficiently sampled/);
+});
+
+test('shows verified QB, RB, WR and TE player readouts in the same game',()=>{
+ const categories={
+  passing:[{name:'Example Quarterback',team:'ATL',position:'QB',starterVerified:true,gameSample:5,avgPerGame:233.4,projection:240,range:{ceiling:300}}],
+  rushing:[{name:'Example Back One',team:'ATL',position:'RB',starterVerified:true,gameSample:5,avgPerGame:76.4,projection:80,range:{ceiling:110}},
+   {name:'Example Back Two',team:'ATL',position:'RB',starterVerified:true,gameSample:5,avgPerGame:28,projection:35},
+   {name:'Unverified Back',team:'ATL',position:'RB',starterVerified:false,gameSample:5,avgPerGame:91,projection:90}],
+  receiving:[{name:'Example Wideout One',team:'ATL',position:'WR',starterVerified:true,gameSample:5,avgPerGame:88,projection:90},
+   {name:'Example Wideout Two',team:'ATL',position:'WR',starterVerified:true,gameSample:5,avgPerGame:62,projection:65},
+   {name:'Example Wideout Three',team:'ATL',position:'WR',starterVerified:true,gameSample:5,avgPerGame:42,projection:45},
+   {name:'Example Tight End',team:'ATL',position:'TE',starterVerified:true,gameSample:5,avgPerGame:31,projection:35},
+   {name:'Inactive Wideout',team:'ATL',position:'WR',starterVerified:true,starterStatus:'IR',gameSample:5,avgPerGame:91,projection:90}]
+ };
+ const html=renderPublicMatchupIntelligence([atl],categories);
+ for(const name of ['Example Quarterback','Example Back One','Example Back Two',
+  'Example Wideout One','Example Wideout Two','Example Wideout Three','Example Tight End'])
+  assert.match(html,new RegExp('Player to watch: '+name));
+ assert.doesNotMatch(html,/Unverified Back|Inactive Wideout/);
+ assert.match(html,/More verified wide receivers \(1\)/);
+ assert.match(html,/to wide receivers combined/);
+ assert.match(html,/Favorable position-group trend/);
+ assert.match(html,/Tougher position-group trend/);
+ assert.match(html,/Historical variability ceiling/);
+ assert.match(html,/not a sportsbook selection or a guaranteed individual advantage/);
+});
+test('does not mark a favorable trend from a single-game team sample',()=>{
+ const side={...atl,offenseGames:1,defenseGames:1};
+ const html=renderPublicMatchupIntelligence([side],{passing:[{
+  name:'Example Quarterback',team:'ATL',position:'QB',starterVerified:true,
+  gameSample:3,avgPerGame:220,projection:225
+ }]});
+ assert.match(html,/Player to watch: Example Quarterback/);
+ assert.match(html,/Insufficient group sample/);
+ assert.match(html,/not yet two comparable offense and defense games/);
+ assert.doesNotMatch(html,/Favorable position-group trend/);
+});
+test('escapes player names in visible and collapsed player comparisons',()=>{
+ const categories={receiving:[
+  {name:'<img src=x onerror=alert(1)>',team:'ATL',position:'WR',starterVerified:true,gameSample:3,avgPerGame:77},
+  {name:'Safe Receiver',team:'ATL',position:'WR',starterVerified:true,gameSample:3,avgPerGame:66},
+  {name:'<script>alert(1)</script>',team:'ATL',position:'WR',starterVerified:true,gameSample:3,avgPerGame:55}
+ ]};
+ const html=renderPublicMatchupIntelligence([atl],categories);
+ assert.doesNotMatch(html,/<img src=x|<script>alert/i);
+ assert.match(html,/&lt;img src=x onerror=alert\(1\)&gt;/);
+ assert.match(html,/&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
 });
