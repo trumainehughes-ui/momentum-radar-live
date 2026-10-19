@@ -9,7 +9,8 @@ export function validateResearch(body){
  if(!['NFL','NBA'].includes(body.league))throw Error('unsupported_league');
  if(typeof body.gameId!=='string'||!/^[a-zA-Z0-9_-]{5,64}$/.test(body.gameId))throw Error('invalid_game_id');
  if(typeof body.observedAt!=='string'||!Number.isFinite(Date.parse(body.observedAt)))throw Error('invalid_timestamp');
- if(Math.abs(Date.now()-Date.parse(body.observedAt))>48*3600000)throw Error('stale_observation');
+ const observationTime=Date.parse(body.observedAt);
+ if(observationTime>Date.now()+5*60_000||Date.now()-observationTime>48*3600000)throw Error('stale_observation');
  if(!Array.isArray(body.observations)||body.observations.length<1||body.observations.length>30)throw Error('invalid_observations');
  const observations=body.observations.map(o=>{
   if(!o||typeof o!=='object'||Array.isArray(o))throw Error('invalid_observation');
@@ -28,7 +29,8 @@ export default async function handler(req,res){
  if(!secret)return res.status(503).json({ok:false,error:'ingest_not_configured'});
  const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
  if(!auth(token,secret))return res.status(401).json({ok:false,error:'unauthorized'});
- if(Number(req.headers['content-length']||0)>20000||JSON.stringify(req.body??null).length>20000)return res.status(413).json({ok:false,error:'payload_too_large'});
+ let bodySize;try{bodySize=JSON.stringify(req.body??null).length;}catch{return res.status(400).json({ok:false,error:'invalid_payload'});}
+ if(Number(req.headers['content-length']||0)>20000||bodySize>20000)return res.status(413).json({ok:false,error:'payload_too_large'});
  let data;try{data=validateResearch(req.body);}catch(e){return res.status(400).json({ok:false,error:e.message});}
  try{
   const id=randomUUID();
