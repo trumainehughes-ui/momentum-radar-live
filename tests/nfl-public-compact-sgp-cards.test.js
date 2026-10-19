@@ -41,17 +41,19 @@ const market={ok:true,scope:'game',gameId,date,validation:{injuryEvidence:[
  ]}};
 const cfg={market,gameId,date,home:'ATL',away:'CHI'};
 
-test('public compact view withholds incomplete or repetitive tiers instead of inventing playable slips',()=>{
+test('public compact view labels model tiers research-only without pretending to quote sportsbooks',()=>{
  const html=renderPublicCompactNflSgpCards(buildPublicCompactNflSgpCards(cfg));
- assert.match(html,/Small • NOT READY|Small • REBUILD REQUIRED/);
- assert.match(html,/Medium • NOT READY|Medium • REBUILD REQUIRED/);
- assert.match(html,/Nuke • NOT READY|Nuke • REBUILD REQUIRED/);
+ for(const tier of ['Small','Medium','Nuke'])assert.ok(html.includes(tier+' • RESEARCH ONLY'));
+ assert.match(html,/NO VERIFIED COMBINED QUOTE/);
+ assert.match(html,/model projections, not confirmed sportsbook lines/i);
  assert.doesNotMatch(html,/AI forecast|suggested comparison target|Exact sportsbook selection pending/i);
- assert.doesNotMatch(html,/Unavailable Player|verified combined odds: \+\d+/i);
+ assert.doesNotMatch(html,/Unavailable Player/);
 });
-test('compact view does not expose TD picks when a tier fails composition checks',()=>{
+test('TD research remains clearly unquoted and avoids invented touchdown probabilities',()=>{
  const html=renderPublicCompactNflSgpCards(buildPublicCompactNflSgpCards(cfg));
- assert.doesNotMatch(html,/D&#39;Andre Swift<\/div>/);
+ assert.match(html,/D&#39;Andre Swift/);
+ assert.match(html,/70.8 rushing yards\/game/);
+ assert.match(html,/NO VERIFIED COMBINED QUOTE/);
  assert.doesNotMatch(html,/guaranteed touchdown|verified combined odds/i);
 });
 test('no numeric projections or cross-game selections can be invented',()=>{
