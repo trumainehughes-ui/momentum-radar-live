@@ -31,6 +31,7 @@ export default async function handler(req,res){
  if(!authorized(String(req.headers.authorization||'').replace(/^Bearer\s+/i,''),secret))return res.status(401).json({ok:false,error:'unauthorized'});
  const league=String(req.query?.league||'').toLowerCase(),gameId=String(req.query?.gameId||'');
  if(!['nfl','nba'].includes(league)||!/^[a-zA-Z0-9_-]{5,64}$/.test(gameId))return res.status(400).json({ok:false,error:'invalid_query'});
+ if(!process.env.BLOB_READ_WRITE_TOKEN)return res.status(503).json({ok:false,error:'research_storage_not_configured'});
  try{
   const prefix='momentum-plugin-research/v1/'+league+'/'+gameId+'/';
   const {blobs}=await list({prefix,limit:20});
