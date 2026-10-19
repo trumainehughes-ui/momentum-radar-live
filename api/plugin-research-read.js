@@ -25,13 +25,14 @@ export default async function handler(req,res){
  if(!['nfl','nba'].includes(league)||!/^[a-zA-Z0-9_-]{5,64}$/.test(gameId))return res.status(400).json({ok:false,error:'invalid_query'});
  try{
   const prefix='momentum-plugin-research/v1/'+league+'/'+gameId+'/';
-  const {blobs}=await list({prefix,limit:50});
+  const {blobs}=await list({prefix,limit:20});
   const records=[];
   for(const b of (blobs||[]).slice(0,20)){
    if(!b.pathname.startsWith(prefix))continue;
-   const response=await fetch(b.url,{signal:AbortSignal.timeout(7000),cache:'no-store'});
+   const response=await fetch(b.url,{signal:AbortSignal.timeout(2500),cache:'no-store'});
    if(!response.ok)continue;
-   try{const data=unsealResearch(await response.json(),secret);
+   try{const raw=await response.text();if(raw.length>24000)continue;
+    const data=unsealResearch(JSON.parse(raw),secret);
     if(data.league.toLowerCase()===league&&data.gameId===gameId)records.push(data);
    }catch{/* Skip invalid or tampered entries. */}
   }
