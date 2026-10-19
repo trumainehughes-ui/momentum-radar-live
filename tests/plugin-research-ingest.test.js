@@ -5,3 +5,5 @@ const good=()=>({provider:'Optimal Sports Projections',league:'NFL',gameId:'4018
 test('research cannot become a verified sportsbook offer',()=>{const result=validateResearch(good());assert.equal(result.sportsbookVerified,false);assert.equal(result.combinedSgpOdds,null);assert.equal(result.classification,'RESEARCH_ONLY_NOT_SPORTSBOOK_OFFER');});
 test('rejects fabricated combined quote classification',()=>{const input=good();input.sportsbookVerified=true;input.combinedSgpOdds='+10000';const result=validateResearch(input);assert.equal(result.sportsbookVerified,false);assert.equal(result.combinedSgpOdds,null);});
 test('rejects unsupported source and stale records',()=>{assert.throws(()=>validateResearch({...good(),provider:'FanDuel'}));assert.throws(()=>validateResearch({...good(),observedAt:'2020-01-01T00:00:00Z'}));});
+
+test('rejects timestamps far in the future',()=>{assert.throws(()=>validateResearch({...good(),observedAt:new Date(Date.now()+3600000).toISOString()}));});
