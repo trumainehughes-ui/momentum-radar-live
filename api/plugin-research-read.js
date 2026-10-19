@@ -4,6 +4,14 @@ import {list} from '@vercel/blob';
 import {createHash,createDecipheriv,timingSafeEqual} from 'node:crypto';
 import {buildPluginProjectionContext} from '../lib/plugin-projection-context.js';
 function authorized(a,b){if(!a||!b)return false;const x=Buffer.from(a),y=Buffer.from(b);return x.length===y.length&&timingSafeEqual(x,y);}
+export function trustedResearchBlob(blob,prefix){
+ if(typeof blob?.pathname!=='string'||!blob.pathname.startsWith(prefix))return false;
+ try{const u=new URL(blob.url);
+  return u.protocol==='https:'&&u.username===''&&u.password===''&&u.port===''&&
+   /^[a-z0-9-]+\\.public\\.blob\\.vercel-storage\\.com$/i.test(u.hostname)&&
+   u.pathname.endsWith('/'+blob.pathname)&&u.search===''&&u.hash==='';
+ }catch{return false;}
+}
 export function unsealResearch(sealed,secret){
  if(sealed?.format!=='AES-256-GCM'||sealed.version!==1)throw Error('unsupported_envelope');
  const key=createHash('sha256').update('momentum-plugin-research-v1:').update(secret).digest();
@@ -28,7 +36,7 @@ export default async function handler(req,res){
   const {blobs}=await list({prefix,limit:20});
   const records=[];
   for(const b of (blobs||[]).slice(0,20)){
-   if(!b.pathname.startsWith(prefix)||!/^https:\/\/[a-z0-9.-]+\.public\.blob\.vercel-storage\.com\//i.test(String(b.url||'')))continue;
+   if(!trustedResearchBlob(b,prefix))continue;
    try{
     const response=await fetch(b.url,{signal:AbortSignal.timeout(2500),cache:'no-store',redirect:'error'});
     if(!response.ok)continue;
