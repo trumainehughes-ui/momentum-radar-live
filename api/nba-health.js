@@ -13,7 +13,7 @@ import {selectedShardGames,collectorAuditReport,writeCollectorAudit}
  from '../lib/pregame-collector-shards.js';
 const PREFIX='momentum-pregame/v1/nba-';
 const MS=60_000,LOOKAHEAD=36*60*MS;
-export const NBA_PREGAME_MODEL_VERSION='v7-game-scoped-starter-lineup-evidence';
+export const NBA_PREGAME_MODEL_VERSION='v8-positional-defense-evidence';
 const path=id=>PREFIX+id+'.json';
 const DAY='America/New_York';
 const dateET=(when=new Date())=>{
