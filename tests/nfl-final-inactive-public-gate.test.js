@@ -42,7 +42,7 @@ test('model insights ahead of T-90 do not claim game-day inactive verification',
  assert.equal(early.finalRosterCheck.ready,true);
  assert.equal(early.inactivesVerified,false);
 });
-test('live gate applies to verified combined slips and excludes research parlays',()=>{
+test('live gate applies to verified combined slips while preserving model-only research',()=>{
  const pub=readFileSync(new URL('../lib/public-nfl-view.js',import.meta.url),'utf8');
  assert.match(pub,/const playableBookParlays=finalRosterReady\?verifiedBookParlays:\[\]/);
  assert.match(pub,/verifiedBookParlays:stale\?\[\]:playableBookParlays/);
