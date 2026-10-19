@@ -79,9 +79,9 @@ export default async function handler(req,res){
    const url=trustedOrigin+'/api/nfl-markets?date='+date+'&gameId='+encodeURIComponent(gameId)+'&verifiedChange=1'+(changeToken?'&changeType='+encodeURIComponent(changes[0].type):'');
    try{
     const response=await fetch(url,{headers:{Authorization:'Bearer '+process.env.CRON_SECRET,...(changeToken?{'x-momentum-change-token':changeToken}:{})},signal:AbortSignal.timeout(42000)});
-    modelRefresh={attempted:true,status:response.ok?'completed':'failed',httpStatus:response.status};
+    modelRefresh={attempted:true,status:response.ok?'completed':'failed',httpStatus:response.status,downstreamApiCreditsUsed:'NOT_MEASURED'};
    }catch{modelRefresh={attempted:true,status:'timeout_or_unavailable'}}
   }
-  return res.status(200).json({ok:true,gameId,modelRefresh,status:prior?'compared':'baseline_created',playersObserved:current.length,changes:assessed,invalidations,moreChanges:Math.max(0,changes.length-assessed.length),creditsUsed:0,propLineRefreshAuthorized:Boolean(changeToken),changeTokenIssued:Boolean(changeToken),dvpRecalculationSuggested:assessed.some(x=>x.ai.dvpRecheck),sgpRebuildSuggested:assessed.some(x=>x.ai.sgpRebuild)});
+  return res.status(200).json({ok:true,gameId,modelRefresh,status:prior?'compared':'baseline_created',playersObserved:current.length,changes:assessed,invalidations,moreChanges:Math.max(0,changes.length-assessed.length),creditsUsedByDetector:0,downstreamApiCreditsUsed:'NOT_MEASURED',propLineRefreshAuthorized:Boolean(changeToken),changeTokenIssued:Boolean(changeToken),dvpRecalculationSuggested:assessed.some(x=>x.ai.dvpRecheck),sgpRebuildSuggested:assessed.some(x=>x.ai.sgpRebuild)});
  }catch(e){console.error('nfl_change_detector_error',String(e?.message||e));return res.status(503).json({ok:false,error:'change_detection_unavailable',creditsUsed:0})}
 }
