@@ -11,6 +11,9 @@ export default async function handler(req,res){
   publicSportsbookPriority:['DraftKings','FanDuel'],
   supplementarySource:'TheRundown',
   supplementarySourceMayVerifyCombinedSgp:false,
-  paidApiCallsTriggered:0
+  paidApiCallsTriggered:0,
+  combinedQuotePipeline:'BLOCKED_BY_PUBLIC_ONLY_SOURCE_POLICY',
+  combinedQuoteRequirement:'AUTHENTICATED_BOOK_ISSUED_PRICE_FOR_EXACT_LEGS',
+  note:'Public sportsbook research alone does not authenticate a correlated SGP price.'
  });
 }
