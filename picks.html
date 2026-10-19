@@ -895,11 +895,11 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    (state.propTab===cat?'active':'')+'" data-prop="'+cat+'" type="button">'+esc(labels[cat])+'</button>').join('')+
    '</div><p class="sub">All available player projections, recent games, matchup notes and qualified individual book offers.</p>'+
    '<div style="margin-top:16px">'+playerGroup(d,state.propTab,10)+'</div>'}
- function publicMatchupCards(sides){
+ function publicMatchupCards(sides,categories){
   // The public-only renderer is loaded asynchronously; do not flash
   // the former wall of numbers while it loads.
   return typeof window!=='undefined'&&window.momentumPublicMatchupIntelligence?
-   window.momentumPublicMatchupIntelligence.renderPublicMatchupIntelligence(sides):
+   window.momentumPublicMatchupIntelligence.renderPublicMatchupIntelligence(sides,categories):
    '<p class="sub">Preparing the matchup comparison…</p>';
  }
  function showMatchup(d){
@@ -914,7 +914,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     '</p>':'')+'</div>':'';
   return '<h3>Matchup Intelligence</h3>'+
     '<p class="sub">A quick look at each offense against the opposing defense.</p>'+
-    projected+publicMatchupCards(sides);
+    projected+publicMatchupCards(sides,d.categories);
  }
  function showInjuries(d){
   const xs=d.injuries||[];
