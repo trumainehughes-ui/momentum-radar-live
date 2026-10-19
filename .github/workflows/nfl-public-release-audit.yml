@@ -1,0 +1,26 @@
+name: NFL Public Game-Day Release Audit
+on:
+  workflow_dispatch:
+  schedule:
+    # Operational checks daily; the signed Vercel collector independently
+    # handles day-ahead and the near-kickoff 15-minute checkpoints.
+    - cron: '0 12,20,23 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  public-roster-and-sgp-readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Validate read-only NFL audit script
+        run: node --check scripts/nfl-public-release-audit.mjs
+      - name: Check ESPN game slate, NFL injury status and screened public SGPs
+        env:
+          MOMENTUM_AUDIT_ORIGIN: https://momentum-radar-live.vercel.app
+        run: node scripts/nfl-public-release-audit.mjs
