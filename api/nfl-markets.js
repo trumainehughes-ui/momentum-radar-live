@@ -456,7 +456,12 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
       isNflConfirmedGameQb({position:pos,role});
     return confirmed||nflProjectedDepthChartQbEligible(role);
    };
-  const add=x=>{if(!eligible(x))return false;if(x.cat==='td'&&legs.filter(v=>v.cat==='td').length>=(risk==='Nuke'?2:1))return false;const id=x.playerID||norm(x.name);if(used.has(id+'|'+x.cat))return false;
+  const add=x=>{if(!eligible(x))return false;
+   // Avoid building a slip around the same athlete in three markets.
+   // This is a diversification rule, not a sportsbook-availability claim.
+   const athlete=String(x.playerID||norm(x.name));
+   if(legs.filter(v=>String(v.playerID||norm(v.name))===athlete).length>=2)return false;
+   if(x.cat==='td'&&legs.filter(v=>v.cat==='td').length>=(risk==='Nuke'?2:1))return false;const id=x.playerID||norm(x.name);if(used.has(id+'|'+x.cat))return false;
    const candidateKey=String(id)+'|'+x.cat;
    if(priorKeys.some(previous=>previous.has(candidateKey)&&
       legs.filter(v=>previous.has(String(v.playerID||norm(v.name))+'|'+v.cat)).length>=maxShared))return false;
