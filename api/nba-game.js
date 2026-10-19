@@ -1,3 +1,4 @@
+import {publicNbaPositionContext} from '../lib/public-nba-position-context.js';
 import {parseNbaGame,nbaNotReadyTiers} from '../lib/nba-data-model.js';
 import {nbaVerifiedScheduledFallback,nbaEasternGameDay} from '../lib/nba-scheduled-fallback.js';
 import {nbaReadPregame,nbaPregameStatus} from './nba-health.js';
@@ -52,12 +53,7 @@ export default async function handler(req,res){
    const current=data.pregameReadiness.freshness==='CURRENT';
    // Public read-only positional context: never present historical allowances
    // as verified betting markets, defender assignments, or current picks.
-   data.nbaPositionContext=current&&snapshot.nbaPositionEvidence?
-    {status:snapshot.nbaPositionEvidence.status,
-     asOf:snapshot.nbaPositionEvidence.asOf,
-     source:snapshot.nbaPositionEvidence.source,
-     limitation:snapshot.nbaPositionEvidence.limitation,
-     teams:snapshot.nbaPositionEvidence.teams}:null;
+   data.nbaPositionContext=publicNbaPositionContext(snapshot,{current});
    if(data.pregameSourceMode==='SCOREBOARD_VERIFIED_FALLBACK'&&current&&
      snapshot.injuryReportStatus==='ESPN_REPORTED_INJURIES_RECHECKED'&&
      Array.isArray(snapshot.verifiedInjuries)){
