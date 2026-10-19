@@ -964,7 +964,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    '<div class="players-grid">'+['passing','rushing','receiving','receptions'].flatMap(cat=>
     (d.categories?.[cat]||[]).slice(0,2).map(x=>renderPlayer(x,cat))).join('')+'</div>';
   const insight='<div class="section-head" style="margin-top:22px"><h3>Matchup Intelligence</h3></div>'+
-   publicMatchupCards(match)+
+   publicMatchupCards(match,d.categories)+
    '<div class="section-head" style="margin-top:24px"><h3>Parlay AI Risk Review</h3></div>'+
    (d.parlays||[]).map(s=>'<div class="leg"><strong>'+esc(s.risk)+' model</strong><div class="small">'+
     esc(s.explanation||'This tier awaits a full risk narrative.')+'</div></div>').join('')+
