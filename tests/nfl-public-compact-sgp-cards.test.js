@@ -41,29 +41,18 @@ const market={ok:true,scope:'game',gameId,date,validation:{injuryEvidence:[
  ]}};
 const cfg={market,gameId,date,home:'ATL',away:'CHI'};
 
-test('public Small Medium Nuke display only name category projected yardage and brief why',()=>{
+test('public compact view withholds incomplete or repetitive tiers instead of inventing playable slips',()=>{
  const html=renderPublicCompactNflSgpCards(buildPublicCompactNflSgpCards(cfg));
- assert.match(html,/>Small<\/h3>/);
- assert.match(html,/>Medium<\/h3>/);
- assert.match(html,/>Nuke<\/h3>/);
- assert.match(html,/Rome Odunze/);
- assert.match(html,/Bijan Robinson/);
- assert.match(html,/Rushing yards<\/span><strong>90 yards/); // Small comparison target
- assert.match(html,/Rushing yards<\/span><strong>140 yards/); // Nuke comparison target
- assert.match(html,/Receiving yards<\/span><strong>45 yards/);
- assert.match(html,/Anytime TD<\/span><strong>70 rushing · 25 receiving yards/);
- assert.match(html,/<b>Why:<\/b>.*116 yards\/game over 5 games/);
- assert.match(html,/ranks #23 most rushing allowed to running backs/);
- assert.doesNotMatch(html,/AI forecast|suggested comparison target|Player yardage outlook|Starter unconfirmed|Matchup &amp; SGP risk audit/i);
- assert.doesNotMatch(html,/data-mr-direction|I favor higher|I favor lower|Exact sportsbook selection pending/);
- assert.doesNotMatch(html,/Unavailable Player/);
- assert.match(html,/Model targets, not confirmed sportsbook lines/);
+ assert.match(html,/Small • NOT READY|Small • REBUILD REQUIRED/);
+ assert.match(html,/Medium • NOT READY|Medium • REBUILD REQUIRED/);
+ assert.match(html,/Nuke • NOT READY|Nuke • REBUILD REQUIRED/);
+ assert.doesNotMatch(html,/AI forecast|suggested comparison target|Exact sportsbook selection pending/i);
+ assert.doesNotMatch(html,/Unavailable Player|verified combined odds: \+\d+/i);
 });
-test('TD reason uses grounded usage without inventing touchdown probability or quote',()=>{
+test('compact view does not expose TD picks when a tier fails composition checks',()=>{
  const html=renderPublicCompactNflSgpCards(buildPublicCompactNflSgpCards(cfg));
- assert.match(html,/D&#39;Andre Swift/);
- assert.match(html,/70.8 rushing yards\/game/);
- assert.doesNotMatch(html,/\+2000|guaranteed touchdown|verified combined odds/i);
+ assert.doesNotMatch(html,/D&#39;Andre Swift<\/div>/);
+ assert.doesNotMatch(html,/guaranteed touchdown|verified combined odds/i);
 });
 test('no numeric projections or cross-game selections can be invented',()=>{
  const m={...market,categories:{...market.categories,
