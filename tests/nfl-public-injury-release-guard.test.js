@@ -83,3 +83,14 @@ test('current game starter flags supersede stale season roster assignments',()=>
   player:'Wrong Team Old WR',team:'SF',category:'receiving',target:50}]}]};
  assert.ok(inspect(game,slip,report).blockers.includes('SGP_LEG_NOT_IN_VERIFIED_STARTERS'));
 });
+
+test('separately reported team IR transaction blocks saved player even if ESPN injuries omit it',()=>{
+ const saved={...published,categories:{...published.categories,receiving:[
+  {name:'Reserve Receiver',team:'SF',position:'WR',starterVerified:true}]}};
+ const reportWithoutEspn={...report,injuries:[],officialTransactionHolds:[
+  {name:'Reserve Receiver',team:'SF',status:'IR',section:'RESERVE',
+   source:'TEAM_OFFICIAL_TRANSACTION'}]};
+ const result=inspect(game,saved,reportWithoutEspn);
+ assert.ok(result.blockers.includes('INJURED_PLAYER_PRESENT_IN_PUBLIC_PROJECTIONS'));
+ assert.ok(result.publishedHeldPlayers.some(x=>x.name==='Reserve Receiver'));
+});
