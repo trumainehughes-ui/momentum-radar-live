@@ -29,7 +29,7 @@ test('September 26 San Francisco transaction holds Demarcus Robinson through Oct
  assert.ok(hold);
  assert.equal(hold.status,'IR');
  assert.equal(hold.playerId,'3043116');
- assert.match(hold.sourceUrl,/49ers\.com\/team\/transactions/);
+ assert.match(hold.sourceUrl,/49ers\.com\/news\/49ers-make-a-series-of-roster-moves/);
  assert.equal(nflOfficialHoldMatches(wr,hold),true);
  assert.equal(nflOfficialHoldMatches({...wr,playerID:'other-id'},hold),true);
  for(const day of ['2026-09-26','2026-10-05','2026-10-19','2026-10-22'])
