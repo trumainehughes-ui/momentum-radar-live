@@ -44,3 +44,10 @@ test('matchup adapter discards stale research at consumption time',()=>{
  assert.equal(result.pluginResearch.notes.length,0);
  assert.equal(result.pluginResearch.eligibleForBetConstruction,false);
 });
+
+test('matchup adapter rejects malformed note fields',()=>{
+ const context=buildPluginProjectionContext([record],{league:'NFL',gameId:'401873006',now});
+ const malformed={...context,notes:[{...context.notes[0],subject:'x'.repeat(101)}]};
+ const result=attachPluginResearchToMatchup({},malformed,{league:'NFL',gameId:'401873006',now});
+ assert.equal(result.pluginResearch.notes.length,0);
+});
