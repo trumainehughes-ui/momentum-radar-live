@@ -24,3 +24,14 @@ test('research bridge fails closed without Blob storage token',async()=>{
  finally{if(prior===undefined)delete process.env.MOMENTUM_RESEARCH_INGEST_KEY;else process.env.MOMENTUM_RESEARCH_INGEST_KEY=prior;
  if(blob===undefined)delete process.env.BLOB_READ_WRITE_TOKEN;else process.env.BLOB_READ_WRITE_TOKEN=blob;}
 });
+
+test('research bridge rejects cross-game and cross-league matchup bodies',async()=>{
+ const prior=process.env.MOMENTUM_RESEARCH_INGEST_KEY;
+ process.env.MOMENTUM_RESEARCH_INGEST_KEY=secret;
+ try{
+  for(const bad of [{...matchup,matchup:{gameId:'401873999',picks:[]}},
+                    {...matchup,matchup:{league:'NBA',picks:[]}}]){
+   const res=response();await handler(request(secret,bad),res);assert.equal(res.statusCode,400);
+  }
+ }finally{if(prior===undefined)delete process.env.MOMENTUM_RESEARCH_INGEST_KEY;else process.env.MOMENTUM_RESEARCH_INGEST_KEY=prior;}
+});
