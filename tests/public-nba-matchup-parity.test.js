@@ -144,3 +144,12 @@ test('public NBA game API exposes positional context only for current snapshots'
  assert.match(source,/limitation:snapshot\.nbaPositionEvidence\.limitation/);
  assert.match(source,/teams:snapshot\.nbaPositionEvidence\.teams/);
 });
+
+test('public position adapter withholds stale evidence and preserves limitations',async()=>{
+ const {publicNbaPositionContext}=await import('../lib/public-nba-position-context.js');
+ const snapshot={nbaPositionEvidence:{status:'HISTORICAL_EVIDENCE',
+  asOf:'2026-10-19T18:00:00Z',source:'ESPN completed box scores',
+  limitation:'Not defender assignments',teams:{BOS:{}}}};
+ assert.equal(publicNbaPositionContext(snapshot,{current:false}),null);
+ assert.equal(publicNbaPositionContext(snapshot,{current:true}).limitation,'Not defender assignments');
+});
