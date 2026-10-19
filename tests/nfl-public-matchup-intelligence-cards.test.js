@@ -76,7 +76,7 @@ test('no-data message and public-only usage',()=>{
  const internal=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert.match(pub,/nfl-public-matchup-intelligence-bootstrap\.js/);
  assert.match(pub,/publicMatchupCards\(match\)/);
- assert.match(pub,/projected\+publicMatchupCards\(sides\)/);
+ assert.match(pub,/projected\+publicMatchupCards\(sides,d.categories\)/);
  assert.match(pub,/momentum-public-matchup-intelligence-ready/);
  assert.doesNotMatch(internal,/nfl-public-matchup-intelligence-bootstrap\.js/);
 });
