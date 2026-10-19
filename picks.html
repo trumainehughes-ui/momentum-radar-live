@@ -658,8 +658,19 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    const card=savedTiers.find(c=>c?.risk===risk&&
     c.mode==='MODEL_RESEARCH'&&
     Array.isArray(c.legs)&&c.legs.length>0);
-   if(!card)return '<section class="sgp-slip"><div class="sgp-slip-head"><strong>'+
-    esc(risk)+'</strong></div><p class="sgp-brief-status">Awaiting this game\'s latest published predictions.</p></section>';
+   if(!card){
+    const diagnostic=Array.isArray(d.modelTierStatus)?
+     d.modelTierStatus.find(x=>x.risk===risk):null;
+    const detail=diagnostic?.status==='MODEL_RESEARCH_INCOMPLETE'?
+     'The offense-versus-defense AI model has an incomplete '+risk+
+     ' lineup. '+Number(diagnostic.legCount||0)+' eligible legs currently passed validation.':
+     diagnostic?.status==='NO_VALID_MODEL_TIER'?
+     'No valid '+risk+' AI matchup prediction was published for this game yet.':
+     'Awaiting this game\\'s latest published AI matchup predictions.';
+    return '<section class="sgp-slip"><div class="sgp-slip-head"><strong>'+
+     esc(risk)+'</strong></div><p class="sgp-brief-status">'+esc(detail)+
+     ' Model predictions are not verified sportsbook offers.</p></section>';
+   }
    const keys=new Set();
    const legs=card.legs.filter(l=>{
     const key=[l.player,l.team,l.category,l.target].map(x=>String(x||'')).join('|');
