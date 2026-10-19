@@ -13,6 +13,8 @@ export default async function handler(req,res){
   supplementarySourceMayVerifyCombinedSgp:false,
   paidApiCallsTriggered:0,
   combinedQuotePipeline:'BLOCKED_BY_PUBLIC_ONLY_SOURCE_POLICY',
+  publicMarketExtraction:'FIRST_PARTY_HTML_ONLY_NO_JS_MARKET_RENDERER',
+  requiredNextIntegration:'VERIFIED_MACHINE_READABLE_FIRST_PARTY_OFFERS_AND_BOOK_COMBINED_QUOTES',
   combinedQuoteRequirement:'AUTHENTICATED_BOOK_ISSUED_PRICE_FOR_EXACT_LEGS',
   note:'Public sportsbook research alone does not authenticate a correlated SGP price.'
  });
