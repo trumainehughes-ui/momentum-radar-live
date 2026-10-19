@@ -22,6 +22,13 @@ export function validateResearch(body){
  });
  return {schemaVersion:1,provider:body.provider,league:body.league,gameId:body.gameId,observedAt:new Date(body.observedAt).toISOString(),receivedAt:new Date().toISOString(),observations,classification:'RESEARCH_ONLY_NOT_SPORTSBOOK_OFFER',sportsbookVerified:false,combinedSgpOdds:null};
 }
+export function sealResearch(data,secret){
+ const key=createHash('sha256').update('momentum-plugin-research-v1:').update(secret).digest();
+ const iv=randomBytes(12);
+ const cipher=createCipheriv('aes-256-gcm',key,iv);
+ const ciphertext=Buffer.concat([cipher.update(JSON.stringify(data),'utf8'),cipher.final()]);
+ return {format:'AES-256-GCM',version:1,iv:iv.toString('base64'),tag:cipher.getAuthTag().toString('base64'),ciphertext:ciphertext.toString('base64')};
+}
 export default async function handler(req,res){
  res.setHeader('Cache-Control','no-store');
  if(req.method!=='POST')return res.status(405).json({ok:false,error:'method_not_allowed'});
@@ -35,11 +42,7 @@ export default async function handler(req,res){
  try{
   const id=randomUUID();
   const path='momentum-plugin-research/v1/'+data.league.toLowerCase()+'/'+data.gameId+'/'+id+'.json';
-  const key=createHash('sha256').update('momentum-plugin-research-v1:').update(secret).digest();
-  const iv=randomBytes(12);
-  const cipher=createCipheriv('aes-256-gcm',key,iv);
-  const ciphertext=Buffer.concat([cipher.update(JSON.stringify(data),'utf8'),cipher.final()]);
-  const sealed={format:'AES-256-GCM',version:1,iv:iv.toString('base64'),tag:cipher.getAuthTag().toString('base64'),ciphertext:ciphertext.toString('base64')};
+  const sealed=sealResearch(data,secret);
   await put(path,JSON.stringify(sealed),{access:'public',addRandomSuffix:false,contentType:'application/json'});
   return res.status(202).json({ok:true,recordId:id,classification:data.classification,usedForSportsbookOdds:false,note:'Research stored for future reviewed ingestion; not automatically used by the SGP engine.'});
  }catch{return res.status(503).json({ok:false,error:'storage_unavailable'});}
