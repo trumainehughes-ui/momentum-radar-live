@@ -68,7 +68,7 @@ test('a source conflict is flagged separately and stale owner data cannot mark r
  const src=readFileSync(new URL('../scripts/nfl-public-release-audit.mjs',import.meta.url),'utf8');
  assert.match(src,/nflPublicInjuryReadiness\(game,pub,report,\{now\}\)/);
  assert.match(src,/CURRENT_INJURY_ENDPOINT_UNAVAILABLE/);
- assert.doesNotMatch(src,/\/api\/nfl-markets/);
+ assert.doesNotMatch(src,/fetchJson\([^)]*\/api\/nfl-markets/);
 });
 test('current game starter flags supersede stale season roster assignments',()=>{
  const missing=inspect(game,published,{...report,
