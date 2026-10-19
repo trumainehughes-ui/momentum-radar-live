@@ -433,7 +433,11 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
   const sampleAdj=targetHit==null?0:Math.max(-12,Math.min(12,(targetHit-.5)*24));
   return (Number(x.momentumScore)||0)+Math.min(18,Math.log1p(Math.max(0,opp))*4)+Math.min(10,(adj/pg)*6)+sampleAdj+(risk==='Nuke'?Math.max(-8,Math.min(18,ceilingLift*30+matchupLift*25)):0)
  };pool.sort((a,b)=>strength(b)-strength(a)||(Number(b.confidence)||0)-(Number(a.confidence)||0));
+ const selectedTierKeys=new Map();
  const make=(risk,count)=>{
+  const priorKeys=risk==='Small'?[]:risk==='Medium'?[selectedTierKeys.get('Small')].filter(Boolean):
+   [selectedTierKeys.get('Small'),selectedTierKeys.get('Medium')].filter(Boolean);
+  const maxShared=risk==='Medium'?2:risk==='Nuke'?3:Infinity;
   const legs=[],used=new Set(),cats=new Set(),riskPool=[...pool].sort((a,b)=>strength(b,risk)-strength(a,risk)||(Number(b.confidence)||0)-(Number(a.confidence)||0));
   const eligible=x=>{
     const pos=String(x?.position||'').toUpperCase(),role=roleFor(roles,x);
@@ -446,12 +450,18 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
       isNflConfirmedGameQb({position:pos,role});
     return confirmed||nflProjectedDepthChartQbEligible(role);
    };
-  const add=x=>{if(!eligible(x))return false;if(x.cat==='td'&&legs.filter(v=>v.cat==='td').length>=(risk==='Small'?1:2))return false;const id=x.playerID||norm(x.name);if(used.has(id+'|'+x.cat))return false;const requested=analyticsLine(x,x.cat,risk,ctx);const threshold=modelNflSgpStatThreshold(x,x.cat,risk,requested);if(threshold===null)return false;const playable=playableThreshold(x,x.cat,threshold);used.add(id+'|'+x.cat);cats.add(x.cat);legs.push({...x,analyticsThreshold:threshold,sportsbookVerified:false,availableAt:[],bookThresholdCaps:{},thresholdCappedToSportsbook:false,modelRequestedThreshold:x.cat==='td'?null:Number(requested),modelCeilingOnly:risk==='Nuke'&&!playable});return true};
+  const add=x=>{if(!eligible(x))return false;if(x.cat==='td'&&legs.filter(v=>v.cat==='td').length>=(risk==='Small'?1:2))return false;const id=x.playerID||norm(x.name);if(used.has(id+'|'+x.cat))return false;
+   const candidateKey=String(id)+'|'+x.cat;
+   if(priorKeys.some(previous=>previous.has(candidateKey)&&
+      legs.filter(v=>previous.has(String(v.playerID||norm(v.name))+'|'+v.cat)).length>=maxShared))return false;
+   const requested=analyticsLine(x,x.cat,risk,ctx);const threshold=modelNflSgpStatThreshold(x,x.cat,risk,requested);if(threshold===null)return false;const playable=playableThreshold(x,x.cat,threshold);used.add(id+'|'+x.cat);cats.add(x.cat);legs.push({...x,analyticsThreshold:threshold,sportsbookVerified:false,availableAt:[],bookThresholdCaps:{},thresholdCappedToSportsbook:false,modelRequestedThreshold:x.cat==='td'?null:Number(requested),modelCeilingOnly:risk==='Nuke'&&!playable});return true};
   const ranked=(cat,pred=()=>true)=>pool.filter(v=>v.cat===cat&&pred(v)&&!used.has((v.playerID||norm(v.name))+'|'+v.cat)).sort((a,b)=>(Number(b.momentumScore)||0)-(Number(a.momentumScore)||0)||(Number(b.perGame)||0)-(Number(a.perGame)||0)||(Number(b.matchupFactor)||1)-(Number(a.matchupFactor)||1));
   const pick=(cat,pred)=>add(ranked(cat,pred)[0]);
   // Yardage must be supported before any anytime TD; never pad Small/Medium with TDs.
   const mix=fillNflSgpMarketMix({risk,count,pool:riskPool,legs,add});
   const tierAssessment=mix.assessment;
+  if(tierAssessment.compositionOk&&!selectedTierKeys.has(risk))
+   selectedTierKeys.set(risk,new Set(legs.map(v=>String(v.playerID||norm(v.name))+'|'+v.cat)));
   if(!tierAssessment.compositionOk)return{book:'Combined',mode:'DATA_MODEL',risk,legs:[],tierAssessment,modelOnly:true,candidateComplete:false,publishable:false,combinedBookQuoteVerified:false,estimatedOdds:null,momentumScore:null,sgpScore:null,correlation:sgpCorrelation([]),explanation:null,marketMix:[],requiredLegs:count,verifiedLegs:0,reason:mix.reason};
   const corr=sgpCorrelation(legs),avg=legs.length?Math.round(legs.reduce((s,x)=>s+(Number(x.momentumScore)||50),0)/legs.length):null;
   return{book:'Combined',mode:'DATA_MODEL',risk,legs,tierAssessment,modelOnly:true,candidateComplete:tierAssessment.compositionOk,publishable:false,combinedBookQuoteVerified:false,estimatedOdds:null,momentumScore:avg,sgpScore:avg==null?null:Math.max(1,Math.min(99,Math.round(avg*.8+corr.score*.2))),correlation:corr,explanation:sgpExplanation(risk,legs,corr),marketMix:[...cats],verifiedAt:new Date().toISOString(),requiredLegs:count,verifiedLegs:0,reason:legs.length===count?'Analytics Build — starter/high-usage production is matchup-adjusted using offense production and opponent defense-vs-position. Small targets the floor, Medium the adjusted expectation, and Nuke the supported ceiling; every market competes on model evidence. Verify availability at your sportsbook before placing.':'Not enough starter/high-usage analytics data to complete this build yet.'};
