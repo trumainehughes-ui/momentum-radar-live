@@ -1,6 +1,8 @@
 import {nflGameInjuryEvidence} from '../lib/nfl-injury-evidence.js';
 import {nflWeeklyForGame} from '../lib/nfl-injury-weekly-loader.js';
 import {nflCanonTeam} from '../lib/nfl-official-injury-feed.js';
+import {fetchEspnEventStarters} from '../lib/espn-event-starter-evidence.js';
+import {nflOfficialTransactionHolds} from '../lib/nfl-official-transaction-holds.js';
 const ESPN='https://site.api.espn.com/apis/site/v2/sports/football/nfl';
 async function load(url){
  const r=await fetch(url,{cache:'no-store',headers:{accept:'application/json'},signal:AbortSignal.timeout(12000)});
@@ -24,8 +26,15 @@ export default async function handler(req,res){
  catch(e){errors.push('league:'+String(e?.message||e))}
  const comp=summary.header.competitions[0],competitors=comp.competitors||[];
  const weekly=await nflWeeklyForGame({gameId,summary,competitors});
+ const starters=await fetchEspnEventStarters({league:'nfl',gameId,competitors});
  const report=nflGameInjuryEvidence({summary,league,weekly,competitors,checkedAt});
  const kickoff=comp.date||summary.header?.competitions?.[0]?.date||null;
+ const date=Number.isFinite(Date.parse(kickoff||''))?new Intl.DateTimeFormat('en-CA',{
+  timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'
+ }).format(new Date(kickoff)):null;
+ const home=competitors.find(c=>c.homeAway==='home')?.team?.abbreviation;
+ const away=competitors.find(c=>c.homeAway==='away')?.team?.abbreviation;
+ const officialHolds=date?nflOfficialTransactionHolds({gameId,date,home,away}):[];
  const mins=kickoff&&Number.isFinite(Date.parse(kickoff))?Math.round((Date.parse(kickoff)-Date.now())/60000):null;
  const pregame=mins!==null&&mins<=90&&mins>=-240;
  const refreshSeconds=mins!==null&&mins<=120&&mins>=-240?30:180;
@@ -47,6 +56,14 @@ export default async function handler(req,res){
   teams:competitors.map(x=>({id:String(x.team?.id||''),abbr:nflCanonTeam(x.team?.abbreviation),homeAway:x.homeAway})),
   ...report,kickoff,minutesToKickoff:mins,refreshMinutes,refreshSeconds,
   rosterSignals,rosterSignalsAvailable:rosterGroups.length>0,
+  verifiedGameStarterFlags:starters.starters.map(s=>({playerId:s.playerId,team:nflCanonTeam(s.team),
+   starterVerified:true,checkedAt:s.checkedAt,source:s.source})),
+  gameStarterEvidence:{checked:starters.checked===true,teamsChecked:starters.teamsChecked||0,
+   startersConfirmed:starters.startersConfirmed===true,
+   checkedAt:starters.checkedAt||null,source:starters.source,
+   starterCounts:starters.starterCounts||{},officialInactivesVerified:false},
+  officialTransactionHolds:officialHolds.map(x=>({name:x.name,playerId:x.playerId,team:x.team,
+   status:x.status,source:x.source,effectiveAt:x.effectiveAt,sourceUrl:x.sourceUrl})),
   defensiveInjurySignals:(report.injuries||[]).filter(x=>/^(CB|S|SS|FS|DB|LB|ILB|OLB|DE|DT|DL|NT|EDGE)$/.test(x.position||'')),
   teamStrategySignalsVerified:false,
   reportCompleteness:report.weeklyCoverage?'NFL_PUBLISHED_WEEKLY_CROSS_CHECK':'ESPN_ONLY_OFFICIAL_WEEKLY_UNVERIFIED',
