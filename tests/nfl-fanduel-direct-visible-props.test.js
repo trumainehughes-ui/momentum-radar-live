@@ -79,7 +79,8 @@ test('production public research does not claim FanDuel roster mismatch when onl
  const savedEnv=process.env.VERCEL_ENV;
  process.env.VERCEL_URL='momentum-radar-live-integration123.vercel.app';
  process.env.VERCEL_ENV='preview';
- const html='<table><tr><td>CHI Bears @ ATL Falcons</td><td>10/18, 01:00PM</td>'+
+ const activeDay=new Date(activeDate+'T12:00:00Z');
+ const html='<table><tr><td>CHI Bears @ ATL Falcons</td><td>'+ (activeDay.getUTCMonth()+1)+'/'+activeDay.getUTCDate()+', 01:00PM</td>'+
   '<td>Anytime TD Scorer</td><td>Bijan Robinson</td><td>−290</td></tr></table>';
  const mock=(body,contentType='application/json')=>({
   ok:true,status:200,headers:{get:x=>x==='content-type'?contentType:null},
