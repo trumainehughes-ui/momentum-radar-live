@@ -17,6 +17,9 @@ const report={ok:true,gameId:game.gameId,reportAvailable:true,weeklyCoverage:tru
  officialSourceCheckedAt:stamp(2),officialSourceYear:2026,officialSourceWeek:6,
  weeklySourceUrl:'https://www.nfl.com/injuries/league/2026/reg6',
  weeklyPublishedAt:null,officialInactivesVerified:false,
+ gameStarterEvidence:{checked:true,teamsChecked:2,startersConfirmed:true},
+ verifiedGameStarterFlags:[{name:'Healthy Quarterback',team:'SF',starterVerified:true},
+  {name:'Other Team Starter',team:'WAS',starterVerified:true}],
  injuries:[{name:'Held Running Back',team:'WAS',position:'RB',status:'OUT',
   evidenceTier:'WEEKLY_OFFICIAL',section:'WEEKLY',gameDesignationVerified:true}]};
 const inspect=(g=game,p=published,r=report)=>nflPublicInjuryReadiness(g,p,r,{now});
@@ -66,4 +69,17 @@ test('a source conflict is flagged separately and stale owner data cannot mark r
  assert.match(src,/nflPublicInjuryReadiness\(game,pub,report,\{now\}\)/);
  assert.match(src,/CURRENT_INJURY_ENDPOINT_UNAVAILABLE/);
  assert.doesNotMatch(src,/\/api\/nfl-markets/);
+});
+test('current game starter flags supersede stale season roster assignments',()=>{
+ const missing=inspect(game,published,{...report,
+  verifiedGameStarterFlags:[{name:'Old Quarterback',team:'SF',starterVerified:true},
+   {name:'Other Team Starter',team:'WAS',starterVerified:true}]});
+ assert.equal(missing.ok,false);
+ assert.ok(missing.blockers.includes('PUBLISHED_STARTER_NOT_IN_LIVE_GAME_ROSTER'));
+ const unavailable=inspect(game,published,{...report,
+  gameStarterEvidence:{checked:false,teamsChecked:1,startersConfirmed:false}});
+ assert.ok(unavailable.blockers.includes('CURRENT_GAME_STARTERS_NOT_CONFIRMED'));
+ const slip={...published,verifiedBookParlays:[{legs:[{
+  player:'Wrong Team Old WR',team:'SF',category:'receiving',target:50}]}]};
+ assert.ok(inspect(game,slip,report).blockers.includes('SGP_LEG_NOT_IN_VERIFIED_STARTERS'));
 });
