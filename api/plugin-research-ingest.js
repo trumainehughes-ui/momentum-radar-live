@@ -33,7 +33,7 @@ export default async function handler(req,res){
  res.setHeader('Cache-Control','no-store');
  if(req.method!=='POST')return res.status(405).json({ok:false,error:'method_not_allowed'});
  const secret=process.env.MOMENTUM_RESEARCH_INGEST_KEY;
- if(!secret)return res.status(503).json({ok:false,error:'ingest_not_configured'});
+ if(!secret||secret.length<32)return res.status(503).json({ok:false,error:'ingest_not_configured'});
  const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
  if(!auth(token,secret))return res.status(401).json({ok:false,error:'unauthorized'});
  let bodySize;try{bodySize=JSON.stringify(req.body??null).length;}catch{return res.status(400).json({ok:false,error:'invalid_payload'});}
