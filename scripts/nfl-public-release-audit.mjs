@@ -27,7 +27,7 @@ const uniq=new Map();
 for(const game of events){
  const kickoff=Date.parse(game.date||'');
  const status=String(game.status?.type?.name||game.status?.type?.description||'');
- if(!/^\\d{7,12}$/.test(String(game.id||''))||
+ if(!/^[0-9]{7,12}$/.test(String(game.id||''))||
     !Number.isFinite(kickoff)||kickoff<now-30*60000||
     kickoff>now+48*3600000||/final|post/i.test(status))continue;
  uniq.set(String(game.id),{gameId:String(game.id),date:dateNY(kickoff),
