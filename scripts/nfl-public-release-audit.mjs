@@ -1,5 +1,6 @@
 // Read-only external audit: zero calls to owner /api/nfl-markets, sportsbook,
 // AI generation, cron refresh, private endpoints or mutation routes.
+import {nflPublicInjuryReadiness} from '../lib/nfl-public-injury-release-guard.js';
 const origin=new URL(process.env.MOMENTUM_AUDIT_ORIGIN||
  'https://momentum-radar-live.vercel.app');
 if(origin.protocol!=='https:')throw Error('HTTPS required');
@@ -32,7 +33,8 @@ for(const game of events){
     kickoff>now+48*3600000||/final|post/i.test(status))continue;
  uniq.set(String(game.id),{gameId:String(game.id),date:dateNY(kickoff),
   kickoff:new Date(kickoff).toISOString(),
-  teams:(game.competitions?.[0]?.competitors||[]).map(x=>x.team?.abbreviation).filter(Boolean)});
+  teams:(game.competitions?.[0]?.competitors||[]).map(x=>x.team?.abbreviation).filter(Boolean),
+  week:Number(game.week?.number)||null});
 }
 const target=[...uniq.values()].sort((a,b)=>a.kickoff.localeCompare(b.kickoff));
 const categoryNames=['passing','rushing','receiving'];
@@ -99,7 +101,19 @@ for(let i=0;i<target.length;i+=3){
    const url=new URL('/api/public-nfl-game',origin);
    url.searchParams.set('date',game.date);url.searchParams.set('gameId',game.gameId);
    const pub=await fetchJson(url.href);
-   return inspect(game,pub);
+   const published=inspect(game,pub);
+   const injuryUrl=new URL('/api/nfl-injuries',origin);
+   injuryUrl.searchParams.set('gameId',game.gameId);
+   let report;
+   try{report=await fetchJson(injuryUrl.href)}
+   catch(e){
+    return {...published,releaseReady:false,
+     blockers:[...new Set([...published.blockers,'CURRENT_INJURY_ENDPOINT_UNAVAILABLE'])],
+     injuryAudit:{ok:false,error:String(e.message||e).slice(0,80)}};
+   }
+   const injuryAudit=nflPublicInjuryReadiness(game,pub,report,{now});
+   const blockers=[...new Set([...published.blockers,...injuryAudit.blockers])];
+   return {...published,releaseReady:blockers.length===0,blockers,injuryAudit};
   }catch(e){
    return{...game,releaseReady:false,blockers:['PUBLIC_SNAPSHOT_HTTP_OR_JSON_ERROR'],
     error:String(e.message||e).slice(0,80)};
