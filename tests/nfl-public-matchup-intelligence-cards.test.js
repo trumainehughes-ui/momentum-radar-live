@@ -80,3 +80,15 @@ test('no-data message and public-only usage',()=>{
  assert.match(pub,/momentum-public-matchup-intelligence-ready/);
  assert.doesNotMatch(internal,/nfl-public-matchup-intelligence-bootstrap\.js/);
 });
+
+test('player exploit needs verified starter, recent sample, and historical ceiling',()=>{
+ const side={offense:'ATL',defense:'CHI',offenseGames:5,defenseGames:5,positions:[{position:'RB',metrics:[{metric:'rushYards',offensePerGame:110,defenseAllowedPerGame:135}]}]};
+ const candidate={name:'Sample Starter',team:'ATL',position:'RB',starterVerified:true,gameSample:5,avgPerGame:67,projection:75,range:{ceiling:110}};
+ const yes=renderPublicMatchupIntelligence([side],{rushing:[candidate]});
+ assert.match(yes,/Player to watch: Sample Starter/);
+ assert.match(yes,/Historical variability ceiling/);
+ assert.match(yes,/110 yards/);
+ const no=renderPublicMatchupIntelligence([side],{rushing:[{...candidate,starterVerified:false}]});
+ assert.doesNotMatch(no,/Player to watch: Sample Starter/);
+ assert.match(no,/No eligible, sufficiently sampled/);
+});
