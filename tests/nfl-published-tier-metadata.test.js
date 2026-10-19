@@ -56,7 +56,7 @@ test('all three tiers retain requiredLegs and true composition after sanitize',(
   assert.equal(p.actualSgpOdds,null);
  }
 });
-test('public snapshot shows complete 4/5/5 research tiers from one owner version',()=>{
+test('public snapshot preserves 4/5/5 tier counts but flags repeated markets across tiers',()=>{
  const raw=snapshot();
  assert.equal(raw.body.sgps.Analytics.length,3);
  const status=nflSgpSnapshotReadiness(raw,{now:at+20_000,gameId});
@@ -65,7 +65,8 @@ test('public snapshot shows complete 4/5/5 research tiers from one owner version
  const view=publicNflGameView(raw,{date,gameId,now:at+20_000});
  assert.equal(view.status,'CURRENT');
  assert.deepEqual(view.modelResearchTiers.map(x=>x.legCount),[4,5,5]);
- assert.ok(view.modelResearchTiers.every(x=>x.complete===true));
+ assert.equal(view.modelResearchTiers[0].complete,true);
+ assert.ok(view.modelResearchTiers.slice(1).some(x=>x.complete===false&&x.diversityStatus==='REBUILD_REQUIRED_DUPLICATE_MARKETS'));
  assert.equal(view.verifiedQuotes.length,0);
  assert.equal(view.verifiedBookParlays.length,0);
 });
