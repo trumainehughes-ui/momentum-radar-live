@@ -1,0 +1,39 @@
+// Isolated ChatGPT plugin research inbox. Never turns projections into sportsbook offers.
+import {put} from '@vercel/blob';
+import {timingSafeEqual} from 'node:crypto';
+const allowed=new Set(['DraftKings','Optimal Sports Projections']);
+function auth(a,b){if(!a||!b)return false;const x=Buffer.from(a),y=Buffer.from(b);return x.length===y.length&&timingSafeEqual(x,y);}
+export function validateResearch(body){
+ if(!body||typeof body!=='object'||Array.isArray(body))throw Error('invalid_payload');
+ if(!allowed.has(body.provider))throw Error('unsupported_provider');
+ if(!['NFL','NBA'].includes(body.league))throw Error('unsupported_league');
+ if(typeof body.gameId!=='string'||!/^[a-zA-Z0-9_-]{5,64}$/.test(body.gameId))throw Error('invalid_game_id');
+ if(typeof body.observedAt!=='string'||!Number.isFinite(Date.parse(body.observedAt)))throw Error('invalid_timestamp');
+ if(Math.abs(Date.now()-Date.parse(body.observedAt))>48*3600000)throw Error('stale_observation');
+ if(!Array.isArray(body.observations)||body.observations.length<1||body.observations.length>30)throw Error('invalid_observations');
+ const observations=body.observations.map(o=>{
+  if(!o||typeof o!=='object'||Array.isArray(o))throw Error('invalid_observation');
+  if(!['player_projection','player_history','team_stat','game_projection','schedule','injury_context'].includes(o.type))throw Error('invalid_observation_type');
+  if(typeof o.subject!=='string'||o.subject.length<2||o.subject.length>100)throw Error('invalid_subject');
+  if(typeof o.description!=='string'||o.description.length<2||o.description.length>600)throw Error('invalid_description');
+  if(typeof o.sourceReference!=='string'||o.sourceReference.length<3||o.sourceReference.length>300)throw Error('missing_source_reference');
+  return {type:o.type,subject:o.subject,description:o.description,sourceReference:o.sourceReference};
+ });
+ return {schemaVersion:1,provider:body.provider,league:body.league,gameId:body.gameId,observedAt:new Date(body.observedAt).toISOString(),receivedAt:new Date().toISOString(),observations,classification:'RESEARCH_ONLY_NOT_SPORTSBOOK_OFFER',sportsbookVerified:false,combinedSgpOdds:null};
+}
+export default async function handler(req,res){
+ res.setHeader('Cache-Control','no-store');
+ if(req.method!=='POST')return res.status(405).json({ok:false,error:'method_not_allowed'});
+ const secret=process.env.MOMENTUM_RESEARCH_INGEST_KEY;
+ if(!secret)return res.status(503).json({ok:false,error:'ingest_not_configured'});
+ const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
+ if(!auth(token,secret))return res.status(401).json({ok:false,error:'unauthorized'});
+ if(Number(req.headers['content-length']||0)>20000)return res.status(413).json({ok:false,error:'payload_too_large'});
+ let data;try{data=validateResearch(req.body);}catch(e){return res.status(400).json({ok:false,error:e.message});}
+ try{
+  const id=crypto.randomUUID();
+  const path='momentum-plugin-research/v1/'+data.league.toLowerCase()+'/'+data.gameId+'/'+id+'.json';
+  await put(path,JSON.stringify(data),{access:'public',addRandomSuffix:false,contentType:'application/json'});
+  return res.status(202).json({ok:true,recordId:id,classification:data.classification,usedForSportsbookOdds:false,note:'Research stored for future reviewed ingestion; not automatically used by the SGP engine.'});
+ }catch{return res.status(503).json({ok:false,error:'storage_unavailable'});}
+}
