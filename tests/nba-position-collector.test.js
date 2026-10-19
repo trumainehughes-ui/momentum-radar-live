@@ -19,3 +19,23 @@ test('future games and missing position labels are excluded',()=>{
  roster,asOf:'2026-10-19T00:00:00Z'});
  assert.equal(out.status,'NOT_READY');
 });
+
+test('position sample remains thin until five distinct completed games',()=>{
+ const historical=Array.from({length:5},(_,i)=>game(String(i+1),
+  '2026-10-'+String(10+i).padStart(2,'0')+'T00:00:00Z'));
+ const four=nbaVerifiedPositionSamples({historical:historical.slice(0,4),roster,
+  asOf:'2026-10-19T00:00:00Z'});
+ const five=nbaVerifiedPositionSamples({historical,roster,
+  asOf:'2026-10-19T00:00:00Z'});
+ assert.equal(four.teams.BOS.allowedByPosition.PG.sampleStatus,'THIN_SAMPLE');
+ assert.equal(five.teams.BOS.allowedByPosition.PG.sampleStatus,'OBSERVED');
+ assert.equal(five.teams.BOS.allowedByPosition.C.rebounds,11);
+});
+test('box-score position is accepted when roster position is absent',()=>{
+ const noPositions=new Map([['1',{}],['2',{}]]);
+ const g=game('1','2026-10-15T00:00:00Z');
+ g.players[0].position='PG';g.players[1].position='C';
+ const x=nbaVerifiedPositionSamples({historical:[g],roster:noPositions,
+  asOf:'2026-10-19T00:00:00Z'});
+ assert.equal(x.teams.BOS.allowedByPosition.PG.assists,8);
+});
