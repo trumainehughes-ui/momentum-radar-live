@@ -17,7 +17,7 @@ const fakeStore=()=>{
   keys.add(path);puts.push({path,value:JSON.parse(value)});
  }};
 };
-const opts=(store,now=dayAhead)=>({now,base:'https://momentum-radar-live.vercel.app',
+const opts=(store,now=dayAhead)=>({now,env:{MOMENTUM_PAID_SCHEDULED_CHECKPOINTS:'enabled'},base:'https://momentum-radar-live.vercel.app',
  secret:'example-only-secret',configured:true,putBlob:store.putBlob,
  createToken:()=>('a'.repeat(64)),
  fetchMarket:async(url,request)=>{
