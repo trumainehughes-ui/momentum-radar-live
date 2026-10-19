@@ -23,16 +23,7 @@ export function unsealResearch(sealed,secret){
  if(data.classification!=='RESEARCH_ONLY_NOT_SPORTSBOOK_OFFER'||data.sportsbookVerified!==false||data.combinedSgpOdds!==null)throw Error('invalid_classification');
  return data;
 }
-export default async function handler(req,res){
- res.setHeader('Cache-Control','no-store');
- if(req.method!=='GET')return res.status(405).json({ok:false,error:'method_not_allowed'});
- const secret=process.env.MOMENTUM_RESEARCH_INGEST_KEY;
- if(!secret||secret.length<32)return res.status(503).json({ok:false,error:'research_not_configured'});
- if(!authorized(String(req.headers.authorization||'').replace(/^Bearer\s+/i,''),secret))return res.status(401).json({ok:false,error:'unauthorized'});
- const league=String(req.query?.league||'').toLowerCase(),gameId=String(req.query?.gameId||'');
- if(!['nfl','nba'].includes(league)||!/^[a-zA-Z0-9_-]{5,64}$/.test(gameId))return res.status(400).json({ok:false,error:'invalid_query'});
- if(!process.env.BLOB_READ_WRITE_TOKEN)return res.status(503).json({ok:false,error:'research_storage_not_configured'});
- try{
+export async function readPluginResearchContext({league,gameId,secret}){
   const prefix='momentum-plugin-research/v1/'+league+'/'+gameId+'/';
   const {blobs}=await list({prefix,limit:20});
   const records=[];
@@ -46,7 +37,19 @@ export default async function handler(req,res){
     if(data.league.toLowerCase()===league&&data.gameId===gameId)records.push(data);
    }catch{/* Skip invalid or tampered entries. */}
   }
-  const projectionContext=buildPluginProjectionContext(records,{league,gameId});
+  return {records,projectionContext:buildPluginProjectionContext(records,{league,gameId})};
+}
+export default async function handler(req,res){
+ res.setHeader('Cache-Control','no-store');
+ if(req.method!=='GET')return res.status(405).json({ok:false,error:'method_not_allowed'});
+ const secret=process.env.MOMENTUM_RESEARCH_INGEST_KEY;
+ if(!secret||secret.length<32)return res.status(503).json({ok:false,error:'research_not_configured'});
+ if(!authorized(String(req.headers.authorization||'').replace(/^Bearer\s+/i,''),secret))return res.status(401).json({ok:false,error:'unauthorized'});
+ const league=String(req.query?.league||'').toLowerCase(),gameId=String(req.query?.gameId||'');
+ if(!['nfl','nba'].includes(league)||!/^[a-zA-Z0-9_-]{5,64}$/.test(gameId))return res.status(400).json({ok:false,error:'invalid_query'});
+ if(!process.env.BLOB_READ_WRITE_TOKEN)return res.status(503).json({ok:false,error:'research_storage_not_configured'});
+ try{
+  const {records,projectionContext}=await readPluginResearchContext({league,gameId,secret});
   return res.status(200).json({ok:true,league,gameId,recordCount:records.length,projectionContext,classification:'RESEARCH_ONLY',sportsbookVerified:false,combinedSgpOdds:null,note:'Authenticated research context; not wired to live predictions or sportsbook quote publication.'});
  }catch{return res.status(503).json({ok:false,error:'research_read_unavailable'});}
 }
