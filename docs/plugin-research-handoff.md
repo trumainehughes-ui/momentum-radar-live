@@ -14,3 +14,5 @@ This endpoint is a **research inbox only**. It does not generate or verify sport
 
 ## Research retrieval
 An authorized GET to `/api/plugin-research-read?league=nfl&gameId=<id>` using the same bearer token decrypts stored research for that game. This is a **read-only research view**, not an automated model or SGP update. Provider rights and a reviewed projection-consumer contract remain prerequisites for any automated promotion into matchup analytics.
+
+The reader also returns `projectionContext`, a bounded game-specific research adapter output. It explicitly contains empty `bookOffers` and `combinedSgpQuotes` and sets `readyForAutomaticPublishing:false`. This is **not** wired into the live AI generation process. Research should only be incorporated after independent official game/player identity verification and an explicit reviewed model integration.
