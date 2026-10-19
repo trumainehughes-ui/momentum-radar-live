@@ -37,6 +37,6 @@ export default async function handler(req,res){
    }catch{/* Skip invalid or tampered entries. */}
   }
   const projectionContext=buildPluginProjectionContext(records,{league,gameId});
-  return res.status(200).json({ok:true,league,gameId,records,projectionContext,classification:'RESEARCH_ONLY',sportsbookVerified:false,combinedSgpOdds:null,note:'Authenticated research context; not wired to live predictions or sportsbook quote publication.'});
+  return res.status(200).json({ok:true,league,gameId,recordCount:records.length,projectionContext,classification:'RESEARCH_ONLY',sportsbookVerified:false,combinedSgpOdds:null,note:'Authenticated research context; not wired to live predictions or sportsbook quote publication.'});
  }catch{return res.status(503).json({ok:false,error:'research_read_unavailable'});}
 }
