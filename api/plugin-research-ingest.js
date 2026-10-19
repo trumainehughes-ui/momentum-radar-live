@@ -39,6 +39,7 @@ export default async function handler(req,res){
  let bodySize;try{bodySize=JSON.stringify(req.body??null).length;}catch{return res.status(400).json({ok:false,error:'invalid_payload'});}
  if(Number(req.headers['content-length']||0)>20000||bodySize>20000)return res.status(413).json({ok:false,error:'payload_too_large'});
  let data;try{data=validateResearch(req.body);}catch(e){return res.status(400).json({ok:false,error:e.message});}
+ if(!process.env.BLOB_READ_WRITE_TOKEN)return res.status(503).json({ok:false,error:'research_storage_not_configured'});
  try{
   const id=randomUUID();
   const path='momentum-plugin-research/v1/'+data.league.toLowerCase()+'/'+data.gameId+'/'+id+'.json';
