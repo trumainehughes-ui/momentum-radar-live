@@ -438,7 +438,13 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
   const priorKeys=risk==='Small'?[]:risk==='Medium'?[selectedTierKeys.get('Small')].filter(Boolean):
    [selectedTierKeys.get('Small'),selectedTierKeys.get('Medium')].filter(Boolean);
   const maxShared=risk==='Medium'?2:risk==='Nuke'?3:Infinity;
-  const legs=[],used=new Set(),cats=new Set(),riskPool=[...pool].sort((a,b)=>strength(b,risk)-strength(a,risk)||(Number(b.confidence)||0)-(Number(a.confidence)||0));
+  const legs=[],used=new Set(),cats=new Set(),riskPool=[...pool].sort((a,b)=>{
+   // Prioritize new athletes and markets in later tiers. Rejecting only
+   // after filling can exhaust the count before alternatives are considered.
+   const priorCount=x=>priorKeys.filter(keys=>keys.has(String(x.playerID||norm(x.name))+'|'+x.cat)).length;
+   return priorCount(a)-priorCount(b)||strength(b,risk)-strength(a,risk)||
+    (Number(b.confidence)||0)-(Number(a.confidence)||0);
+  });
   const eligible=x=>{
     const pos=String(x?.position||'').toUpperCase(),role=roleFor(roles,x);
     if(!x||!['QB','RB','WR','TE'].includes(pos))return false;
