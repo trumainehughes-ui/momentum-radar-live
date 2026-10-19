@@ -25,7 +25,7 @@ test('plugin context rejects wrong game, stale, and future observations',()=>{
 test('matchup adapter preserves existing selections and prices',()=>{
  const matchup={gameId:'401873006',picks:[{player:'Existing Starter',odds:'+120'}],sportsbookVerified:true};
  const context=buildPluginProjectionContext([record],{league:'NFL',gameId:'401873006',now});
- const result=attachPluginResearchToMatchup(matchup,context,{league:'NFL',gameId:'401873006'});
+ const result=attachPluginResearchToMatchup(matchup,context,{league:'NFL',gameId:'401873006',now});
  assert.deepEqual(result.picks,matchup.picks);
  assert.equal(result.sportsbookVerified,true);
  assert.equal(result.pluginResearch.eligibleForBetConstruction,false);
@@ -36,4 +36,11 @@ test('matchup adapter refuses injected sportsbook offers and wrong games',()=>{
  const context=buildPluginProjectionContext([record],{league:'NFL',gameId:'401873006',now});
  assert.throws(()=>attachPluginResearchToMatchup({}, {...context,bookOffers:[{odds:'+100'}]},{league:'NFL',gameId:'401873006'}));
  assert.throws(()=>attachPluginResearchToMatchup({},context,{league:'NBA',gameId:'401873006'}));
+});
+
+test('matchup adapter discards stale research at consumption time',()=>{
+ const context=buildPluginProjectionContext([record],{league:'NFL',gameId:'401873006',now});
+ const result=attachPluginResearchToMatchup({picks:[]},context,{league:'NFL',gameId:'401873006',now:now+72*3600000});
+ assert.equal(result.pluginResearch.notes.length,0);
+ assert.equal(result.pluginResearch.eligibleForBetConstruction,false);
 });
