@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {publicNflGameView} from '../lib/public-nfl-view.js';
 import {ownerNflPublishedParity} from '../lib/nfl-owner-public-parity.js';
+import {renderPublicMatchupIntelligence} from '../lib/nfl-public-matchup-intelligence-cards.js';
 const gameId='401872999',date='2026-10-18';
 const now=Date.parse('2026-10-18T18:30:00Z');
 const at=now-22000;
@@ -54,4 +55,46 @@ test('public synchronization metadata never contains private raw market diagnost
  const ownerPage=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert.ok(ownerPage.includes("fetch('/api/public-nfl-game?'"));
  assert.ok(!src.includes('process.env.CRON_SECRET'));
+});
+
+
+test('owner and customer matchup readouts retain verified starter averages from one published snapshot',()=>{
+ const qb={...rows.passing[0],starterVerified:true,starterStatus:'CONFIRMED_STARTER',
+  perGame:227.3,range:{floor:180,ceiling:296},gamesPlayed:5};
+ const bad={...rows.passing[1],starterVerified:false,starterStatus:'UNCONFIRMED',
+  perGame:260,range:{floor:220,ceiling:310},gamesPlayed:5};
+ const matchupEvidence={status:'BILATERAL_EVIDENCE',sides:[
+  {offenseTeam:'ATL',defenseTeam:'CHI',offenseSampleGames:5,defenseSampleGames:5,
+   positions:[{position:'QB',metrics:[{metric:'passYards',
+    offenseProducedPerGame:245,defenseAllowedPerGame:270}]}]},
+  {offenseTeam:'CHI',defenseTeam:'ATL',offenseSampleGames:5,defenseSampleGames:5,
+   positions:[{position:'RB',metrics:[{metric:'rushYards',
+    offenseProducedPerGame:105,defenseAllowedPerGame:110}]}]}
+ ]};
+ const current={...base,categories:{...rows,passing:[qb,bad]},matchupEvidence};
+ const customer=publicNflGameView({at,body:current},{date,gameId,now});
+ assert.equal(customer.ok,true);
+ assert.equal(customer.status,'CURRENT');
+ assert.deepEqual(customer.categories.passing.map(x=>x.name),['Eligible QB']);
+ assert.equal(customer.categories.passing[0].starterVerified,true);
+ assert.equal(customer.categories.passing[0].gameSample,5);
+ assert.equal(customer.categories.passing[0].avgPerGame,227.3);
+ assert.equal(customer.categories.passing[0].range.ceiling,296);
+ const oldOwner={...current,fetchedAt:new Date(at-120_000).toISOString(),
+  categories:{...rows,passing:[{...qb,starterVerified:false,perGame:300}]}};
+ const synced=ownerNflPublishedParity(oldOwner,customer,{date,gameId,now});
+ assert.equal(synced.ok,true);
+ assert.equal(synced.diagnosticSnapshotMatches,false);
+ assert.equal(synced.categories.passing[0].starterVerified,true);
+ assert.equal(synced.categories.passing[0].avgPerGame,227.3);
+ assert.equal(synced.categories.passing[0].gameSample,5);
+ assert.equal(synced.categories.passing[0].range.ceiling,296);
+ const customerReadout=renderPublicMatchupIntelligence(customer.matchup.sides,customer.categories);
+ const ownerReadout=renderPublicMatchupIntelligence(customer.matchup.sides,synced.categories);
+ for(const html of [customerReadout,ownerReadout]){
+  assert.match(html,/Player to watch: Eligible QB/);
+  assert.match(html,/227.3 yards\/game/);
+  assert.match(html,/CHI allows <b>270 yards\/game<\/b> to quarterbacks combined/);
+  assert.doesNotMatch(html,/Held QB|300 yards\/game/);
+ }
 });
