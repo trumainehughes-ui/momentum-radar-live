@@ -1,3 +1,4 @@
+import {supplementalGameEvidence} from '../lib/therundown-secondary-evidence.js';
 // TheRundown connection probe. Catalog lookup only (zero data points).
 // Never place the API key in client output or logs.
 export default async function handler(req,res){
@@ -19,6 +20,7 @@ export default async function handler(req,res){
    catalogEntries:sports.length,nflCatalogListed:names.some(n=>n.includes('nfl')),
    nbaCatalogListed:names.some(n=>n.includes('nba')),
    playerPropsVerified:false,combinedSgpQuotesVerified:false,
-   paidDataPointsUsed:0,sourceRole:'SECONDARY_RESEARCH'});
+   paidDataPointsUsed:0,sourceRole:'SECONDARY_RESEARCH',
+   evidencePolicy:{nfl:supplementalGameEvidence([], 'nfl'),nba:supplementalGameEvidence([], 'nba')}});
  }catch{return res.status(503).json({ok:false,provider:'TheRundown',reason:'connection_failed'});}
 }
