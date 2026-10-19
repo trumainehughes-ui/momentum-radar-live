@@ -89,6 +89,11 @@ test('owner and customer matchup readouts retain verified starter averages from 
  assert.equal(synced.categories.passing[0].avgPerGame,227.3);
  assert.equal(synced.categories.passing[0].gameSample,5);
  assert.equal(synced.categories.passing[0].range.ceiling,296);
+ const noRange={...customer,categories:{...customer.categories,
+  passing:[{...customer.categories.passing[0],range:{floor:null,ceiling:null}}]}};
+ const safelyMissing=ownerNflPublishedParity(oldOwner,noRange,{date,gameId,now});
+ assert.equal(safelyMissing.ok,true);
+ assert.equal(safelyMissing.categories.passing[0].range,null);
  const customerReadout=renderPublicMatchupIntelligence(customer.matchup.sides,customer.categories);
  const ownerReadout=renderPublicMatchupIntelligence(customer.matchup.sides,synced.categories);
  for(const html of [customerReadout,ownerReadout]){
