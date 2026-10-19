@@ -63,7 +63,7 @@ test('complete composition reports model-only, never verified sportsbook quote',
  assert.ok(!JSON.stringify(status).includes('"playerID"'),
   'health report never exposes actual players or accepts client-side writes');
 });
-test('only fresh, source-verified exact-tier bookmaker quotes appear in SGP health',()=>{
+test('fresh quote metadata without verified legs and tier composition stays unquoted in SGP health',()=>{
  const fresh=sample(),book='FanDuel',risk='Nuke';
  const q={book,risk,legs:Array.from({length:5},(_,i)=>({playerID:'private-'+i})),
   requiredLegs:5,actualSgpOdds:10001,combinedBookQuoteVerified:true,
@@ -71,14 +71,10 @@ test('only fresh, source-verified exact-tier bookmaker quotes appear in SGP heal
   quotedAt:new Date(now-90_000).toISOString()};
  fresh.body.sgps.FanDuel=[q];
  const status=nflSgpSnapshotReadiness(fresh,{now,gameId});
- assert.equal(status.status,'BOOK_QUOTED_PARTIAL');
- assert.equal(status.sportsbookCombinedOddsVerified,true);
- assert.equal(status.bookQuotes.length,1);
- assert.equal(status.bookQuotes[0].book,'FanDuel');
- assert.equal(status.bookQuotes[0].risk,'Nuke');
- assert.equal(status.bookQuotes[0].americanOdds,10001);
- assert.equal(status.bookQuotes[0].netProfitOnTen,1000.1);
- assert.equal(status.tiers.find(x=>x.risk==='Nuke').sportsbookCombinedOddsVerified,true);
+ assert.equal(status.status,'NOT_READY');
+ assert.equal(status.sportsbookCombinedOddsVerified,false);
+ assert.deepEqual(status.bookQuotes,[]);
+ assert.equal(status.tiers.find(x=>x.risk==='Nuke').sportsbookCombinedOddsVerified,false);
  assert.ok(!JSON.stringify(status).includes('private-0'));
  assert.ok(!JSON.stringify(status).includes('"legs"'));
 });
