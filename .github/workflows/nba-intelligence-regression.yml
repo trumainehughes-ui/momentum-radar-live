@@ -1,0 +1,35 @@
+name: NBA Intelligence Regression
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lib/nba-*.js'
+      - 'lib/pregame-ai-review.js'
+      - 'tests/nba-*.test.js'
+      - '.github/workflows/nba-intelligence-regression.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  nba-intelligence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install project dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund --no-package-lock
+      - name: Syntax check NBA evidence pipeline
+        run: |
+          node --check lib/nba-pregame-model.js
+          node --check lib/nba-position-collector.js
+          node --check lib/nba-matchup-intelligence.js
+          node --check lib/nba-roster-change-impact.js
+          node --check lib/pregame-ai-review.js
+      - name: Test NBA collector, matchup, roster changes, and AI evidence
+        run: |
+          node --test tests/nba-position-collector.test.js tests/nba-matchup-intelligence.test.js tests/nba-roster-change-impact.test.js tests/nba-ai-evidence-bridge.test.js tests/nba-roster-ai-bridge.test.js
+      - name: Full NFL and NBA regression
+        run: npm test

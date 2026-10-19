@@ -136,3 +136,18 @@ test('NBA public odds can display for roster-checked players before AI pregame m
  assert.deepEqual(onlyRosterListedNbaOffers(observations,{...game,rosters,
   injuries:gameReport.injuries}).map(x=>x.player),['Jayson Tatum']);
 });
+
+test('public NBA game API uses freshness-gated positional context adapter',()=>{
+ const source=readFileSync(new URL('../api/nba-game.js',import.meta.url),'utf8');
+ assert.ok(source.includes("import {publicNbaPositionContext}"));
+ assert.ok(source.includes('data.nbaPositionContext=publicNbaPositionContext(snapshot,{current})'));
+});
+
+test('public position adapter withholds stale evidence and preserves limitations',async()=>{
+ const {publicNbaPositionContext}=await import('../lib/public-nba-position-context.js');
+ const snapshot={nbaPositionEvidence:{status:'HISTORICAL_EVIDENCE',
+  asOf:'2026-10-19T18:00:00Z',source:'ESPN completed box scores',
+  limitation:'Not defender assignments',teams:{BOS:{}}}};
+ assert.equal(publicNbaPositionContext(snapshot,{current:false}),null);
+ assert.equal(publicNbaPositionContext(snapshot,{current:true}).limitation,'Not defender assignments');
+});
