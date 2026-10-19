@@ -267,6 +267,21 @@ export default async function handler(req,res){
      x.status:'other';
     acc[key]=(acc[key]||0)+1;return acc;
    },{}),
+   // A successful cron run does not imply that any complete SGP was built.
+   // Log counts only; no athlete identities, selections or sportsbook data.
+   emptyModelTierRefreshes:historyLocks.filter(x=>
+    ['locked','updated'].includes(x.status)&&Number(x.sgps||0)===0).length,
+   modelTierReadinessCounts:historyLocks.reduce((acc,x)=>{
+    const entries=Array.isArray(x.modelTierReadiness)?x.modelTierReadiness:
+     Object.values(x.modelTierReadiness||{});
+    for(const tier of entries){
+     const risk=String(tier?.risk||tier?.tier||'');
+     if(!['Small','Medium','Nuke'].includes(risk))continue;
+     const key=risk+':'+String(tier?.status||'UNKNOWN').slice(0,40);
+     acc[key]=(acc[key]||0)+1;
+    }
+    return acc;
+   },{}),
    checkpointStatuses:historyLocks.reduce((acc,x)=>{
     const key=String(x?.bookCheckpoint?.outcomeStatus||x?.bookCheckpoint?.status||'NONE').slice(0,55);
     acc[key]=(acc[key]||0)+1;return acc;
