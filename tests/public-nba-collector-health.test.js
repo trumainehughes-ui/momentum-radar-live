@@ -10,3 +10,8 @@ test('public NBA collector health reports aggregate coverage, not internal data'
  assert.equal(JSON.stringify(data).includes('secret'),false);
  assert.match(data.note,/not verified starters or sportsbook offers/);
 });
+
+test('public coverage does not misrepresent an unobserved cron run as empty predictions',()=>{
+ assert.equal(publicNbaCollectorHealth({}).coverageStatus,'NOT_OBSERVED');
+ assert.equal(publicNbaCollectorHealth({results:[{projectionCount:0}]}).coverageStatus,'NO_RESEARCH_PROJECTIONS');
+});
