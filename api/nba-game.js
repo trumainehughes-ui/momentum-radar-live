@@ -50,6 +50,13 @@ export default async function handler(req,res){
    data.injuryRecheckedAt=snapshot.injuryCheckedAt;
    data.sgpModelVersion=snapshot.modelVersion||'legacy-unversioned';
    const current=data.pregameReadiness.freshness==='CURRENT';
+   // Research projections are independent of SGP candidate eligibility.
+   // A missing confirmed starter must not erase a historical model estimate.
+   data.playerProjections=current&&data.status==='SCHEDULED'&&
+    Array.isArray(snapshot.playerProjections)?snapshot.playerProjections.map(p=>({
+     ...p,marketVerified:false,modelOnly:true
+    })):[];
+   data.playerProjectionSource=current?snapshot.sampleSource||'UNVERIFIED':null;
    if(data.pregameSourceMode==='SCOREBOARD_VERIFIED_FALLBACK'&&current&&
      snapshot.injuryReportStatus==='ESPN_REPORTED_INJURIES_RECHECKED'&&
      Array.isArray(snapshot.verifiedInjuries)){
