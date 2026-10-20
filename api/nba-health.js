@@ -230,7 +230,9 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
  await write(result);
  return{gameId:game.gameId,status:result.status,stage:plan.stage,revision:result.revision,
   changed:result.changedFromPrior,modelTiers:(result.sgps||[]).filter(x=>x.status==='MODEL_CANDIDATE').map(x=>x.risk),
-  injuryCount:injuries.length,changedFields:result.changedFields,
+  injuryCount:injuries.length,projectionCount:Array.isArray(result.playerProjections)?result.playerProjections.length:0,
+  sampleSource:result.sampleSource||'UNAVAILABLE',samplesUsed:result.samplesUsed||0,
+  changedFields:result.changedFields,
   offenseDefenseStatus:result.offenseDefenseStatus,reason:result.reason||null};
 }
 export default async function handler(req,res){
@@ -280,6 +282,12 @@ export default async function handler(req,res){
   shard,shardsTotal:2,assignedGames:assigned.length,
   due:pending.length,checked:reports.length,results:reports,
   failed:reports.filter(r=>r?.status==='collector_error').length,
+  projectionCount:reports.reduce((sum,r)=>sum+(Number(r?.projectionCount)||0),0),
+  emptyProjectionGames:reports.filter(r=>r?.status!=='collector_error'&&r?.status!=='held'&&
+   !(Number(r?.projectionCount)>0)).map(r=>({gameId:r.gameId,reason:r.reason||r.status,
+    sampleSource:r.sampleSource||'UNAVAILABLE',samplesUsed:r.samplesUsed||0})),
+  collectorErrors:reports.filter(r=>r?.status==='collector_error').map(r=>({
+   gameId:r.gameId,reason:String(r.reason||r.error||'COLLECTOR_ERROR').slice(0,160)})),
   changed:reports.filter(r=>r?.changed).length,
   changedByCause:Object.fromEntries(['PLAYER_PROPS','SGP_TIERS','INJURIES','MATCHUP','MODEL_INPUTS']
    .map(k=>[k,reports.filter(r=>r?.changedFields?.includes(k)).length])),
