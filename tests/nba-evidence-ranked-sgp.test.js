@@ -12,3 +12,8 @@ test('NBA parlay research ranks by historical hit rates and model cushions',()=>
 test('raw historical samples are not exposed in public projections',()=>{
  assert.match(src,/playerProjections:candidates\.slice\(0,40\)\.map\(\(\{historicalValues,\.\.\.p\}\)=>p\)/);
 });
+
+test('retains compatibility selection objective while ranking by evidence',()=>{
+ assert.match(src,/selectionObjective:'SHORTEST_EVIDENCE_SUPPORTED_RESEARCH_CANDIDATE'/);
+ assert.match(src,/selectionRanking:'HISTORICAL_HIT_RATE_AND_PROJECTION_CUSHION_NO_POPULARITY'/);
+});
