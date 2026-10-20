@@ -15,3 +15,10 @@ test('public coverage does not misrepresent an unobserved cron run as empty pred
  assert.equal(publicNbaCollectorHealth({}).coverageStatus,'NOT_OBSERVED');
  assert.equal(publicNbaCollectorHealth({results:[{projectionCount:0}]}).coverageStatus,'NO_RESEARCH_PROJECTIONS');
 });
+
+test('held snapshot projections remain visible in public research coverage',()=>{
+ const result=publicNbaCollectorHealth({results:[{status:'held',projectionCount:12}]});
+ assert.equal(result.heldGames,1);
+ assert.equal(result.projectionCount,12);
+ assert.equal(result.coverageStatus,'RESEARCH_AVAILABLE');
+});

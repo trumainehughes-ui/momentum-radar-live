@@ -272,6 +272,19 @@ export default async function handler(req,res){
  const histories=await Promise.all(assigned.map(g=>nbaReadPregame(g.gameId)));
  const pending=assigned.map((g,i)=>({gameId:g.gameId,g,prior:histories[i],plan:nbaPregameStage(g,histories[i])}))
    .filter(x=>x.plan.due);
+ // Not-due games still have valid stored projections. Include them in the
+ // persisted coverage audit, otherwise each 15-minute no-op erases evidence.
+ const heldReports=assigned.flatMap((g,i)=>{
+  const prior=histories[i];
+  if(!prior||nbaPregameStage(g,prior).due)return[];
+  const freshness=nbaPregameFreshness(prior,{gameStatus:g.status});
+  return [{gameId:g.gameId,status:'held',stage:prior.stage,
+   projectionCount:freshness.status==='CURRENT'&&Array.isArray(prior.playerProjections)?
+    prior.playerProjections.length:0,
+   sampleSource:prior.sampleSource||'UNAVAILABLE',
+   reason:freshness.status==='CURRENT'?'Stored research snapshot is current.':
+    'Stored research snapshot is stale.'}];
+ });
  // If the batch times out before completion the last persisted marker shows
  // RUNNING rather than silently presenting stale successful coverage.
  const startedAt=new Date().toISOString();
@@ -279,11 +292,11 @@ export default async function handler(req,res){
   due:pending.length,startedAt,state:'RUNNING'}));
  const reports=await nflRunCollectorBatch(pending,async({g,prior})=>
   nbaCollectPregame(g,{prior}),{concurrency:3});
- await writeCollectorAudit(collectorAuditReport('nba',shard,reports,{
+ await writeCollectorAudit(collectorAuditReport('nba',shard,[...reports,...heldReports],{
   due:pending.length,startedAt,state:'COMPLETE'}));
  console.info('[nba-collector] checkpoint_summary',JSON.stringify({
   shard,state:'COMPLETE',scheduledGames:games.length,assignedGames:assigned.length,
-  due:pending.length,attempted:reports.length,
+  due:pending.length,attempted:reports.length,held:heldReports.length,
   projectionCount:reports.reduce((sum,r)=>sum+(Number(r?.projectionCount)||0),0),
   emptyProjectionGames:reports.filter(r=>r?.status!=='collector_error'&&!(Number(r?.projectionCount)>0)).length,
   collectorErrors:reports.filter(r=>r?.status==='collector_error').length
