@@ -59,7 +59,7 @@ test('cached pregame model version is invalidated to rebuild corrected season-aw
  const plan=nbaPregameStage(game,stale,{now:now+60000});
  assert.equal(plan.due,true);
  assert.equal(plan.reason,'model_version_changed');
- assert.ok(NBA_PREGAME_MODEL_VERSION.startsWith('v7-')&&NBA_PREGAME_MODEL_VERSION.includes('lineup'));
+ assert.ok(NBA_PREGAME_MODEL_VERSION.startsWith('v8-')&&NBA_PREGAME_MODEL_VERSION.includes('sample'));
 });
 test('untrusted public cron queries are rejected for NFL and NBA, without triggering paid market or other calls',async()=>{
  const oldCron=process.env.CRON_SECRET,oldStorage=process.env.BLOB_READ_WRITE_TOKEN;
