@@ -1,0 +1,25 @@
+name: NBA 30-Team Roster Audit
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6,16,22 * * *'
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Audit current NBA player team assignments
+        run: node scripts/nba-opening-roster-audit.mjs > nba-roster-report.json
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nba-roster-audit
+          path: nba-roster-report.json
+          if-no-files-found: ignore
