@@ -1091,6 +1091,25 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  const nbaViews=[['overview','Overview'],['points','Points'],['rebounds','Rebounds'],
   ['assists','Assists'],['threes','3-Pointers'],['pra','PRA'],
   ['sgps','SGPs'],['injuries','Injuries']];
+ function nbaResearchCandidates(d,cat){
+  const seen=new Set(),out=[];
+  for(const p of Array.isArray(d?.playerProjections)?d.playerProjections:[]){
+   if(cat&&p.category!==cat)continue;
+   if(!nbaNames[p.category]||!p.name||!Number.isFinite(Number(p.projection))||
+    Number(p.projection)<=0)continue;
+   const key=String(p.playerId||p.name)+'|'+p.category;
+   if(seen.has(key))continue;seen.add(key);out.push(p);
+  }
+  return out.slice(0,80);
+ }
+ function nbaResearchRow(p){
+  const n=Number(p.projection),label=n.toFixed(1);
+  return '<div class="nba-pick"><div class="nba-pick-player">'+esc(p.name)+
+   '</div><div class="nba-pick-line"><span>'+esc(nbaNames[p.category])+
+   ' · '+esc(p.team)+'</span><strong>'+esc(label)+' projected</strong></div>'+
+   '<small>Model research · '+esc(p.sampleSource==='PRIOR_SEASON'?'Previous-season sample':'Historical sample')+
+   ' · Not a sportsbook offer or confirmed starter</small></div>';
+ }
  function nbaCandidates(d,cat){
   const seen=new Set(),xs=[];
   for(const tier of Array.isArray(d?.sgps)?d.sgps:[]){
@@ -1128,6 +1147,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
  }
  function nbaModelBody(d){
   const legs=nbaCandidates(d);
+  const research=nbaResearchCandidates(d);
   const nbaReadiness=d.pregameReadiness||{};
   const pregame= d.status==='SCHEDULED';
   if(!pregame){
@@ -1139,6 +1159,11 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
       esc(p.team)+' · Points '+esc(p.points??'—')+' · Rebounds '+esc(p.rebounds??'—')+
       ' · Assists '+esc(p.assists??'—')+'</div></div>').join('')+'</div>':
      noData('Box score is not ready','Try again as game results are recorded.'));
+  }
+  if(!legs.length&&research.length){
+   return '<h3>NBA player projections</h3>'+
+    '<p class="sub">Research projections only. Starter status and sportsbook markets are not confirmed.</p>'+
+    '<div class="nba-picks-list">'+research.slice(0,24).map(nbaResearchRow).join('')+'</div>';
   }
   if(!legs.length){
    return '<h3>NBA player selections</h3>'+
