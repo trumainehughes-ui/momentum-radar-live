@@ -160,10 +160,10 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
    const startersReady=eventStarters.startersConfirmed===true&&
     legs.length>0&&legs.every(p=>p.starterVerified===true);
    return {...card,legs,
-    status:card.status==='MODEL_CANDIDATE'&&!startersReady?'NOT_READY':card.status,
+    status:card.status==='MODEL_CANDIDATE'&&eventStarters.checked===true&&!startersReady?'NOT_READY':card.status,
     publishable:false,
     starterVerificationStatus:startersReady?'GAME_SCOPED_STARTERS_CONFIRMED':'UNCONFIRMED',
-    reason:card.status==='MODEL_CANDIDATE'&&!startersReady?
+    reason:card.status==='MODEL_CANDIDATE'&&eventStarters.checked===true&&!startersReady?
      'Held: not every player is verified as a starter for this specific NBA game.':card.reason};
   }),
   starterEvidence:{checked:eventStarters.checked,
