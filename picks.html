@@ -1209,10 +1209,13 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   if(state.nbaTab==='overview')body=nbaModelBody(d);
   else if(nbaNames[state.nbaTab]){
    const xs=nbaCandidates(d,state.nbaTab);
+   const research=nbaResearchCandidates(d,state.nbaTab);
    body='<h3>'+esc(nbaNames[state.nbaTab])+'</h3>'+
     (xs.length?'<div class="nba-picks-list">'+xs.map(nbaLegRow).join('')+'</div>':
-     noData('No eligible '+nbaNames[state.nbaTab]+' model selections',
-      'The game collector has not published a current player projection for this category.'));
+     research.length?'<p class="sub">Historical model estimates only; starter and sportsbook verification pending.</p>'+
+      '<div class="nba-picks-list">'+research.map(nbaResearchRow).join('')+'</div>':
+     noData('No current '+nbaNames[state.nbaTab]+' projections',
+      'No current research estimate is available for this category.'));
   }else if(state.nbaTab==='sgps')body=nbaSgpBody(d);
   else if(state.nbaTab==='injuries'){
    const xs=(Array.isArray(d.injuries)?d.injuries:[]).slice(0,30);
