@@ -22,3 +22,8 @@ test('held snapshot projections remain visible in public research coverage',()=>
  assert.equal(result.projectionCount,12);
  assert.equal(result.coverageStatus,'RESEARCH_AVAILABLE');
 });
+
+test('public NBA collector states statistical evidence ranking basis',()=>{
+ const report=publicNbaCollectorHealth({results:[]});
+ assert.equal(report.selectionBasis,'HISTORICAL_GAME_EVIDENCE_NOT_POPULARITY');
+});
