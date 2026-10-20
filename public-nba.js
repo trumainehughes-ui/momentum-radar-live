@@ -78,7 +78,7 @@
    const list=ready?s.legs.map((l,i)=>
     '<div class="nflMarketLine"><b>'+(i+1)+'. '+safe(l.name)+' • '+safe(l.team)+'</b>'+
     '<div class="meta">'+safe(l.threshold)+'+ '+safe(l.category)+' • historical mean '+safe(l.projection)+
-    ' • '+safe(l.sampleGames)+' completed games</div></div>').join(''):'';
+    ' • '+safe(l.sampleGames)+' completed games • '+(l.starterVerified===true?'GAME STARTER VERIFIED':'STARTER UNCONFIRMED')+'</div></div>').join(''):'';
    return '<div class="nflSgpMini" style="margin-bottom:12px">'+
     '<b>'+safe(s.risk)+' SGP</b>'+
     '<div class="meta">'+(ready?'MODEL-ONLY CANDIDATE':'NOT READY')+
