@@ -27,3 +27,8 @@ test('public NBA collector states statistical evidence ranking basis',()=>{
  const report=publicNbaCollectorHealth({results:[]});
  assert.equal(report.selectionBasis,'HISTORICAL_GAME_EVIDENCE_NOT_POPULARITY');
 });
+
+test('public NBA health declares evidence-ranked model version',()=>{
+ const report=publicNbaCollectorHealth({results:[]});
+ assert.equal(report.expectedModelVersion,'v8-expanded-prior-season-sample-rebuild-evidence-v2');
+});
