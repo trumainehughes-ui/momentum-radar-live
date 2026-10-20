@@ -30,5 +30,5 @@ test('public NBA collector states statistical evidence ranking basis',()=>{
 
 test('public NBA health declares evidence-ranked model version',()=>{
  const report=publicNbaCollectorHealth({results:[]});
- assert.equal(report.expectedModelVersion,'v9-historical-hit-rate-ranking');
+ assert.equal(report.expectedModelVersion,'v8-expanded-prior-season-sample-rebuild-evidence-v2');
 });
