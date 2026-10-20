@@ -331,13 +331,15 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    offers.map(q=>esc(q.book)+' '+esc(q.risk)+' '+(Number(q.americanOdds)>0?'+':'')+esc(q.americanOdds)).join(' • ')+
    '</div><div class="sub">Book-issued quote at the recorded time, not a wager or a live guaranteed offer.</div></div>'}
  function hitChanceText(x,cat){
+  const target=Number(x.suggestedTarget??x.projection);
+  const probabilityTarget=Number(x.hitTarget);
   const good=x?.hitProbabilityPct!=null&&Number.isInteger(Number(x.hitProbabilityPct))&&
    Number(x.hitProbabilityPct)>=1&&Number(x.hitProbabilityPct)<=99;
-  if(!good)return 'Hit probability pending — insufficient completed-game evidence';
-  const target=cat==='td'?'anytime touchdown':
-   x.hitTarget!=null?x.hitTarget+'+ '+(cat==='receptions'?'receptions':cat+' yards'):
-   x.target||labels[cat];
-  return 'Estimated hit probability: '+x.hitProbabilityPct+'% • '+target+' (uncalibrated model)';
+  if(!good)return 'Insufficient completed-game evidence';
+  // Never attach a probability calculated for 70+ yards to a 55-yard card.
+  if(cat!=='td'&&(!Number.isFinite(target)||!Number.isFinite(probabilityTarget)||
+   target!==probabilityTarget))return 'Probability not calculated for this target';
+  return x.hitProbabilityPct+'% (uncalibrated model)';
  }
  function renderPublicBookResearch(){
   const d=state.publicBookResearch;
@@ -802,7 +804,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   }
   const parts=[];
   if(x.avgPerGame!=null)parts.push('averaging '+x.avgPerGame+' '+(cat==='receptions'?'catches':'yards')+' per game');
-  if(x.recentTrend&&x.recentTrend!=='FLAT')parts.push('recent '+String(x.recentTrend).toLowerCase()+' form');
+  if(x.recentTrend&&x.recentTrend!=='FLAT')parts.push('recent '+String(x.recentTrend).toLowerCase().replace(/_/g,' ')+' form');
   return parts.length?'Selected based on '+parts.join(' and ')+'.':'Selected based on recent performance and the opponent matchup.';
  }
  // Join public odds research by exact sanitized name, category AND target.
@@ -861,12 +863,16 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   }
  }
  function renderPlayer(x,cat){
-  const td=cat==='td',pct=Number(x.modelChancePct);
-  const projected=td?'Anytime touchdown':esc(x.suggestedTarget??x.projection)+' '+(cat==='receptions'?'receptions':'yards');
-  const chance=td?(Number.isFinite(pct)?pct+'%':'Estimate unavailable'):esc(hitChanceText(x,cat));
+  const td=cat==='td',pct=x.modelChancePct==null?NaN:Number(x.modelChancePct);
+  const target=x.suggestedTarget??x.projection;
+  const sample=Number(x.gameSample);
+  const eligible=x.starterVerified===true&&Number.isFinite(sample)&&sample>=2;
+  if(!eligible)return '';
+  const projected=td?'Anytime touchdown':esc(target)+' '+(cat==='receptions'?'receptions':'yards');
+  const chance=td?(Number.isFinite(pct)?pct+'% (uncalibrated model)':'Insufficient completed-game evidence'):hitChanceText(x,cat);
   return '<div class="player"><div class="tiny">'+esc(x.team||'')+' • '+esc(labels[cat])+'</div><b>'+esc(x.name)+'</b>'+
-   '<div class="stat">'+projected+'</div><div class="small"><b>Estimated chance: '+chance+'</b></div>'+
-   publicObservationHtml(x.name,cat,x.suggestedTarget??x.hitTarget)+
+   '<div class="stat">'+projected+'</div><div class="small"><b>Estimated chance: '+esc(chance)+'</b></div>'+
+   publicObservationHtml(x.name,cat,target)+
    '<div class="small"><b>Why AI picked this player:</b> '+esc(publicWhy(x,cat))+'</div>'+
    '<div class="tiny" style="margin-top:12px">Model estimate • not guaranteed</div></div>';
  }
