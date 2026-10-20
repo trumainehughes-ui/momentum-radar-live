@@ -254,7 +254,10 @@ export default async function handler(req,res){
   try{return await json('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates='+day.replaceAll('-','')+'&limit=100',12_000)}
   catch{return{events:[],sourceFailed:true}}
  }));
- if(schedules.every(x=>x.sourceFailed))return res.status(503).json({ok:false,error:'nba_scoreboard_unavailable'});
+ if(schedules.every(x=>x.sourceFailed)){
+  console.warn('[nba-collector] checkpoint_summary',JSON.stringify({shard,state:'SCOREBOARD_UNAVAILABLE',dates}));
+  return res.status(503).json({ok:false,error:'nba_scoreboard_unavailable'});
+ }
  const games=[...new Map(schedules.flatMap(x=>x.events||[]).map(ev=>{
   const c=ev.competitions?.[0]||{},parts=c.competitors||[],
    home=parts.find(x=>x.homeAway==='home'),away=parts.find(x=>x.homeAway==='away');
@@ -278,6 +281,13 @@ export default async function handler(req,res){
   nbaCollectPregame(g,{prior}),{concurrency:3});
  await writeCollectorAudit(collectorAuditReport('nba',shard,reports,{
   due:pending.length,startedAt,state:'COMPLETE'}));
+ console.info('[nba-collector] checkpoint_summary',JSON.stringify({
+  shard,state:'COMPLETE',scheduledGames:games.length,assignedGames:assigned.length,
+  due:pending.length,attempted:reports.length,
+  projectionCount:reports.reduce((sum,r)=>sum+(Number(r?.projectionCount)||0),0),
+  emptyProjectionGames:reports.filter(r=>r?.status!=='collector_error'&&!(Number(r?.projectionCount)>0)).length,
+  collectorErrors:reports.filter(r=>r?.status==='collector_error').length
+ }));
  return res.status(200).json({ok:true,datesChecked:dates,games:games.length,
   shard,shardsTotal:2,assignedGames:assigned.length,
   due:pending.length,checked:reports.length,results:reports,
