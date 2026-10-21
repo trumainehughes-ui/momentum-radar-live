@@ -55,7 +55,12 @@ export function nbaPregameStage(game,prior,{now=Date.now()}={}){
  const at=Date.parse(prior?.checkedAt||''),
    age=Number.isFinite(at)?now-at:Infinity;
  const ttl=phase.maxSnapshotAgeMinutes*MS;
- return{due:!prior||!Number.isFinite(age)||age<0||age>=ttl||prior.stage!==stage,
+ // Revisit legacy snapshots where SGP gating skipped AI despite available
+ // independent player forecasts. Throttle retries to one per hour.
+ const needsForecastReview=Array.isArray(prior?.playerProjections)&&
+  prior.playerProjections.some(p=>Number.isFinite(Number(p.projection))&&Number(p.projection)>0)&&
+  prior?.aiReview?.status!=='REVIEWED'&&age>=60*MS;
+ return{due:needsForecastReview||!prior||!Number.isFinite(age)||age<0||age>=ttl||prior.stage!==stage,
   stage,minutesToTipoff:Math.ceil(before/MS),snapshotAgeMs:Number.isFinite(age)?age:null};
 }
 // A successful Blob read is not proof that its pregame data is still current.
