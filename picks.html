@@ -1176,6 +1176,12 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    '<div class="nba-picks-list">'+legs.slice(0,18).map(nbaLegRow).join('')+'</div>';
  }
  function nbaSgpBody(d){
+  const research=nbaResearchCandidates(d);
+  const forecastHtml='<section class="nba-forecast" style="margin-bottom:18px"><h3>Player statistical forecasts</h3>'+
+   '<p class="sub">Independent research estimates, not verified sportsbook offers or confirmed starters.</p>'+
+   (research.length?'<div class="nba-picks-list">'+research.slice(0,30).map(nbaResearchRow).join('')+'</div>':
+    noData('Player forecasts not yet populated','The collector has not supplied usable player projections for this game.'))+
+   '</section>';
   const cards=(Array.isArray(d.sgps)?d.sgps:[]);
   const html=['Small','Medium','Nuke'].map(name=>{
    const c=cards.find(x=>x.risk===name);
@@ -1196,7 +1202,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     '<div class="nba-picks-list" style="padding:12px">'+c.legs.map(nbaLegRow).join('')+
     '</div></section>';
   }).join('');
-  return '<h3>NBA Same Game Parlays</h3>'+
+  return forecastHtml+'<h3>NBA Same Game Parlays</h3>'+
    '<p class="sub">Player · NBA stat · target. These are model candidates, not sportsbook-issued SGPs.</p>'+
    '<div class="sgp-slips">'+html+'</div>'+
    '<p class="nba-status-line">Combined DraftKings/FanDuel SGP prices are not confirmed. Confirm exact legs and active lineups before betting.</p>';
