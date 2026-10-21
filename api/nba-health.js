@@ -214,19 +214,27 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
  // Groq/OpenRouter is automatically asked to REVIEW only when T-30 begins or
  // qualified model legs materially change, never to manufacture replacement legs.
  const eligible=result.sgps?.some(x=>x.status==='MODEL_CANDIDATE');
- if(!eligible){
-  result.aiReview={status:'SKIPPED',reason:'No eligible NBA SGP remains to review'};
- }else if(pregameNeedsAiReview({stage:plan.stage,
-   changedFields:audit.changedFields,
-   priorAiReviewed:prior?.aiReviewed===true&&prior?.stage==='FINAL_T_MINUS_30'&&
-    prior?.modelVersion===NBA_PREGAME_MODEL_VERSION})){
-   result.aiReview=await review('nba',game,result);
-   result.aiReviewed=result.aiReview?.status==='REVIEWED';
- }else if(prior&&!result.changedFromPrior&&prior.stage===plan.stage&&
-   prior.modelVersion===NBA_PREGAME_MODEL_VERSION&&prior.aiReview?.status==='REVIEWED'){
-   result.aiReview=prior.aiReview;
-   result.aiReviewed=true;
- }else result.aiReview={status:'PENDING',reason:'Awaiting eligible T-30 evidence review'};
+ const hasForecasts=Array.isArray(result.playerProjections)&&
+  result.playerProjections.some(p=>Number.isFinite(Number(p.projection))&&Number(p.projection)>0);
+ // AI forecast commentary must not depend on SGP eligibility or book prices.
+ // Only re-review when evidence changes, stage changes or a previous review failed;
+ // avoid unnecessary AI calls on each 15-minute cron tick.
+ const reusable=prior?.aiReview?.status==='REVIEWED'&&!result.changedFromPrior&&
+  prior.stage===plan.stage&&prior.modelVersion===NBA_PREGAME_MODEL_VERSION;
+ if(reusable){
+  result.aiReview=prior.aiReview;
+  result.aiReviewed=true;
+ }else if(hasForecasts&&(result.changedFromPrior||prior?.stage!==plan.stage||
+   prior?.aiReview?.status!=='REVIEWED')){
+  result.aiReview=await review('nba',game,result);
+  result.aiReviewed=result.aiReview?.status==='REVIEWED';
+ }else if(!hasForecasts){
+  result.aiReview={status:'SKIPPED',reason:'No usable player forecasts; inspect ESPN completed-game and roster ingestion'};
+ }else if(eligible&&pregameNeedsAiReview({stage:plan.stage,
+   changedFields:audit.changedFields,priorAiReviewed:false})){
+  result.aiReview=await review('nba',game,result);
+  result.aiReviewed=result.aiReview?.status==='REVIEWED';
+ }else result.aiReview={status:'PENDING',reason:'Awaiting forecast evidence change'};
  await write(result);
  return{gameId:game.gameId,status:result.status,stage:plan.stage,revision:result.revision,
   changed:result.changedFromPrior,modelTiers:(result.sgps||[]).filter(x=>x.status==='MODEL_CANDIDATE').map(x=>x.risk),
