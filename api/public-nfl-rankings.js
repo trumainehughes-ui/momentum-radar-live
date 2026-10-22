@@ -1,6 +1,6 @@
 import {list} from '@vercel/blob';
 import {estimateNflHitChance} from '../lib/nfl-model-hit-chance.js';
-import {buildNflSlateRankings,nflSlateSnapshotPrefix,nflSlateSnapshotPathValid}
+import {buildNflSlateRankings,nflSlateSnapshotPrefix,nflSlateSnapshotPathValid,nflSlateSnapshotGameId}
  from '../lib/nfl-slate-rankings.js';
 
 const cats=['td','passing','rushing','receiving','receptions'];
@@ -29,15 +29,15 @@ export default async function handler(req,res){
  const day=Math.floor(Date.parse(date+'T12:00:00Z')/86400000),today=Math.floor(Date.now()/86400000);
  if(day<today-2||day>today+30)return res.status(400).json({ok:false,error:'date_outside_public_window'});
  try{
-  const prefix=nflSlateSnapshotPrefix(date),found=await list({prefix,limit:100});
-  const files=(found.blobs||[]).filter(x=>nflSlateSnapshotPathValid(x.pathname,date)).slice(0,32);
+  const prefix=nflSlateSnapshotPrefix(date),found=await list({prefix,limit:1000});
+  const latest=new Map();for(const blob of (found.blobs||[]).filter(x=>nflSlateSnapshotPathValid(x.pathname,date)).sort((a,b)=>Date.parse(b.uploadedAt||0)-Date.parse(a.uploadedAt||0))){const id=nflSlateSnapshotGameId(blob.pathname,date);if(id&&!latest.has(id))latest.set(id,blob)}const files=[...latest.values()].slice(0,32);
   const snapshots=[];
   for(let i=0;i<files.length;i+=6){
    const batch=await Promise.allSettled(files.slice(i,i+6).map(async blob=>{
     const r=await fetch(blob.url,{cache:'no-store',signal:AbortSignal.timeout(5000)});
     if(!r.ok)return null;
     const s=await r.json();
-    const id=blob.pathname.slice(prefix.length,-5);
+    const id=nflSlateSnapshotGameId(blob.pathname,date);
     return String(s?.body?.gameId||'')===id?s:null;
    }));
    snapshots.push(...batch.filter(x=>x.status==='fulfilled'&&x.value).map(x=>x.value));
