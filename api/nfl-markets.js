@@ -7,6 +7,7 @@ import { sportsbookCoverageAudit } from '../lib/sportsbook-source-policy.js';
 import { NFL_SGP_TIERS, classifyNflSgpOdds, assessNflSgpTier, fillNflSgpMarketMix, guardFinalNflSgpCards, modelNflSgpStatThreshold, nflLegMatchesGameRoster, selectNflAdaptiveNuke, selectNflAdaptiveTier } from '../lib/ai-mechanics/nfl-sgp-tiers.js';
 import {validNflDvpRank,capNflTierYardTarget,isNflConfirmedGameQb} from '../lib/ai-mechanics/nfl-projection-safety.js';
 import {nflDayAheadRoleEvidence} from '../lib/nfl-day-ahead-roles.js';
+import {nflModelOnlySkillRoleEligible} from '../lib/nfl-model-only-skill-role.js';
 import {summarizeNflNukeEvidence} from '../lib/nfl-nuke-evidence-diagnostics.js';
 import {filterCompleteNflBookSgps} from '../lib/nfl-book-sgp-candidates.js';
 import {evaluateNflBookQuoteReadiness} from '../lib/nfl-book-quote-readiness.js';
@@ -448,12 +449,8 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
   const eligible=x=>{
     const pos=String(x?.position||'').toUpperCase(),role=roleFor(roles,x);
     if(!x||!['QB','RB','WR','TE'].includes(pos))return false;
-    // High usage alone does not establish a starting role. A confirmed or
-    // expected starter designation is required for all skill positions.
-    // Unconfirmed rotation players remain in analytics, not model SGP slips.
-    if(pos!=='QB')return role?.starterVerified===true&&
-      role?.verification?.role?.verified===true&&
-      ['CONFIRMED_STARTER','EXPECTED_STARTER'].includes(String(role?.starterStatus||'').toUpperCase());
+    // Conditional roles are research-only; roster, injury and usage gates apply.
+    if(pos!=='QB')return nflModelOnlySkillRoleEligible(role);
     // Existing "HIGH_USAGE_ROLE" flags are not a confirmed QB starter.
     // Day-ahead model allows ESPN depth-chart QB1 ONLY after game roster,
     // injury eligibility and 2+ game passing samples have been verified.
