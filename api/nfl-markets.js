@@ -470,7 +470,7 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
    const candidateKey=String(id)+'|'+x.cat;
    if(priorKeys.some(previous=>previous.has(candidateKey)&&
       legs.filter(v=>previous.has(String(v.playerID||norm(v.name))+'|'+v.cat)).length>=maxShared))return false;
-   const requested=analyticsLine(x,x.cat,risk,ctx);const threshold=modelNflSgpStatThreshold(x,x.cat,risk,requested);if(threshold===null)return false;const playable=playableThreshold(x,x.cat,threshold);used.add(id+'|'+x.cat);cats.add(x.cat);legs.push({...x,analyticsThreshold:threshold,sportsbookVerified:false,availableAt:[],bookThresholdCaps:{},thresholdCappedToSportsbook:false,modelRequestedThreshold:x.cat==='td'?null:Number(requested),modelCeilingOnly:risk==='Nuke'&&!playable});return true};
+   const requested=analyticsLine(x,x.cat,risk,ctx);const threshold=modelNflSgpStatThreshold(x,x.cat,risk,requested);if(threshold===null)return false;const playable=playableThreshold(x,x.cat,threshold);used.add(id+'|'+x.cat);cats.add(x.cat);legs.push({...x,eventID:String(identity?.gameId||x.eventID||x.gameId||''),analyticsThreshold:threshold,sportsbookVerified:false,availableAt:[],bookThresholdCaps:{},thresholdCappedToSportsbook:false,modelRequestedThreshold:x.cat==='td'?null:Number(requested),modelCeilingOnly:risk==='Nuke'&&!playable});return true};
   const ranked=(cat,pred=()=>true)=>pool.filter(v=>v.cat===cat&&pred(v)&&!used.has((v.playerID||norm(v.name))+'|'+v.cat)).sort((a,b)=>(Number(b.momentumScore)||0)-(Number(a.momentumScore)||0)||(Number(b.perGame)||0)-(Number(a.perGame)||0)||(Number(b.matchupFactor)||1)-(Number(a.matchupFactor)||1));
   const pick=(cat,pred)=>add(ranked(cat,pred)[0]);
   // Yardage must be supported before any anytime TD; never pad Small/Medium with TDs.
