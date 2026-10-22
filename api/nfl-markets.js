@@ -1153,7 +1153,52 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
     playerID:l.playerId,eventID:String(gameId),analyticsThreshold:l.modelTarget}))})):[];
  const completeImported=imported.filter(t=>
   assessNflSgpTier({risk:t.risk,legs:t.legs,requiredLegs:t.requiredLegs}).compositionOk===true);
- const modelCandidates=[...completeImported,...(analyticsSgps||[]).filter(t=>
+ // Model-only research fallback: use vetted, game-scoped player pool when
+ // adaptive sportsbook-oriented tier construction returns empty candidates.
+ const fallbackModelTiers=[];
+ const already=new Set(completeImported.map(t=>t.risk).concat(
+  (analyticsSgps||[]).filter(t=>t.tierAssessment?.compositionOk===true).map(t=>t.risk)));
+ const fallbackRows=['passing','rushing','receiving','receptions','td'].flatMap(cat=>
+  (categories[cat]||[]).map(row=>({...row,cat}))).filter(row=>{
+   const id=String(row.playerID||row.playerId||'');
+   const player=String(row.name||row.player||'').trim();
+   const roster=eligibility.rosterById?.get(id)||eligibility.rosterByName?.get(norm(player));
+   return id&&player&&roster&&safeTeams.has(String(row.team||'').toUpperCase())&&
+    nflCanonTeam(roster.team)===nflCanonTeam(row.team)&&
+    !eligibility.blockedIds.has(id)&&!eligibility.blockedNames.has(norm(player))&&
+    !/\\b(OUT|INACTIVE|IR|DOUBTFUL|QUESTIONABLE|SUSPENDED)\\b/i.test(
+      [row.injuryStatus,row.availability,row.starterStatus].join(' '))&&
+    Number(row.projection??row.perGame)>0;
+  });
+ for(const [risk,count] of [['Small',4],['Medium',5],['Nuke',7]]){
+  if(already.has(risk))continue;
+  const selected=[],used=new Set(),athleteCounts=new Map();
+  const add=cat=>{
+   const rows=fallbackRows.filter(x=>x.cat===cat).sort((a,b)=>
+    Number(b.projection??b.perGame)-Number(a.projection??a.perGame));
+   for(const x of rows){
+    const id=String(x.playerID||x.playerId),key=id+'|'+cat;
+    if(used.has(key)||(athleteCounts.get(id)||0)>=2)continue;
+    const projection=Number(x.projection??x.perGame);
+    const factor=risk==='Small'?.7:risk==='Medium'?.95:1.2;
+    const target=cat==='receptions'?Math.max(1,Math.floor(projection*factor)):
+     cat==='td'?1:Math.max(5,Math.floor(projection*factor/5)*5);
+    selected.push({...x,name:String(x.name||x.player),playerID:id,eventID:String(gameId),
+     analyticsThreshold:target});
+    used.add(key);athleteCounts.set(id,(athleteCounts.get(id)||0)+1);return true;
+   }
+   return false;
+  };
+  if(!['passing','rushing','receiving'].every(add))continue;
+  for(const cat of ['receptions','receiving','rushing','passing','td','receptions','receiving','rushing','td'])
+   if(selected.length<count)add(cat);
+  if(selected.length!==count)continue;
+  const tierAssessment=assessNflSgpTier({risk,legs:selected,requiredLegs:count});
+  if(!tierAssessment.compositionOk)continue;
+  fallbackModelTiers.push({risk,requiredLegs:count,legs:selected,tierAssessment,
+   explanation:{summary:'Roster-vetted matchup projection research; not verified sportsbook lines or odds.'}});
+ }
+ const modelCandidates=[...completeImported,...fallbackModelTiers,...(analyticsSgps||[]).filter(t=>
   !completeImported.some(i=>i.risk===t.risk))];
  response.sgps.Analytics=modelCandidates.filter(c=>
   c.tierAssessment?.compositionOk===true&&Array.isArray(c.legs)&&
