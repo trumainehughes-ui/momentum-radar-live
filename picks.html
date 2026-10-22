@@ -680,15 +680,9 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     keys.add(key);
     return true;
    });
-   if(card.complete!==true||!nflPublicTierMarketMixReady(risk,legs))
-    return '<section class="sgp-slip"><div class="sgp-slip-head"><strong>'+esc(risk)+
-      ' · NOT READY</strong></div><p class="sgp-brief-status">'+esc(legs.length)+
-      ' eligible research selections; this tier requires a complete '+
-      esc(risk==='Nuke'?'5–7':risk==='Medium'?'5':'4')+
-      '-leg, mixed-market lineup. No verified combined sportsbook payout.</p></section>';
+   const researchComplete=card.complete===true&&nflPublicTierMarketMixReady(risk,legs);
    return '<section class="sgp-slip"><div class="sgp-slip-head"><strong>'+
-    esc(risk)+'</strong><span>'+esc(legs.length)+' / '+esc(card.requiredLegs)+
-    ' researched legs'+(card.complete?'':' · Not ready')+'</span></div>'+
+    esc(risk)+' · AI STAT FORECAST</strong><span>'+esc(legs.length)+' researched player projections'+(researchComplete?'':' · partial evidence')+'</span></div>'+
     '<ol class="sgp-leg-list">'+legs.map(l=>{
      const category=String(l.category||'').toLowerCase();
      const name={td:'Anytime touchdown',receiving:'Receiving yards',
@@ -700,7 +694,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
        (l.modelChancePct==null?'TD model not ready':l.modelChancePct+'% modeled TD chance'):
        (Number.isFinite(Number(l.projection))?l.projection+' projected '+(category==='receptions'?'receptions':'yards'):'Projection not ready'))+'</strong></div>'+
       '<div class="sgp-leg-why">Why: '+esc(l.projectionNote||'Based on the latest published matchup data.')+'</div></li>';
-    }).join('')+'</ol></section>';
+    }).join('')+'</ol><p class="sgp-brief-status">'+(researchComplete?'Complete model research tier. ':'Partial model research; remaining selections require verified statistical evidence. ')+'These are AI statistical forecasts, not sportsbook-verified lines or combined odds.</p></section>';
   }).join('')+'</div>';
   // Real sportsbook SGPs are kept separate by book. Server attestation is
   // required for every exact line AND the authenticated combined SGP price.
