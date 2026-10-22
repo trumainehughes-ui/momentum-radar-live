@@ -911,27 +911,31 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    noData('No confirmed-starter '+labels[cat].toLowerCase()+' forecasts',
     'Awaiting verified game-specific starters and enough historical scoring evidence.'))+'</div>'}
  function touchdownAdvantageHtml(d){
-  const players=(d.categories?.td||[]).filter(x=>x.starterVerified===true&&Number(x.gameSample)>=2&&Number.isFinite(Number(x.modelChancePct)))
-   .sort((a,b)=>Number(b.modelChancePct)-Number(a.modelChancePct)).slice(0,10);
-  if(!players.length)return noData('Confirmed-starter TD predictions pending',
-   'No verified starters with sufficient scoring evidence are available yet. The model will update after lineup verification.');
+  const candidates=(d.categories?.td||[]).filter(x=>
+   Number(x.gameSample)>=2&&Number.isFinite(Number(x.modelChancePct))&&
+   !/\\b(OUT|INACTIVE|DOUBTFUL|SUSPENDED|IR)\\b/i.test(String(x.injuryStatus||x.availability||'')));
+  const players=candidates.sort((a,b)=>Number(b.starterVerified===true)-Number(a.starterVerified===true)||
+   Number(b.modelChancePct)-Number(a.modelChancePct)).slice(0,10);
+  if(!players.length)return noData('Touchdown opportunity research pending',
+   'No game-scoped players with enough scoring history and a model touchdown probability are available yet.');
   return '<div class="sgp-slips">'+players.map((x,i)=>{
    const chance=Math.max(0,Math.min(100,Number(x.modelChancePct)));
-   return '<section class="sgp-slip"><div class="sgp-slip-head"><strong>#'+(i+1)+' '+esc(x.name)+'</strong><span>'+esc(x.team||'')+' · '+chance.toFixed(1)+'% model TD chance</span></div>'+
-    '<p class="sgp-brief-status"><b>Anytime touchdown opportunity</b> · Verified game-specific starter · '+esc(Number(x.gameSample))+' completed-game samples</p>'+
-    '<p class="sgp-brief-status"><b>Why this player has an edge:</b> '+esc(publicWhy(x,'td'))+'</p></section>';
+   const starter=x.starterVerified===true?'Confirmed starter':'Starting role unconfirmed';
+   return '<section class="sgp-slip"><div class="sgp-slip-head"><strong>#'+(i+1)+' '+esc(x.name)+'</strong><span>'+esc(x.team||'')+' · '+chance.toFixed(1)+'% estimated TD chance</span></div>'+
+    '<p class="sgp-brief-status"><b>Anytime touchdown opportunity</b> · '+esc(starter)+' · '+esc(Number(x.gameSample))+' completed-game samples</p>'+
+    '<p class="sgp-brief-status"><b>Matchup advantage:</b> '+esc(publicWhy(x,'td'))+'</p></section>';
   }).join('')+'</div>';
  }
  function showOverview(d){
   const score=d.projectedScore,scoreHtml=score?.scores?.length?
    '<div class="bookquote"><b>Projected game score</b><div>'+score.scores.map(x=>esc(x.team)+' '+esc(x.points)).join(' – ')+
    '</div><div class="small">Model estimate, not a final score.</div></div>':'';
-  const td=(d.categories?.td||[]).slice(0,3);
+  const td=(d.categories?.td||[]).filter(x=>Number(x.gameSample)>=2&&Number.isFinite(Number(x.modelChancePct))).sort((a,b)=>Number(b.modelChancePct)-Number(a.modelChancePct)).slice(0,3);
   const game=state.games.find(g=>String(g.gameId)===String(state.selected));
   return gameSpotlightHtml(game,true)+scoreHtml+
    '<div class="section-head" style="margin-top:22px"><div><h3>Anytime Touchdown Radar</h3><p class="sub">Game-specific model scoring probabilities</p></div>'+
    '<button class="soft" type="button" data-view="td">View all TD picks →</button></div>'+
-   '<div class="players-grid">'+(td.length?td.map(x=>renderPlayer(x,'td')).join(''):
+   '<div class="players-grid">'+(td.length?touchdownAdvantageHtml({...d,categories:{...d.categories,td}}):
    noData('Touchdown predictions pending','Waiting for qualified scoring candidates from the current model.'))+'</div>'+
    '<div class="section-head" style="margin-top:25px"><div><h3>Player Props Snapshot</h3><p class="sub">One model leader from each statistical category</p></div>'+
    '<button class="soft" type="button" data-view="props">All player props →</button></div>'+
