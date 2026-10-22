@@ -1,5 +1,5 @@
 import {list} from '@vercel/blob';
-import {buildNflSlateRankings,nflSlateSnapshotPrefix,nflSlateSnapshotPathValid}
+import {buildNflSlateRankings,nflSlateSnapshotPrefix,nflSlateSnapshotPathValid,nflSlateSnapshotGameId}
  from '../lib/nfl-slate-rankings.js';
 
 // Top 10 lists are read-only: use the market snapshots that the scheduled
@@ -7,9 +7,20 @@ import {buildNflSlateRankings,nflSlateSnapshotPrefix,nflSlateSnapshotPathValid}
 // 13 times whenever a visitor changes a ranking tab.
 async function savedGameSnapshots(date){
  const prefix=nflSlateSnapshotPrefix(date);
- const found=await list({prefix,limit:100});
- const matches=(found.blobs||[]).filter(b=>
-  nflSlateSnapshotPathValid(b.pathname,date)).slice(0,32);
+ const blobs=[];let cursor=null;
+ // Immutable collector snapshots can exceed 100 per slate; page boundedly
+ // and keep only the newest valid snapshot for each actual ESPN game.
+ for(let page=0;page<3;page++){
+  const found=await list({prefix,limit:1000,...(cursor?{cursor}:{})});
+  blobs.push(...(found.blobs||[]));
+  cursor=found.cursor||null;if(!cursor)break;
+ }
+ const candidates=blobs.filter(b=>nflSlateSnapshotPathValid(b.pathname,date))
+  .sort((a,b)=>Date.parse(b.uploadedAt||0)-Date.parse(a.uploadedAt||0));
+ const newest=new Map();
+ for(const b of candidates){const id=nflSlateSnapshotGameId(b.pathname,date);
+  if(id&&!newest.has(id))newest.set(id,b)}
+ const matches=[...newest.values()].slice(0,32);
  const snapshots=[];
  for(let i=0;i<matches.length;i+=6){
   const chunk=await Promise.allSettled(matches.slice(i,i+6).map(async b=>{
@@ -17,7 +28,7 @@ async function savedGameSnapshots(date){
     signal:AbortSignal.timeout(4500)});
    if(!r.ok)return null;
    const snap=await r.json();
-   const pathGameId=b.pathname.slice(prefix.length,-5);
+   const pathGameId=nflSlateSnapshotGameId(b.pathname,date);
    if(String(snap?.body?.gameId||'')!==pathGameId)return null;
    return snap;
   }));
