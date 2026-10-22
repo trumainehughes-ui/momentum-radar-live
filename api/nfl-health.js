@@ -53,6 +53,57 @@ export function historySnap(g,m,prior=null){
     projectionAtLock:x.projection??x.perGame??null,
     thresholdType:x.cat==='td'?'AT_LEAST_ONE':'AT_LEAST'}))});
  }
+ // When the markets endpoint cannot produce a complete model tier, generate
+ // a clearly unquoted research combination from its vetted game player pool.
+ // This never claims an offered sportsbook line or combined parlay price.
+ const categories=m.categories||{};
+ const usedTierKeys=[];
+ const plans=[['Small',4],['Medium',5],['Nuke',7]];
+ for(const [risk,count] of plans){
+  if(sgps.some(s=>s.risk===risk))continue;
+  const selected=[],keys=new Set(),athletes=new Map();
+  const options=Object.entries({passing:categories.passing||[],rushing:categories.rushing||[],
+   receiving:categories.receiving||[],receptions:categories.receptions||[]})
+   .flatMap(([cat,rows])=>rows.map(x=>({...x,cat})))
+   .filter(x=>String(x.playerID||x.playerId||'')&&String(x.team||'')&&
+    !/\\b(OUT|INACTIVE|IR|DOUBTFUL|QUESTIONABLE|SUSPENDED)\\b/i.test(
+     [x.injuryStatus,x.availability,x.starterStatus].join(' '))&&
+    Number(x.projection??x.perGame)>0);
+  const choose=(cat)=>{
+   const rows=options.filter(x=>x.cat===cat).sort((a,b)=>{
+    const key=x=>String(x.playerID||x.playerId)+'|'+x.cat;
+    const overlap=x=>usedTierKeys.filter(t=>t.has(key(x))).length;
+    return overlap(a)-overlap(b)||(Number(b.confidence)||0)-(Number(a.confidence)||0)||
+     (Number(b.projection??b.perGame)||0)-(Number(a.projection??a.perGame)||0);
+   });
+   for(const x of rows){
+    const id=String(x.playerID||x.playerId),key=id+'|'+cat;
+    if(keys.has(key)||(athletes.get(id)||0)>=2)continue;
+    const projection=Number(x.projection??x.perGame);
+    const factor=risk==='Small'?.72:risk==='Medium'?.96:1.22;
+    const raw=projection*factor;
+    const threshold=cat==='receptions'?Math.max(1,Math.floor(raw)):
+     Math.max(5,Math.floor(raw/5)*5);
+    if(!Number.isFinite(threshold)||threshold<=0)continue;
+    selected.push({...x,category:cat,analyticsThreshold:threshold,threshold,
+     projectionAtLock:projection,sportsbookVerified:false,marketSelectionStatus:'MODEL_ONLY_NOT_BOOK_VERIFIED'});
+    keys.add(key);athletes.set(id,(athletes.get(id)||0)+1);return true;
+   }
+   return false;
+  };
+  const hasCore=['passing','rushing','receiving'].every(choose);
+  if(!hasCore)continue;
+  for(const cat of ['receptions','receiving','rushing','passing','receptions','receiving','rushing'])
+   if(selected.length<count)choose(cat);
+  if(selected.length!==count)continue;
+  usedTierKeys.push(keys);
+  sgps.push({risk,book:'Data Model',source:'PLUGIN_COMPATIBLE_MODEL_FALLBACK',
+   mode:'MODEL_ONLY',modelOnly:true,publishable:false,combinedBookQuoteVerified:false,
+   actualSgpOdds:null,estimatedOdds:null,requiredLegs:count,legs:selected,
+   tierAssessment:{compositionOk:true,reason:'Complete unquoted predictive model'},
+   explanation:{summary:'AI model research using matchup-adjusted player projections. Targets are not verified sportsbook offers.'},
+   reason:'Predictive research only; check actual offered lines and correlated SGP odds before betting.'});
+ }
  // Individual sportsbook lines never prove a correlated SGP price. Preserve
  // qualified book-specific candidates, but mark them unquoted and non-playable.
  for(const book of ['DraftKings','FanDuel'])for(const s of m.sgps?.[book]||[]){
