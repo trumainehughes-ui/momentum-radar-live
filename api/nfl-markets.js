@@ -3,6 +3,7 @@ import {NFL_SGP_SNAPSHOT_SCHEMA,nflSgpSnapshotKey,nflSgpVersionedSnapshotPath,nf
 import {nflBookOfferEligible} from '../lib/nfl-book-offer-provenance.js';
 import {nflMeaningfulOpportunity} from '../lib/nfl-meaningful-opportunity.js';
 import {publishedNflModelTier} from '../lib/nfl-public-model-sgp-serializer.js';
+import {latestModelSgpIngest} from './model-sgp-ingest.js';
 import { sportsbookCoverageAudit } from '../lib/sportsbook-source-policy.js';
 import { NFL_SGP_TIERS, classifyNflSgpOdds, assessNflSgpTier, fillNflSgpMarketMix, guardFinalNflSgpCards, modelNflSgpStatThreshold, nflLegMatchesGameRoster, selectNflAdaptiveNuke, selectNflAdaptiveTier } from '../lib/ai-mechanics/nfl-sgp-tiers.js';
 import {validNflDvpRank,capNflTierYardTarget,isNflConfirmedGameQb} from '../lib/ai-mechanics/nfl-projection-safety.js';
@@ -1136,7 +1137,25 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
  // Keep complete, game-scoped MODEL_ONLY tiers visible for research.
  // Never represent them as sportsbook-priced or ready-to-bet selections.
  const safeTeams=new Set([String(home||'').toUpperCase(),String(away||'').toUpperCase()]);
- response.sgps.Analytics=(analyticsSgps||[]).filter(c=>
+ // Merge externally ingested plugin model candidates only after this
+ // endpoint's game-specific ESPN roster and injury checks have passed.
+ const external=eligibility.checked===true?
+  await latestModelSgpIngest('nfl',String(gameId)).catch(()=>null):null;
+ const imported=external?.teams?.every(t=>safeTeams.has(String(t).toUpperCase()))?
+  (external.tiers||[]).filter(t=>(t.legs||[]).every(l=>{
+   const id=String(l.playerId||'');
+   const roster=eligibility.rosterById?.get(id);
+   return roster&&nflCanonTeam(roster.team)===nflCanonTeam(l.team)&&
+    !eligibility.blockedIds.has(id)&&
+    !eligibility.blockedNames.has(norm(l.player));
+  })).map(t=>({...t,tierAssessment:{compositionOk:true,status:'UNQUOTED_MODEL'},
+   legs:t.legs.map(l=>({...l,name:l.player,cat:l.category,
+    playerID:l.playerId,eventID:String(gameId),analyticsThreshold:l.modelTarget}))})):[];
+ const completeImported=imported.filter(t=>
+  assessNflSgpTier({risk:t.risk,legs:t.legs,requiredLegs:t.requiredLegs}).compositionOk===true);
+ const modelCandidates=[...completeImported,...(analyticsSgps||[]).filter(t=>
+  !completeImported.some(i=>i.risk===t.risk))];
+ response.sgps.Analytics=modelCandidates.filter(c=>
   c.tierAssessment?.compositionOk===true&&Array.isArray(c.legs)&&
   c.legs.length>0&&eligibility.checked===true&&c.legs.every(l=>
    String(l.eventID||l.gameId||'')===String(gameId)&&
