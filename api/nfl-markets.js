@@ -1167,6 +1167,14 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
    !/\\b(OUT|INACTIVE|IR|DOUBTFUL|QUESTIONABLE|SUSPENDED)\\b/i.test(
     [l.injuryStatus,l.availability,l.starterStatus].join(' '))
   )).map(publishedNflModelTier).filter(Boolean);
+ console.info('[nfl-sgp-publication]',JSON.stringify({
+  gameId,rosterChecked:eligibility.checked===true,
+  sourceTiers:(analyticsSgps||[]).map(t=>({risk:t.risk,legs:t.legs?.length||0,
+   reason:String(t.reason||t.tierAssessment?.reason||'').slice(0,160),
+   pool:t.poolDiagnostics||null})),
+  importedTiers:completeImported.map(t=>t.risk),
+  publishedTiers:response.sgps.Analytics.map(t=>t.risk)
+ }));
  response.sgps.mode=response.sgps.DraftKings.length||response.sgps.FanDuel.length?
   'VERIFIED_BOOK_SGPS_WITH_MODEL_RESEARCH':response.sgps.Analytics.length?'MODEL_ONLY_RESEARCH':'NO_VERIFIED_BOOK_SGPS';
  response.sgps.rule='Analytics tiers are unpriced model research, not sportsbook offers. Only verified bookmaker quotes can be presented as bettable parlays.';
