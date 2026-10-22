@@ -904,10 +904,24 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    '<div class="small"><b>Why AI picked this player:</b> '+esc(publicWhy(x,cat))+'</div>'+
    '<div class="tiny" style="margin-top:12px">Model estimate • not guaranteed</div></div>';
  }
- function playerGroup(d,cat,count=10){const rows=(d.categories?.[cat]||[]).slice(0,count);
+ function playerGroup(d,cat,count=10){
+  const all=(d.categories?.[cat]||[]).filter(x=>x.starterVerified===true&&Number(x.gameSample)>=2);
+  const rows=cat==='td'?all.sort((a,b)=>Number(b.modelChancePct??-1)-Number(a.modelChancePct??-1)).slice(0,count):all.slice(0,count);
   return '<div class="players-grid">'+(rows.length?rows.map(x=>renderPlayer(x,cat)).join(''):
-   noData('No screened '+labels[cat].toLowerCase()+' players',
-    'Player availability or current historical samples have not yet qualified for this game.'))+'</div>'}
+   noData('No confirmed-starter '+labels[cat].toLowerCase()+' forecasts',
+    'Awaiting verified game-specific starters and enough historical scoring evidence.'))+'</div>'}
+ function touchdownAdvantageHtml(d){
+  const players=(d.categories?.td||[]).filter(x=>x.starterVerified===true&&Number(x.gameSample)>=2&&Number.isFinite(Number(x.modelChancePct)))
+   .sort((a,b)=>Number(b.modelChancePct)-Number(a.modelChancePct)).slice(0,10);
+  if(!players.length)return noData('Confirmed-starter TD predictions pending',
+   'No verified starters with sufficient scoring evidence are available yet. The model will update after lineup verification.');
+  return '<div class="sgp-slips">'+players.map((x,i)=>{
+   const chance=Math.max(0,Math.min(100,Number(x.modelChancePct)));
+   return '<section class="sgp-slip"><div class="sgp-slip-head"><strong>#'+(i+1)+' '+esc(x.name)+'</strong><span>'+esc(x.team||'')+' · '+chance.toFixed(1)+'% model TD chance</span></div>'+
+    '<p class="sgp-brief-status"><b>Anytime touchdown opportunity</b> · Verified game-specific starter · '+esc(Number(x.gameSample))+' completed-game samples</p>'+
+    '<p class="sgp-brief-status"><b>Why this player has an edge:</b> '+esc(publicWhy(x,'td'))+'</p></section>';
+  }).join('')+'</div>';
+ }
  function showOverview(d){
   const score=d.projectedScore,scoreHtml=score?.scores?.length?
    '<div class="bookquote"><b>Projected game score</b><div>'+score.scores.map(x=>esc(x.team)+' '+esc(x.points)).join(' – ')+
@@ -1292,7 +1306,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   if(state.detailTab==='overview')body=showOverview(d);
   if(state.detailTab==='td')body='<h3>🎯 Game-specific Anytime TD deep dive</h3>'+
    '<p class="sub">Player rush/target volume, TD history, offensive production and positional defensive TD allowance.</p>'+
-   '<div style="margin-top:17px">'+playerGroup(d,'td')+'</div>';
+   '<div style="margin-top:17px">'+touchdownAdvantageHtml(d)+'</div>';
   if(state.detailTab==='props')body=showProps(d);
   if(state.detailTab==='matchup')body=showMatchup(d);
   if(state.detailTab==='injuries')body=showInjuries(d);
