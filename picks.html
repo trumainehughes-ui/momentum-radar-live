@@ -656,6 +656,40 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   // read-only snapshot for this exact game. Do not rebuild from a separate
   // /api/nfl-markets request, compact model, or browser-local forecast.
   const savedTiers=snapshotFresh&&Array.isArray(d.modelResearchTiers)?d.modelResearchTiers:[];
+  // Player-first forecast board: no sportsbook offer or parlay composition gate.
+  // Use only saved game-scoped, server-screened model evidence shared with owner.
+  const playerForecasts=[];
+  const seenForecasts=new Set();
+  for(const card of savedTiers){
+   if(card?.mode!=='MODEL_RESEARCH'||!Array.isArray(card.legs))continue;
+   for(const leg of card.legs){
+    const category=String(leg.category||'').toLowerCase();
+    const player=String(leg.player||'').trim();
+    const projection=Number(leg.projection);
+    if(!player||!['passing','rushing','receiving','receptions','td'].includes(category))continue;
+    if(category!=='td'&&(!Number.isFinite(projection)||projection<=0))continue;
+    const key=player.toUpperCase()+'|'+category;
+    if(seenForecasts.has(key))continue;
+    seenForecasts.add(key);
+    playerForecasts.push({...leg,category,projection});
+   }
+  }
+  const statNames={passing:'Passing yards',rushing:'Rushing yards',receiving:'Receiving yards',receptions:'Receptions',td:'Touchdown'};
+  const playerEdgeHtml='<section class="sgp-slip" aria-label="AI player matchup advantages"><div class="sgp-slip-head"><strong>AI Player Matchup Advantages</strong></div>'+
+   '<p class="sgp-brief-status">Statistical forecasts from screened matchup research. No sportsbook odds or prop lines required. Starting status must be verified before labeling a player a confirmed starter.</p>'+
+   (playerForecasts.length?'<ol class="sgp-leg-list">'+playerForecasts.sort((a,b)=>{
+    const aPct=Number(a.modelChancePct??a.hitChance??0),bPct=Number(b.modelChancePct??b.hitChance??0);
+    return bPct-aPct||b.projection-a.projection;
+   }).map(leg=>{
+    const target=Number(leg.modelTarget??leg.target);
+    const goal=Number.isFinite(target)&&target>0?target:null;
+    const value=leg.category==='td'?'Touchdown opportunity':
+     (Number.isFinite(leg.projection)?leg.projection.toFixed(1)+' projected':'Projection pending');
+    return '<li class="sgp-leg"><div class="sgp-leg-name">'+esc(leg.player)+' · '+esc(leg.team||'')+'</div>'+
+     '<div class="sgp-leg-selection"><span>'+esc(statNames[leg.category])+'</span><strong>'+esc(value)+'</strong></div>'+
+     (goal!==null?'<div class="sgp-leg-why">AI goal: '+esc(goal)+(leg.category==='receptions'?' receptions':' yards')+'</div>':'')+
+     '<div class="sgp-leg-why">Matchup: '+esc(leg.projectionNote||'Roster-screened offense versus defense projection; individual matchup detail not yet available.')+'</div></li>';
+   }).join('')+'</ol>':'<p class="sgp-brief-status">No eligible game-scoped player projections have been published yet.</p>')+'</section>';
   const syncedHtml='<div class="sgp-slips">'+['Small','Medium','Nuke'].map(risk=>{
    const card=savedTiers.find(c=>c?.risk===risk&&
     c.mode==='MODEL_RESEARCH'&&
@@ -774,7 +808,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     'NOT READY • '+esc(d.status==='LAST_SAVED'?
      'Previously saved predictions are expired. Waiting for current game and injury review.':
      'No fresh game-scoped prediction snapshot is available.'))+'</p>'+
-   finalInactivesWarning+verifiedSections+
+   finalInactivesWarning+playerEdgeHtml+verifiedSections+
    '<h3>NFL model research — not a sportsbook lineup</h3>'+
    '<p class="sgp-brief-status">Model-only research • Player projections are not sportsbook-verified lines or combined odds.</p>'+
    syncedHtml;
