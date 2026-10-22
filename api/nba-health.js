@@ -1,4 +1,5 @@
 import {nbaFindLatestPregameBlob,nbaWritePregameSnapshot} from '../lib/nba-pregame-snapshot-store.js';
+import {latestModelSgpIngest} from './model-sgp-ingest.js';
 import {blobCredentialMode} from '../lib/blob-storage-config.js';
 import {timingSafeEqual} from 'node:crypto';
 import {nbaPrepareEvidence} from '../lib/nba-pregame-model.js';
@@ -42,7 +43,27 @@ export async function nbaReadPregame(id,{strict=false}={}){
   // An immutable URL has no old-overwrite CDN race, unlike the legacy
   // single nba-GAMEID.json key. Owner and public read the same newest file.
   const d=await json(hit.url,6500);
-  return d.gameId===String(id)&&Array.isArray(d?.sgps)?d:null;
+  if(d.gameId!==String(id)||!Array.isArray(d?.sgps))return null;
+  const submitted=await latestModelSgpIngest('nba',String(id)).catch(()=>null);
+  if(!submitted)return d;
+  // Imported model research must match this event's roster projections.
+  // A prediction is not a confirmed starter or sportsbook offer.
+  const eligible=new Map((d.playerProjections||[]).filter(p=>
+   p.starterVerified===true&&
+   !/\\b(OUT|INACTIVE|DOUBTFUL|QUESTIONABLE|SUSPENDED)\\b/i.test(
+    String(p.injuryStatus||p.availability||'')))
+   .map(p=>[String(p.playerId||p.playerID),p]));
+  const verified=(submitted.tiers||[]).filter(t=>(t.legs||[]).length>0&&
+   t.legs.every(l=>{
+    const p=eligible.get(String(l.playerId||''));
+    return p&&String(p.team).toUpperCase()===String(l.team).toUpperCase();
+   })).map(t=>({...t,status:'MODEL_CANDIDATE',publishable:false,
+    starterVerificationStatus:'GAME_SCOPED_STARTERS_CONFIRMED',
+    source:'CHATGPT_PLUGIN_MODEL_RESEARCH',
+    reason:'Model-only research; individual sportsbook offers and combined odds unverified.'}));
+  return {...d,sgps:[...verified,...d.sgps.filter(t=>
+   !verified.some(v=>v.risk===t.risk))]};
+
  }catch(e){if(strict)throw Error('nba_snapshot_read_unavailable');return null}
 }
 export function nbaPregameStage(game,prior,{now=Date.now()}={}){
