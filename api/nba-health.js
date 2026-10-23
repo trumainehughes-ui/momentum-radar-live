@@ -194,6 +194,7 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   }),
   starterEvidence:{checked:eventStarters.checked,
    startersConfirmed:eventStarters.startersConfirmed,
+   reason:eventStarters.reason||'UNKNOWN',teamsChecked:eventStarters.teamsChecked||0,
    teamCounts:eventStarters.starterCounts||{},
    source:eventStarters.source,
    playerIds:(eventStarters.starters||[]).map(x=>x.playerId).sort(),
