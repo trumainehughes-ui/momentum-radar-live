@@ -25,7 +25,10 @@ export default async function handler(req,res){
   const result=nbaBestEdgeParlay(games,{mode:'VERIFIED_MARKET'});
   const snapshotHealth={scheduledGames:games.length,snapshotsAvailable:games.filter(g=>g.snapshotPresent).length,
    gamesWithPlayerProjections:games.filter(g=>g.playerProjections.length>0).length,
-   gamesWithInjuryChecks:games.filter(g=>g.injuryCheckedAt).length};
+   gamesWithInjuryChecks:games.filter(g=>g.injuryCheckedAt).length,
+   gamesWithVerifiedGameTotals:games.filter(g=>Number.isFinite(Number(g.total))&&Number(g.total)>0).length,
+   gamesWithVerifiedSpreads:games.filter(g=>g.spread!==null&&Number.isFinite(Number(g.spread))).length,
+   gamesWithEligibleProps:games.filter(g=>g.playerProjections.some(p=>Array.isArray(p.verifiedMarkets)&&p.verifiedMarkets.length>=2)).length};
   // Model projections are useful research even without a verified bookmaker
   // offer. Never mix them into publishable sportsbook legs.
   const research=games.flatMap(g=>(g.playerProjections||[])
