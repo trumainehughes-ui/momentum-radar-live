@@ -21,8 +21,8 @@ export default async function handler(req,res){
     playerProjections:snapshot?.playerProjections||[],
     injuryCheckedAt:snapshot?.injuryCheckedAt||null,gameChanges:snapshot?.gameChanges||[]};
   }));
-  const result=nbaBestEdgeParlay(games,{mode:'MODEL_TARGET'});
+  const result=nbaBestEdgeParlay(games,{mode:'VERIFIED_MARKET'});
   return res.status(200).json({...result,date,checkedAt:new Date().toISOString(),
-   gamesInspected:games.length,disclaimer:'AI model targets are not sportsbook lines or bookable wagers. ESPN odds may be absent; no lines are invented.'});
+   gamesInspected:games.length,disclaimer:'Only confirmed starters with two fresh, independently sourced active sportsbook lines qualify. No offers are invented; missing sportsbook data blocks selections.'});
  }catch(e){return res.status(503).json({status:'SOURCE_UNAVAILABLE',legs:[],reason:String(e.message||'SOURCE_UNAVAILABLE')})}
 }
