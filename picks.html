@@ -1335,7 +1335,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     '<span class="sub">Games with injury checks: '+esc(health.gamesWithInjuryChecks||0)+' / '+esc(health.scheduledGames)+'</span>'+ 
     '<span class="sub">Starter evidence checked: '+esc(health.gamesWithStarterEvidenceChecked||0)+' / '+esc(health.scheduledGames)+'</span>'+ 
     '<span class="sub">Games with confirmed starters: '+esc(health.gamesWithConfirmedStarters||0)+' / '+esc(health.scheduledGames)+'</span>'+
-    '<span class="sub">Verified game totals / spreads: '+esc(health.gamesWithVerifiedGameTotals||0)+' / '+esc(health.gamesWithVerifiedSpreads||0)+'</span>'+
+    '<span class="sub">ESPN-listed game totals / spreads (not sportsbook-verified): '+esc(health.gamesWithEspnListedGameTotals||0)+' / '+esc(health.gamesWithEspnListedSpreads||0)+'</span>'+
     '<span class="sub">Games with multiple sourced player offers: '+esc(health.gamesWithEligibleProps||0)+'</span>'+
     '<span class="sub">AI-reviewed matchups: '+esc(health.gamesAiReviewed||0)+' / '+esc(health.scheduledGames)+'</span>'+
     (Number(health.gamesAiUnavailable)>0?'<span class="sub">AI review unavailable: '+esc(health.gamesAiUnavailable)+' games</span>':'')+'</div>':'';
