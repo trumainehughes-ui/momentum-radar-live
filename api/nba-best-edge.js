@@ -25,7 +25,7 @@ export default async function handler(req,res){
    return {gameId:String(e.id),status:'SCHEDULED',kickoff:e.date,
     total:odds.overUnder??null,spread:spread??null,
     playerProjections:snapshot?.playerProjections||[],
-    injuryCheckedAt:snapshot?.injuryCheckedAt||null,gameChanges:snapshot?.gameChanges||[],snapshotPresent:Boolean(snapshot),snapshotCheckedAt:snapshot?.checkedAt||null,aiReviewStatus:reviewConflict?'IDENTITY_CONFLICT':snapshot?.aiReview?.status||'NOT_RUN',aiReviewCheckedAt:snapshot?.aiReview?.checkedAt||null,
+    injuryCheckedAt:snapshot?.injuryCheckedAt||null,gameChanges:snapshot?.gameChanges||[],snapshotPresent:Boolean(snapshot),snapshotCheckedAt:snapshot?.checkedAt||null,snapshotModelVersion:snapshot?.modelVersion||null,aiReviewStatus:reviewConflict?'IDENTITY_CONFLICT':snapshot?.aiReview?.status||'NOT_RUN',aiReviewCheckedAt:snapshot?.aiReview?.checkedAt||null,
     aiReviewSummary:snapshot?.aiReview?.status==='REVIEWED'&&!reviewConflict?String(snapshot.aiReview.summary||'').slice(0,1400):null,
     starterEvidence:snapshot?.starterEvidence||null,
     homeTeam:c.competitors?.find(x=>x.homeAway==='home')?.team?.displayName||null,
@@ -34,6 +34,7 @@ export default async function handler(req,res){
   const result=nbaBestEdgeParlay(games,{mode:'VERIFIED_MARKET'});
   const snapshotHealth={scheduledGames:games.length,snapshotsAvailable:games.filter(g=>g.snapshotPresent).length,
    gamesWithPlayerProjections:games.filter(g=>g.playerProjections.length>0).length,
+   snapshotModelVersions:[...new Set(games.map(g=>g.snapshotModelVersion).filter(Boolean))].slice(0,6),
    gamesWithInjuryChecks:games.filter(g=>g.injuryCheckedAt).length,
    gamesWithEspnListedGameTotals:games.filter(g=>Number.isFinite(Number(g.total))&&Number(g.total)>0).length,
    gamesWithEspnListedSpreads:games.filter(g=>g.spread!==null&&Number.isFinite(Number(g.spread))).length,
