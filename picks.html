@@ -1291,7 +1291,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   target.innerHTML='<p class="sub">Scanning competitive NBA matchups and verified historical samples…</p>';
   try{
    const report=await getJson('/api/nba-best-edge?'+new URLSearchParams({date}));
-   if(state.league!=='nba'||state.nbaTab!=='edge-hunter'||state.date!==date)return;
+   if(state.league!=='nba'||!(state.nbaTab==='edge-hunter'||['points','rebounds','assists','threes','pra'].includes(state.nbaTab))||state.date!==date)return;
    if(['points','rebounds','assists','threes','pra'].includes(state.nbaTab)){
     const cat=state.nbaTab;
     const projections=(Array.isArray(report.research)?report.research:[])
