@@ -52,6 +52,8 @@ export default async function handler(req,res){
     name:p.name||p.playerName||null,team:p.team||null,category:p.category,
     projection:Number(p.projection),baseProjection:Number(p.baseProjection)||null,matchupAdjustment:p.matchupAdjustment||null,defenseVsPosition:p.defenseVsPosition||null,sampleGames:p.sampleGames||0,
     sampleSource:p.sampleSource||null,historicalSeason:p.historicalSeason||null,starterVerified:p.starterVerified===true,
+    matchupLiftPercent:Number(p.baseProjection)>0?
+     Math.round((Number(p.projection)/Number(p.baseProjection)-1)*1000)/10:null,
     marketVerified:false,modelOnly:true,
     basis:p.basis||'Historical box-score projection, not a sportsbook line'})))
    .filter(p=>p.name).sort((a,b)=>{
