@@ -14,7 +14,7 @@ import {selectedShardGames,collectorAuditReport,writeCollectorAudit}
  from '../lib/pregame-collector-shards.js';
 const PREFIX='momentum-pregame/v1/nba-';
 const MS=60_000,LOOKAHEAD=36*60*MS;
-export const NBA_PREGAME_MODEL_VERSION='v8-expanded-prior-season-sample-rebuild-evidence-v2';
+export const NBA_PREGAME_MODEL_VERSION='v9-event-roster-field-diagnostics-and-ai-identity-guard';
 const path=id=>PREFIX+id+'.json';
 const DAY='America/New_York';
 const dateET=(when=new Date())=>{
