@@ -1332,7 +1332,9 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     '<span class="sub">Games with player forecasts: '+esc(health.gamesWithPlayerProjections||0)+' / '+esc(health.scheduledGames)+'</span>'+
     '<span class="sub">Games with injury checks: '+esc(health.gamesWithInjuryChecks||0)+' / '+esc(health.scheduledGames)+'</span>'+
     '<span class="sub">Verified game totals / spreads: '+esc(health.gamesWithVerifiedGameTotals||0)+' / '+esc(health.gamesWithVerifiedSpreads||0)+'</span>'+
-    '<span class="sub">Games with multiple sourced player offers: '+esc(health.gamesWithEligibleProps||0)+'</span></div>':'';
+    '<span class="sub">Games with multiple sourced player offers: '+esc(health.gamesWithEligibleProps||0)+'</span>'+
+    '<span class="sub">AI-reviewed matchups: '+esc(health.gamesAiReviewed||0)+' / '+esc(health.scheduledGames)+'</span>'+
+    (Number(health.gamesAiUnavailable)>0?'<span class="sub">AI review unavailable: '+esc(health.gamesAiUnavailable)+' games</span>':'')+'</div>':'';
    const checks=report.diagnostics||{};
    const blockers=[['Starter or availability',checks.starterRejected],['Historical game sample',checks.historyRejected],['Live sportsbook markets',checks.marketRejected],['Projection versus line',checks.projectionRejected],['7-of-10 hit rate',checks.hitRateRejected],['Injury recheck',checks.injuryRejected],['Leg pairing',checks.conflictRejected]]
     .filter(x=>Number(x[1])>0).sort((a,b)=>b[1]-a[1]);
