@@ -1148,6 +1148,30 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   }
   return out.slice(0,80);
  }
+ function nbaPlayerEdgeBoard(d,category){
+  const rows=nbaResearchCandidates(d,category).filter(p=>Number(p.sampleGames)>=2)
+   .map(p=>{
+    const baseline=Number(p.baseProjection),projection=Number(p.projection);
+    const factor=baseline>0?projection/baseline:1;
+    return {...p,edgeFactor:factor,edgeDelta:projection-baseline};
+   }).sort((a,b)=>b.edgeFactor-a.edgeFactor||b.sampleGames-a.sampleGames).slice(0,15);
+  if(!rows.length)return noData('NBA player matchup research pending',
+   'Waiting for roster-screened completed-game samples for this matchup.');
+  return '<section class="nba-forecast"><h3>AI Player Matchup Advantages</h3>'+
+   '<p class="sub">Ranked by the statistical matchup adjustment, not betting odds or player popularity. Starter confirmation is shown separately.</p>'+
+   '<div class="nba-picks-list">'+rows.map((p,i)=>{
+    const baseline=Number(p.baseProjection),projection=Number(p.projection);
+    const pct=baseline>0?(100*(projection/baseline-1)):0;
+    const adjustment=p.matchupAdjustment||{};
+    const evidence=adjustment.status==='INSUFFICIENT_SAMPLES'?'Limited defensive matchup evidence':
+     'Opponent defense adjustment '+(pct>=0?'+':'')+pct.toFixed(1)+'%';
+    const starter=p.starterVerified===true?'Confirmed starter':'Starter not confirmed';
+    return '<div class="nba-pick"><div class="nba-pick-player">#'+(i+1)+' '+esc(p.name)+' · '+esc(p.team||'')+'</div>'+
+     '<div class="nba-pick-line"><span>'+esc(nbaNames[p.category])+'</span><strong>'+esc(projection.toFixed(1))+' projected</strong></div>'+
+     '<small>Historical average: '+esc(Number.isFinite(baseline)?baseline.toFixed(1):'—')+
+     ' · '+esc(evidence)+' · '+esc(starter)+' · '+esc(p.sampleGames)+' games</small></div>';
+   }).join('')+'</div></section>';
+ }
  function nbaResearchRow(p){
   const n=Number(p.projection),label=n.toFixed(1);
   return '<div class="nba-pick"><div class="nba-pick-player">'+esc(p.name)+
@@ -1207,7 +1231,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
      noData('Box score is not ready','Try again as game results are recorded.'));
   }
   if(!legs.length&&research.length){
-   return '<h3>NBA player projections</h3>'+
+   return nbaPlayerEdgeBoard(d)+'<h3>NBA player projections</h3>'+
     '<p class="sub">Research projections only. Starter status and sportsbook markets are not confirmed.</p>'+
     '<div class="nba-picks-list">'+research.slice(0,24).map(nbaResearchRow).join('')+'</div>';
   }
@@ -1218,7 +1242,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   }
   const label=nbaReadiness.sampleSource==='PRIOR_SEASON'?
    'Last-season baseline · Current rotations may differ':'Model research · Exact sportsbook markets require confirmation';
-  return '<h3>NBA player selections</h3><p class="sub">'+esc(label)+'</p>'+
+  return nbaPlayerEdgeBoard(d)+'<h3>NBA player selections</h3><p class="sub">'+esc(label)+'</p>'+
    '<div class="nba-picks-list">'+legs.slice(0,18).map(nbaLegRow).join('')+'</div>';
  }
  function nbaSgpBody(d){
@@ -1248,7 +1272,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     '<div class="nba-picks-list" style="padding:12px">'+c.legs.map(nbaLegRow).join('')+
     '</div></section>';
   }).join('');
-  return forecastHtml+'<h3>NBA Same Game Parlays</h3>'+
+  return nbaPlayerEdgeBoard(d)+forecastHtml+'<h3>NBA Same Game Parlays</h3>'+
    '<p class="sub">Player · NBA stat · target. These are model candidates, not sportsbook-issued SGPs.</p>'+
    '<div class="sgp-slips">'+html+'</div>'+
    '<p class="nba-status-line">Combined DraftKings/FanDuel SGP prices are not confirmed. Confirm exact legs and active lineups before betting.</p>';
@@ -1262,7 +1286,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   else if(nbaNames[state.nbaTab]){
    const xs=nbaCandidates(d,state.nbaTab);
    const research=nbaResearchCandidates(d,state.nbaTab);
-   body='<h3>'+esc(nbaNames[state.nbaTab])+'</h3>'+
+   body=nbaPlayerEdgeBoard(d,state.nbaTab)+'<h3>'+esc(nbaNames[state.nbaTab])+'</h3>'+
     (xs.length?'<div class="nba-picks-list">'+xs.map(nbaLegRow).join('')+'</div>':
      research.length?'<p class="sub">Historical model estimates only; starter and sportsbook verification pending.</p>'+
       '<div class="nba-picks-list">'+research.map(nbaResearchRow).join('')+'</div>':
