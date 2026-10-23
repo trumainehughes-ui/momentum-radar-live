@@ -37,7 +37,8 @@ export default async function handler(req,res){
    gamesAiUnavailable:games.filter(g=>g.aiReviewStatus==='UNAVAILABLE').length,
    gamesWithConfirmedStarters:games.filter(g=>g.starterEvidence?.startersConfirmed===true).length,
    gamesWithStarterEvidenceChecked:games.filter(g=>g.starterEvidence?.checked===true).length,
-   starterEvidenceReasons:[...new Set(games.map(g=>g.starterEvidence?.reason||'UNAVAILABLE'))].slice(0,6)};
+   starterEvidenceReasons:[...new Set(games.map(g=>g.starterEvidence?.reason||'UNAVAILABLE'))].slice(0,6),
+   starterEvidenceTeamReasons:games.flatMap(g=>Object.entries(g.starterEvidence?.teamReasons||{}).map(([team,reason])=>({gameId:g.gameId,team,reason}))).slice(0,24)};
   const aiMatchupReviews=games.filter(g=>g.aiReviewStatus==='REVIEWED'&&g.aiReviewSummary)
    .map(g=>({gameId:g.gameId,homeTeam:g.homeTeam,awayTeam:g.awayTeam,
     checkedAt:g.aiReviewCheckedAt,summary:g.aiReviewSummary,advisoryOnly:true}));
