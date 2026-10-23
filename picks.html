@@ -1295,12 +1295,19 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    const games=Array.isArray(report.qualifyingGames)?report.qualifyingGames:[];
    const rows=Array.isArray(report.legs)?report.legs:[];
    target.innerHTML='<h3>🎯 Edge Hunter · NBA 4-Leg Research</h3>'+
-    '<p class="sub">Two high-total games · spread under 6 · minimum 7/10 historical hits · two non-conflicting players per game. AI targets are not sportsbook offers.</p>'+
+    '<p class="sub">Two high-total games · spread under 6 · minimum 7/10 historical hits · two non-conflicting players per game. Only confirmed starters with two independently verified live sportsbook lines qualify.</p>'+
     (games.length?'<p class="sub">Qualified game IDs: '+games.map(g=>esc(g.gameId)+' (total '+esc(g.total)+', spread '+esc(g.spread)+')').join(' · ')+'</p>':'')+
     (rows.length===4?'<div class="nba-picks-list">'+rows.map(p=>'<div class="nba-pick-line"><strong>'+esc(p.name)+' · '+esc(nbaNames[p.category]||p.category)+' over '+esc(p.target)+'</strong><span>Projected '+esc(p.projection)+' · Edge +'+esc(p.edgePct)+'% · Last 10: '+esc(p.hitsLastTen)+'/10'+(p.starterVerified?' · Starter verified':' · Starter unconfirmed')+'</span></div>').join('')+'</div>':
      noData('No qualifying Edge Hunter parlay',esc(report.reason||'No eligible four-leg selection is supported by current data.')))+
-    '<p class="nba-status-line">Model research only. No combined odds or sportsbook availability verified.</p>';
-  }catch{target.innerHTML=noData('Edge Hunter source unavailable','The game and projection screening endpoint could not be reached.');}
+    '<p class="nba-status-line">Individual markets are not a verified combined parlay quote.</p>';
+  }catch(err){
+   const msg=String(err?.message||'').slice(0,180);
+   target.innerHTML='<h3>🎯 Edge Hunter · NBA 4-Leg Research</h3>'+noData(
+    'No verified four-leg parlay available',
+    'The screening service is not returning verified results right now. Other NBA matchups remain available below. No picks or odds will be invented.'+
+    (msg?' Technical detail: '+esc(msg):''))+
+    '<p class="nba-status-line">Verification pending · confirmed starters, current injury checks and live lines from at least two sportsbooks required.</p>';
+  }
  }
  function renderNbaGame(d){
   const views=nbaViews,tabs='<div class="market-tabs details-tabs">'+
