@@ -1325,6 +1325,13 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     GAME_SCREENING_SOURCE_UNAVAILABLE:'The live screening source is temporarily unavailable. No unverified picks will be shown.'
    };
    const message=reasonText[report.reason]||'No four-leg parlay currently passes every verification check.';
+   const checks=report.diagnostics||{};
+   const blockers=[['Starter or availability',checks.starterRejected],['Historical game sample',checks.historyRejected],['Live sportsbook markets',checks.marketRejected],['Projection versus line',checks.projectionRejected],['7-of-10 hit rate',checks.hitRateRejected],['Injury recheck',checks.injuryRejected],['Leg pairing',checks.conflictRejected]]
+    .filter(x=>Number(x[1])>0).sort((a,b)=>b[1]-a[1]);
+   const screeningSummary=!qualified&&blockers.length?'<div style="border-top:1px solid #294657;padding-top:10px;display:grid;gap:6px;min-width:0">'+
+    '<strong>Why selections are pending</strong>'+blockers.slice(0,4).map(x=>'<div class="sub" style="display:flex;justify-content:space-between;gap:10px"><span>'+esc(x[0])+'</span><strong>'+esc(x[1])+'</strong></div>').join('')+
+    '<small class="sub">Counts are screening rejections, not sportsbook odds or predicted misses.</small></div>':'';
+
    target.innerHTML='<div style="display:grid;gap:12px;min-width:0;max-width:100%;overflow-wrap:anywhere">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'+
     '<strong style="font-size:1.08rem">🎯 Edge Hunter</strong>'+
@@ -1340,6 +1347,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
        '<p class="sub" style="margin:4px 0 0;font-size:.8rem">'+esc((p.sportsbooks||[]).map(b=>b.book+' '+b.line).join(' · '))+'</p></div>').join('')+'</section>').join('')+'</div>':
      '<p class="sub" style="margin:0;line-height:1.55">'+esc(message)+'</p>'+
      '<p class="sub" style="margin:0;font-size:.87rem">Model projections are research, not verified sportsbook wagers.</p>')+
+    screeningSummary+
     (research.length?'<div style="border-top:1px solid #294657;padding-top:12px;display:grid;gap:10px;min-width:0">'+
      '<strong>NBA statistical forecasts · model research</strong>'+
      research.slice(0,12).map(p=>'<div style="border:1px solid #294657;border-radius:12px;padding:12px;min-width:0;overflow-wrap:anywhere">'+
