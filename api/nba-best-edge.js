@@ -18,7 +18,8 @@ export default async function handler(req,res){
    const spread=odds.spread??odds.details?.match(/[-+]\d+(?:\.\d+)?/)?.[0];
    return {gameId:String(e.id),status:'SCHEDULED',kickoff:e.date,
     total:odds.overUnder??null,spread:spread??null,
-    playerProjections:snapshot?.playerProjections||[]};
+    playerProjections:snapshot?.playerProjections||[],
+    injuryCheckedAt:snapshot?.injuryCheckedAt||null,gameChanges:snapshot?.gameChanges||[]};
   }));
   const result=nbaBestEdgeParlay(games,{mode:'MODEL_TARGET'});
   return res.status(200).json({...result,date,checkedAt:new Date().toISOString(),
