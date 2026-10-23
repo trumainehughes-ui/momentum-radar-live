@@ -1301,6 +1301,23 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
      noData('No qualifying Edge Hunter parlay',esc(report.reason||'No eligible four-leg selection is supported by current data.')))+
     '<p class="nba-status-line">Individual markets are not a verified combined parlay quote.</p>';
   }catch(err){
+   // Schedule remains useful even if the separate Edge Hunter research API fails.
+   // Never substitute schedule data for a verified player prop or bookmaker quote.
+   try{
+    const slate=await getJson('/api/nba-slate?'+new URLSearchParams({date}));
+    if(state.league!=='nba'||state.nbaTab!=='edge-hunter'||state.date!==date)return;
+    const games=Array.isArray(slate.games)?slate.games.filter(g=>g.status==='SCHEDULED'):[];
+    target.innerHTML='<h3>🎯 Edge Hunter · NBA Slate</h3>'+noData(
+     'Verified four-leg parlay pending',
+     'The slate is available, but the separate player and sportsbook screening feed has not passed verification. No unverified selections will be published.')+
+     '<p class="sub">'+games.length+' scheduled games · '+esc(date)+'</p>'+
+     '<div class="nba-picks-list">'+games.slice(0,15).map(g=>
+      '<div class="nba-pick-line"><strong>'+esc(g.away?.name||g.away?.abbr||'Away')+
+      ' at '+esc(g.home?.name||g.home?.abbr||'Home')+'</strong><span>Tipoff: '+
+      esc(g.kickoff?new Date(g.kickoff).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'Pending')+
+      ' · Prop verification pending</span></div>').join('')+'</div>';
+    return;
+   }catch{}
    const msg=String(err?.message||'').slice(0,180);
    target.innerHTML='<h3>🎯 Edge Hunter · NBA 4-Leg Research</h3>'+noData(
     'No verified four-leg parlay available',
