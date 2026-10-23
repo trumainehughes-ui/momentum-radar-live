@@ -1270,11 +1270,21 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    const categories=new Set(legs.map(l=>String(l.category||'')).filter(Boolean));
    const compositionReady=legs.length>=min&&legs.length<=max&&
     markets.size===legs.length&&categories.size>=3;
-   if(!c||c.status!=='MODEL_CANDIDATE'||!compositionReady)
+   if(!c||c.status!=='MODEL_CANDIDATE'||!compositionReady){
+    const heldRows=legs.filter(l=>l?.name&&nbaNames[l.category]).map(l=>{
+     const projection=Number(l.projection);
+     return '<div class="nba-pick"><div class="nba-pick-player">'+esc(l.name)+'</div>'+
+      '<div class="nba-pick-line"><span>'+esc(nbaNames[l.category])+'</span><strong>'+
+      (Number.isFinite(projection)&&projection>0?esc(projection.toFixed(1))+' projected':'Projection pending')+
+      '</strong></div><small>Model research only · Starter and DraftKings/FanDuel market unverified</small></div>';
+    }).join('');
     return '<section class="sgp-slip nba-sgp-card"><div class="sgp-slip-head"><strong>'+
-     name+'</strong><span>'+(legs.length?'NOT READY':'Awaiting selections')+'</span></div>'+
+     name+'</strong><span>'+(legs.length?'RESEARCH · NOT BETTABLE':'Awaiting selections')+'</span></div>'+
      '<p class="sub" style="padding:14px">'+esc(c?.reason||d.pregameReadiness?.reason||
-      'No game-eligible model legs yet.')+'</p></section>';
+      'No game-eligible model legs yet.')+'</p>'+
+     (heldRows?'<div class="nba-picks-list" style="padding:12px">'+heldRows+'</div>':'')+
+     '</section>';
+   }
    return '<section class="sgp-slip nba-sgp-card"><div class="sgp-slip-head"><strong>'+
     name+'</strong><span>'+esc(c.legs.length)+' legs</span></div>'+
     '<div class="nba-picks-list" style="padding:12px">'+c.legs.map(nbaLegRow).join('')+
