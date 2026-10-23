@@ -1294,6 +1294,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    if(state.league!=='nba'||state.nbaTab!=='edge-hunter'||state.date!==date)return;
    const games=Array.isArray(report.qualifyingGames)?report.qualifyingGames:[];
    const rows=Array.isArray(report.legs)?report.legs:[];
+   const research=Array.isArray(report.research)?report.research:[];
    const qualified=rows.length===4&&report.status==='RESEARCH_CANDIDATE';
    const reasonText={
     INSUFFICIENT_70_PERCENT_NON_CONFLICTING_PROPS:'Not enough eligible player props passed the recent-performance, starter, and live sportsbook checks.',
@@ -1313,7 +1314,15 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
       '<strong>'+esc(p.name)+' · '+esc(nbaNames[p.category]||p.category)+' over '+esc(p.target)+'</strong>'+
       '<p class="sub" style="margin:6px 0 0">Projection '+esc(p.projection)+' · Edge +'+esc(p.edgePct)+'% · Last 10: '+esc(p.hitsLastTen)+'/10</p></div>').join('')+'</div>':
      '<p class="sub" style="margin:0;line-height:1.55">'+esc(message)+'</p>'+
-     '<p class="sub" style="margin:0;font-size:.87rem">We will not substitute model targets for active sportsbook lines. Browse the game cards below while verification is pending.</p>')+
+     '<p class="sub" style="margin:0;font-size:.87rem">Research projections are not sportsbook lines or verified picks.</p>')+
+    (research.length?'<div style="border-top:1px solid #294657;padding-top:12px;display:grid;gap:10px;min-width:0">'+
+     '<strong>NBA statistical forecasts · model research</strong>'+
+     research.slice(0,12).map(p=>'<div style="border:1px solid #294657;border-radius:12px;padding:12px;min-width:0;overflow-wrap:anywhere">'+
+      '<strong>'+esc(p.name)+' · '+esc(p.team||'NBA')+'</strong>'+
+      '<div style="margin-top:5px">'+esc(nbaNames[p.category]||p.category)+': <strong>'+esc(p.projection)+'</strong> projected</div>'+
+      '<p class="sub" style="margin:5px 0 0;font-size:.84rem">'+esc(p.sampleGames)+' historical games · '+
+      (p.starterVerified?'Starter verified':'Starter not confirmed')+' · No verified sportsbook line</p></div>').join('')+'</div>':
+     '<p class="sub" style="margin:0;font-size:.86rem">No current model forecasts have been collected for this slate. The pregame data collector must populate historical player samples first.</p>')+
     '</div>';
   }catch(err){
    // Schedule remains useful even if the separate Edge Hunter research API fails.
