@@ -202,6 +202,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   <button type="button" class="nfl-module-tab" data-nba-module="threes" aria-pressed="false">3-Pointers</button>
   <button type="button" class="nfl-module-tab" data-nba-module="pra" aria-pressed="false">PRA</button>
   <button type="button" class="nfl-module-tab" data-nba-module="sgps" aria-pressed="false">🔗 Same Game Parlays</button>
+  <button type="button" class="nfl-module-tab" data-nba-module="edge-hunter" aria-pressed="false">🎯 Edge Hunter</button>
   <button type="button" class="nfl-module-tab" data-nba-module="injuries" aria-pressed="false">Injuries</button>
  </nav>
  <p id="nba-module-message" class="nfl-module-message">Select any NBA game below to see player props, injuries and available Small / Medium / Nuke model picks.</p>
@@ -1136,7 +1137,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   threes:'Made 3-pointers',pra:'Points + Rebounds + Assists'};
  const nbaViews=[['overview','Overview'],['points','Points'],['rebounds','Rebounds'],
   ['assists','Assists'],['threes','3-Pointers'],['pra','PRA'],
-  ['sgps','SGPs'],['injuries','Injuries']];
+  ['sgps','SGPs'],['edge-hunter','🎯 Edge Hunter'],['injuries','Injuries']];
  function nbaResearchCandidates(d,cat){
   const seen=new Set(),out=[];
   for(const p of Array.isArray(d?.playerProjections)?d.playerProjections:[]){
@@ -1281,12 +1282,30 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    '<div class="sgp-slips">'+html+'</div>'+
    '<p class="nba-status-line">Combined DraftKings/FanDuel SGP prices are not confirmed. Confirm exact legs and active lineups before betting.</p>';
  }
+ async function loadEdgeHunter(date){
+  const target=document.getElementById('edge-hunter-board');
+  if(!target)return;
+  target.innerHTML='<p class="sub">Scanning competitive NBA matchups and verified historical samples…</p>';
+  try{
+   const report=await getJson('/api/nba-best-edge?'+new URLSearchParams({date}));
+   if(state.league!=='nba'||state.nbaTab!=='edge-hunter'||state.date!==date)return;
+   const games=Array.isArray(report.qualifyingGames)?report.qualifyingGames:[];
+   const rows=Array.isArray(report.legs)?report.legs:[];
+   target.innerHTML='<h3>🎯 Edge Hunter · NBA 4-Leg Research</h3>'+
+    '<p class="sub">Two high-total games · spread under 6 · minimum 7/10 historical hits · two non-conflicting players per game. AI targets are not sportsbook offers.</p>'+
+    (games.length?'<p class="sub">Qualified game IDs: '+games.map(g=>esc(g.gameId)+' (total '+esc(g.total)+', spread '+esc(g.spread)+')').join(' · ')+'</p>':'')+
+    (rows.length===4?'<div class="nba-picks-list">'+rows.map(p=>'<div class="nba-pick-line"><strong>'+esc(p.name)+' · '+esc(nbaNames[p.category]||p.category)+' over '+esc(p.target)+'</strong><span>Projected '+esc(p.projection)+' · Edge +'+esc(p.edgePct)+'% · Last 10: '+esc(p.hitsLastTen)+'/10'+(p.starterVerified?' · Starter verified':' · Starter unconfirmed')+'</span></div>').join('')+'</div>':
+     noData('No qualifying Edge Hunter parlay',esc(report.reason||'No eligible four-leg selection is supported by current data.')))+
+    '<p class="nba-status-line">Model research only. No combined odds or sportsbook availability verified.</p>';
+  }catch{target.innerHTML=noData('Edge Hunter source unavailable','The game and projection screening endpoint could not be reached.');}
+ }
  function renderNbaGame(d){
   const views=nbaViews,tabs='<div class="market-tabs details-tabs">'+
    views.map(([key,label])=>'<button type="button" class="chip '+
     (state.nbaTab===key?'active':'')+'" data-nba-view="'+key+'">'+esc(label)+'</button>').join('')+'</div>';
   let body='';
-  if(state.nbaTab==='overview')body=nbaModelBody(d);
+  if(state.nbaTab==='edge-hunter')body='<section id="edge-hunter-board" class="nba-forecast"><h3>🎯 Edge Hunter</h3><p class="sub">Loading slate-wide NBA parlay research…</p></section>';
+  else if(state.nbaTab==='overview')body=nbaModelBody(d);
   else if(nbaNames[state.nbaTab]){
    const xs=nbaCandidates(d,state.nbaTab);
    const research=nbaResearchCandidates(d,state.nbaTab);
@@ -1311,6 +1330,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   const nbaSourceNote=fdHealth?.requiresMachineReadableMarketFeed===true?
    '<div class="panel" style="margin:12px 0;padding:12px 16px"><strong>NBA sportsbook source check</strong><p class="sub">FanDuel Colorado prices have not been verified by this collector. Model projections are not sportsbook quotes.</p></div>':'';
   $('#match-content').innerHTML=tabs+nbaSourceNote+'<div class="detail-body">'+body+'</div>';
+  if(state.nbaTab==='edge-hunter')loadEdgeHunter(state.date);
  }
  async function loadNbaPublicBook(date,gameId){
   const key=String(gameId);
