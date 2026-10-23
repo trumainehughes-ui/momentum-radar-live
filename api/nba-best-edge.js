@@ -23,11 +23,11 @@ export default async function handler(req,res){
     injuryCheckedAt:snapshot?.injuryCheckedAt||null,gameChanges:snapshot?.gameChanges||[]};
   }));
   const result=nbaBestEdgeParlay(games,{mode:'VERIFIED_MARKET'});
-  return res.status(200).json({...result,date,checkedAt:new Date().toISOString(),
+  return res.status(200).json({ok:true,...result,date,checkedAt:new Date().toISOString(),
    gamesInspected:games.length,disclaimer:'Only confirmed starters with two fresh, independently sourced active sportsbook lines qualify. No offers are invented; missing sportsbook data blocks selections.'});
  }catch(e){
   console.error('nba_edge_screening_failed',String(e?.message||e).slice(0,160));
-  return res.status(200).json({status:'NO_QUALIFYING_PARLAY',legs:[],
+  return res.status(200).json({ok:true,status:'NO_QUALIFYING_PARLAY',legs:[],
    qualifyingGames:[],gamesInspected:0,date,
    sourceStatus:'SOURCE_UNAVAILABLE',reason:'GAME_SCREENING_SOURCE_UNAVAILABLE',
    note:'The current NBA screening feed could not be verified; no sportsbook picks have been generated.'});
