@@ -31,12 +31,12 @@ export default async function handler(req,res){
     !/\\b(OUT|INACTIVE|DOUBTFUL|SUSPENDED)\\b/i.test(String(p.injuryStatus||'')))
    .map(p=>({gameId:g.gameId,playerId:p.playerId||null,
     name:p.name||p.playerName||null,team:p.team||null,category:p.category,
-    projection:Number(p.projection),sampleGames:p.sampleGames||0,
+    projection:Number(p.projection),baseProjection:Number(p.baseProjection)||null,matchupAdjustment:p.matchupAdjustment||null,defenseVsPosition:p.defenseVsPosition||null,sampleGames:p.sampleGames||0,
     sampleSource:p.sampleSource||null,starterVerified:p.starterVerified===true,
     marketVerified:false,modelOnly:true,
     basis:p.basis||'Historical box-score projection, not a sportsbook line'})))
    .filter(p=>p.name).sort((a,b)=>b.sampleGames-a.sampleGames)
-   .slice(0,40);
+   .slice(0,500);
   return res.status(200).json({ok:true,...result,date,checkedAt:new Date().toISOString(),
    gamesInspected:games.length,research,disclaimer:'Only confirmed starters with two fresh, independently sourced active sportsbook lines qualify. No offers are invented; missing sportsbook data blocks selections.'});
  }catch(e){
