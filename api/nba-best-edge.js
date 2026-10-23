@@ -22,6 +22,7 @@ export default async function handler(req,res){
     playerProjections:snapshot?.playerProjections||[],
     injuryCheckedAt:snapshot?.injuryCheckedAt||null,gameChanges:snapshot?.gameChanges||[],snapshotPresent:Boolean(snapshot),snapshotCheckedAt:snapshot?.checkedAt||null,aiReviewStatus:snapshot?.aiReview?.status||'NOT_RUN',aiReviewCheckedAt:snapshot?.aiReview?.checkedAt||null,
     aiReviewSummary:snapshot?.aiReview?.status==='REVIEWED'?String(snapshot.aiReview.summary||'').slice(0,1400):null,
+    starterEvidence:snapshot?.starterEvidence||null,
     homeTeam:c.competitors?.find(x=>x.homeAway==='home')?.team?.displayName||null,
     awayTeam:c.competitors?.find(x=>x.homeAway==='away')?.team?.displayName||null};
   }));
@@ -33,7 +34,10 @@ export default async function handler(req,res){
    gamesWithVerifiedSpreads:games.filter(g=>g.spread!==null&&Number.isFinite(Number(g.spread))).length,
    gamesWithEligibleProps:games.filter(g=>g.playerProjections.some(p=>Array.isArray(p.verifiedMarkets)&&p.verifiedMarkets.length>=2)).length,
    gamesAiReviewed:games.filter(g=>g.aiReviewStatus==='REVIEWED').length,
-   gamesAiUnavailable:games.filter(g=>g.aiReviewStatus==='UNAVAILABLE').length};
+   gamesAiUnavailable:games.filter(g=>g.aiReviewStatus==='UNAVAILABLE').length,
+   gamesWithConfirmedStarters:games.filter(g=>g.starterEvidence?.startersConfirmed===true).length,
+   gamesWithStarterEvidenceChecked:games.filter(g=>g.starterEvidence?.checked===true).length,
+   starterEvidenceReasons:[...new Set(games.map(g=>g.starterEvidence?.reason||'UNAVAILABLE'))].slice(0,6)};
   const aiMatchupReviews=games.filter(g=>g.aiReviewStatus==='REVIEWED'&&g.aiReviewSummary)
    .map(g=>({gameId:g.gameId,homeTeam:g.homeTeam,awayTeam:g.awayTeam,
     checkedAt:g.aiReviewCheckedAt,summary:g.aiReviewSummary,advisoryOnly:true}));
