@@ -5,7 +5,7 @@ import {nbaReadPregame} from './nba-health.js';
 export default async function handler(req,res){
  if(req.method!=='GET')return res.status(405).json({error:'METHOD_NOT_ALLOWED'});
  const date=String(req.query?.date||new Date().toISOString().slice(0,10));
- if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(date))return res.status(400).json({error:'INVALID_DATE'});
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return res.status(400).json({error:'INVALID_DATE'});
  try{
   const url='https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates='+date.replaceAll('-','');
   const response=await fetch(url,{signal:AbortSignal.timeout(9000),cache:'no-store'});
@@ -15,7 +15,7 @@ export default async function handler(req,res){
   const games=await Promise.all(scheduled.map(async e=>{
    const c=e.competitions?.[0]||{},odds=c.odds?.[0]||{};
    const snapshot=await nbaReadPregame(String(e.id)).catch(()=>null);
-   const spread=odds.spread??odds.details?.match(/[-+]\\d+(?:\\.\\d+)?/)?.[0];
+   const spread=odds.spread??odds.details?.match(/[-+]\d+(?:\.\d+)?/)?.[0];
    return {gameId:String(e.id),status:'SCHEDULED',kickoff:e.date,
     total:odds.overUnder??null,spread:spread??null,
     playerProjections:snapshot?.playerProjections||[]};
