@@ -80,7 +80,8 @@ export function nbaPregameStage(game,prior,{now=Date.now()}={}){
  // independent player forecasts. Throttle retries to one per hour.
  const needsForecastReview=Array.isArray(prior?.playerProjections)&&
   prior.playerProjections.some(p=>Number.isFinite(Number(p.projection))&&Number(p.projection)>0)&&
-  prior?.aiReview?.status!=='REVIEWED'&&age>=60*MS;
+  (prior?.aiReview?.status!=='REVIEWED'||
+   nbaAiMatchupIdentityConflict(prior?.aiReview?.summary,game))&&age>=60*MS;
  return{due:needsForecastReview||!prior||!Number.isFinite(age)||age<0||age>=ttl||prior.stage!==stage,
   stage,minutesToTipoff:Math.ceil(before/MS),snapshotAgeMs:Number.isFinite(age)?age:null};
 }
