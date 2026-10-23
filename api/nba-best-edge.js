@@ -54,8 +54,11 @@ export default async function handler(req,res){
     sampleSource:p.sampleSource||null,historicalSeason:p.historicalSeason||null,starterVerified:p.starterVerified===true,
     marketVerified:false,modelOnly:true,
     basis:p.basis||'Historical box-score projection, not a sportsbook line'})))
-   .filter(p=>p.name).sort((a,b)=>b.sampleGames-a.sampleGames)
-   .slice(0,500);
+   .filter(p=>p.name).sort((a,b)=>{
+    const lift=p=>Number(p.baseProjection)>0?(p.projection/Number(p.baseProjection)-1):-Infinity;
+    const current=p=>p.sampleSource==='CURRENT_SEASON'?1:0;
+    return current(b)-current(a)||lift(b)-lift(a)||b.sampleGames-a.sampleGames;
+   }).slice(0,500);
   return res.status(200).json({ok:true,...result,date,checkedAt:new Date().toISOString(),
    gamesInspected:games.length,snapshotHealth,aiMatchupReviews,research,disclaimer:'Only confirmed starters with two fresh, independently sourced active sportsbook lines qualify. No offers are invented; missing sportsbook data blocks selections.'});
  }catch(e){
