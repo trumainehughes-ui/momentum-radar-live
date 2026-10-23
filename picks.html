@@ -1329,13 +1329,17 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'+
     '<strong style="font-size:1.08rem">🎯 Edge Hunter</strong>'+
     '<span style="border:1px solid #456477;border-radius:999px;padding:4px 10px;font-size:.78rem;color:#d2e1e9">'+(qualified?'Four candidates':'Verification pending')+'</span></div>'+
-    (qualified?'<p class="sub" style="margin:0">Four screened player candidates across two high-total games. Combined parlay odds are not verified.</p>'+ 
-     '<div style="display:grid;gap:10px;min-width:0">'+rows.map(p=>
-      '<div style="border:1px solid #294657;border-radius:12px;padding:12px;min-width:0;overflow-wrap:anywhere">'+
-      '<strong>'+esc(p.name)+' · '+esc(nbaNames[p.category]||p.category)+' over '+esc(p.target)+'</strong>'+
-      '<p class="sub" style="margin:6px 0 0">Projection '+esc(p.projection)+' · Edge +'+esc(p.edgePct)+'% · Last 10: '+esc(p.hitsLastTen)+'/10</p></div>').join('')+'</div>':
+    (qualified?'<p class="sub" style="margin:0">Two games · two legs per game · four verified individual markets. Combined sportsbook odds are not confirmed.</p>'+
+     '<div style="display:grid;gap:12px;min-width:0">'+games.map((g,i)=>
+      '<section style="border:1px solid #315566;border-radius:14px;padding:12px;display:grid;gap:10px;min-width:0">'+
+      '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong>🏀 Game '+(i+1)+'</strong><span class="sub">Total '+esc(g.total)+' · Spread '+esc(g.spread)+'</span></div>'+
+      rows.filter(p=>String(p.gameId)===String(g.gameId)).map(p=>
+       '<div style="border-top:1px solid #294657;padding-top:10px;min-width:0;overflow-wrap:anywhere">'+
+       '<strong>'+esc(p.name)+'</strong><div style="margin-top:4px">Over '+esc(p.target)+' '+esc(nbaNames[p.category]||p.category)+'</div>'+
+       '<p class="sub" style="margin:5px 0 0;font-size:.87rem">Projected '+esc(p.projection)+' · Advantage +'+esc(p.edgePct)+'% · Hit '+esc(p.hitsLastTen)+'/10</p>'+
+       '<p class="sub" style="margin:4px 0 0;font-size:.8rem">'+esc((p.sportsbooks||[]).map(b=>b.book+' '+b.line).join(' · '))+'</p></div>').join('')+'</section>').join('')+'</div>':
      '<p class="sub" style="margin:0;line-height:1.55">'+esc(message)+'</p>'+
-     '<p class="sub" style="margin:0;font-size:.87rem">Research projections are not sportsbook lines or verified picks.</p>')+
+     '<p class="sub" style="margin:0;font-size:.87rem">Model projections are research, not verified sportsbook wagers.</p>')+
     (research.length?'<div style="border-top:1px solid #294657;padding-top:12px;display:grid;gap:10px;min-width:0">'+
      '<strong>NBA statistical forecasts · model research</strong>'+
      research.slice(0,12).map(p=>'<div style="border:1px solid #294657;border-radius:12px;padding:12px;min-width:0;overflow-wrap:anywhere">'+
