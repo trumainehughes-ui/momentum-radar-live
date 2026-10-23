@@ -285,7 +285,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   $('#nfl-module-panel').hidden=!nfl;
   $('#nba-module-panel').hidden=nfl;
   const hunter=document.getElementById('edge-hunter-panel');
-  if(hunter)hunter.hidden=nfl||state.nbaTab!=='edge-hunter';
+  if(hunter)hunter.hidden=nfl||!(state.nbaTab==='edge-hunter'||['points','rebounds','assists','threes','pra'].includes(state.nbaTab));
   document.querySelectorAll('[data-nba-module]').forEach(b=>{
    const active=!nfl&&b.dataset.nbaModule===state.nbaTab;
    b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));
@@ -1292,6 +1292,27 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   try{
    const report=await getJson('/api/nba-best-edge?'+new URLSearchParams({date}));
    if(state.league!=='nba'||state.nbaTab!=='edge-hunter'||state.date!==date)return;
+   if(['points','rebounds','assists','threes','pra'].includes(state.nbaTab)){
+    const cat=state.nbaTab;
+    const projections=(Array.isArray(report.research)?report.research:[])
+     .filter(p=>p.category===cat&&Number(p.sampleGames)>=2&&
+      Number.isFinite(Number(p.baseProjection))&&Number(p.baseProjection)>0&&
+      Number.isFinite(Number(p.projection))&&Number(p.projection)>Number(p.baseProjection))
+     .map(p=>({...p,delta:Number(p.projection)-Number(p.baseProjection),
+      lift:100*(Number(p.projection)/Number(p.baseProjection)-1)}))
+     .sort((a,b)=>b.lift-a.lift||b.sampleGames-a.sampleGames).slice(0,10);
+    target.innerHTML='<div style="display:grid;gap:12px;min-width:0;max-width:100%">'+
+     '<h3>🏀 Top 10 '+esc(nbaNames[cat]||cat)+' · Matchup Advantages</h3>'+
+     '<p class="sub" style="margin:0">Ranked across today’s NBA games by projected increase over historical average, adjusted for team offense, opponent defense and available position matchup evidence. Model research—not sportsbook lines.</p>'+
+     (projections.length?'<div style="display:grid;gap:10px;min-width:0">'+projections.map((p,i)=>
+      '<div class="nba-pick" style="min-width:0;overflow-wrap:anywhere">'+
+      '<div class="nba-pick-player">#'+(i+1)+' '+esc(p.name)+' · '+esc(p.team||'')+'</div>'+
+      '<div class="nba-pick-line" style="flex-wrap:wrap"><span>Average '+esc(Number(p.baseProjection).toFixed(1))+'</span><strong>Forecast '+esc(Number(p.projection).toFixed(1))+'</strong></div>'+
+      '<div class="sub" style="margin-top:8px">Advantage +'+esc(p.lift.toFixed(1))+'% · '+esc(p.sampleGames)+' historical games</div>'+
+      '<div class="sub" style="margin-top:4px">'+esc(p.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'?'Opponent position-defense adjustment included':'Opponent position-defense evidence limited')+' · '+esc(p.starterVerified?'Starter confirmed':'Starter not confirmed')+'</div></div>').join('')+'</div>':
+      noData('No supported top-ten forecasts yet','The pregame collector must provide historical player samples and matchup-adjusted projections. Rankings will not be fabricated.'))+'</div>';
+    return;
+   }
    const games=Array.isArray(report.qualifyingGames)?report.qualifyingGames:[];
    const rows=Array.isArray(report.legs)?report.legs:[];
    const research=Array.isArray(report.research)?report.research:[];
@@ -1553,7 +1574,7 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
   const b=e.target.closest('[data-nba-module]');
   if(!b||state.league!=='nba')return;
   state.nbaTab=b.dataset.nbaModule;renderNflModule();
-  if(state.nbaTab==='edge-hunter')loadEdgeHunter(state.date);
+  if(state.nbaTab==='edge-hunter'||['points','rebounds','assists','threes','pra'].includes(state.nbaTab))loadEdgeHunter(state.date);
   if(state.nbaData)renderNbaGame(state.nbaData);
  });
  $('#rank-tabs').addEventListener('click',e=>{const b=e.target.closest('[data-rank]');if(b)activateNflModule(b.dataset.rank)});
