@@ -32,7 +32,7 @@ export default async function handler(req,res){
    .map(p=>({gameId:g.gameId,playerId:p.playerId||null,
     name:p.name||p.playerName||null,team:p.team||null,category:p.category,
     projection:Number(p.projection),baseProjection:Number(p.baseProjection)||null,matchupAdjustment:p.matchupAdjustment||null,defenseVsPosition:p.defenseVsPosition||null,sampleGames:p.sampleGames||0,
-    sampleSource:p.sampleSource||null,starterVerified:p.starterVerified===true,
+    sampleSource:p.sampleSource||null,historicalSeason:p.historicalSeason||null,starterVerified:p.starterVerified===true,
     marketVerified:false,modelOnly:true,
     basis:p.basis||'Historical box-score projection, not a sportsbook line'})))
    .filter(p=>p.name).sort((a,b)=>b.sampleGames-a.sampleGames)
