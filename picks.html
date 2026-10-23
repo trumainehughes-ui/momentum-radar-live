@@ -1295,8 +1295,8 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    if(['points','rebounds','assists','threes','pra'].includes(state.nbaTab)){
     const cat=state.nbaTab;
     const projections=(Array.isArray(report.research)?report.research:[])
-     .filter(p=>p.category===cat&&Number(p.sampleGames)>=2&&
-      Number.isFinite(Number(p.baseProjection))&&Number(p.baseProjection)>0&&
+     .filter(p=>p.category===cat&&Number(p.sampleGames)>=5&&
+      Number.isFinite(Number(p.baseProjection))&&Number(p.baseProjection)>=2&&
       Number.isFinite(Number(p.projection))&&Number(p.projection)>Number(p.baseProjection))
      .map(p=>({...p,delta:Number(p.projection)-Number(p.baseProjection),
       lift:100*(Number(p.projection)/Number(p.baseProjection)-1)}))
