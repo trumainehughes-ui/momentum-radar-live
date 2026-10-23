@@ -1169,7 +1169,8 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     return '<div class="nba-pick"><div class="nba-pick-player">#'+(i+1)+' '+esc(p.name)+' · '+esc(p.team||'')+'</div>'+
      '<div class="nba-pick-line"><span>'+esc(nbaNames[p.category])+'</span><strong>'+esc(projection.toFixed(1))+' projected</strong></div>'+
      '<small>Historical average: '+esc(Number.isFinite(baseline)?baseline.toFixed(1):'—')+
-     ' · '+esc(evidence)+' · '+esc(starter)+' · '+esc(p.sampleGames)+' games</small></div>';
+     ' · '+esc(evidence)+' · '+esc(starter)+' · '+esc(p.sampleGames)+' games</small>'+
+     (p.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'?'<small>Position '+esc(p.defenseVsPosition.position)+' · Opponent allows '+esc(p.defenseVsPosition.observedAllowed)+' '+esc(nbaNames[p.category]||p.category)+' per game to this position ('+esc(p.defenseVsPosition.sampleGames)+' games). Model DVP adjustment: '+esc(p.defenseVsPosition.factor)+'×</small>':'<small>Position-specific defensive evidence not sufficient for adjustment.</small>')+'</div>';
    }).join('')+'</div></section>';
  }
  function nbaResearchRow(p){
