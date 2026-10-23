@@ -65,8 +65,15 @@ export default async function handler(req,res){
    }
    // Only expose candidate legs if the stage-specific model and injury
    // freshness are still valid. Old (even AI-reviewed) legs must not linger.
-   if(data.status==='SCHEDULED')data.sgps=current?snapshot.sgps:
-    nbaNotReadyTiers(data.pregameReadiness.reason);
+   // Preserve model-only research, but never expose unverified candidates as
+   // publishable sportsbook parlays. Both starter and market gates are mandatory.
+   if(data.status==='SCHEDULED'){
+    data.sgps=current?snapshot.sgps:nbaNotReadyTiers(data.pregameReadiness.reason);
+    data.sgps=Array.isArray(data.sgps)?data.sgps.map(t=>({
+     ...t,publishable:false,combinedBookQuoteVerified:false,actualSgpOdds:null,
+     marketSelectionStatus:'AWAITING_UNIVERSAL_STARTER_AND_MULTIBOOK_VERIFICATION'
+    })):data.sgps;
+   }
    else data.pregameHistoricalSgps=snapshot.sgps;
   }else data.pregameReadiness=nbaPregameStatus(null);
   return res.status(200).json(data);
