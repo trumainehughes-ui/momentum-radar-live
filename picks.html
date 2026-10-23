@@ -1336,7 +1336,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    const qualified=rows.length===4&&report.status==='RESEARCH_CANDIDATE';
    const reasonText={
     INSUFFICIENT_70_PERCENT_NON_CONFLICTING_PROPS:'Not enough eligible player props passed the recent-performance, starter, and live sportsbook checks.',
-    FEWER_THAN_TWO_COMPETITIVE_HIGH_TOTAL_GAMES:'Fewer than two upcoming games currently meet the total, spread, and verified-data requirements.',
+    FEWER_THAN_TWO_COMPETITIVE_HIGH_TOTAL_GAMES:'No verified Edge Hunter parlay is ready for this slate yet.',
     INJURY_OR_LINEUP_REVALIDATION_REQUIRED:'A player or lineup requires a fresh injury check before any parlay can qualify.',
     VERIFIED_MARKET_REQUIRED:'Current verified sportsbook lines are required before a parlay can qualify.',
     NO_CONFIRMED_GAME_STARTERS:'The collector has player forecasts, but no game-specific starting lineups have been confirmed. Predictions remain research until starters are verified.',
@@ -1345,20 +1345,8 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    };
    const message=reasonText[report.reason]||'No four-leg parlay currently passes every verification check.';
    const health=report.snapshotHealth||{};
-   const coverage=Number.isFinite(Number(health.scheduledGames))&&Number(health.scheduledGames)>0?
-    '<div style="border-top:1px solid #294657;padding-top:10px;display:grid;gap:5px">'+
-    '<strong>NBA data coverage</strong><span class="sub">Pregame snapshots: '+esc(health.snapshotsAvailable||0)+' / '+esc(health.scheduledGames)+'</span>'+
-    '<span class="sub">Games with player forecasts: '+esc(health.gamesWithPlayerProjections||0)+' / '+esc(health.scheduledGames)+'</span>'+
-    '<span class="sub">Games with injury checks: '+esc(health.gamesWithInjuryChecks||0)+' / '+esc(health.scheduledGames)+'</span>'+ 
-    '<span class="sub">Starter evidence checked: '+esc(health.gamesWithStarterEvidenceChecked||0)+' / '+esc(health.scheduledGames)+'</span>'+ 
-    '<span class="sub">Games with confirmed starters: '+esc(health.gamesWithConfirmedStarters||0)+' / '+esc(health.scheduledGames)+'</span>'+
-    '<span class="sub">ESPN-listed game totals / spreads (not sportsbook-verified): '+esc(health.gamesWithEspnListedGameTotals||0)+' / '+esc(health.gamesWithEspnListedSpreads||0)+'</span>'+
-    '<span class="sub">Games with multiple sourced player offers: '+esc(health.gamesWithEligibleProps||0)+'</span>'+ 
-    '<span class="sub">Confirmed player starter flags: '+esc(health.playersWithConfirmedStarterFlag||0)+'</span>'+ 
-    '<span class="sub">Players with sourced market pairs: '+esc(health.playersWithSourcedMarketPairs||0)+'</span>'+ 
-    '<span class="sub">Player-stat forecasts with 10 historical games: '+esc(health.playersWithTenGameHistory||0)+'</span>'+
-    '<span class="sub">AI-reviewed matchups: '+esc(health.gamesAiReviewed||0)+' / '+esc(health.scheduledGames)+'</span>'+
-    (Number(health.gamesAiUnavailable)>0?'<span class="sub">AI review unavailable: '+esc(health.gamesAiUnavailable)+' games</span>':'')+'</div>':'';
+   // Collector coverage is internal telemetry, never customer-facing content.
+   const coverage='';
    const aiReviews=Array.isArray(report.aiMatchupReviews)?report.aiMatchupReviews:[];
    const aiAnalysis=aiReviews.length?'<div style="border-top:1px solid #294657;padding-top:12px;display:grid;gap:10px;min-width:0">'+
     '<strong>AI matchup analysis · advisory</strong>'+aiReviews.slice(0,6).map(x=>
@@ -1370,9 +1358,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    const checks=report.diagnostics||{};
    const blockers=[['Starter or availability',checks.starterRejected],['Historical game sample',checks.historyRejected],['Live sportsbook markets',checks.marketRejected],['Projection versus line',checks.projectionRejected],['7-of-10 hit rate',checks.hitRateRejected],['Injury recheck',checks.injuryRejected],['Leg pairing',checks.conflictRejected]]
     .filter(x=>Number(x[1])>0).sort((a,b)=>b[1]-a[1]);
-   const screeningSummary=!qualified&&blockers.length?'<div style="border-top:1px solid #294657;padding-top:10px;display:grid;gap:6px;min-width:0">'+
-    '<strong>Why selections are pending</strong>'+blockers.slice(0,4).map(x=>'<div class="sub" style="display:flex;justify-content:space-between;gap:10px"><span>'+esc(x[0])+'</span><strong>'+esc(x[1])+'</strong></div>').join('')+
-    '<small class="sub">Counts are screening rejections, not sportsbook odds or predicted misses.</small></div>':'';
+   const screeningSummary='';
 
    target.innerHTML='<div style="display:grid;gap:12px;min-width:0;max-width:100%;overflow-wrap:anywhere">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'+
@@ -1389,7 +1375,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
        '<p class="sub" style="margin:4px 0 0;font-size:.8rem">'+esc((p.sportsbooks||[]).map(b=>b.book+' '+b.line).join(' · '))+'</p></div>').join('')+'</section>').join('')+'</div>':
      '<p class="sub" style="margin:0;line-height:1.55">'+esc(message)+'</p>'+
      '<p class="sub" style="margin:0;font-size:.87rem">Model projections are research, not verified sportsbook wagers.</p>')+
-    screeningSummary+coverage+aiAnalysis+
+    aiAnalysis+
     (research.length?'<div style="border-top:1px solid #294657;padding-top:12px;display:grid;gap:10px;min-width:0">'+
      '<strong>NBA statistical forecasts · model research</strong>'+
      research.slice(0,12).map(p=>'<div style="border:1px solid #294657;border-radius:12px;padding:12px;min-width:0;overflow-wrap:anywhere">'+
@@ -1397,7 +1383,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
       '<div style="margin-top:5px">'+esc(nbaNames[p.category]||p.category)+': <strong>'+esc(p.projection)+'</strong> projected</div>'+
       '<p class="sub" style="margin:5px 0 0;font-size:.84rem">'+esc(p.sampleGames)+' games ('+esc(p.sampleSource==='PRIOR_SEASON'?'prior-season baseline':'current season')+') · '+
       (p.starterVerified?'Starter verified':'Starter not confirmed')+' · No verified sportsbook line</p></div>').join('')+'</div>':
-     '<p class="sub" style="margin:0;font-size:.86rem">No current model forecasts have been collected for this slate. The pregame data collector must populate historical player samples first.</p>')+
+     '<p class="sub" style="margin:0;font-size:.86rem">Player selections are being updated. Check back shortly.</p>')+
     '</div>';
   }catch(err){
    // Schedule remains useful even if the separate Edge Hunter research API fails.
