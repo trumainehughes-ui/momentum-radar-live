@@ -1307,15 +1307,17 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     const slate=await getJson('/api/nba-slate?'+new URLSearchParams({date}));
     if(state.league!=='nba'||state.nbaTab!=='edge-hunter'||state.date!==date)return;
     const games=Array.isArray(slate.games)?slate.games.filter(g=>g.status==='SCHEDULED'):[];
-    target.innerHTML='<h3>🎯 Edge Hunter · NBA Slate</h3>'+noData(
-     'Verified four-leg parlay pending',
-     'The slate is available, but the separate player and sportsbook screening feed has not passed verification. No unverified selections will be published.')+
-     '<p class="sub">'+games.length+' scheduled games · '+esc(date)+'</p>'+
-     '<div class="nba-picks-list">'+games.slice(0,15).map(g=>
-      '<div class="nba-pick-line"><strong>'+esc(g.away?.name||g.away?.abbr||'Away')+
-      ' at '+esc(g.home?.name||g.home?.abbr||'Home')+'</strong><span>Tipoff: '+
-      esc(g.kickoff?new Date(g.kickoff).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'Pending')+
-      ' · Prop verification pending</span></div>').join('')+'</div>';
+    // Compact mobile-first fallback: the full matchup schedule is already below.
+    // Never duplicate 12 wide rows inside a narrow Edge Hunter panel.
+    target.innerHTML='<div style="display:grid;gap:12px;min-width:0;max-width:100%;overflow-wrap:anywhere">'+
+     '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">'+
+     '<strong style="font-size:1.05rem">🎯 Edge Hunter</strong>'+
+     '<span style="font-size:.78rem;color:#f4c87b;border:1px solid #84663c;border-radius:999px;padding:4px 10px">Verification pending</span></div>'+
+     '<p class="sub" style="margin:0;line-height:1.5">No verified four-leg parlay is available yet. Player status, injury reports and live sportsbook lines must pass screening.</p>'+
+     '<div style="border-top:1px solid #294657;padding-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+     '<span style="font-weight:700">'+games.length+' scheduled NBA games</span>'+
+     '<span class="sub" style="font-size:.85rem">'+esc(date)+'</span></div>'+
+     '<p class="sub" style="margin:0;font-size:.88rem">View the matchup cards below for tipoff times and game-specific research.</p></div>';
     return;
    }catch{}
    const msg=String(err?.message||'').slice(0,180);
