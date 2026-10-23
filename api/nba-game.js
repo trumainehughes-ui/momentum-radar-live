@@ -52,9 +52,11 @@ export default async function handler(req,res){
    const current=data.pregameReadiness.freshness==='CURRENT';
    // Research projections are independent of SGP candidate eligibility.
    // A missing confirmed starter must not erase a historical model estimate.
-   data.playerProjections=current&&data.status==='SCHEDULED'&&
+   data.playerProjections=data.status==='SCHEDULED'&&
     Array.isArray(snapshot.playerProjections)?snapshot.playerProjections.map(p=>({
-     ...p,marketVerified:false,modelOnly:true
+     ...p,marketVerified:false,modelOnly:true,
+     historicalSnapshotStale:!current,
+     researchStatus:current?'CURRENT_MODEL_RESEARCH':'STALE_HISTORICAL_RESEARCH_NOT_BETTABLE'
     })):[];
    data.playerProjectionSource=current?snapshot.sampleSource||'UNVERIFIED':null;
    if(data.pregameSourceMode==='SCOREBOARD_VERIFIED_FALLBACK'&&current&&
@@ -68,7 +70,11 @@ export default async function handler(req,res){
    // Preserve model-only research, but never expose unverified candidates as
    // publishable sportsbook parlays. Both starter and market gates are mandatory.
    if(data.status==='SCHEDULED'){
-    data.sgps=current?snapshot.sgps:nbaNotReadyTiers(data.pregameReadiness.reason);
+    // Preserve clearly flagged historical research during a model migration;
+    // do not turn a stale snapshot into an empty screen or a bettable slip.
+    data.sgps=current?snapshot.sgps:Array.isArray(snapshot.sgps)?
+     snapshot.sgps.map(t=>({...t,status:'NOT_READY',publishable:false,
+      staleHistoricalResearch:true,reason:data.pregameReadiness.reason})):nbaNotReadyTiers(data.pregameReadiness.reason);
     data.sgps=Array.isArray(data.sgps)?data.sgps.map(t=>({
      ...t,publishable:false,combinedBookQuoteVerified:false,actualSgpOdds:null,
      marketSelectionStatus:'AWAITING_UNIVERSAL_STARTER_AND_MULTIBOOK_VERIFICATION'
