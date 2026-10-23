@@ -1288,7 +1288,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
      '<p class="sub" style="padding:14px">'+esc(c?.reason||d.pregameReadiness?.reason||
       'No game-eligible model legs yet.')+'</p>'+
      (heldRows?'<div class="nba-picks-list" style="padding:12px">'+heldRows+'</div>':
-      '<p class="sub" style="padding:0 14px 14px">'+(name==='Nuke'?      'Nuke selections withheld: no verified DraftKings/FanDuel prices or combined SGP quote.':      'No players passed the historical 20+ minute rotation screen. No reserve-only filler picks shown.')+'</p>')+
+      '<p class="sub" style="padding:0 14px 14px">'+(name==='Nuke'?      'Nuke selections withheld: no verified DraftKings/FanDuel prices or combined SGP quote.':      (String(c?.reason||d.pregameReadiness?.reason||'').includes('model version changed')? 'Waiting for refreshed NBA game data; rotation eligibility has not been re-evaluated yet.': 'No players passed the historical 20+ minute rotation screen. No reserve-only filler picks shown.'))+'</p>')+
      '</section>';
    }
    return '<section class="sgp-slip nba-sgp-card"><div class="sgp-slip-head"><strong>'+
