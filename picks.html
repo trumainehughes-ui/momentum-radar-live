@@ -1294,12 +1294,27 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    if(state.league!=='nba'||state.nbaTab!=='edge-hunter'||state.date!==date)return;
    const games=Array.isArray(report.qualifyingGames)?report.qualifyingGames:[];
    const rows=Array.isArray(report.legs)?report.legs:[];
-   target.innerHTML='<h3>🎯 Edge Hunter · NBA 4-Leg Research</h3>'+
-    '<p class="sub">Two high-total games · spread under 6 · minimum 7/10 historical hits · two non-conflicting players per game. Only confirmed starters with two independently verified live sportsbook lines qualify.</p>'+
-    (games.length?'<p class="sub">Qualified game IDs: '+games.map(g=>esc(g.gameId)+' (total '+esc(g.total)+', spread '+esc(g.spread)+')').join(' · ')+'</p>':'')+
-    (rows.length===4?'<div class="nba-picks-list">'+rows.map(p=>'<div class="nba-pick-line"><strong>'+esc(p.name)+' · '+esc(nbaNames[p.category]||p.category)+' over '+esc(p.target)+'</strong><span>Projected '+esc(p.projection)+' · Edge +'+esc(p.edgePct)+'% · Last 10: '+esc(p.hitsLastTen)+'/10'+(p.starterVerified?' · Starter verified':' · Starter unconfirmed')+'</span></div>').join('')+'</div>':
-     noData('No qualifying Edge Hunter parlay',esc(report.reason||'No eligible four-leg selection is supported by current data.')))+
-    '<p class="nba-status-line">Individual markets are not a verified combined parlay quote.</p>';
+   const qualified=rows.length===4&&report.status==='RESEARCH_CANDIDATE';
+   const reasonText={
+    INSUFFICIENT_70_PERCENT_NON_CONFLICTING_PROPS:'Not enough eligible player props passed the recent-performance, starter, and live sportsbook checks.',
+    FEWER_THAN_TWO_COMPETITIVE_HIGH_TOTAL_GAMES:'Fewer than two upcoming games currently meet the total, spread, and verified-data requirements.',
+    INJURY_OR_LINEUP_REVALIDATION_REQUIRED:'A player or lineup requires a fresh injury check before any parlay can qualify.',
+    VERIFIED_MARKET_REQUIRED:'Current verified sportsbook lines are required before a parlay can qualify.',
+    GAME_SCREENING_SOURCE_UNAVAILABLE:'The live screening source is temporarily unavailable. No unverified picks will be shown.'
+   };
+   const message=reasonText[report.reason]||'No four-leg parlay currently passes every verification check.';
+   target.innerHTML='<div style="display:grid;gap:12px;min-width:0;max-width:100%;overflow-wrap:anywhere">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'+
+    '<strong style="font-size:1.08rem">🎯 Edge Hunter</strong>'+
+    '<span style="border:1px solid #456477;border-radius:999px;padding:4px 10px;font-size:.78rem;color:#d2e1e9">'+(qualified?'Four candidates':'Verification pending')+'</span></div>'+
+    (qualified?'<p class="sub" style="margin:0">Four screened player candidates across two high-total games. Combined parlay odds are not verified.</p>'+ 
+     '<div style="display:grid;gap:10px;min-width:0">'+rows.map(p=>
+      '<div style="border:1px solid #294657;border-radius:12px;padding:12px;min-width:0;overflow-wrap:anywhere">'+
+      '<strong>'+esc(p.name)+' · '+esc(nbaNames[p.category]||p.category)+' over '+esc(p.target)+'</strong>'+
+      '<p class="sub" style="margin:6px 0 0">Projection '+esc(p.projection)+' · Edge +'+esc(p.edgePct)+'% · Last 10: '+esc(p.hitsLastTen)+'/10</p></div>').join('')+'</div>':
+     '<p class="sub" style="margin:0;line-height:1.55">'+esc(message)+'</p>'+
+     '<p class="sub" style="margin:0;font-size:.87rem">We will not substitute model targets for active sportsbook lines. Browse the game cards below while verification is pending.</p>')+
+    '</div>';
   }catch(err){
    // Schedule remains useful even if the separate Edge Hunter research API fails.
    // Never substitute schedule data for a verified player prop or bookmaker quote.
