@@ -1335,6 +1335,14 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     '<span class="sub">Games with multiple sourced player offers: '+esc(health.gamesWithEligibleProps||0)+'</span>'+
     '<span class="sub">AI-reviewed matchups: '+esc(health.gamesAiReviewed||0)+' / '+esc(health.scheduledGames)+'</span>'+
     (Number(health.gamesAiUnavailable)>0?'<span class="sub">AI review unavailable: '+esc(health.gamesAiUnavailable)+' games</span>':'')+'</div>':'';
+   const aiReviews=Array.isArray(report.aiMatchupReviews)?report.aiMatchupReviews:[];
+   const aiAnalysis=aiReviews.length?'<div style="border-top:1px solid #294657;padding-top:12px;display:grid;gap:10px;min-width:0">'+
+    '<strong>AI matchup analysis · advisory</strong>'+aiReviews.slice(0,6).map(x=>
+    '<section style="border:1px solid #294657;border-radius:12px;padding:12px;display:grid;gap:6px;overflow-wrap:anywhere">'+
+    '<strong>'+esc([x.awayTeam,x.homeTeam].filter(Boolean).join(' at ')||'NBA game')+'</strong>'+
+    '<span class="sub" style="font-size:.8rem">AI reviewed '+esc(x.checkedAt||'time unavailable')+'</span>'+
+    '<p style="margin:0;white-space:pre-wrap;line-height:1.5">'+esc(x.summary)+'</p></section>').join('')+
+    '<small class="sub">AI commentary evaluates supplied evidence. It does not certify sportsbook markets, starting lineups, or a bookable parlay.</small></div>':'';
    const checks=report.diagnostics||{};
    const blockers=[['Starter or availability',checks.starterRejected],['Historical game sample',checks.historyRejected],['Live sportsbook markets',checks.marketRejected],['Projection versus line',checks.projectionRejected],['7-of-10 hit rate',checks.hitRateRejected],['Injury recheck',checks.injuryRejected],['Leg pairing',checks.conflictRejected]]
     .filter(x=>Number(x[1])>0).sort((a,b)=>b[1]-a[1]);
@@ -1357,7 +1365,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
        '<p class="sub" style="margin:4px 0 0;font-size:.8rem">'+esc((p.sportsbooks||[]).map(b=>b.book+' '+b.line).join(' · '))+'</p></div>').join('')+'</section>').join('')+'</div>':
      '<p class="sub" style="margin:0;line-height:1.55">'+esc(message)+'</p>'+
      '<p class="sub" style="margin:0;font-size:.87rem">Model projections are research, not verified sportsbook wagers.</p>')+
-    screeningSummary+coverage+
+    screeningSummary+coverage+aiAnalysis+
     (research.length?'<div style="border-top:1px solid #294657;padding-top:12px;display:grid;gap:10px;min-width:0">'+
      '<strong>NBA statistical forecasts · model research</strong>'+
      research.slice(0,12).map(p=>'<div style="border:1px solid #294657;border-radius:12px;padding:12px;min-width:0;overflow-wrap:anywhere">'+
