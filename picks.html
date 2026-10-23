@@ -1308,7 +1308,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
       '<div class="nba-pick" style="min-width:0;overflow-wrap:anywhere">'+
       '<div class="nba-pick-player">#'+(i+1)+' '+esc(p.name)+' · '+esc(p.team||'')+'</div>'+
       '<div class="nba-pick-line" style="flex-wrap:wrap"><span>Average '+esc(Number(p.baseProjection).toFixed(1))+'</span><strong>Forecast '+esc(Number(p.projection).toFixed(1))+'</strong></div>'+
-      '<div class="sub" style="margin-top:8px">Advantage +'+esc(p.lift.toFixed(1))+'% · '+esc(p.sampleGames)+' games · '+esc(p.sampleSource==='PRIOR_SEASON'?'Prior-season baseline':'Current-season sample')+'</div>'+
+      '<div class="sub" style="margin-top:8px">Model lift +'+esc(p.lift.toFixed(1))+'% · '+esc(p.sampleGames)+' games · '+esc(p.sampleSource==='PRIOR_SEASON'?'Prior-season baseline':'Current-season sample')+'</div>'+
       '<div class="sub" style="margin-top:4px">'+esc(p.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'?'Opponent position-defense adjustment included':'Opponent position-defense evidence limited')+' · '+esc(p.starterVerified?'Starter confirmed':'Starter not confirmed')+'</div></div>').join('')+'</div>':
       noData('No supported top-ten forecasts yet','The pregame collector must provide historical player samples and matchup-adjusted projections. Rankings will not be fabricated.'))+'</div>';
     return;
