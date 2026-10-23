@@ -1308,7 +1308,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
       '<div class="nba-pick" style="min-width:0;overflow-wrap:anywhere">'+
       '<div class="nba-pick-player">#'+(i+1)+' '+esc(p.name)+' · '+esc(p.team||'')+'</div>'+
       '<div class="nba-pick-line" style="flex-wrap:wrap"><span>Average '+esc(Number(p.baseProjection).toFixed(1))+'</span><strong>Forecast '+esc(Number(p.projection).toFixed(1))+'</strong></div>'+
-      '<div class="sub" style="margin-top:8px">Advantage +'+esc(p.lift.toFixed(1))+'% · '+esc(p.sampleGames)+' historical games</div>'+
+      '<div class="sub" style="margin-top:8px">Advantage +'+esc(p.lift.toFixed(1))+'% · '+esc(p.sampleGames)+' games · '+esc(p.sampleSource==='PRIOR_SEASON'?'Prior-season baseline':'Current-season sample')+'</div>'+
       '<div class="sub" style="margin-top:4px">'+esc(p.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'?'Opponent position-defense adjustment included':'Opponent position-defense evidence limited')+' · '+esc(p.starterVerified?'Starter confirmed':'Starter not confirmed')+'</div></div>').join('')+'</div>':
       noData('No supported top-ten forecasts yet','The pregame collector must provide historical player samples and matchup-adjusted projections. Rankings will not be fabricated.'))+'</div>';
     return;
@@ -1345,7 +1345,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
      research.slice(0,12).map(p=>'<div style="border:1px solid #294657;border-radius:12px;padding:12px;min-width:0;overflow-wrap:anywhere">'+
       '<strong>'+esc(p.name)+' · '+esc(p.team||'NBA')+'</strong>'+
       '<div style="margin-top:5px">'+esc(nbaNames[p.category]||p.category)+': <strong>'+esc(p.projection)+'</strong> projected</div>'+
-      '<p class="sub" style="margin:5px 0 0;font-size:.84rem">'+esc(p.sampleGames)+' historical games · '+
+      '<p class="sub" style="margin:5px 0 0;font-size:.84rem">'+esc(p.sampleGames)+' games ('+esc(p.sampleSource==='PRIOR_SEASON'?'prior-season baseline':'current season')+') · '+
       (p.starterVerified?'Starter verified':'Starter not confirmed')+' · No verified sportsbook line</p></div>').join('')+'</div>':
      '<p class="sub" style="margin:0;font-size:.86rem">No current model forecasts have been collected for this slate. The pregame data collector must populate historical player samples first.</p>')+
     '</div>';
