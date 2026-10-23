@@ -20,7 +20,7 @@ export default async function handler(req,res){
    return {gameId:String(e.id),status:'SCHEDULED',kickoff:e.date,
     total:odds.overUnder??null,spread:spread??null,
     playerProjections:snapshot?.playerProjections||[],
-    injuryCheckedAt:snapshot?.injuryCheckedAt||null,gameChanges:snapshot?.gameChanges||[],snapshotPresent:Boolean(snapshot),snapshotCheckedAt:snapshot?.checkedAt||null};
+    injuryCheckedAt:snapshot?.injuryCheckedAt||null,gameChanges:snapshot?.gameChanges||[],snapshotPresent:Boolean(snapshot),snapshotCheckedAt:snapshot?.checkedAt||null,aiReviewStatus:snapshot?.aiReview?.status||'NOT_RUN',aiReviewCheckedAt:snapshot?.aiReview?.checkedAt||null};
   }));
   const result=nbaBestEdgeParlay(games,{mode:'VERIFIED_MARKET'});
   const snapshotHealth={scheduledGames:games.length,snapshotsAvailable:games.filter(g=>g.snapshotPresent).length,
@@ -28,7 +28,9 @@ export default async function handler(req,res){
    gamesWithInjuryChecks:games.filter(g=>g.injuryCheckedAt).length,
    gamesWithVerifiedGameTotals:games.filter(g=>Number.isFinite(Number(g.total))&&Number(g.total)>0).length,
    gamesWithVerifiedSpreads:games.filter(g=>g.spread!==null&&Number.isFinite(Number(g.spread))).length,
-   gamesWithEligibleProps:games.filter(g=>g.playerProjections.some(p=>Array.isArray(p.verifiedMarkets)&&p.verifiedMarkets.length>=2)).length};
+   gamesWithEligibleProps:games.filter(g=>g.playerProjections.some(p=>Array.isArray(p.verifiedMarkets)&&p.verifiedMarkets.length>=2)).length,
+   gamesAiReviewed:games.filter(g=>g.aiReviewStatus==='REVIEWED').length,
+   gamesAiUnavailable:games.filter(g=>g.aiReviewStatus==='UNAVAILABLE').length};
   // Model projections are useful research even without a verified bookmaker
   // offer. Never mix them into publishable sportsbook legs.
   const research=games.flatMap(g=>(g.playerProjections||[])
