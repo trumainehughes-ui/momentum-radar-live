@@ -3,7 +3,7 @@ import {latestModelSgpIngest} from './model-sgp-ingest.js';
 import {blobCredentialMode} from '../lib/blob-storage-config.js';
 import {timingSafeEqual} from 'node:crypto';
 import {nbaPrepareEvidence} from '../lib/nba-pregame-model.js';
-import {pregameAiAudit} from '../lib/pregame-ai-review.js';
+import {pregameAiAudit,nbaAiMatchupIdentityConflict} from '../lib/pregame-ai-review.js';
 import {sportsbookCoverageAudit} from '../lib/sportsbook-source-policy.js';
 import {sportResearchVerificationStatus} from '../lib/sport-sgp-verification-gate.js';
 import {fetchEspnEventStarters} from '../lib/espn-event-starter-evidence.js';
@@ -247,13 +247,15 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
  // AI forecast commentary must not depend on SGP eligibility or book prices.
  // Only re-review when evidence changes, stage changes or a previous review failed;
  // avoid unnecessary AI calls on each 15-minute cron tick.
- const reusable=prior?.aiReview?.status==='REVIEWED'&&!result.changedFromPrior&&
+ const reusable=prior?.aiReview?.status==='REVIEWED'&&
+  !nbaAiMatchupIdentityConflict(prior.aiReview.summary,game)&&!result.changedFromPrior&&
   prior.stage===plan.stage&&prior.modelVersion===NBA_PREGAME_MODEL_VERSION;
  if(reusable){
   result.aiReview=prior.aiReview;
   result.aiReviewed=true;
  }else if(hasForecasts&&(result.changedFromPrior||prior?.stage!==plan.stage||
-   prior?.aiReview?.status!=='REVIEWED')){
+   (prior?.aiReview?.status!=='REVIEWED'||
+    nbaAiMatchupIdentityConflict(prior?.aiReview?.summary,game)))){
   result.aiReview=await review('nba',game,result);
   result.aiReviewed=result.aiReview?.status==='REVIEWED';
  }else if(!hasForecasts){
