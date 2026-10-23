@@ -1277,7 +1277,11 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
      return '<div class="nba-pick"><div class="nba-pick-player">'+esc(l.name)+'</div>'+
       '<div class="nba-pick-line"><span>'+esc(nbaNames[l.category])+'</span><strong>'+
       (Number.isFinite(projection)&&projection>0?esc(projection.toFixed(1))+' projected':'Projection pending')+
-      '</strong></div><small>Model research only · Starter and DraftKings/FanDuel market unverified</small></div>';
+      '</strong></div><small>ESPN historical '+esc(l.recentForm?.seasonSource==='PRIOR_SEASON'?'previous season':'current season')+
+      ' · Last 5: '+esc(l.recentForm?.last5Average??'—')+
+      ' · Last 10: '+esc(l.recentForm?.last10Average??'—')+
+      ' · Avg minutes: '+esc(l.minutesModel?.average??'—')+
+      ' · Starter and DraftKings/FanDuel market unverified</small></div>';
     }).join('');
     return '<section class="sgp-slip nba-sgp-card"><div class="sgp-slip-head"><strong>'+
      name+'</strong><span>'+(legs.length?'RESEARCH · NOT BETTABLE':'Awaiting selections')+'</span></div>'+
