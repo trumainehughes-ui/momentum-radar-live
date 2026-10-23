@@ -1538,6 +1538,7 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
  const q=(!upcoming&&state.date)?'?'+new URLSearchParams({date:state.date}):'';
  try{const d=await getJson(base+q);state.date=d.date||state.date;$('#day').value=state.date;$('#date-caption').textContent=state.league.toUpperCase()+' • '+(d.games?.length||0)+' scheduled matchups • '+state.date;
  state.games=Array.isArray(d.games)?d.games:[];renderGames();
+ if(state.league==='nba'&&(state.nbaTab==='edge-hunter'||['points','rebounds','assists','threes','pra'].includes(state.nbaTab)))loadEdgeHunter(state.date);
  if(state.league==='nfl'){
   loadRanks();
   if(state.module==='live')loadPublicLiveSlate();
