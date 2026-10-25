@@ -32,3 +32,15 @@ test('both injury-screened SGP research and real bookmaker ticket paths consume 
  assert.match(api,/nflOfficialTransactionHolds\(\{gameId,date,home,away\}\)/);
  assert.match(api,/blockedIds/);
 });
+
+test('Davante Adams October 20 official Rams IR move blocks Week 7 Raiders matchup',()=>{
+ const date='2026-10-25',gameId='401873021';
+ const player={playerID:'16800',name:'Davante Adams',team:'LAR'};
+ const holds=nflOfficialTransactionHolds({date,gameId,home:'LV',away:'LAR'});
+ assert.ok(holds.some(x=>x.status==='IR'&&nflOfficialHoldMatches(player,x)));
+ assert.ok(holds.some(x=>x.name==='Davante Adams'&&x.sourceUrl?.includes('therams.com/news/')));
+ assert.equal(nflOfficialTransactionHolds({date:'2026-10-19',gameId,home:'LV',away:'LAR'})
+  .some(x=>nflOfficialHoldMatches(player,x)),false);
+ assert.equal(nflOfficialTransactionHolds({date,gameId,home:'NO',away:'PIT'})
+  .some(x=>nflOfficialHoldMatches(player,x)),false);
+});
