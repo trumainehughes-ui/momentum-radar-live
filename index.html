@@ -715,9 +715,13 @@ async function loadNFLMulti(){
       t.complete===true&&t.legs.length===4);
      const selected=small?.legs?.[0];
      if(!selected||!['td','passing','rushing','receiving','receptions']
-       .includes(String(selected.category))||!selected.player||
-       !selected.target)return null;
-     return{g,selected,version:safe.updatedAt};
+       .includes(String(selected.category))||!selected.player)return null;
+     // Published model tiers carry projections, not sportsbook thresholds.
+     // A missing "target" must not erase otherwise valid research.
+     const modelValue=Number(selected.category==='td'?
+      selected.modelChancePct:selected.projection);
+     if(!Number.isFinite(modelValue)||modelValue<=0)return null;
+     return{g,selected,modelValue,version:safe.updatedAt};
     }catch{return null}
    }));
    researched.push(...results.filter(Boolean));
@@ -732,7 +736,9 @@ async function loadNFLMulti(){
    '<div class="card"><div class="rank">RESEARCH '+(i+1)+' • '+
     nflEscape(v.g.away.abbr)+' @ '+nflEscape(v.g.home.abbr)+
     '</div><div class="name">'+nflEscape(v.selected.player)+'</div>'+
-    '<div class="pick">Model target: '+nflEscape(v.selected.target)+'</div>'+
+    '<div class="pick">'+(v.selected.category==='td'?
+     'Anytime TD model estimate: '+nflEscape(v.modelValue)+'%':
+     'Model projection: '+nflEscape(v.modelValue)+' '+nflEscape(nflLabels[v.selected.category]))+'</div>'+
     '<div class="meta">'+nflEscape(nflLabels[v.selected.category])+
     ' • From published Small-tier research</div>'+
     '<div class="reason">'+nflEscape(v.selected.projectionNote||
