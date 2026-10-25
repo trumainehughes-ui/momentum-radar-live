@@ -305,3 +305,17 @@ test('Sunday TD standings reject questionable, PUP, NFI and probable player-leve
  assert.equal(result.verifiedTdOffers,0);
  assert.equal(result.categoryGameCounts.td,1);
 });
+
+test('official injured reserve and unverified roles cannot appear in yardage Top 10',()=>{
+ const gameId='401873021',day='2026-10-25',at=Date.parse('2026-10-24T22:00:00Z');
+ const rows=[
+  person('16800',gameId,'receiving',85,{name:'Davante Adams',team:'LAR',starterStatus:'PROJECTED_HIGH_USAGE_ROLE'}),
+  person('2',gameId,'receiving',92,{name:'Unverified Receiver',team:'LV',starterStatus:'UNVERIFIED_ROLE'}),
+  person('3',gameId,'receiving',72,{name:'Eligible Receiver',team:'LV',starterStatus:'PROJECTED_HIGH_USAGE_ROLE'})
+ ];
+ const snapshot={at,body:{ok:true,date:day,gameId,home:'LV',away:'LAR',
+  categories:{td:[],passing:[],rushing:[],receiving:rows,receptions:[]},
+  validation:{injuryEligibilityChecked:true}}};
+ const result=buildNflSlateRankings([snapshot],{date:day,now:at+60000});
+ assert.deepEqual(result.categories.receiving.map(x=>x.name),['Eligible Receiver']);
+});
