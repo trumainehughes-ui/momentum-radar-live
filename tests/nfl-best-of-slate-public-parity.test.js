@@ -15,7 +15,9 @@ test('Best of Slate uses ONLY the shared published, injury-screened data, never 
  assert.match(multi,/fetch\('\/api\/public-nfl-game\?'/);
  assert.match(multi,/ownerNflPublishedParity\(null,saved/);
  assert.match(multi,/safe\.publicResearchTiers\.find\(t=>t\.risk==='Small'/);
- assert.match(multi,/selected\.target/);
+ assert.match(multi,/selected\.projection/);
+ assert.match(multi,/modelValue/);
+ assert.doesNotMatch(multi,/!selected\.target/);
  assert.match(multi,/\.selected\.projectionNote/);
  assert.match(multi,/\{cache:'no-store'\}/);
  assert.match(multi,/Math\.min|i\+=4/);
