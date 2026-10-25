@@ -1,15 +1,26 @@
 import {list} from '@vercel/blob';
-import {buildNflSlateRankings,nflSlateSnapshotPrefix,nflSlateSnapshotPathValid}
+import {buildNflSlateRankings,nflSlateSnapshotPrefix,
+ nflSlateSnapshotPathValid,nflSlateSnapshotGameId,nflSlateNewestSnapshotBlobs}
  from '../lib/nfl-slate-rankings.js';
 
-// Top 10 lists are read-only: use the market snapshots that the scheduled
-// collector/game pages already verified instead of hitting paid sports APIs
-// 13 times whenever a visitor changes a ranking tab.
+// Read-only. Scan immutable game snapshots without re-running expensive
+// sportsbook/ESPN collectors. Versioned snapshots are stored under
+// <schema>-<date>-<gameId>/<reverse-timestamp>.json.
 async function savedGameSnapshots(date){
  const prefix=nflSlateSnapshotPrefix(date);
- const found=await list({prefix,limit:100});
- const matches=(found.blobs||[]).filter(b=>
-  nflSlateSnapshotPathValid(b.pathname,date)).slice(0,32);
+ if(!prefix)return[];
+ const blobs=[];
+ let cursor=null;
+ for(let page=0;page<8;page++){
+  const found=await list({prefix,limit:1000,...(cursor?{cursor}:{})});
+  blobs.push(...(found.blobs||[]).filter(b=>
+   nflSlateSnapshotPathValid(b.pathname,date)));
+  cursor=found.hasMore?found.cursor:null;
+  if(!cursor)break;
+ }
+ // Never silently omit later games if the Blob index is unexpectedly large.
+ if(cursor)throw Error('nfl_slate_snapshot_index_incomplete');
+ const matches=nflSlateNewestSnapshotBlobs(blobs,date).slice(0,32);
  const snapshots=[];
  for(let i=0;i<matches.length;i+=6){
   const chunk=await Promise.allSettled(matches.slice(i,i+6).map(async b=>{
@@ -17,7 +28,7 @@ async function savedGameSnapshots(date){
     signal:AbortSignal.timeout(4500)});
    if(!r.ok)return null;
    const snap=await r.json();
-   const pathGameId=b.pathname.slice(prefix.length,-5);
+   const pathGameId=nflSlateSnapshotGameId(b.pathname,date);
    if(String(snap?.body?.gameId||'')!==pathGameId)return null;
    return snap;
   }));
