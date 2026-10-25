@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {buildNflSlateRankings,nflSlateSnapshotPrefix,
- nflSlateSnapshotPathValid,NFL_MARKET_RESPONSE_SCHEMA}
+ nflSlateSnapshotPathValid,nflSlateSnapshotGameId,nflSlateNewestSnapshotBlobs,
+ NFL_MARKET_RESPONSE_SCHEMA}
  from '../lib/nfl-slate-rankings.js';
 
 const date='2026-10-11',now=Date.parse('2026-10-11T19:50:00Z');
@@ -103,6 +104,19 @@ test('Blob model snapshot matching uses exact selected day and current market sc
  assert.ok(api.includes("+'-nuke-roster-adaptive-1-game-identity-2'"));
  assert.ok(api.includes("+'-day-ahead-roles-v5-teamid-depthchart'"));
  assert.ok(api.includes("+'-public-quote-scrub-v1'"));
+});
+test('slate reads newest immutable snapshot per game, not legacy or older versions',()=>{
+ const prefix=nflSlateSnapshotPrefix(date);
+ const legacy=prefix+'401872989.json';
+ const older=prefix+'401872989/8209999999999-old.json';
+ const newer=prefix+'401872989/8209999999998-new.json';
+ const other=prefix+'401872990/8209999999997-other.json';
+ assert.equal(nflSlateSnapshotPathValid(newer,date),true);
+ assert.equal(nflSlateSnapshotGameId(newer,date),'401872989');
+ assert.equal(nflSlateSnapshotPathValid(prefix+'401872989/invalid.json',date),false);
+ assert.equal(nflSlateSnapshotPathValid(newer,'2026-10-12'),false);
+ const chosen=nflSlateNewestSnapshotBlobs([older,other,legacy,newer].map(pathname=>({pathname})),date);
+ assert.deepEqual(chosen.map(x=>x.pathname).sort(),[newer,other].sort());
 });
 test('all four top-ten buttons load read-only slate rows, not metadata-only markets',()=>{
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
