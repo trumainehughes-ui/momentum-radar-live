@@ -30,11 +30,20 @@ export default async function handler(req,res){
  const day=Math.floor(Date.parse(date+'T12:00:00Z')/86400000),today=Math.floor(Date.now()/86400000);
  if(day<today-2||day>today+30)return res.status(400).json({ok:false,error:'date_outside_public_window'});
  try{
-  const prefix=nflSlateSnapshotPrefix(date),found=await list({prefix,limit:100});
+  const prefix=nflSlateSnapshotPrefix(date),blobs=[];
+  // A busy Sunday can contain >100 immutable snapshots. Read enough pages
+  // to reach every game's newest saved version, not just the first game in
+  // lexicographic order. Keep the scan bounded for public endpoint latency.
+  let cursor=null;
+  for(let page=0;page<4;page++){
+   const batch=await list({prefix,limit:1000,...(cursor?{cursor}:{})});
+   blobs.push(...(batch.blobs||[]));
+   if(!batch.hasMore||!batch.cursor)break;
+   cursor=batch.cursor;
+  }
   // Each game is stored under an immutable reverse-timestamp version path.
-  // Select the newest version per game before reading, not every historical
-  // version; a versioned path includes /<reverse-timestamp>.json.
-  const files=nflSlateNewestSnapshotBlobs(found.blobs||[],date).slice(0,32);
+  // Select only the newest version per game before reading.
+  const files=nflSlateNewestSnapshotBlobs(blobs,date).slice(0,32);
   const snapshots=[];
   for(let i=0;i<files.length;i+=6){
    const batch=await Promise.allSettled(files.slice(i,i+6).map(async blob=>{
