@@ -211,7 +211,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
 <div id="game-day-board"><p id="date-caption" class="sub" style="margin:16px 0 11px" aria-live="polite">Loading scheduled games…</p><div id="games" class="game-grid"><div class="empty loading grid-span">Loading matchups…</div></div><div id="game-panel-home" hidden></div></div></section>
 <section class="section" id="game-section" hidden><div class="panel"><div class="details-top"><div><div class="eyebrow">Matchup breakdown</div><div id="match-title" class="matchup">Select a game</div><p id="match-subtitle" class="sub">Model forecasts are screened before appearing here.</p></div><div id="freshness" class="fresh"></div></div><div id="match-content"><div class="empty" style="margin-top:18px">Choose a matchup above to view the player outlook and parlay tiers.</div></div><section id="public-weather-impact" class="panel" aria-label="NFL Weather Impact" style="margin-top:14px"><h3>🌦 Kickoff Weather</h3><div id="public-weather-content" class="sub">Open a matchup to see its kickoff forecast.</div></section></div></section>
 <section class="section" id="rankings-section"><div class="section-head"><div><h2>Players to watch</h2><p class="sub">Ranked model projections from games on the selected NFL slate. Friday's scheduled Sunday-slate primer prepares roster/injury-screened Anytime TD scorer estimates for every scheduled matchup. The existing 30-hour and final pregame refreshes then update them; model TD estimates are not verified sportsbook odds.</p></div></div><div class="market-tabs" id="rank-tabs"><button type="button" class="chip active" data-rank="td">Anytime TD</button><button type="button" class="chip" data-rank="passing">Passing</button><button type="button" class="chip" data-rank="rushing">Rushing</button><button type="button" class="chip" data-rank="receiving">Receiving</button><button type="button" class="chip" data-rank="receptions">Receptions</button></div><div class="players-grid" id="rankings"><div class="empty grid-span">Waiting for today's saved rankings…</div></div></section>
-<section class="section" id="extra-section"><div class="section-head"><div><h2>🏆 Best of Slate</h2><p class="sub">Top model candidates across Sunday's matchups. Research only; not a verified multi-game parlay.</p></div></div>
+<section class="section" id="extra-section"><div class="section-head"><div><h2>🏆 Best of Slate</h2><p class="sub">Top model candidates for the selected NFL slate. Research only; not a verified multi-game parlay.</p></div></div>
 <div id="extra-content"><div class="empty">Ranked game data will appear after the selected slate loads.</div></div></section>
 </main>
 <footer><div class="container footer-wrap"><div><b style="color:#edf5f9">Momentum Radar</b><div>Independent sports insights. Model-generated projections are estimates, not guarantees or confirmed sportsbook bets. Combined parlay odds appear only when explicitly verified and may change before placement.</div></div><div>For informational use only. Bet responsibly where legal. 21+ where required.</div></div></footer>
@@ -308,7 +308,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   if(ranking){
    state.rank=module;
    $('#rankings-section h2').textContent=
-    module==='td'?'⭐ Sunday Top 10 — Anytime TD Scorers':'NFL Top 10 — '+labels[module];
+    module==='td'?'⭐ NFL Top 10 — Anytime TD Scorers':'NFL Top 10 — '+labels[module];
    renderRanks();
   }
   if(nfl&&module==='best')renderExtras();
