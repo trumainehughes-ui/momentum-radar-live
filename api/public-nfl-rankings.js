@@ -1,6 +1,7 @@
 import {list} from '@vercel/blob';
 import {estimateNflHitChance} from '../lib/nfl-model-hit-chance.js';
-import {buildNflSlateRankings,nflSlateSnapshotPrefix,nflSlateSnapshotPathValid}
+import {buildNflSlateRankings,nflSlateSnapshotPrefix,nflSlateSnapshotGameId,
+ nflSlateNewestSnapshotBlobs}
  from '../lib/nfl-slate-rankings.js';
 
 const cats=['td','passing','rushing','receiving','receptions'];
@@ -30,14 +31,17 @@ export default async function handler(req,res){
  if(day<today-2||day>today+30)return res.status(400).json({ok:false,error:'date_outside_public_window'});
  try{
   const prefix=nflSlateSnapshotPrefix(date),found=await list({prefix,limit:100});
-  const files=(found.blobs||[]).filter(x=>nflSlateSnapshotPathValid(x.pathname,date)).slice(0,32);
+  // Each game is stored under an immutable reverse-timestamp version path.
+  // Select the newest version per game before reading, not every historical
+  // version; a versioned path includes /<reverse-timestamp>.json.
+  const files=nflSlateNewestSnapshotBlobs(found.blobs||[],date).slice(0,32);
   const snapshots=[];
   for(let i=0;i<files.length;i+=6){
    const batch=await Promise.allSettled(files.slice(i,i+6).map(async blob=>{
     const r=await fetch(blob.url,{cache:'no-store',signal:AbortSignal.timeout(5000)});
     if(!r.ok)return null;
     const s=await r.json();
-    const id=blob.pathname.slice(prefix.length,-5);
+    const id=nflSlateSnapshotGameId(blob.pathname,date);
     return String(s?.body?.gameId||'')===id?s:null;
    }));
    snapshots.push(...batch.filter(x=>x.status==='fulfilled'&&x.value).map(x=>x.value));
