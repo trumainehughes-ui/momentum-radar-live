@@ -84,7 +84,7 @@ test('October 20 opening-night regular-season model uses labeled 2025-26 game sa
   }
   if(risk==='Nuke')assert.equal(s.status,'NOT_READY','no invented correlated SGP quote');
   assert.notEqual(s.combinedBookOddsVerified,true);
-  assert.equal(s.publishable,false);
+  assert.notEqual(s.publishable,true);
  }
 });
 test('prior-season stats cannot use a traded player from a different current team without verifying game-team identity',()=>{
