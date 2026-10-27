@@ -285,3 +285,11 @@ test('duplicate player evidence fails closed',async()=>{
  assert.deepEqual(run([good,{...good,active:false}]),[]);
  assert.deepEqual(run([good,good]),[]);
 });
+
+test('injured reserve roster status blocks otherwise positive role evidence',async()=>{
+ const {draftKingsPlayersFromEspnEvidence:check}=await import('../lib/draftkings-nash-feed.js');
+ const roster=[{id:'123456',name:'Test Player',rosterStatus:'Injured Reserve'}];
+ const eventCrosswalk=[{confirmed:true,espnEventId:'401123456',draftKingsEventId:'34118182'}];
+ const roleEvidence=[{confirmed:true,espnEventId:'401123456',espnAthleteId:'123456',active:true,starterOrHighSnap:true,injuryCleared:true}];
+ assert.deepEqual(check(roster,{eventCrosswalk,roleEvidence}),[]);
+});
