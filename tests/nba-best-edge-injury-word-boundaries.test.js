@@ -45,3 +45,8 @@ test('NBA imported SGP candidates reject injured or uncertain availability using
  assert.ok(health.includes(String.raw`/\b(OUT|INACTIVE|IR|INJURED RESERVE|DOUBTFUL|QUESTIONABLE|SUSPENDED)\b/i.test(`));
  assert.ok(!health.includes(String.raw`/\\b(OUT|INACTIVE|DOUBTFUL|QUESTIONABLE|SUSPENDED)\\b/i.test(`));
 });
+
+test('NBA starter confirmation excludes injured-reserve designations',()=>{
+ const health=readFileSync(new URL('../api/nba-health.js',import.meta.url),'utf8');
+ assert.ok(health.includes(String.raw`/\b(?:OUT|IR|INJURED RESERVE|DOUBTFUL|QUESTIONABLE|INACTIVE|SUSPENDED)\b/i.test(String(i.status||''))`));
+});
