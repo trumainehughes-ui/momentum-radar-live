@@ -1,3 +1,4 @@
+import {normalizePlayerBoxscoreRecord} from '../lib/player-stat-normalizer.js';
 import {getSportsDataConfig,validateSportsResearchEvidence} from '../lib/sports-data-registry.js';
 // Historical game boxscore adapter; sourced from ESPN, not sportsbook offers.
 const ROUTES={NBA:'basketball/nba',NFL:'football/nfl',MLB:'baseball/mlb'};
@@ -25,7 +26,8 @@ export default async function handler(req,res){
   // ESPN NBA uses per-team statistics; NFL uses category groupings.
   // Normalize both without assuming a particular league's display shape.
   if(!records.length)return res.status(404).json({ok:false,error:'PLAYER_STATS_NOT_AVAILABLE',league,gameId});
-  return res.status(200).json({ok:true,league,gameId,source:'espn',records,
+  const normalized=records.map(record=>normalizePlayerBoxscoreRecord({...record,league}));
+  return res.status(200).json({ok:true,league,gameId,source:'espn',records:normalized,
    validation:validateSportsResearchEvidence(league,{source:'espn',
     observedAt:new Date().toISOString(),records}),sportsbookVerified:false});
  }catch(e){return res.status(503).json({ok:false,league,gameId,error:'BOXSCORE_SOURCE_UNAVAILABLE',
