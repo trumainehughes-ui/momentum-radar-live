@@ -1,1 +1,2 @@
 nba_api>=1.10,<2
+sportsdataverse==0.2.0b1
