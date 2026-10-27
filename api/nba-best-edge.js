@@ -80,6 +80,8 @@ export default async function handler(req,res){
     sampleSource:p.sampleSource||null,historicalSeason:p.historicalSeason||null,starterVerified:p.starterVerified===true,
     snapshotModelVersion:g.snapshotModelVersion,snapshotCheckedAt:g.snapshotCheckedAt,
     snapshotCurrentVersion:g.snapshotModelVersion==='v15-preserve-newest-ten-player-history',
+    starterEvidenceStatus:p.starterVerified===true?'CONFIRMED':'UNCONFIRMED',
+    historyGamesAvailable:Array.isArray(p.historicalValues)?p.historicalValues.length:0,
     matchupLiftPercent:Number(p.baseProjection)>0?
      Math.round((Number(p.projection)/Number(p.baseProjection)-1)*1000)/10:null,
     marketVerified:false,modelOnly:true,
