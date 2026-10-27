@@ -22,6 +22,8 @@ export default async function handler(req,res){
     statLabels:group.labels||[],stats:entry.stats||[]
    }))
   ));
+  // ESPN NBA uses per-team statistics; NFL uses category groupings.
+  // Normalize both without assuming a particular league's display shape.
   if(!records.length)return res.status(404).json({ok:false,error:'PLAYER_STATS_NOT_AVAILABLE',league,gameId});
   return res.status(200).json({ok:true,league,gameId,source:'espn',records,
    validation:validateSportsResearchEvidence(league,{source:'espn',
