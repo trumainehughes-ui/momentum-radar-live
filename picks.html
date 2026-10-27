@@ -643,7 +643,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
      return '<li class="sgp-leg"><div class="sgp-leg-name">'+esc(l.player)+'</div>'+
       '<div class="sgp-leg-selection"><span>'+esc(pick.label)+'</span><strong>'+
        esc(pick.target)+'</strong></div></li>';
-    }).join('')+'</ol></section>').join('')+'</div>':
+    }).join('')+'</ol></section>').join('')+'</div>').join('')+'</div>':
    '<div class="sgp-auto-check" role="status">'+
      'SGP selections are being refreshed for this matchup. '+
      'Current player eligibility is reviewed separately. A verified DraftKings or FanDuel combined price is required before a playable parlay appears.'+
@@ -1343,7 +1343,8 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    const games=Array.isArray(report.qualifyingGames)?report.qualifyingGames:[];
    const rows=Array.isArray(report.legs)?report.legs:[];
    const research=Array.isArray(report.research)?report.research:[];
-   const qualified=rows.length===4&&report.status==='RESEARCH_CANDIDATE';
+   const slips=(Array.isArray(report.parlays)?report.parlays:[]).filter(s=>s.status==='RESEARCH_CANDIDATE'&&Array.isArray(s.legs)&&s.legs.length===4&&new Set(s.legs.map(p=>String(p.playerId))).size===4);
+   const qualified=slips.length>0;
    const reasonText={
     INSUFFICIENT_70_PERCENT_NON_CONFLICTING_PROPS:'Not enough eligible player props passed the recent-performance, starter, and live sportsbook checks.',
     FEWER_THAN_TWO_COMPETITIVE_HIGH_TOTAL_GAMES:'No verified Edge Hunter parlay is ready for this slate yet.',
@@ -1373,12 +1374,12 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    target.innerHTML='<div style="display:grid;gap:12px;min-width:0;max-width:100%;overflow-wrap:anywhere">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'+
     '<strong style="font-size:1.08rem">🎯 Edge Hunter</strong>'+
-    '<span style="border:1px solid #456477;border-radius:999px;padding:4px 10px;font-size:.78rem;color:#d2e1e9">'+(qualified?'Four candidates':'Verification pending')+'</span></div>'+
-    (qualified?'<p class="sub" style="margin:0">Two games · two legs per game · four verified individual markets. Combined sportsbook odds are not confirmed.</p>'+
-     '<div style="display:grid;gap:12px;min-width:0">'+games.map((g,i)=>
+    '<span style="border:1px solid #456477;border-radius:999px;padding:4px 10px;font-size:.78rem;color:#d2e1e9">'+(qualified?slips.length+' four-leg parlay'+(slips.length===1?'':'s'):'Verification pending')+'</span></div>'+
+    (qualified?'<p class="sub" style="margin:0">Each Edge Hunter parlay contains exactly four different players, chosen from two games. Combined sportsbook odds are not confirmed.</p>'+
+     '<div style="display:grid;gap:14px;min-width:0">'+slips.map((slip,slipIndex)=>'<div style="display:grid;gap:10px;min-width:0"><strong>4-Leg Parlay '+(slipIndex+1)+'</strong>'+slip.qualifyingGames.map((g,i)=>
       '<section style="border:1px solid #315566;border-radius:14px;padding:12px;display:grid;gap:10px;min-width:0">'+
       '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong>🏀 Game '+(i+1)+'</strong><span class="sub">Total '+esc(g.total)+' · Spread '+esc(g.spread)+'</span></div>'+
-      rows.filter(p=>String(p.gameId)===String(g.gameId)).map(p=>
+      slip.legs.filter(p=>String(p.gameId)===String(g.gameId)).map(p=>
        '<div style="border-top:1px solid #294657;padding-top:10px;min-width:0;overflow-wrap:anywhere">'+
        '<strong>'+esc(p.name)+'</strong><div style="margin-top:4px">Over '+esc(p.target)+' '+esc(nbaNames[p.category]||p.category)+'</div>'+
        '<p class="sub" style="margin:5px 0 0;font-size:.87rem">Projected '+esc(p.projection)+' · Advantage +'+esc(p.edgePct)+'% · Hit '+esc(p.hitsLastTen)+'/10</p>'+
