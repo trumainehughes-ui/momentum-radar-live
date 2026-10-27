@@ -301,19 +301,19 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   playerProjections:crossCheckedProjections.map(p=>({
    ...p,starterVerified:starterMatch(p),
    starterStatus:starterMatch(p)?'CONFIRMED_STARTER':'UNCONFIRMED',
-   starterSource:starterMatch(p)?'ESPN_CORE_GAME_ROSTER_STARTER_FLAG':null})),
+   starterSource:starterMatch(p)?selectedStarters.source:null})),
   sgps:(evidence.sgps||[]).map(card=>{
    const legs=nbaCrossCheckProjections(card.legs||[],nbaComPlayerLogs).map(p=>({
     ...p,starterVerified:starterMatch(p),
     starterStatus:starterMatch(p)?'CONFIRMED_STARTER':'UNCONFIRMED',
-    starterSource:starterMatch(p)?'ESPN_CORE_GAME_ROSTER_STARTER_FLAG':null}));
+    starterSource:starterMatch(p)?selectedStarters.source:null}));
    const startersReady=selectedStarters.startersConfirmed===true&&
     legs.length>0&&legs.every(p=>p.starterVerified===true);
    return {...card,legs,
     status:card.status==='MODEL_CANDIDATE'&&selectedStarters.checked===true&&!startersReady?'NOT_READY':card.status,
     publishable:false,
     starterVerificationStatus:startersReady?'GAME_SCOPED_STARTERS_CONFIRMED':'UNCONFIRMED',
-    reason:card.status==='MODEL_CANDIDATE'&&eventStarters.checked===true&&!startersReady?
+    reason:card.status==='MODEL_CANDIDATE'&&selectedStarters.checked===true&&!startersReady?
      'Held: not every player is verified as a starter for this specific NBA game.':card.reason};
   }),
   starterEvidence:{checked:selectedStarters.checked,
