@@ -21,6 +21,19 @@ def payload(query):
     if action == "scoreboard":
         games = scoreboard.ScoreBoard().games.get_dict()
         return {"ok": True, "source": "nba_api", "asOf": datetime.now(timezone.utc).isoformat(), "games": games, "sportsbookVerified": False}
+    if action == "player-name-log":
+        from nba_api.stats.endpoints import playergamelog
+        name = query.get("name", [""])[0].strip()
+        season = query.get("season", [""])[0]
+        if not name or len(name) > 80 or not (len(season) == 7 and season[4] == "-" and season[:4].isdigit() and season[5:].isdigit()):
+            raise ValueError("Valid name and YYYY-YY season required")
+        matches = [p for p in players.find_players_by_full_name(name) if p.get("full_name", "").casefold() == name.casefold()]
+        if len(matches) != 1:
+            return {"ok": False, "error": "ambiguous_or_unknown_player", "matches": len(matches)}
+        pid = matches[0]["id"]
+        result = playergamelog.PlayerGameLog(player_id=pid, season=season, timeout=12)
+        rows = result.player_game_log.get_data_frame().head(10).to_dict(orient="records")
+        return {"ok": True, "source": "nba_api", "playerId": pid, "name": name, "season": season, "recentGames": rows, "sportsbookVerified": False}
     if action == "player-log":
         from nba_api.stats.endpoints import playergamelog
         pid = query.get("playerId", [""])[0]
