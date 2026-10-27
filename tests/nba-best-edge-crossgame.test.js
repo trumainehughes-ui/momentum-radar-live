@@ -27,3 +27,13 @@ test('NBA Edge Hunter rejects fabricated markets even with starter and history f
  assert.deepEqual(result.legs,[]);
  assert.ok(result.diagnostics.marketRejected>0);
 });
+
+
+test('NBA Edge Hunter refuses scheduled games with no player projections',()=>{
+ const now=Date.now();
+ const games=[1,2].map(i=>({gameId:String(i),status:'SCHEDULED',kickoff:new Date(now+3600000).toISOString(),total:240,spread:1,playerProjections:[]}));
+ const result=nbaBestEdgeParlay(games,{now});
+ assert.equal(result.status,'NO_QUALIFYING_PARLAY');
+ assert.equal(result.reason,'FEWER_THAN_TWO_COMPETITIVE_HIGH_TOTAL_GAMES');
+ assert.deepEqual(result.legs,[]);
+});
