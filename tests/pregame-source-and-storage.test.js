@@ -10,6 +10,12 @@ import {pregameReadiness} from '../api/pregame-readiness.js';
 const game={gameId:'401810101',home:{id:'2',abbr:'BOS'},away:{id:'16',abbr:'MIA'},
  seasonYear:2027,seasonType:1,stage:'PRESEASON',status:'SCHEDULED',
  kickoff:'2026-10-12T00:30:00Z'};
+const withoutBlobCredentials=()=>{
+ const keys=['BLOB_READ_WRITE_TOKEN','BLOB_STORE_ID','VERCEL_OIDC_TOKEN'];
+ const saved=Object.fromEntries(keys.map(k=>[k,process.env[k]]));
+ for(const key of keys)delete process.env[key];
+ return ()=>{for(const key of keys){if(saved[key]===undefined)delete process.env[key];else process.env[key]=saved[key];}};
+};
 const response=()=>({setHeader(){return this},status(n){this.code=n;return this},
  json(x){this.data=x;return this}});
 test('NBA historical schedule requests use ESPN season and season type (preseason vs regular season)',()=>{
@@ -62,9 +68,8 @@ test('cached pregame model version is invalidated to rebuild corrected season-aw
  assert.ok(NBA_PREGAME_MODEL_VERSION==='v14-labeled-opening-week-historical-research');
 });
 test('untrusted public cron queries are rejected for NFL and NBA, without triggering paid market or other calls',async()=>{
- const oldCron=process.env.CRON_SECRET,oldStorage=process.env.BLOB_READ_WRITE_TOKEN;
+ const oldCron=process.env.CRON_SECRET,restoreBlob=withoutBlobCredentials();
  process.env.CRON_SECRET='regression-secret';
- delete process.env.BLOB_READ_WRITE_TOKEN;
  const oldFetch=globalThis.fetch;let called=0;
  globalThis.fetch=async()=>{called++;throw Error('should never fetch upstream')};
  try{
@@ -83,15 +88,14 @@ test('untrusted public cron queries are rejected for NFL and NBA, without trigge
  }finally{
   globalThis.fetch=oldFetch;
   if(oldCron===undefined)delete process.env.CRON_SECRET;else process.env.CRON_SECRET=oldCron;
-  if(oldStorage===undefined)delete process.env.BLOB_READ_WRITE_TOKEN;else process.env.BLOB_READ_WRITE_TOKEN=oldStorage;
+  restoreBlob();
  }
 });
 test('BDL free cron will not use scarce free requests when Blob storage is disconnected',async()=>{
  const oldCron=process.env.CRON_SECRET,oldApi=process.env.BALLDONTLIE_API_KEY,
- oldBlob=process.env.BLOB_READ_WRITE_TOKEN;
+ restoreBlob=withoutBlobCredentials();
  process.env.CRON_SECRET='test-cron';
  process.env.BALLDONTLIE_API_KEY='dummy-key';
- delete process.env.BLOB_READ_WRITE_TOKEN;
  try{
   const res=response();await bdlCron({method:'GET',
    headers:{authorization:'Bearer test-cron'}},res);
@@ -100,7 +104,7 @@ test('BDL free cron will not use scarce free requests when Blob storage is disco
  }finally{
   if(oldCron===undefined)delete process.env.CRON_SECRET;else process.env.CRON_SECRET=oldCron;
   if(oldApi===undefined)delete process.env.BALLDONTLIE_API_KEY;else process.env.BALLDONTLIE_API_KEY=oldApi;
-  if(oldBlob===undefined)delete process.env.BLOB_READ_WRITE_TOKEN;else process.env.BLOB_READ_WRITE_TOKEN=oldBlob;
+  restoreBlob();
  }
 });
 test('public operational readiness exposes no secrets, only configuration and next steps',()=>{
