@@ -253,6 +253,10 @@ test('actual Nash event participant codes match ESPN abbreviations without self-
  const matches=draftKingsNashEspnEventCandidates([nash],[espn]);
  assert.equal(matches.length,1);
  assert.equal(matches[0].confirmed,false);
+ assert.deepEqual(draftKingsNashEspnEventCandidates([nash],[{...espn,competitions:[{competitors:[
+  {homeAway:'home',team:{abbreviation:'CAR'}},{homeAway:'away',team:{abbreviation:'GB'}}]}]}]),[]);
+ assert.deepEqual(draftKingsNashEspnEventCandidates([{...nash,status:'STARTED'}],[espn]),[]);
+ assert.deepEqual(draftKingsNashEspnEventCandidates([nash],[{...espn,status:{type:{name:'STATUS_FINAL'}}}]),[]);
  assert.deepEqual(draftKingsNashEspnEventCandidates([{...nash,participants:[{type:'Team',metadata:{shortName:'GB'}}]}],[espn]),[]);
  assert.deepEqual(draftKingsNashEspnEventCandidates([nash],[{...espn,date:new Date(Date.now()+2*86400000).toISOString()}]),[]);
  assert.deepEqual(draftKingsNashEspnEventCandidates([nash],[espn,{...espn,id:'401123457'}]),[]);
