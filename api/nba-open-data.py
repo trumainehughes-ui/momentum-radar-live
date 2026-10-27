@@ -31,8 +31,11 @@ def payload(query):
         if len(matches) != 1:
             return {"ok": False, "error": "ambiguous_or_unknown_player", "matches": len(matches)}
         pid = matches[0]["id"]
-        result = playergamelog.PlayerGameLog(player_id=pid, season=season, timeout=12)
-        rows = result.player_game_log.get_data_frame().head(10).to_dict(orient="records")
+        try:
+            result = playergamelog.PlayerGameLog(player_id=pid, season=season, timeout=8)
+            rows = result.player_game_log.get_data_frame().head(10).to_dict(orient="records")
+        except Exception:
+            return {"ok": False, "source": "nba_api", "error": "nba_stats_upstream_unavailable", "playerId": pid, "name": name, "season": season, "recentGames": [], "sportsbookVerified": False}
         return {"ok": True, "source": "nba_api", "playerId": pid, "name": name, "season": season, "recentGames": rows, "sportsbookVerified": False}
     if action == "player-log":
         from nba_api.stats.endpoints import playergamelog
@@ -42,8 +45,11 @@ def payload(query):
             raise ValueError("Valid playerId is required")
         if not (len(season) == 7 and season[4] == "-" and season[:4].isdigit() and season[5:].isdigit()):
             raise ValueError("Season must be YYYY-YY")
-        result = playergamelog.PlayerGameLog(player_id=int(pid), season=season, timeout=12)
-        rows = result.player_game_log.get_data_frame().head(10).to_dict(orient="records")
+        try:
+            result = playergamelog.PlayerGameLog(player_id=int(pid), season=season, timeout=8)
+            rows = result.player_game_log.get_data_frame().head(10).to_dict(orient="records")
+        except Exception:
+            return {"ok": False, "source": "nba_api", "error": "nba_stats_upstream_unavailable", "playerId": pid, "season": season, "recentGames": [], "sportsbookVerified": False}
         return {"ok": True, "source": "nba_api", "playerId": pid, "season": season, "recentGames": rows, "sportsbookVerified": False}
     raise ValueError("Unknown action")
 
