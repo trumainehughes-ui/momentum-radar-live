@@ -1,0 +1,32 @@
+name: DraftKings Nash Live Smoke Check
+on:
+  workflow_dispatch:
+    inputs:
+      league_id:
+        description: 'Current DraftKings league numeric ID'
+        required: true
+        default: '88808'
+      category_id:
+        description: 'Current DraftKings player-prop category numeric ID (not a historical example)'
+        required: true
+      subcategory_id:
+        description: 'Optional current numeric subcategory ID'
+        required: false
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Probe live first-party category
+        env:
+          LEAGUE_ID: ${{ inputs.league_id }}
+          CATEGORY_ID: ${{ inputs.category_id }}
+          SUBCATEGORY_ID: ${{ inputs.subcategory_id }}
+        run: |
+          node scripts/check-draftkings-nash.mjs "$LEAGUE_ID" "$CATEGORY_ID" "$SUBCATEGORY_ID"
