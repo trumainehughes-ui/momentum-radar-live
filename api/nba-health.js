@@ -216,7 +216,29 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   }));
   nbaComPlayerLogs.push(...results.filter(Boolean));
  }
- const result={...evidence,nbaComEvidence,nbaComPlayerLogs,
+ // NBA.com live box scores provide player-level evidence even when the
+ // historical stats.nba.com service blocks serverless IPs.
+ const nbaComBoxScore={status:'UNAVAILABLE',source:'nba_api_live',players:[]};
+ if(nbaComEvidence.gameId&&process.env.VERCEL_URL){
+  try{
+   const url='https://'+process.env.VERCEL_URL+'/api/nba-open-data?'+
+    new URLSearchParams({action:'boxscore',gameId:String(nbaComEvidence.gameId)});
+   const d=await fetchJson(url,4500);
+   if(d.ok&&d.game){
+    nbaComBoxScore.status='CONNECTED';
+    nbaComBoxScore.gameId=d.gameId;
+    nbaComBoxScore.gameStatus=d.game.gameStatus??null;
+    nbaComBoxScore.players=[...(d.game.homeTeam?.players||[]),
+     ...(d.game.awayTeam?.players||[])].map(p=>({
+      name:p.name||p.firstName+' '+p.familyName,personId:p.personId,
+      played:p.played??null,starter:p.starter??null,
+      points:p.statistics?.points??null,rebounds:p.statistics?.reboundsTotal??null,
+      assists:p.statistics?.assists??null,threes:p.statistics?.threePointersMade??null,
+      minutes:p.statistics?.minutes??null}));
+   }
+  }catch{ /* Keep ESPN data intact when NBA.com is unavailable. */ }
+ }
+ const result={...evidence,nbaComEvidence,nbaComBoxScore,nbaComPlayerLogs,
   nbaComCrossCheckedAt:new Date(now).toISOString(),
   playerProjections:nbaCrossCheckProjections(evidence.playerProjections||[],nbaComPlayerLogs).map(p=>({
    ...p,starterVerified:starterMatch(p),
