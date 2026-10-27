@@ -154,7 +154,7 @@ test('aggregate handoff rejects incomplete coverage even when one category has g
   player:'Example Player',marketName:'Passing Yards O/U',outcome:'over',line:225.5,
   americanOdds:-110,fetchedAt:new Date(now).toISOString(),
   sourceUrl:'https://sportsbook-nash.draftkings.com/api/sportscontent/dkusoh/v1/leagues/88808/categories/1000/subcategories/9524',
-  verifiedSGPQuote:false};
+  verifiedSGPQuote:false,stat:'passing_yards'};
  const categories=['passing_yards','receiving_yards','rushing_yards','receptions'].map(stat=>({stat,ok:true}));
  const validators={isActiveStarter:()=>true,isCurrentGame:()=>true,now};
  const complete={ok:true,complete:true,categories,selections:[prop]};
@@ -172,7 +172,7 @@ test('independent evidence gate requires event ID, future kickoff and confirmed 
   player:'Jordan Love',marketName:'Passing Yards O/U',outcome:'over',line:215.5,
   americanOdds:-113,fetchedAt:new Date(now).toISOString(),
   sourceUrl:'https://sportsbook-nash.draftkings.com/api/sportscontent/dkusoh/v1/leagues/88808/categories/1000/subcategories/9524',
-  verifiedSGPQuote:false};
+  verifiedSGPQuote:false,stat:'passing_yards'};
  const categories=['passing_yards','receiving_yards','rushing_yards','receptions'].map(stat=>({stat,ok:true}));
  const snapshot={ok:true,complete:true,categories,selections:[prop]};
  const game={confirmed:true,scheduled:true,draftKingsEventId:eventId,kickoff:new Date(now+86400000).toISOString()};
@@ -183,4 +183,15 @@ test('independent evidence gate requires event ID, future kickoff and confirmed 
  assert.deepEqual(eligibleDraftKingsWithEvidence(snapshot,{games:[game],players:[{...player,active:false}],now}),[]);
  assert.deepEqual(eligibleDraftKingsWithEvidence(snapshot,{games:[game],players:[{...player,confirmed:false}],now}),[]);
  assert.deepEqual(eligibleDraftKingsWithEvidence(snapshot,{games:[game],players:[{...player,draftKingsEventId:'other'}],now}),[]);
+});
+
+test('category handoff rejects duplicate, missing and invented category identities',async()=>{
+ const {eligibleDraftKingsNflPlayerProps}=await import('../lib/draftkings-nash-feed.js');
+ const stats=['passing_yards','receiving_yards','rushing_yards','receptions'];
+ const categories=stats.map(stat=>({stat,ok:true}));
+ const snapshot={ok:true,complete:true,categories,selections:[]};
+ const gate={isActiveStarter:()=>true,isCurrentGame:()=>true};
+ assert.deepEqual(eligibleDraftKingsNflPlayerProps(snapshot,gate),[]);
+ assert.deepEqual(eligibleDraftKingsNflPlayerProps({...snapshot,categories:[categories[0],categories[0],categories[2],categories[3]]},gate),[]);
+ assert.deepEqual(eligibleDraftKingsNflPlayerProps({...snapshot,categories:[categories[0],{stat:'made_up',ok:true},categories[2],categories[3]]},gate),[]);
 });
