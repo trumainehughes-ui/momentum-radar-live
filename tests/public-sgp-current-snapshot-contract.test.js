@@ -28,6 +28,7 @@ const tier=(risk,n)=>({risk,mode:'MODEL_RESEARCH',
 const snapshot=(extra={})=>({ok:true,date:'2026-10-18',gameId:'401872999',
  status:'CURRENT',updatedAt:now,updatedDataCurrent:true,home:'ATL',away:'CHI',
  modelResearchTiers:[tier('Small',4),tier('Medium',5),tier('Nuke',5)],
+ inactivesVerified:true,finalRosterCheck:{ready:true},
  verifiedBookParlays:[],...extra});
 function render(d){
  const context={state:{date:'2026-10-18',selected:'401872999',currentBookSgpModel:null},
