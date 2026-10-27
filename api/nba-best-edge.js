@@ -49,6 +49,17 @@ export default async function handler(req,res){
    starterEvidenceReasons:[...new Set(games.map(g=>g.starterEvidence?.reason||'UNAVAILABLE'))].slice(0,6),
    starterEvidenceTeamReasons:games.flatMap(g=>Object.entries(g.starterEvidence?.teamReasons||{}).map(([team,reason])=>({gameId:g.gameId,team,reason,
     rowCounts:g.starterEvidence?.teamRowDiagnostics?.[team]||null}))).slice(0,24)};
+  // Report every independent readiness blocker instead of implying that
+  // confirming starters alone would make a sportsbook parlay playable.
+  const readinessBlockers=[];
+  if(snapshotHealth.gamesWithConfirmedStarters<2||snapshotHealth.playersWithConfirmedStarterFlag<4)
+   readinessBlockers.push('GAME_SCOPED_STARTERS_NOT_CONFIRMED');
+  if(snapshotHealth.playersWithTenGameHistory<4)
+   readinessBlockers.push('TEN_GAME_PLAYER_HISTORY_MISSING');
+  if(snapshotHealth.playersWithSourcedMarketPairs<4)
+   readinessBlockers.push('TWO_FRESH_VERIFIED_BOOK_OFFERS_PER_PLAYER_MISSING');
+  if(snapshotHealth.gamesWithInjuryChecks<2)
+   readinessBlockers.push('PREGAME_INJURY_CHECKS_MISSING');
   const aiMatchupReviews=games.filter(g=>g.aiReviewStatus==='REVIEWED'&&g.aiReviewSummary)
    .map(g=>({gameId:g.gameId,homeTeam:g.homeTeam,awayTeam:g.awayTeam,
     checkedAt:g.aiReviewCheckedAt,summary:g.aiReviewSummary,advisoryOnly:true}));
@@ -72,7 +83,7 @@ export default async function handler(req,res){
     return current(b)-current(a)||lift(b)-lift(a)||b.sampleGames-a.sampleGames;
    }).slice(0,500);
   return res.status(200).json({ok:true,...result,date,checkedAt:new Date().toISOString(),
-   gamesInspected:games.length,snapshotHealth,aiMatchupReviews,research,disclaimer:'Only confirmed starters with two fresh, independently sourced active sportsbook lines qualify. No offers are invented; missing sportsbook data blocks selections.'});
+   gamesInspected:games.length,snapshotHealth,readinessBlockers,aiMatchupReviews,research,disclaimer:'Only confirmed starters with two fresh, independently sourced active sportsbook lines qualify. No offers are invented; missing sportsbook data blocks selections.'});
  }catch(e){
   console.error('nba_edge_screening_failed',String(e?.message||e).slice(0,160));
   return res.status(200).json({ok:true,status:'NO_QUALIFYING_PARLAY',legs:[],
