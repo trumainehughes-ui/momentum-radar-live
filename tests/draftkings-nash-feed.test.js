@@ -112,3 +112,37 @@ test('malformed null selections in an otherwise valid feed fail closed',async()=
  assert.equal(eligible.length,1);
  assert.equal(eligible[0].selectionId,'selection1');
 });
+
+test('NFL catalog aggregates four verified first-party categories without claiming SGP quotes',async()=>{
+ const {fetchDraftKingsNflPlayerProps,DK_NFL_PLAYER_PROP_CATEGORIES}=await import('../lib/draftkings-nash-feed.js');
+ assert.equal(DK_NFL_PLAYER_PROP_CATEGORIES.length,4);
+ const seen=[];
+ const feed=await fetchDraftKingsNflPlayerProps({fetchImpl:async url=>{
+  seen.push(url);
+  return {ok:true,headers:{get:()=>null},json:async()=>({
+   events:[{id:'event1',name:'Game'}],
+   markets:[{id:'market1',eventId:'event1',name:'Example Player Passing Yards O/U'}],
+   selections:[{id:'sel1',marketId:'market1',label:'Over',points:200.5,
+    playerName:'Example Player',displayOdds:{american:'−110'}}]
+  })};
+ }});
+ assert.equal(seen.length,4);
+ assert.equal(feed.ok,true);
+ assert.equal(feed.complete,true);
+ assert.equal(feed.categories.length,4);
+ assert.equal(feed.selections.length,4);
+ assert.equal(feed.verifiedSGPQuote,false);
+ assert.equal(feed.selections[0].stat,'passing_yards');
+});
+test('NFL catalog reports incomplete coverage rather than silently treating partial books as complete',async()=>{
+ const {fetchDraftKingsNflPlayerProps}=await import('../lib/draftkings-nash-feed.js');
+ const feed=await fetchDraftKingsNflPlayerProps({fetchImpl:async url=>({
+  ok:!url.includes('/categories/1001/'),
+  headers:{get:()=>null},
+  json:async()=>({events:[],markets:[]})
+ })});
+ assert.equal(feed.ok,false);
+ assert.equal(feed.complete,false);
+ assert.equal(feed.categories.length,4);
+ assert.equal(feed.verifiedSGPQuote,false);
+});
