@@ -157,11 +157,13 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
  // Supplement ESPN evidence with NBA.com live scoreboard when the optional
  // nba_api adapter is reachable. Never block snapshot generation on it.
  let nbaComEvidence={status:'UNAVAILABLE',source:'nba_api',sportsbookVerified:false};
+ let nbaComVerifiedCompletedGames=[];
  try{
   const origin=process.env.VERCEL_URL?'https://'+process.env.VERCEL_URL:null;
   if(origin){
    const nbaFeed=await fetchJson(origin+'/api/nba-open-data?action=scoreboard',4500);
    const games=Array.isArray(nbaFeed?.games)?nbaFeed.games:[];
+   nbaComVerifiedCompletedGames=games.filter(g=>Number(g.gameStatus)===3&&/^\\d{10}$/.test(String(g.gameId))&&Date.parse(g.gameTimeUTC)<Date.parse(game.kickoff));
    const match=games.find(x=>{
     const home=String(x?.homeTeam?.teamTricode||'').toUpperCase();
     const away=String(x?.awayTeam?.teamTricode||'').toUpperCase();
@@ -216,8 +218,14 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
     const team=String(projection?.team||'').toUpperCase();
     if(!/^[A-Z]{3}$/.test(team))return null;
     const origin='https://'+process.env.VERCEL_URL+'/api/nba-open-data?';
-    const query=new URLSearchParams({action:'recent-live-player-log',name,team,
-     before:tipoffDate.toISOString().slice(0,10)});
+    const verifiedIds=nbaComVerifiedCompletedGames.filter(g=>
+     [g.homeTeam?.teamTricode,g.awayTeam?.teamTricode].includes(team))
+     .map(g=>String(g.gameId)).slice(0,10);
+    const query=verifiedIds.length?
+     new URLSearchParams({action:'recent-live-player-log-by-games',name,team,
+      before:tipoffDate.toISOString().slice(0,10),gameIds:verifiedIds.join(',')}):
+     new URLSearchParams({action:'recent-live-player-log',name,team,
+      before:tipoffDate.toISOString().slice(0,10)});
     const d=await fetchJson(origin+query,9000);
     if(!d.ok||!Array.isArray(d.recentGames)||!d.recentGames.length)return null;
     const rows=d.recentGames.filter(x=>Date.parse(x.GAME_DATE)<Date.parse(game.kickoff));
