@@ -67,3 +67,9 @@ test('season-long DraftKings futures cannot masquerade as game-day player props'
  assert.equal(result.ok,true);
  assert.deepEqual(eligibleNashPlayerProps(result,{now:Date.parse(result.fetchedAt),isActiveStarter:()=>true}),[]);
 });
+
+test('starter verification exceptions fail closed without leaking unverified props',async()=>{
+ const result=await fetchDraftKingsNashSelections({...request,fetchImpl:async()=>({ok:true,json:async()=>feed})});
+ assert.equal(result.ok,true);
+ assert.deepEqual(eligibleNashPlayerProps(result,{now:Date.parse(result.fetchedAt),isActiveStarter:()=>{throw Error('injury service unavailable');}}),[]);
+});
