@@ -61,6 +61,6 @@ class handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Cache-Control", "s-maxage=60, stale-while-revalidate=120" if status == 200 else "no-store")
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("X-Content-Type-Options", "nosniff")
         self.end_headers()
         self.wfile.write(body)
