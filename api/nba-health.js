@@ -271,6 +271,9 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   livePlayerObservations:boxScoreObservations.length,
   historicalPlayerLogs:nbaComPlayerLogs.length,
   historicalSampleCount:nbaComPlayerLogs.reduce((sum,p)=>sum+(p.samples||0),0),
+  verifiedCompletedScoreboardGames:nbaComVerifiedCompletedGames.length,
+  historicalSampleCountsByPlayer:nbaComPlayerLogs.map(p=>({name:p.name,samples:p.samples})),
+  insufficientHistoricalSamples:nbaComPlayerLogs.filter(p=>p.samples<5).length,
   blendedProjectionCount:crossCheckedProjections.filter(p=>p.nbaComCrossCheck?.appliedToProjection===true).length,
   status:crossCheckedProjections.some(p=>p.nbaComCrossCheck?.appliedToProjection===true)?
    'NBA_COM_INFLUENCING_PROJECTIONS':'NBA_COM_BLEND_NOT_VERIFIED',
