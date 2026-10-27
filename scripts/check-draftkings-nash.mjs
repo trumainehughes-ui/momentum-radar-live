@@ -2,7 +2,8 @@ import {fetchDraftKingsNashSelections} from '../lib/draftkings-nash-feed.js';
 
 // Operator-only smoke check. IDs must be discovered from the current first-party
 // DraftKings sportsbook; historical example IDs are NOT player-prop defaults.
-const [leagueId,categoryId,subcategoryId]=process.argv.slice(2);
+const [leagueId,categoryId,rawSubcategoryId]=process.argv.slice(2);
+const subcategoryId=rawSubcategoryId?.trim()||undefined;
 if(!leagueId||!categoryId){
  console.error('Usage: node scripts/check-draftkings-nash.mjs LEAGUE_ID CATEGORY_ID [SUBCATEGORY_ID]');
  process.exitCode=2;
