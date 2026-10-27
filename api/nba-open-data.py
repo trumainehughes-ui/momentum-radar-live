@@ -30,6 +30,48 @@ def payload(query):
         return {"ok": True, "source": "nba_api_live", "gameId": game_id,
                 "asOf": datetime.now(timezone.utc).isoformat(),
                 "game": game, "sportsbookVerified": False}
+    if action == "recent-live-player-log":
+        # Official NBA schedule + nba_api live box scores: avoids stats.nba.com.
+        from urllib.request import urlopen, Request
+        from nba_api.live.nba.endpoints import boxscore
+        name = query.get("name", [""])[0].strip()
+        team = query.get("team", [""])[0].strip().upper()
+        before = query.get("before", [""])[0].strip()
+        if not name or len(name) > 80 or not (len(team) == 3 and team.isalpha()):
+            raise ValueError("Player name and three-letter team code required")
+        if len(before) != 10 or before[4] != "-" or before[7] != "-":
+            raise ValueError("before must be YYYY-MM-DD")
+        url = "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json"
+        req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urlopen(req, timeout=5) as response:
+            schedule = json.load(response)
+        games = [g for day in schedule.get("leagueSchedule", {}).get("gameDates", [])
+                 for g in day.get("games", [])
+                 if str(g.get("gameDateEst", ""))[:10] < before
+                 and int(g.get("gameStatus", 0)) == 3
+                 and team in (g.get("homeTeam", {}).get("teamTricode"),
+                              g.get("awayTeam", {}).get("teamTricode"))]
+        games.sort(key=lambda g: g.get("gameDateTimeUTC", ""), reverse=True)
+        rows = []
+        for game in games[:10]:
+            try:
+                detail = boxscore.BoxScore(game_id=str(game["gameId"])).game.get_dict()
+                side = detail.get("homeTeam", {}) if detail.get("homeTeam", {}).get("teamTricode") == team else detail.get("awayTeam", {})
+                for player in side.get("players", []):
+                    if str(player.get("name", "")).casefold() != name.casefold():
+                        continue
+                    stats = player.get("statistics", {})
+                    if not stats or not stats.get("minutes"):
+                        continue
+                    rows.append({"GAME_DATE":str(game.get("gameDateTimeUTC", ""))[:10],
+                                 "PTS":stats.get("points"), "REB":stats.get("reboundsTotal"),
+                                 "AST":stats.get("assists"), "FG3M":stats.get("threePointersMade"),
+                                 "MIN":stats.get("minutes"), "gameId":game["gameId"]})
+            except Exception:
+                continue
+        return {"ok":bool(rows), "source":"nba_api_live", "name":name,
+                "team":team, "recentGames":rows[:10], "samples":len(rows),
+                "sportsbookVerified":False}
     if action == "player-name-log":
         from nba_api.stats.endpoints import playergamelog
         name = query.get("name", [""])[0].strip()
