@@ -27,3 +27,11 @@ test('NBA early-season baseline requests up to twenty prior-season games per tea
  assert.ok(model.includes('nbaCompletedTeamGames(x,game.kickoff,20)))].slice(0,40)'));
  assert.ok(model.includes("sampleSource='PRIOR_SEASON'"));
 });
+
+test('NBA recent form is ordered by scheduled game dates, not fetch order',()=>{
+ const model=readFileSync(new URL('../lib/nba-pregame-model.js',import.meta.url),'utf8');
+ assert.ok(model.includes('const games=[...p.games.values()].sort('));
+ assert.ok(model.includes('Date.parse(b.gameDate)'));
+ assert.ok(model.includes('eventDates.get(String(h.gameId))'));
+ assert.ok(model.includes('evidenceSchedules=previous'));
+});
