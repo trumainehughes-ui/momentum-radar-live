@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import handler from '../api/ai-analysis.js';
 const originalKey=process.env.GROQ_API_KEY;
+const originalBackupKey=process.env.OPENROUTER_API_KEY;
+delete process.env.OPENROUTER_API_KEY;
 const originalFetch=globalThis.fetch;
 // Each independent test simulates a different caller so regression growth does not consume
 // the production per-client hourly limiter. Repeated requests for the same game remain one caller.
@@ -149,4 +151,4 @@ test('provider 413 token capacity limit is translated to a retry signal',async()
  assert.equal(res.body.error,'ai_capacity_limited');
  assert.ok(res.body.retryAfterSeconds>=60);
 });
-test.after(()=>{globalThis.fetch=originalFetch;if(originalKey===undefined)delete process.env.GROQ_API_KEY;else process.env.GROQ_API_KEY=originalKey});
+test.after(()=>{if(originalBackupKey===undefined)delete process.env.OPENROUTER_API_KEY;else process.env.OPENROUTER_API_KEY=originalBackupKey;globalThis.fetch=originalFetch;if(originalKey===undefined)delete process.env.GROQ_API_KEY;else process.env.GROQ_API_KEY=originalKey});
