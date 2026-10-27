@@ -165,7 +165,11 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
    const match=games.find(x=>{
     const home=String(x?.homeTeam?.teamTricode||'').toUpperCase();
     const away=String(x?.awayTeam?.teamTricode||'').toUpperCase();
-    return home===game.home.abbr&&away===game.away.abbr;
+    const nbaDate=String(x?.gameTimeUTC||x?.gameDateTimeUTC||'');
+    const tipoff=Date.parse(game.kickoff);
+    const dateMatches=Number.isFinite(tipoff)&&Number.isFinite(Date.parse(nbaDate))&&
+     Math.abs(Date.parse(nbaDate)-tipoff)<18*60*60*1000;
+    return home===game.home.abbr&&away===game.away.abbr&&dateMatches;
    });
    nbaComEvidence={status:match?'MATCHED':'CONNECTED_NO_MATCH',source:'nba_api',
     checkedAt:nbaFeed.asOf||new Date(now).toISOString(),
