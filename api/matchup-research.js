@@ -15,6 +15,7 @@ function numericRows(box,league,gameId,gameDate){
      league,gameId,gameDate,gameStatus:'STATUS_FINAL',
      teamId:String(team.team?.id||''),teamName:team.team?.displayName,
      playerId:String(athlete.athlete?.id||''),playerName:athlete.athlete?.displayName,
+     position:athlete.athlete?.position?.abbreviation||null,
      category:group.name||group.displayName||null,
      statLabels:group.labels||[],stats:athlete.stats||[]
     }));
@@ -49,12 +50,14 @@ export default async function handler(req,res){
   const playerRows=fulfilled.flatMap(g=>g.rows.filter(r=>r.playerId===playerId&&(!category||r.category===category))
    .map(r=>({...r,category:stat, numericStats:{[stat]:r.numericStats[key]}}))
    .filter(r=>Number.isFinite(r.numericStats[stat]))));
+  const playerPosition=playerRows.find(r=>r.position)?.position||null;
   const allowanceRows=fulfilled.flatMap(g=>{
    const defenders=g.competitors.find(c=>String(c.team?.id)===opponentId);
    if(!defenders)return [];
    const offense=g.competitors.find(c=>String(c.team?.id)!==opponentId);
    if(!offense)return [];
-   const opponentPlayers=g.rows.filter(r=>r.teamId===String(offense.team?.id)&&(!category||r.category===category));
+   if(!playerPosition)return [];
+   const opponentPlayers=g.rows.filter(r=>r.teamId===String(offense.team?.id)&&r.position===playerPosition&&(!category||r.category===category));
    const sum=opponentPlayers.reduce((n,r)=>n+(Number.isFinite(r.numericStats[key])?r.numericStats[key]:0),0);
    if(!opponentPlayers.some(r=>Number.isFinite(r.numericStats[key])))return [];
    return [{defenseTeamId:opponentId,gameId:g.event.id,gameDate:g.event.date,
@@ -65,7 +68,7 @@ export default async function handler(req,res){
   const comparison=comparePlayerToDefense(player,defense,stat);
   return res.status(200).json({ok:true,league,playerId,opponentId,stat,
    player:player||null,defense:defense||null,comparison,
-   gamesExamined:fulfilled.length,upstreamFailures:failures,source:'espn',
-   sportsbookVerified:false,warning:'Historical descriptive evidence; not a projected stat, probability or sportsbook market'});
+   gamesExamined:fulfilled.length,upstreamFailures:failures,positionMatched:playerPosition,source:'espn',
+   sportsbookVerified:false,warning:'Position-matched historical opponent allowance, not a projected stat, probability or sportsbook market'});
  }catch(e){return res.status(503).json({ok:false,error:'MATCHUP_RESEARCH_UNAVAILABLE',detail:String(e.message).slice(0,90)});}
 }
