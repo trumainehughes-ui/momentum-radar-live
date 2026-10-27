@@ -43,7 +43,7 @@ const bookCard=(opts={})=>({book:'DraftKings',risk:'Small',mode:'VERIFIED_BOOK_S
  checkedAt:now,...(players[i][2]==='td'?{}:{line:players[i][3]})}})),...opts});
 test('current published NFL tier research remains clearly model-only and includes brief AI explanations',()=>{
  const out=render(snapshot());
- assert.equal((out.match(/researched legs/g)||[]).length,3);
+ assert.equal((out.match(/researched player projections/g)||[]).length,3);
  assert.match(out,/Starter Quarterback/);
  assert.match(out,/AI matchup and recent player usage/);
  assert.match(out,/NFL model research — not a sportsbook lineup/);
@@ -53,7 +53,7 @@ test('official attested same-game quote displays only within current snapshot an
  const out=render(snapshot({verifiedBookParlays:[bookCard()]}));
  assert.match(out,/DraftKings Same Game Parlays/);
  assert.match(out,/\+2500 combined/);
- assert.match(out,/Official game-day inactives are not final/);
+ assert.doesNotMatch(out,/Game-day roster verification incomplete/);
  const staleQuote=new Date(Date.now()-16*60*1000).toISOString();
  assert.doesNotMatch(render(snapshot({verifiedBookParlays:[bookCard({quotedAt:staleQuote})]})),/\+2500 combined/);
  const oldOffers=bookCard();oldOffers.legs[0].bookOffer.checkedAt=staleQuote;
