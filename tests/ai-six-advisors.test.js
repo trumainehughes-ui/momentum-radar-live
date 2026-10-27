@@ -115,8 +115,9 @@ test('postgame lab requires locked final; compares signed model errors only',()=
  assert.equal(a.canModifyModel,false);
 });
 test('Groq unavailable still returns auditable deterministic report to the six new modes',async()=>{
- const prior=process.env.GROQ_API_KEY;
+ const prior=process.env.GROQ_API_KEY,priorBackup=process.env.OPENROUTER_API_KEY;
  delete process.env.GROQ_API_KEY;
+ delete process.env.OPENROUTER_API_KEY;
  const req={method:'POST',body:{mode:'guardian',data:client},headers:{}},
  res={statusCode:200,setHeader(){return this},status(n){this.statusCode=n;return this},json(x){this.body=x;return this}};
  try{await handler(req,res);
@@ -124,5 +125,6 @@ test('Groq unavailable still returns auditable deterministic report to the six n
   assert.equal(res.body.aiAvailable,false);
   assert.equal(res.body.mechanics.mode,'guardian');
   assert.equal(res.body.mechanics.canChangePicks,false);
- }finally{if(prior!==undefined)process.env.GROQ_API_KEY=prior}
+ }finally{if(prior===undefined)delete process.env.GROQ_API_KEY;else process.env.GROQ_API_KEY=prior;
+  if(priorBackup===undefined)delete process.env.OPENROUTER_API_KEY;else process.env.OPENROUTER_API_KEY=priorBackup;}
 });
