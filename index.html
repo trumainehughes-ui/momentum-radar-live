@@ -340,8 +340,11 @@ function nflPublishedSgpParityHtml(parity){
      (ready?'This tier has insufficient screened research selections.':
       'Owner and public data could not be matched to the same saved snapshot. Refresh to retry.')+
      '</div></div>';
-   return '<div class="nflSgpMini" data-risk="'+nflEscape(risk)+'"><b>'+
-    nflEscape(risk)+' • MODEL RESEARCH</b><div class="meta">'+t.legs.length+
+   const legSignature=legs=>JSON.stringify((legs||[]).map(l=>[l.player,l.category,l.target??null,l.projection??null]));
+   const previous=tiers.filter(x=>['Small','Medium','Nuke'].indexOf(x?.risk)<['Small','Medium','Nuke'].indexOf(risk));
+   if(previous.some(x=>legSignature(x.legs)===legSignature(t.legs)))return '<div class="nflSgpMini" data-risk="'+nflEscape(risk)+'"><b>'+nflEscape(risk)+' • NOT READY</b><div class="note">Duplicate of a lower-risk tier. Independent betting thresholds and sportsbook verification are required before publication.</div></div>';
+   if(risk!=='Small'&&!t.legs.some(l=>l.target!=null||l.bookOffer?.target!=null))return '<div class="nflSgpMini" data-risk="'+nflEscape(risk)+'"><b>'+nflEscape(risk)+' • NOT READY</b><div class="note">Only player projections were supplied, not distinct selectable betting thresholds. Rebuild this tier before publication.</div></div>';
+   return '<div class="nflSgpMini" data-risk="'+nflEscape(risk)+'"><b>'+nflEscape(risk)+' • MODEL RESEARCH</b><div class="meta">'+t.legs.length+
     ' screened research legs • no confirmed combined sportsbook price</div>'+
     t.legs.map(l=>{
      const cat=String(l.category||'');
