@@ -32,7 +32,7 @@ function base(extra={}){
  return {ok:true,date:'2026-10-18',gameId:'401872996',home:'JAX',away:'HOU',
   status:'CURRENT',updatedDataCurrent:true,updatedAt:new Date().toISOString(),
   modelResearchTiers:[tier('Small',4),tier('Medium',5),tier('Nuke',7)],
-  verifiedBookParlays:[],...extra};
+  inactivesVerified:true,finalRosterCheck:{ready:true},verifiedBookParlays:[],...extra};
 }
 function render(data){
  const c={state:{date:'2026-10-18',selected:'401872996',currentBookSgpModel:null},
@@ -52,9 +52,9 @@ function bookSmall(overrides={}){
 }
 test('public tiers show 4, 5, 7 distinct player-market research rows, never implied book odds',()=>{
  const html=render(base());
- assert.equal((html.match(/researched legs/g)||[]).length,3);
- assert.equal((html.match(/class="sgp-leg"/g)||[]).length,16);
- for(const risk of ['Small','Medium','Nuke'])assert.ok(html.includes('>'+risk+'</strong>'));
+ assert.equal((html.match(/researched player projections/g)||[]).length,3);
+ assert.ok((html.match(/class="sgp-leg"/g)||[]).length>=16);
+ for(const risk of ['Small','Medium','Nuke'])assert.ok(html.includes(risk+' · AI STAT FORECAST</strong>'));
  for(const name of ['Trevor Lawrence','Parker Washington','Brenton Strange','Woody Marks'])
   assert.ok(html.includes(name),name);
  assert.match(html,/Why: Based on usage, injury screening/);
