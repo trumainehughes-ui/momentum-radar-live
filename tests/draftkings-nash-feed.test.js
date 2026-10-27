@@ -104,3 +104,11 @@ test('bounded streamed JSON still normalizes valid DraftKings selections',async(
  assert.equal(result.ok,true);
  assert.equal(result.selections[0].selectionId,'selection1');
 });
+
+test('malformed null selections in an otherwise valid feed fail closed',async()=>{
+ const result=await fetchDraftKingsNashSelections({...request,fetchImpl:async()=>({ok:true,json:async()=>feed})});
+ const corrupted={...result,selections:[null,...result.selections,undefined]};
+ const eligible=eligibleNashPlayerProps(corrupted,{now:Date.parse(result.fetchedAt),isCurrentGame:()=>true,isActiveStarter:()=>true});
+ assert.equal(eligible.length,1);
+ assert.equal(eligible[0].selectionId,'selection1');
+});
