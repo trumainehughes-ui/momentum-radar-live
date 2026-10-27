@@ -153,6 +153,26 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
     source:'ESPN-reported; official starter status pending'});
   }
  }
+ // Supplement ESPN evidence with NBA.com live scoreboard when the optional
+ // nba_api adapter is reachable. Never block snapshot generation on it.
+ let nbaComEvidence={status:'UNAVAILABLE',source:'nba_api',sportsbookVerified:false};
+ try{
+  const origin=process.env.VERCEL_URL?'https://'+process.env.VERCEL_URL:null;
+  if(origin){
+   const nbaFeed=await fetchJson(origin+'/api/nba-open-data?action=scoreboard',4500);
+   const games=Array.isArray(nbaFeed?.games)?nbaFeed.games:[];
+   const match=games.find(x=>{
+    const home=String(x?.homeTeam?.teamTricode||'').toUpperCase();
+    const away=String(x?.awayTeam?.teamTricode||'').toUpperCase();
+    return home===game.home.abbr&&away===game.away.abbr;
+   });
+   nbaComEvidence={status:match?'MATCHED':'CONNECTED_NO_MATCH',source:'nba_api',
+    checkedAt:nbaFeed.asOf||new Date(now).toISOString(),
+    gameId:match?.gameId||null,gameStatus:match?.gameStatus||null,
+    homeScore:match?.homeTeam?.score??null,awayScore:match?.awayTeam?.score??null,
+    sportsbookVerified:false};
+  }
+ }catch{ /* ESPN remains the authoritative fallback for this collector. */ }
  const evidence=await prepare({...game,injuries},{fetchJson});
  // Event-specific ESPN roster flags supplement historical game usage.
  // Do not mislabel them as official NBA inactives or sportsbook markets.
@@ -174,7 +194,7 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
  // Old SGP-only comparisons missed same-player prop changes, injury
  // designations and defense-vs-position movements. Fingerprint all of them
  // on each scheduled collection instead.
- const result={...evidence,
+ const result={...evidence,nbaComEvidence,
   playerProjections:(evidence.playerProjections||[]).map(p=>({
    ...p,starterVerified:starterMatch(p),
    starterStatus:starterMatch(p)?'CONFIRMED_STARTER':'UNCONFIRMED',
