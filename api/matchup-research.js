@@ -53,7 +53,10 @@ export default async function handler(req,res){
   const playerTeamIds=new Set(fulfilled.flatMap(g=>g.rows.filter(r=>r.playerId===playerId).map(r=>r.teamId)));
   if(playerTeamIds.has(opponentId))return res.status(400).json({ok:false,error:'OPPONENT_IS_PLAYER_TEAM'});
   const playerPosition=playerRows.find(r=>r.position)?.position||null;
+  const playerGameIds=new Set(playerRows.map(r=>String(r.gameId)));
   const allowanceRows=fulfilled.flatMap(g=>{
+   // Never use the player's own observation as an independent defensive baseline.
+   if(playerGameIds.has(String(g.event.id)))return [];
    const defenders=g.competitors.find(c=>String(c.team?.id)===opponentId);
    if(!defenders)return [];
    const offense=g.competitors.find(c=>String(c.team?.id)!==opponentId);
