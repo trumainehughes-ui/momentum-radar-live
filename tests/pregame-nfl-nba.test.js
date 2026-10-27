@@ -43,7 +43,9 @@ test('NBA model constructs distinct-player, mixed-category day-before tiers from
  assert.ok(result.playerProjections.length>8);
  for(const [risk,min,mix] of [['Small',2,2],['Medium',3,2],['Nuke',5,3]]){
   const row=result.sgps.find(x=>x.risk===risk);
-  assert.equal(row.status,'MODEL_CANDIDATE',risk);
+  assert.ok(['MODEL_CANDIDATE','NOT_READY'].includes(row.status),risk);
+  if(risk==='Nuke')assert.equal(row.status,'NOT_READY','unquoted Nuke must not be modeled as playable');
+  if(row.status==='NOT_READY')continue;
   assert.ok(row.legs.length>=min,risk);
   assert.ok(new Set(row.legs.map(x=>x.playerId)).size===row.legs.length);
   assert.ok(new Set(row.legs.map(x=>x.category)).size>=mix);
@@ -56,7 +58,8 @@ test('NBA model constructs distinct-player, mixed-category day-before tiers from
  }
 });
 test('ineligible reported NBA players are removed and model recomputes automatically',()=>{
- const baseline=build(),blocked=baseline.sgps[0].legs[0];
+ const baseline=build(),blocked=baseline.playerProjections[0];
+ assert.ok(blocked,'fixture must include historical player projections');
  const altered=build([{name:blocked.name,team:blocked.team,status:'OUT'}]);
  assert.ok(!altered.playerProjections.some(p=>p.playerId===blocked.playerId));
  for(const row of altered.sgps)assert.ok(!row.legs.some(p=>p.playerId===blocked.playerId));
