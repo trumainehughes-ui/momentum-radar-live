@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fetchDraftKingsNashSelections} from '../lib/draftkings-nash-feed.js';
+import {fetchDraftKingsNashSelections,eligibleNashPlayerProps} from '../lib/draftkings-nash-feed.js';
 const request={leagueId:'88808',categoryId:'1286',subcategoryId:'13354',now:Date.parse('2026-10-26T20:00:00Z')};
 const feed={events:[{id:'game1',name:'Example'}],markets:[{id:'market1',eventId:'game1',name:'Receiving Yards',playerName:'Example Receiver'}],selections:[{id:'selection1',marketId:'market1',label:'Over 75.5',displayOdds:{american:'-110'},main:true}]};
 test('fetches and normalizes first-party Nash feed with exact provenance',async()=>{
@@ -31,4 +31,15 @@ test('empty or unidentifiable Nash markets never claim a successful usable feed'
  const noPlayer=await fetchDraftKingsNashSelections({...request,fetchImpl:async()=>({ok:true,json:async()=>({events:[{id:'game1'}],markets:[{id:'market1',eventId:'game1',name:'Receiving Yards'}],selections:[{id:'selection1',marketId:'market1',label:'Over',points:75,displayOdds:{american:'-110'}}]})})});
  assert.equal(noPlayer.ok,false);
  assert.equal(noPlayer.reason,'NO_USABLE_SELECTIONS');
+});
+
+test('handoff only accepts externally confirmed starters with exact fresh offers',async()=>{
+ const feedResult=await fetchDraftKingsNashSelections({...request,fetchImpl:async()=>({ok:true,json:async()=>feed})});
+ assert.equal(eligibleNashPlayerProps(feedResult,{now:request.now}).length,0);
+ assert.equal(eligibleNashPlayerProps(feedResult,{now:request.now,isActiveStarter:()=>false}).length,0);
+ const eligible=eligibleNashPlayerProps(feedResult,{now:request.now,isActiveStarter:()=>true});
+ assert.equal(eligible.length,1);
+ assert.equal(eligible[0].selectionId,'selection1');
+ assert.equal(eligible[0].verifiedSGPQuote,false);
+ assert.equal(eligibleNashPlayerProps(feedResult,{now:request.now+20*60_000,isActiveStarter:()=>true}).length,0);
 });
