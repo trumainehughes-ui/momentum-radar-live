@@ -19,3 +19,11 @@ test('rejects invalid game identifiers',async()=>{
  const res=response();await handler({method:'GET',query:{league:'NBA',gameId:'not-a-game'}},res);
  assert.equal(res.code,400);assert.equal(res.body.error,'INVALID_GAME_ID');
 });
+
+test('returns explicit 404 for a valid ID absent from the slate',async()=>{
+ const original=globalThis.fetch;
+ globalThis.fetch=async()=>({ok:true,json:async()=>({events:[]})});
+ try{const res=response();await handler({method:'GET',query:{league:'NBA',date:'2025-12-25',gameId:'999999999'}},res);
+ assert.equal(res.code,404);assert.equal(res.body.error,'GAME_NOT_FOUND_ON_DATE');}
+ finally{globalThis.fetch=original;}
+});
