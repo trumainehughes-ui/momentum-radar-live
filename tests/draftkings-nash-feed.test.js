@@ -328,7 +328,7 @@ test('live ESPN and Nash event candidate bridge remains review-only',async()=>{
  const fetchImpl=async url=>({ok:true,headers:{get:()=>null},json:async()=>url.includes('scoreboard')?
   {events:[espn]}:{events:[nash],markets:[{id:'42',eventId:'34118182'}],selections:[]}});
  const result=await fetchDraftKingsEspnNflEventCandidates({date:'20261101',fetchImpl});
- assert.equal(result.confirmed,false);
  assert.equal(result.ok,false);
+ assert.equal(result.reason,'SOURCE_UNAVAILABLE');
  assert.deepEqual(result.candidates,[]);
 });
