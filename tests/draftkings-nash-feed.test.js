@@ -36,13 +36,14 @@ test('empty or unidentifiable Nash markets never claim a successful usable feed'
 
 test('handoff only accepts externally confirmed starters with exact fresh offers',async()=>{
  const feedResult=await fetchDraftKingsNashSelections({...request,fetchImpl:async()=>({ok:true,json:async()=>feed})});
- assert.equal(eligibleNashPlayerProps(feedResult,{now:request.now}).length,0);
- assert.equal(eligibleNashPlayerProps(feedResult,{now:request.now,isActiveStarter:()=>false}).length,0);
- const eligible=eligibleNashPlayerProps(feedResult,{now:request.now,isActiveStarter:()=>true});
+ const observedAt=Date.parse(feedResult.fetchedAt);
+ assert.equal(eligibleNashPlayerProps(feedResult,{now:observedAt}).length,0);
+ assert.equal(eligibleNashPlayerProps(feedResult,{now:observedAt,isActiveStarter:()=>false}).length,0);
+ const eligible=eligibleNashPlayerProps(feedResult,{now:observedAt,isActiveStarter:()=>true});
  assert.equal(eligible.length,1);
  assert.equal(eligible[0].selectionId,'selection1');
  assert.equal(eligible[0].verifiedSGPQuote,false);
- assert.equal(eligibleNashPlayerProps(feedResult,{now:request.now+20*60_000,isActiveStarter:()=>true}).length,0);
+ assert.equal(eligibleNashPlayerProps(feedResult,{now:observedAt+20*60_000,isActiveStarter:()=>true}).length,0);
 });
 
 test('Nash fetch refuses HTML challenge pages and non-JSON content',async()=>{
