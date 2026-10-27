@@ -128,15 +128,15 @@ test('unverified models render as research, never book-price cards',()=>{
  assert.ok(!h.includes('2500 combined'));
 });
 
-test('published day-ahead SGPs remain visible with an official-inactives warning',()=>{
+test('unconfirmed official inactives never expose a verified-looking combined SGP payout',()=>{
  const data=sample();
  data.body.validation.officialInactivesVerified=false;
  const v=publicNflGameView(data,{date,gameId,now});
  assert.equal(v.inactivesVerified,false);
  const h=render(v);
  assert.ok(!h.includes('2500 combined'), 'Unconfirmed inactives must not expose a verified-looking combined payout');
- assert.ok(h.includes('Official game-day inactives are not final'));
- assert.ok(h.includes('30 minutes before kickoff'));
+ assert.deepEqual(v.verifiedBookParlays,[], 'no sportsbook lineup can be published before inactives verification');
+ assert.deepEqual(v.verifiedQuotes,[], 'no verified sportsbook quote should be published before inactives verification');
 });
 test('official market token aliases still map only to their exact NFL category',()=>{
  const data=sample();
