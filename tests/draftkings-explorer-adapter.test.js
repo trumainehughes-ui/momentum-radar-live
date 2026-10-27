@@ -32,9 +32,9 @@ test('requires active starter and exact offered line without invented increments
 test('rejects spoofed DraftKings domains and empty price/line',()=>{
  assert.deepEqual(normalizeDraftKingsSelections(snapshot,{sourceUrl:'https://draftkings.com.evil.test/',fetchedAt}),[]);
  const bad={...snapshot,markets:[{...snapshot.markets[0],outcomes:[
-  {id:'bad-line',playerName:'Example Receiver',points:null,oddsAmerican:-110},
-  {id:'bad-null',playerName:'Example Receiver',points:75,oddsAmerican:null},
-  {id:'bad-empty',playerName:'Example Receiver',points:75,oddsAmerican:''}
+  {id:'bad-line',playerName:'Example Receiver',label:'Over',points:null,oddsAmerican:-110},
+  {id:'bad-null',playerName:'Example Receiver',label:'Over',points:75,oddsAmerican:null},
+  {id:'bad-empty',playerName:'Example Receiver',label:'Over',points:75,oddsAmerican:''}
  ]}]};
  assert.deepEqual(normalizeDraftKingsSelections(bad,{sourceUrl,fetchedAt}),[]);
 });
@@ -47,7 +47,7 @@ test('rejects stale or future DraftKings props even if the line exists',()=>{
 });
 
 test('reception thresholds must match the actual first-party offered market',()=>{
- const p=normalizeDraftKingsSelections({...snapshot,markets:[{...snapshot.markets[0],name:'Player Receptions',outcomes:[{id:'sel-receptions',playerName:'Example Receiver',points:4,oddsAmerican:-120}]}]},{sourceUrl,fetchedAt})[0];
+ const p=normalizeDraftKingsSelections({...snapshot,markets:[{...snapshot.markets[0],name:'Player Receptions',outcomes:[{id:'sel-receptions',playerName:'Example Receiver',label:'Over',points:4,oddsAmerican:-120}]}]},{sourceUrl,fetchedAt})[0];
  assert.equal(eligibleDraftKingsProp(p,{activeStarter:true,offeredLines:[4],now}),true);
  assert.equal(eligibleDraftKingsProp({...p,line:4.5},{activeStarter:true,offeredLines:[4.5],now}),true);
  assert.equal(eligibleDraftKingsProp({...p,line:4.5},{activeStarter:true,offeredLines:[4],now}),false);
@@ -77,4 +77,17 @@ test('rejects closed or untraceable selections before they reach SGP research',(
   {...snapshot.markets[0].outcomes[0],id:null}
  ]}]};
  assert.deepEqual(normalizeDraftKingsSelections(untraceable,{sourceUrl,fetchedAt}),[]);
+});
+
+test('non-over-under outcomes and negative prop thresholds cannot enter the offer list',()=>{
+ const bad={...snapshot,markets:[{...snapshot.markets[0],outcomes:[
+  {...snapshot.markets[0].outcomes[0],label:'Yes'},
+  {...snapshot.markets[0].outcomes[0],points:-2},
+  {...snapshot.markets[0].outcomes[0],label:'Over',points:75}
+ ]}]};
+ const normalized=normalizeDraftKingsSelections(bad,{sourceUrl,fetchedAt});
+ assert.equal(normalized.length,1);
+ assert.equal(normalized[0].outcome,'over');
+ assert.equal(eligibleDraftKingsProp({...normalized[0],outcome:'under'},{activeStarter:true,offeredLines:[75],now}),true);
+ assert.equal(eligibleDraftKingsProp({...normalized[0],outcome:'yes'},{activeStarter:true,offeredLines:[75],now}),false);
 });
