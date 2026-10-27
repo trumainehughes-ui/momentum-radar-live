@@ -210,16 +210,22 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   // An absent rotation flag must not silently disable NBA.com enrichment.
   const candidates=eligible.length?eligible:evidence.playerProjections;
   const unique=[...new Set(candidates.map(p=>p.name||p.player).filter(Boolean))].slice(0,8);
-  const results=await Promise.all(unique.map(async name=>{
+  const results=await Promise.all(unique.slice(0,4).map(async name=>{
    try{
-    const u='https://'+process.env.VERCEL_URL+'/api/nba-open-data?'+new URLSearchParams({action:'player-name-log',name,season});
-    const d=await fetchJson(u,4000);
+    const projection=evidence.playerProjections.find(p=>(p.name||p.player)===name);
+    const team=String(projection?.team||'').toUpperCase();
+    if(!/^[A-Z]{3}$/.test(team))return null;
+    const origin='https://'+process.env.VERCEL_URL+'/api/nba-open-data?';
+    const query=new URLSearchParams({action:'recent-live-player-log',name,team,
+     before:tipoffDate.toISOString().slice(0,10)});
+    const d=await fetchJson(origin+query,9000);
     if(!d.ok||!Array.isArray(d.recentGames)||!d.recentGames.length)return null;
     const rows=d.recentGames.filter(x=>Date.parse(x.GAME_DATE)<Date.parse(game.kickoff));
-    return {name,playerId:d.playerId,season,source:'nba_api',
-     samples:rows.length,recent:rows.slice(0,10).map(x=>({
-      date:x.GAME_DATE,points:Number(x.PTS)||0,rebounds:Number(x.REB)||0,
-      assists:Number(x.AST)||0,threes:Number(x.FG3M)||0,minutes:Number(x.MIN)||0}))};
+    return {name,season,source:'nba_api_live',samples:rows.length,
+     recent:rows.slice(0,10).map(x=>({
+      date:x.GAME_DATE,points:x.PTS==null?null:Number(x.PTS),
+      rebounds:x.REB==null?null:Number(x.REB),assists:x.AST==null?null:Number(x.AST),
+      threes:x.FG3M==null?null:Number(x.FG3M),minutes:x.MIN==null?null:Number(x.MIN)}))};
    }catch{return null}
   }));
   nbaComPlayerLogs.push(...results.filter(Boolean));
