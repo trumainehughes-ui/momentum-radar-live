@@ -5,8 +5,8 @@ const sourceUrl = 'https://sportsbook.draftkings.com/';
 const fetchedAt = '2026-10-26T20:00:00Z';
 const now = Date.parse(fetchedAt) + 60_000;
 const snapshot = {events:[{id:'game1',name:'Example game'}],markets:[{id:'m1',eventId:'game1',name:'Receiving Yards',outcomes:[
- {playerName:'Example Receiver',label:'Over',points:75,oddsAmerican:-110,main:true},
- {playerName:'Example Receiver',label:'Over',points:80,oddsAmerican:140,main:false}
+ {id:'sel-75',playerName:'Example Receiver',label:'Over',points:75,oddsAmerican:-110,main:true},
+ {id:'sel-80',playerName:'Example Receiver',label:'Over',points:80,oddsAmerican:140,main:false}
 ]}]};
 test('preserves actual offered main and alternate lines without inventing a quote',()=>{
  const props=normalizeDraftKingsSelections(snapshot,{sourceUrl,fetchedAt});
@@ -32,9 +32,9 @@ test('requires active starter and exact offered line without invented increments
 test('rejects spoofed DraftKings domains and empty price/line',()=>{
  assert.deepEqual(normalizeDraftKingsSelections(snapshot,{sourceUrl:'https://draftkings.com.evil.test/',fetchedAt}),[]);
  const bad={...snapshot,markets:[{...snapshot.markets[0],outcomes:[
-  {playerName:'Example Receiver',points:null,oddsAmerican:-110},
-  {playerName:'Example Receiver',points:75,oddsAmerican:null},
-  {playerName:'Example Receiver',points:75,oddsAmerican:''}
+  {id:'bad-line',playerName:'Example Receiver',points:null,oddsAmerican:-110},
+  {id:'bad-null',playerName:'Example Receiver',points:75,oddsAmerican:null},
+  {id:'bad-empty',playerName:'Example Receiver',points:75,oddsAmerican:''}
  ]}]};
  assert.deepEqual(normalizeDraftKingsSelections(bad,{sourceUrl,fetchedAt}),[]);
 });
@@ -47,7 +47,7 @@ test('rejects stale or future DraftKings props even if the line exists',()=>{
 });
 
 test('reception thresholds must match the actual first-party offered market',()=>{
- const p=normalizeDraftKingsSelections({...snapshot,markets:[{...snapshot.markets[0],name:'Player Receptions',outcomes:[{playerName:'Example Receiver',points:4,oddsAmerican:-120}]}]},{sourceUrl,fetchedAt})[0];
+ const p=normalizeDraftKingsSelections({...snapshot,markets:[{...snapshot.markets[0],name:'Player Receptions',outcomes:[{id:'sel-receptions',playerName:'Example Receiver',points:4,oddsAmerican:-120}]}]},{sourceUrl,fetchedAt})[0];
  assert.equal(eligibleDraftKingsProp(p,{activeStarter:true,offeredLines:[4],now}),true);
  assert.equal(eligibleDraftKingsProp({...p,line:4.5},{activeStarter:true,offeredLines:[4.5],now}),true);
  assert.equal(eligibleDraftKingsProp({...p,line:4.5},{activeStarter:true,offeredLines:[4],now}),false);
@@ -64,4 +64,17 @@ test('preserves exact DraftKings selection IDs for offer traceability',()=>{
  const [p]=normalizeDraftKingsSelections(withId,{sourceUrl,fetchedAt});
  assert.equal(p.selectionId,'DK-12345');
  assert.equal(p.verifiedSGPQuote,false);
+});
+
+test('rejects closed or untraceable selections before they reach SGP research',()=>{
+ const suspended={...snapshot,markets:[{...snapshot.markets[0],isOpen:false}]};
+ assert.deepEqual(normalizeDraftKingsSelections(suspended,{sourceUrl,fetchedAt}),[]);
+ const closed={...snapshot,markets:[{...snapshot.markets[0],outcomes:[
+  {...snapshot.markets[0].outcomes[0],isOpen:false}
+ ]}]};
+ assert.deepEqual(normalizeDraftKingsSelections(closed,{sourceUrl,fetchedAt}),[]);
+ const untraceable={...snapshot,markets:[{...snapshot.markets[0],outcomes:[
+  {...snapshot.markets[0].outcomes[0],id:null}
+ ]}]};
+ assert.deepEqual(normalizeDraftKingsSelections(untraceable,{sourceUrl,fetchedAt}),[]);
 });
