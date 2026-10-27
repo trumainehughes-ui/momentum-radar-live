@@ -302,9 +302,7 @@ export default async function handler(req,res){
   const blocking=[],degraded=[];
   if(schedules.every(s=>!s.ok))blocking.push('schedule');
   const games=[...new Map(schedules.flatMap(s=>s.games||[]).map(g=>[String(g.gameId),g])).values()];
-  // An empty slate is expected on NFL off-days. A successful schedule lookup
-  // with no games is healthy idle, not a production outage.
-  if(!games.length&&schedules.every(x=>!x.ok))blocking.push('games');
+  if(!games.length)blocking.push('games');
   // /api/nfl-schedule explicitly delegates sportsbook markets to the
   // separate /api/nfl-markets route; "markets.available=false" there does
   // NOT prove that the market route is down.
