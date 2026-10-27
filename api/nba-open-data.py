@@ -9,6 +9,25 @@ def payload(query):
     from nba_api.live.nba.endpoints import scoreboard
     from nba_api.stats.static import players, teams
     action = query.get("action", ["scoreboard"])[0]
+    if action == "sportsdataverse-nba-roster":
+        # Optional research source. No sportsbook quotes and no automatic projection overwrite.
+        team_id = query.get("teamId", [""])[0].strip()
+        if not team_id.isdigit() or not 1 <= int(team_id) <= 99:
+            raise ValueError("Valid ESPN NBA numeric teamId is required")
+        try:
+            from sportsdataverse.nba import espn_nba_team_roster
+            result = espn_nba_team_roster(team_id=int(team_id), return_parsed=False)
+            return {"ok": True, "source": "sportsdataverse_espn_nba",
+                    "teamId": int(team_id), "data": result,
+                    "checkedAt": datetime.now(timezone.utc).isoformat(),
+                    "sportsbookVerified": False}
+        except ImportError:
+            return {"ok": False, "source": "sportsdataverse_espn_nba",
+                    "error": "sportsdataverse_not_installed", "sportsbookVerified": False}
+        except Exception as exc:
+            return {"ok": False, "source": "sportsdataverse_espn_nba",
+                    "error": "upstream_unavailable", "errorType": type(exc).__name__,
+                    "sportsbookVerified": False}
     if action == "health":
         return {"ok": True, "source": "nba_api", "mode": "adapter_available_upstream_unverified", "checkedAt": datetime.now(timezone.utc).isoformat()}
     if action == "players":
