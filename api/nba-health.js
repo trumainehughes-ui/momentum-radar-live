@@ -204,7 +204,7 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
  const nbaComPlayerLogs=[];
  if(process.env.VERCEL_URL&&Array.isArray(evidence.playerProjections)){
   const tipoffDate=new Date(game.kickoff);
-  const seasonStart=tipoffDate.getUTCFullYear()-(tipoffDate.getUTCMonth()<6?1:0);
+  const seasonStart=tipoffDate.getUTCFullYear()-(tipoffDate.getUTCMonth()<9?1:0);
   const season=seasonStart+'-'+String(seasonStart+1).slice(-2);
   const unique=[...new Set(evidence.playerProjections.map(p=>p.name||p.player).filter(Boolean))].slice(0,4);
   const results=await Promise.all(unique.map(async name=>{
