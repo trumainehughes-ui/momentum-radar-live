@@ -44,7 +44,7 @@ test('TD-only AI changes are advisory; scheduled injury gate still runs first',(
  const health=readFileSync(new URL('../api/nfl-health.js',import.meta.url),'utf8');
  const ai=readFileSync(new URL('../api/ai-analysis.js',import.meta.url),'utf8');
  assert.ok(health.includes('checkNflScheduledInjuryChanges(g,'));
- assert.ok(health.includes("!snap.sgps.length&&!snap.picks.some(p=>p.category==='td'"));
+ assert.ok(health.includes('!snap.sgps.length&&!snap.picks.length'));
  assert.ok(ai.includes("'tdReview'"));
  assert.ok(ai.includes("Do not invent athletes, assign new percentages"));
 });
