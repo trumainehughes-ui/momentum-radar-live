@@ -56,3 +56,12 @@ test('unknown markets are not eligible until explicitly mapped',()=>{
  const p=normalizeDraftKingsSelections(snapshot,{sourceUrl,fetchedAt})[0];
  assert.equal(eligibleDraftKingsProp({...p,marketName:'Mystery Market'},{activeStarter:true,offeredLines:[75],now}),false);
 });
+
+test('preserves exact DraftKings selection IDs for offer traceability',()=>{
+ const withId={...snapshot,markets:[{...snapshot.markets[0],outcomes:[
+  {...snapshot.markets[0].outcomes[0],selectionId:'DK-12345'}
+ ]}]};
+ const [p]=normalizeDraftKingsSelections(withId,{sourceUrl,fetchedAt});
+ assert.equal(p.selectionId,'DK-12345');
+ assert.equal(p.verifiedSGPQuote,false);
+});
