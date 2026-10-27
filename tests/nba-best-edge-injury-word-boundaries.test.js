@@ -34,4 +34,8 @@ test('NBA recent form is ordered by scheduled game dates, not fetch order',()=>{
  assert.ok(model.includes('Date.parse(b.gameDate)'));
  assert.ok(model.includes('eventDates.get(String(h.gameId))'));
  assert.ok(model.includes('evidenceSchedules=previous'));
+ assert.ok(model.includes('minuteRows.slice(0,3)'));
+ assert.ok(model.includes('usageRows.slice(0,3)'));
+ assert.ok(!model.includes('minuteRows.slice(-3)'));
+ assert.ok(!model.includes('usageRows.slice(-3)'));
 });
