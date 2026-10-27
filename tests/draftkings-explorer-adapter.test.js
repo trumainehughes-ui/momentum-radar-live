@@ -146,3 +146,11 @@ test('closed or suspended events cannot contribute player props',()=>{
   assert.deepEqual(normalizeDraftKingsSelections({...snapshot,events:[event]},{sourceUrl,fetchedAt}),[]);
  }
 });
+
+test('malformed null Nash array entries fail closed without crashing normalization',()=>{
+ const malformed={events:[null,{id:'game1',name:'Example game'}],markets:[null,{id:'m1',eventId:'game1',name:'Receiving Yards'}],selections:[null,{id:'sel1',marketId:'m1',playerName:'Example Receiver',label:'Over 75',displayOdds:{american:'-110'}}]};
+ const props=normalizeDraftKingsSelections(malformed,{sourceUrl,fetchedAt});
+ assert.equal(props.length,1);
+ assert.equal(props[0].selectionId,'sel1');
+ assert.deepEqual(normalizeDraftKingsSelections({...malformed,events:[null]},{sourceUrl,fetchedAt}),[]);
+});
