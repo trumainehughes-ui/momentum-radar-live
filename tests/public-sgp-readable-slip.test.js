@@ -120,3 +120,19 @@ test('incomplete and all-touchdown tiers show NOT READY without leaking player p
  assert.match(html,/Small · NOT READY/);
  assert.doesNotMatch(html,/<ol class="sgp-leg-list">/);
 });
+
+test('public tier composition accepts rushing and receiving without a passing market',()=>{
+ const start=script.indexOf('function nflPublicTierCountReady(risk,legs){');
+ const end=script.indexOf('function nflPublicTierPriceReady(risk,odds){',start);
+ assert.ok(start>=0&&end>start);
+ const context={};
+ vm.runInNewContext(script.slice(start,end)+';this.ready=nflPublicTierMarketMixReady;',context);
+ const legs=[
+  {player:'Runner A',team:'A',category:'rushing'},
+  {player:'Receiver B',team:'B',category:'receiving'},
+  {player:'Receiver C',team:'A',category:'receptions'},
+  {player:'Runner D',team:'B',category:'td'}
+ ];
+ assert.equal(context.ready('Small',legs),true);
+ assert.equal(context.ready('Small',legs.map(x=>({...x,category:'receiving'}))),false);
+});
