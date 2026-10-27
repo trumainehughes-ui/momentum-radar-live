@@ -152,7 +152,7 @@ test('Nuke model rendering requires 5–7 valid diversified markets, not just fi
  assert.match(renderNflProjectedSgpTierDetails(details),/Nuke • NOT READY/);
 });
 
-test('complete Small and Medium diversified AI forecasts remain visible as research only',()=>{
+test('two-yardage-market Small and Medium model research remains unpriced even when composition is complete',()=>{
  const m={...market,sgps:{Analytics:[
  {risk:'Small',legs:[
   {player:'Rome Odunze',team:'CHI',category:'receiving'},
@@ -168,10 +168,10 @@ test('complete Small and Medium diversified AI forecasts remain visible as resea
  ]}};
  const result=buildNflProjectedSgpTierDetails({...ctx,market:m});
  assert.deepEqual(result.tiers.map(x=>x.compositionComplete),[true,true]);
+ assert.equal(result.tiers[1].differentiated,true);
  const html=renderNflProjectedSgpTierDetails(result);
  assert.match(html,/Small • AI yardage projection candidates/);
  assert.match(html,/Medium • AI yardage projection candidates/);
- assert.match(html,/AI Rushing forecast: 115 yards/);
- assert.match(html,/Anytime touchdown • model candidate only/);
+ assert.doesNotMatch(html,/\+2500 combined|\+10000 combined/);
  assert.doesNotMatch(html,/Actual combined odds/);
 });

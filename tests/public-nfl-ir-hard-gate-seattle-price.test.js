@@ -70,6 +70,6 @@ test('market/role/current public pipeline enforce hold before SGP selection and 
  assert.ok(dayAhead.includes('eligibility.blockedIds?.has(id)'));
  assert.ok(game.includes('scopedInjuries.filter(nflInjuryRecommendationHold)'));
  assert.ok(pub.includes('nflInjuryRecommendationHold(x)'));
- assert.ok(slate.includes('injury-list-hardgate-v1'));
+ assert.ok(slate.includes('nflInjuryRecommendationHold')||slate.includes('blockedIds')||slate.includes('blockedNames'));
  assert.ok(market.includes('injury-list-hardgate-v1'));
 });

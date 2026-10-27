@@ -4,7 +4,8 @@ import {readFileSync} from 'node:fs';
 const game=readFileSync(new URL('../api/nba-game.js',import.meta.url),'utf8');
 const publicUi=readFileSync(new URL('../picks.html',import.meta.url),'utf8');
 test('NBA game endpoint exposes independent model projections while keeping SGP readiness separate',()=>{
- assert.match(game,/data\.playerProjections=current&&data\.status==='SCHEDULED'/);
+ assert.match(game,/data\.playerProjections=data\.status==='SCHEDULED'&&/);
+ assert.match(game,/historicalSnapshotStale:!current/);
  assert.match(game,/marketVerified:false,modelOnly:true/);
  assert.match(game,/data\.sgps=current\?snapshot\.sgps/);
 });

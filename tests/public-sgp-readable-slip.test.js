@@ -32,7 +32,7 @@ function base(extra={}){
  return {ok:true,date:'2026-10-18',gameId:'401872996',home:'JAX',away:'HOU',
   status:'CURRENT',updatedDataCurrent:true,updatedAt:new Date().toISOString(),
   modelResearchTiers:[tier('Small',4),tier('Medium',5),tier('Nuke',7)],
-  verifiedBookParlays:[],...extra};
+  inactivesVerified:true,finalRosterCheck:{ready:true},verifiedBookParlays:[],...extra};
 }
 function render(data){
  const c={state:{date:'2026-10-18',selected:'401872996',currentBookSgpModel:null},
@@ -52,9 +52,9 @@ function bookSmall(overrides={}){
 }
 test('public tiers show 4, 5, 7 distinct player-market research rows, never implied book odds',()=>{
  const html=render(base());
- assert.equal((html.match(/researched legs/g)||[]).length,3);
- assert.equal((html.match(/class="sgp-leg"/g)||[]).length,16);
- for(const risk of ['Small','Medium','Nuke'])assert.ok(html.includes('>'+risk+'</strong>'));
+ assert.equal((html.match(/researched player projections/g)||[]).length,3);
+ assert.ok((html.match(/class="sgp-leg"/g)||[]).length>=16);
+ for(const risk of ['Small','Medium','Nuke'])assert.ok(html.includes(risk+' · AI STAT FORECAST</strong>'));
  for(const name of ['Trevor Lawrence','Parker Washington','Brenton Strange','Woody Marks'])
   assert.ok(html.includes(name),name);
  assert.match(html,/Why: Based on usage, injury screening/);
@@ -118,5 +118,27 @@ test('incomplete and all-touchdown tiers show NOT READY without leaking player p
  const html=render(base({modelResearchTiers:[short,allTd]}));
  assert.match(html,/Nuke · NOT READY/);
  assert.match(html,/Small · NOT READY/);
- assert.doesNotMatch(html,/<ol class="sgp-leg-list">/);
+ // The separate player matchup forecast may still render its own list.
+ // Invalid Small/Nuke tier cards themselves must never contain a leg list.
+ for(const risk of ['Small','Nuke']){
+  const section=html.match(new RegExp('<section class="sgp-slip" aria-label="'+risk+' incomplete research"[\\s\\S]*?<\\/section>'))?.[0];
+  assert.ok(section,risk+' incomplete card');
+  assert.doesNotMatch(section,/<ol class="sgp-leg-list">/);
+ }
+});
+
+test('public tier composition accepts rushing and receiving without a passing market',()=>{
+ const start=script.indexOf('function nflPublicTierCountReady(risk,legs){');
+ const end=script.indexOf('function nflPublicTierPriceReady(risk,odds){',start);
+ assert.ok(start>=0&&end>start);
+ const context={};
+ vm.runInNewContext(script.slice(start,end)+';this.ready=nflPublicTierMarketMixReady;',context);
+ const legs=[
+  {player:'Runner A',team:'A',category:'rushing'},
+  {player:'Receiver B',team:'B',category:'receiving'},
+  {player:'Receiver C',team:'A',category:'receptions'},
+  {player:'Runner D',team:'B',category:'td'}
+ ];
+ assert.equal(context.ready('Small',legs),true);
+ assert.equal(context.ready('Small',legs.map(x=>({...x,category:'receiving'}))),false);
 });

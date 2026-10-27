@@ -55,5 +55,5 @@ test('public SGP page clearly states why game-day books are withheld',()=>{
  const html=readFileSync(new URL('../picks.html',import.meta.url),'utf8');
  assert.match(html,/Game-day roster verification incomplete/);
  assert.match(html,/Official final inactives and a current injury check/);
- assert.match(html,/finalInactivesWarning\+verifiedSections/);
+ assert.match(html,/finalInactivesWarning\+playerEdgeHtml\+verifiedSections/);
 });
