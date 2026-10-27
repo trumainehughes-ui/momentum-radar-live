@@ -31,7 +31,9 @@ export default async function handler(req,res){
     homeTeam:c.competitors?.find(x=>x.homeAway==='home')?.team?.displayName||null,
     awayTeam:c.competitors?.find(x=>x.homeAway==='away')?.team?.displayName||null};
   }));
-  const result=nbaBestEdgeParlay(games,{mode:'VERIFIED_MARKET'});
+  const currentModelGames=games.filter(g=>g.snapshotModelVersion==='v16-preserve-current-season-first');
+  // Fail closed: stale snapshots must not enter verified selection either.
+  const result=nbaBestEdgeParlay(currentModelGames,{mode:'VERIFIED_MARKET'});
   const snapshotVersions=[...new Set(games.map(g=>g.snapshotModelVersion).filter(Boolean))];
   const staleSnapshotGames=games.filter(g=>g.snapshotModelVersion!=='v16-preserve-current-season-first').map(g=>g.gameId);
   const snapshotHealth={scheduledGames:games.length,snapshotsAvailable:games.filter(g=>g.snapshotPresent).length,
