@@ -242,7 +242,11 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
    }
   }catch{ /* Keep ESPN data intact when NBA.com is unavailable. */ }
  }
- const result={...evidence,nbaComEvidence,nbaComBoxScore,nbaComPlayerLogs,
+ // Live box-score values are only observations for completed/in-progress
+ // games. Never apply the current matchup's live stats to a pregame forecast.
+ const boxScoreObservations=nbaComBoxScore.status==='CONNECTED'?
+  nbaComBoxScore.players.filter(p=>p.personId&&p.played===true):[];
+ const result={...evidence,nbaComEvidence,nbaComBoxScore,boxScoreObservations,nbaComPlayerLogs,
   nbaComCrossCheckedAt:new Date(now).toISOString(),
   playerProjections:nbaCrossCheckProjections(evidence.playerProjections||[],nbaComPlayerLogs).map(p=>({
    ...p,starterVerified:starterMatch(p),
