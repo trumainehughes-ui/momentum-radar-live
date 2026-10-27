@@ -101,11 +101,11 @@ test('NFL UI has Sunday Monday Thursday selector, date-scoped load and manual re
  assert.ok(html.includes("new URLSearchParams({...selectedDay?{date:selectedDay}:{}"));
  assert.ok(html.includes("if(league==='nfl')loadNFL()"));
 });
-test('15-minute collector scans today and tomorrow, never invents market health',()=>{
+test('15-minute collector scans the next two days, never invents market health',()=>{
  const source=readFileSync(new URL('../api/nfl-health.js',import.meta.url),'utf8');
  const config=JSON.parse(readFileSync(new URL('../vercel.json',import.meta.url),'utf8'));
  assert.ok(config.crons.some(x=>x.path==='/api/nfl-health?cron=1'&&x.schedule==='*/15 * * * *'));
- assert.ok(source.includes("cron?[today,nflAddDate(today,1)]"));
+ assert.ok(source.includes("cron?[today,nflAddDate(today,1),nflAddDate(today,2)]"));
  assert.ok(source.includes("AbortSignal.timeout(65000)"));
  assert.ok(source.includes('nflRunCollectorBatch(due'));
  assert.ok(source.includes("status:'SEPARATE_SERVICE'"));
