@@ -68,7 +68,9 @@ test('two research selections show Nuke NOT READY, never two-leg customer SGP sl
  assert.match(view,/Nuke · NOT READY/);
  assert.match(view,/2 eligible research selections/);
  assert.doesNotMatch(view,/\+10000 combined/);
- assert.doesNotMatch(view,/<ol class="sgp-leg-list">/);
+ const nuke=view.match(/<section class="sgp-slip" aria-label="Nuke incomplete research">[\s\S]*?<\/section>/)?.[0];
+ assert.ok(nuke,'incomplete Nuke card is present');
+ assert.doesNotMatch(nuke,/<ol class="sgp-leg-list">/);
 });
 test('public sportsbook section rejects wrong payout and short Nuke despite quote-like metadata',()=>{
  const base={ok:true,date:'2026-10-18',gameId:'401872996',
