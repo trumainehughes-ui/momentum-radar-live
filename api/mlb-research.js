@@ -7,7 +7,7 @@ export default async function handler(req,res){
  try{
   const gameId=String(req.query?.gameId||'').trim();
   if(gameId){
-   if(!/^\\d{5,9}$/.test(gameId))return res.status(400).json({ok:false,error:'INVALID_GAME_ID'});
+   if(!/^\d{5,9}$/.test(gameId))return res.status(400).json({ok:false,error:'INVALID_GAME_ID'});
    const response=await fetch('https://statsapi.mlb.com/api/v1/game/'+gameId+'/boxscore',{
     signal:AbortSignal.timeout(6500),headers:{accept:'application/json'}
    });
