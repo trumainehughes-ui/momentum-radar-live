@@ -45,3 +45,13 @@ test('rejects stale or future DraftKings props even if the line exists',()=>{
  assert.equal(eligibleDraftKingsProp(prop,{activeStarter:true,offeredLines:[75],now:Date.parse(fetchedAt)-1000}),false);
  assert.equal(eligibleDraftKingsProp({...prop,sourceUrl:'https://draftkings.com.evil.test/'},{activeStarter:true,offeredLines:[75],now}),false);
 });
+
+test('reception counts use integer thresholds, not five-yard increments',()=>{
+ const p=normalizeDraftKingsSelections({...snapshot,markets:[{...snapshot.markets[0],name:'Player Receptions',outcomes:[{playerName:'Example Receiver',points:4,oddsAmerican:-120}]}]},{sourceUrl,fetchedAt})[0];
+ assert.equal(eligibleDraftKingsProp(p,{activeStarter:true,offeredLines:[4],now}),true);
+ assert.equal(eligibleDraftKingsProp({...p,line:4.5},{activeStarter:true,offeredLines:[4.5],now}),false);
+});
+test('unknown markets are not eligible until explicitly mapped',()=>{
+ const p=normalizeDraftKingsSelections(snapshot,{sourceUrl,fetchedAt})[0];
+ assert.equal(eligibleDraftKingsProp({...p,marketName:'Mystery Market'},{activeStarter:true,offeredLines:[75],now}),false);
+});
