@@ -99,7 +99,7 @@ test('NFL collector OIDC passes preflight and preserves public auth protection',
    authorization:'Bearer test-cron'}},authed);
   assert.equal(authed.statusCode,503,'no ESPN games is not a storage error');
   assert.equal(authed.body.blocking[0],'games');
-  assert.equal(calls.length,2);
+  assert.equal(calls.length,3);
  }finally{globalThis.fetch=oldFetch;reset()}
 });
 test('NFL preview collector uses its own deployment and refuses production fallback',async()=>{
@@ -122,7 +122,7 @@ test('NFL preview collector uses its own deployment and refuses production fallb
   await nflCollector(req,preview);
   assert.equal(preview.statusCode,503,'empty schedule still blocks collection');
   assert.equal(preview.body.blocking[0],'games');
-  assert.equal(calls.length,2);
+  assert.equal(calls.length,3);
   assert.ok(calls.every(url=>url.startsWith('https://momentum-radar-live-preview123-trumainehughes-6743.vercel.app/')));
   calls.length=0;
   set('VERCEL_URL','momentum-radar-live.vercel.app');
