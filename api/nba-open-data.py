@@ -57,6 +57,10 @@ def payload(query):
                  and team in (g.get("homeTeam", {}).get("teamTricode"),
                               g.get("awayTeam", {}).get("teamTricode"))]
         games.sort(key=lambda g: g.get("gameDateTimeUTC", ""), reverse=True)
+        if not games:
+            return {"ok":False,"source":"nba_api_live","error":"no_completed_team_games_in_schedule",
+                    "team":team,"before":before,"scheduleDays":len(schedule.get("leagueSchedule",{}).get("gameDates",[])),
+                    "recentGames":[],"sportsbookVerified":False}
         rows = []
         for game in games[:10]:
             try:
