@@ -152,7 +152,7 @@ test('Nuke model rendering requires 5–7 valid diversified markets, not just fi
  assert.match(renderNflProjectedSgpTierDetails(details),/Nuke • NOT READY/);
 });
 
-test('overlapping Small and Medium AI forecasts are withheld rather than presented as differentiated tiers',()=>{
+test('incomplete Small and Medium research stays NOT READY even when risk targets differ',()=>{
  const m={...market,sgps:{Analytics:[
  {risk:'Small',legs:[
   {player:'Rome Odunze',team:'CHI',category:'receiving'},
@@ -168,7 +168,7 @@ test('overlapping Small and Medium AI forecasts are withheld rather than present
  ]}};
  const result=buildNflProjectedSgpTierDetails({...ctx,market:m});
  assert.deepEqual(result.tiers.map(x=>x.compositionComplete),[false,false]);
- assert.equal(result.tiers[1].differentiated,false);
+ assert.equal(result.tiers[1].differentiated,true);
  const html=renderNflProjectedSgpTierDetails(result);
  assert.match(html,/Small • NOT READY/);
  assert.match(html,/Medium • NOT READY/);
