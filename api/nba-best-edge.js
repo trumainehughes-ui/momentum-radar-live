@@ -1,5 +1,5 @@
 import {nbaBestEdgeParlay} from '../lib/nba-best-edge-parlay.js';
-import {nbaReadPregame,nbaPregameFreshness} from './nba-health.js';
+import {nbaReadPregame,nbaPregameFreshness,NBA_PREGAME_MODEL_VERSION} from './nba-health.js';
 import {nbaAiMatchupIdentityConflict} from '../lib/pregame-ai-review.js';
 // The public endpoint does not accept client-supplied odds or player forecasts.
 // ESPN consensus lines are optional; missing lines result in NO_QUALIFYING_PARLAY.
@@ -32,11 +32,11 @@ export default async function handler(req,res){
     homeTeam:c.competitors?.find(x=>x.homeAway==='home')?.team?.displayName||null,
     awayTeam:c.competitors?.find(x=>x.homeAway==='away')?.team?.displayName||null};
   }));
-  const currentModelGames=games.filter(g=>g.snapshotModelVersion==='v16-preserve-current-season-first'&&g.snapshotFreshness==='CURRENT');
+  const currentModelGames=games.filter(g=>g.snapshotModelVersion===NBA_PREGAME_MODEL_VERSION&&g.snapshotFreshness==='CURRENT');
   // Fail closed: stale snapshots must not enter verified selection either.
   const result=nbaBestEdgeParlay(currentModelGames,{mode:'VERIFIED_MARKET'});
   const snapshotVersions=[...new Set(games.map(g=>g.snapshotModelVersion).filter(Boolean))];
-  const staleSnapshotGames=games.filter(g=>g.snapshotModelVersion!=='v16-preserve-current-season-first').map(g=>g.gameId);
+  const staleSnapshotGames=games.filter(g=>g.snapshotModelVersion!==NBA_PREGAME_MODEL_VERSION).map(g=>g.gameId);
   const snapshotHealth={scheduledGames:games.length,snapshotsAvailable:games.filter(g=>g.snapshotPresent).length,
    gamesWithPlayerProjections:games.filter(g=>g.playerProjections.length>0).length,
    snapshotModelVersions:snapshotVersions.slice(0,6),
@@ -87,7 +87,7 @@ export default async function handler(req,res){
     projection:Number(p.projection),baseProjection:Number(p.baseProjection)||null,matchupAdjustment:p.matchupAdjustment||null,defenseVsPosition:p.defenseVsPosition||null,sampleGames:p.sampleGames||0,
     sampleSource:p.sampleSource||null,historicalSeason:p.historicalSeason||null,starterVerified:p.starterVerified===true,
     snapshotModelVersion:g.snapshotModelVersion,snapshotCheckedAt:g.snapshotCheckedAt,
-    snapshotCurrentVersion:g.snapshotModelVersion==='v16-preserve-current-season-first',
+    snapshotCurrentVersion:g.snapshotModelVersion===NBA_PREGAME_MODEL_VERSION,
     starterEvidenceStatus:p.starterVerified===true?'CONFIRMED':'UNCONFIRMED',
     historyGamesAvailable:Array.isArray(p.historicalValues)?p.historicalValues.length:0,
     matchupLiftPercent:Number(p.baseProjection)>0?
