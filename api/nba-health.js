@@ -194,7 +194,28 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
  // Old SGP-only comparisons missed same-player prop changes, injury
  // designations and defense-vs-position movements. Fingerprint all of them
  // on each scheduled collection instead.
- const result={...evidence,nbaComEvidence,
+ // Supplement up to four eligible model candidates with NBA.com recent-game
+ // observations. Never replace the existing projection without sample audit.
+ const nbaComPlayerLogs=[];
+ if(process.env.VERCEL_URL&&Array.isArray(evidence.playerProjections)){
+  const seasonStart=Number(game.seasonYear||new Date(game.kickoff).getUTCFullYear())-1;
+  const season=seasonStart+'-'+String(seasonStart+1).slice(-2);
+  const unique=[...new Set(evidence.playerProjections.map(p=>p.name||p.player).filter(Boolean))].slice(0,4);
+  for(const name of unique){
+   try{
+    const u='https://'+process.env.VERCEL_URL+'/api/nba-open-data?'+new URLSearchParams({action:'player-name-log',name,season});
+    const d=await fetchJson(u,4000);
+    if(d.ok&&Array.isArray(d.recentGames)&&d.recentGames.length){
+     const rows=d.recentGames.filter(x=>Date.parse(x.GAME_DATE)<Date.parse(game.kickoff));
+     nbaComPlayerLogs.push({name,playerId:d.playerId,season,source:'nba_api',
+      samples:rows.length,recent:rows.slice(0,10).map(x=>({
+       date:x.GAME_DATE,points:Number(x.PTS)||0,rebounds:Number(x.REB)||0,
+       assists:Number(x.AST)||0,threes:Number(x.FG3M)||0,minutes:Number(x.MIN)||0}))});
+    }
+   }catch{ /* Preserve ESPN projections when NBA.com stats are blocked. */ }
+  }
+ }
+ const result={...evidence,nbaComEvidence,nbaComPlayerLogs,
   playerProjections:(evidence.playerProjections||[]).map(p=>({
    ...p,starterVerified:starterMatch(p),
    starterStatus:starterMatch(p)?'CONFIRMED_STARTER':'UNCONFIRMED',
