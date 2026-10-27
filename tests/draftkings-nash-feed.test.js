@@ -226,3 +226,19 @@ test('ESPN schedule fetch accepts a valid bounded scoreboard and rejects untrust
  })});
  assert.equal(oversized.reason,'RESPONSE_TOO_LARGE');
 });
+
+test('team and kickoff matching only produces unconfirmed unique crosswalk candidates',async()=>{
+ const {draftKingsEspnEventCandidates,draftKingsGamesFromEspnSchedule}=await import('../lib/draftkings-nash-feed.js');
+ const now=Date.now(),kickoff=new Date(now+86400000).toISOString();
+ const espn={id:'401123456',date:kickoff,competitions:[{
+  status:{type:{name:'STATUS_SCHEDULED',completed:false}},
+  competitors:[{team:{displayName:'Buffalo Bills'}},{team:{displayName:'Baltimore Ravens'}}]}]};
+ const dk={id:'34118182',startDate:kickoff,teamNames:['Baltimore Ravens','Buffalo Bills']};
+ const candidates=draftKingsEspnEventCandidates([dk],[espn]);
+ assert.equal(candidates.length,1);
+ assert.equal(candidates[0].confirmed,false);
+ assert.deepEqual(draftKingsGamesFromEspnSchedule([espn],{eventCrosswalk:candidates,now}),[]);
+ assert.deepEqual(draftKingsEspnEventCandidates([{...dk,teamNames:['Other','Buffalo Bills']}],[espn]),[]);
+ assert.deepEqual(draftKingsEspnEventCandidates([dk,{...dk,id:'34118183'}],[espn]),[]);
+ assert.deepEqual(draftKingsEspnEventCandidates([dk],[espn,{...espn,id:'401123457'}]),[]);
+});
