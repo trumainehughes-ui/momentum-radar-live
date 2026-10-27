@@ -60,3 +60,10 @@ test('Nash feed rejects oversized advertised responses before parsing',async()=>
  assert.equal(result.reason,'RESPONSE_TOO_LARGE');
  assert.equal(parsed,false);
 });
+
+test('season-long DraftKings futures cannot masquerade as game-day player props',async()=>{
+ const futures={...feed,markets:[{...feed.markets[0],name:'NFL Regular Season Receiving Yards'}]};
+ const result=await fetchDraftKingsNashSelections({...request,fetchImpl:async()=>({ok:true,json:async()=>futures})});
+ assert.equal(result.ok,true);
+ assert.deepEqual(eligibleNashPlayerProps(result,{now:Date.parse(result.fetchedAt),isActiveStarter:()=>true}),[]);
+});
