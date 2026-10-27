@@ -118,7 +118,7 @@
     .sort((a,b)=>Number(b.points)-Number(a.points)).slice(0,3);
    const kickoffDay=String(game.kickoff||'').slice(0,10);
    const priorDates=Array.from({length:4},(_,i)=>{
-    const day=new Date(kickoffDay+'T12:00:00Z');day.setUTCDate(day.getUTCDate()-(i+1));
+    const day=new Date(kickoffDay+'T12:00:00Z');day.setUTCDate(day.getUTCDate()-(i+1)*7);
     return day.toISOString().slice(0,10).replace(/-/g,'');
    }).join(',');
    Promise.allSettled(candidatePlayers.map(async p=>{
