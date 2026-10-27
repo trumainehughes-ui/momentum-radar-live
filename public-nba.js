@@ -112,6 +112,31 @@
      (d.status==='SCHEDULED'?'Game has not started. See the separate SGP section for any current model-only historical candidates; player box-score RESULTS will appear after tip-off.':'No verified player box-score statistics yet.')+
      '</div>';return;
    }
+   // Automatic historical evidence for selected players; never use the selected game's result
+   // as its own defensive baseline. Missing history remains explicitly unavailable.
+   const candidatePlayers=[...d.players].filter(x=>/^\\d+$/.test(String(x.playerId||''))&&Number.isFinite(Number(x.points)))
+    .sort((a,b)=>Number(b.points)-Number(a.points)).slice(0,3);
+   const kickoffDay=String(game.kickoff||'').slice(0,10);
+   const priorDates=Array.from({length:4},(_,i)=>{
+    const day=new Date(kickoffDay+'T12:00:00Z');day.setUTCDate(day.getUTCDate()-(i+1));
+    return day.toISOString().slice(0,10).replace(/-/g,'');
+   }).join(',');
+   Promise.allSettled(candidatePlayers.map(async p=>{
+    const teamAbbr=String(p.team||'').toUpperCase();
+    const opponent=teamAbbr===String(game.home.abbr).toUpperCase()?game.away:
+     teamAbbr===String(game.away.abbr).toUpperCase()?game.home:null;
+    if(!opponent?.id)return null;
+    const params=new URLSearchParams({league:'NBA',playerId:String(p.playerId),
+     opponentId:String(opponent.id),stat:'points',dates:priorDates});
+    const response=await fetch('/api/matchup-research?'+params,{signal:AbortSignal.timeout(20000)});
+    if(!response.ok)return null;
+    const result=await response.json();
+    return {...result,playerName:p.name,statLabel:'Points'};
+   })).then(results=>{
+    if(request!==token||selected!==id)return;
+    window.momentumAutomaticMatchupResearch?.render(matchupBox,
+     results.filter(x=>x.status==='fulfilled'&&x.value).map(x=>x.value));
+   });
    const ranked=[...d.players].filter(x=>Number.isFinite(Number(x.points))).sort((a,b)=>b.points-a.points);
    qs('#nbaPlayers').innerHTML='<div class="refresh">ACTUAL '+safe(d.status)+' GAME BOX SCORE — not betting projections</div>'+
     ranked.map(p=>'<div class="nflMarketLine"><b>'+safe(p.name)+' • '+safe(p.team)+'</b>'+
