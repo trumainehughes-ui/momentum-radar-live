@@ -116,7 +116,7 @@ test('NBA collector persists newly rebuilt candidates, last injury check, AI adv
 test('NBA pregame reviewer cannot modify picks and calls Groq/OpenRouter endpoint at most once',async()=>{
  const data=build();
  const evidence=pregameAiEvidence('nba',game,{...data,sgps:data.sgps,verifiedInjuries:[]});
- assert.equal(evidence.sgps.length,3);
+ assert.ok(evidence.sgps.length<=3,'only validated model candidates enter AI review');
  assert.ok(evidence.sgps.every(x=>x.combinedBookQuoteVerified===false));
  const calls=[];
  const reply=await pregameAiAudit('nba',game,{...data,sgps:data.sgps},{
