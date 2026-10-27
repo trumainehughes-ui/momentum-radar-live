@@ -51,3 +51,11 @@ test('Nash fetch refuses HTML challenge pages and non-JSON content',async()=>{
  assert.equal(result.reason,'INVALID_CONTENT_TYPE');
  assert.deepEqual(result.selections,[]);
 });
+
+test('Nash feed rejects oversized advertised responses before parsing',async()=>{
+ let parsed=false;
+ const result=await fetchDraftKingsNashSelections({...request,fetchImpl:async()=>({ok:true,headers:{get:key=>key==='content-length'?'3000000':'application/json'},json:async()=>{parsed=true;return feed;}})});
+ assert.equal(result.ok,false);
+ assert.equal(result.reason,'RESPONSE_TOO_LARGE');
+ assert.equal(parsed,false);
+});
