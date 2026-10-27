@@ -19,3 +19,8 @@ test('rejects stale, missing and empty records',()=>{
  assert.equal(validateSportsResearchEvidence('MLB',{source:'mlb_official',observedAt:'2020-01-01',records:[1]}).reason,'STALE_OR_FUTURE_EVIDENCE');
  assert.equal(validateSportsResearchEvidence('MLB',{source:'mlb_official',observedAt:new Date().toISOString(),records:[]}).reason,'EMPTY_RECORDS');
 });
+
+test('rejects malformed records even with an approved source',()=>{
+ const r=validateSportsResearchEvidence('NBA',{source:'espn',observedAt:new Date().toISOString(),records:[null]});
+ assert.equal(r.reason,'INVALID_RECORD_SHAPE');
+});
