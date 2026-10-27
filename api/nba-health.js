@@ -201,7 +201,7 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
    !injuries.some(i=>String(i.team)===String(p?.team)&&
     String(i.name||'').toUpperCase().replace(/[^A-Z0-9]/g,'')===
     String(p?.name||'').toUpperCase().replace(/[^A-Z0-9]/g,'')&&
-    /\b(?:OUT|DOUBTFUL|QUESTIONABLE|INACTIVE|SUSPENDED)\b/i.test(String(i.status||''))));
+    /\b(?:OUT|IR|INJURED RESERVE|DOUBTFUL|QUESTIONABLE|INACTIVE|SUSPENDED)\b/i.test(String(i.status||''))));
  };
  // Old SGP-only comparisons missed same-player prop changes, injury
  // designations and defense-vs-position movements. Fingerprint all of them
