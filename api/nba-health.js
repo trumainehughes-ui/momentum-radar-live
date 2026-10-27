@@ -276,6 +276,10 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
    'NBA_COM_INFLUENCING_PROJECTIONS':'NBA_COM_BLEND_NOT_VERIFIED',
   checkedAt:new Date(now).toISOString()
  };
+ console.info('[nba-com] integration_audit',JSON.stringify({
+  gameId:String(game.gameId),...nbaComIntegrationAudit,
+  modelVersion:NBA_PREGAME_MODEL_VERSION
+ }));
  const result={...evidence,nbaComEvidence,nbaComBoxScore,boxScoreObservations,nbaComIntegrationAudit,nbaComPlayerLogs,
   nbaComCrossCheckedAt:new Date(now).toISOString(),
   playerProjections:crossCheckedProjections.map(p=>({
