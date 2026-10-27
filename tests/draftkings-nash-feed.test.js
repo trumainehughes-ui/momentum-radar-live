@@ -242,3 +242,18 @@ test('team and kickoff matching only produces unconfirmed unique crosswalk candi
  assert.deepEqual(draftKingsEspnEventCandidates([dk,{...dk,id:'34118183'}],[espn]),[]);
  assert.deepEqual(draftKingsEspnEventCandidates([dk],[espn,{...espn,id:'401123457'}]),[]);
 });
+
+test('actual Nash event participant codes match ESPN abbreviations without self-confirming',async()=>{
+ const {draftKingsNashEspnEventCandidates}=await import('../lib/draftkings-nash-feed.js');
+ const date=new Date(Date.now()+86400000).toISOString();
+ const nash={id:'34118182',startEventDate:date,participants:[
+  {type:'Team',metadata:{shortName:'GB'}},{type:'Team',metadata:{shortName:'CAR'}}]};
+ const espn={id:'401123456',date,competitions:[{competitors:[
+  {team:{abbreviation:'CAR'}},{team:{abbreviation:'GB'}}]}]};
+ const matches=draftKingsNashEspnEventCandidates([nash],[espn]);
+ assert.equal(matches.length,1);
+ assert.equal(matches[0].confirmed,false);
+ assert.deepEqual(draftKingsNashEspnEventCandidates([{...nash,participants:[{type:'Team',metadata:{shortName:'GB'}}]}],[espn]),[]);
+ assert.deepEqual(draftKingsNashEspnEventCandidates([nash],[{...espn,date:new Date(Date.now()+2*86400000).toISOString()}]),[]);
+ assert.deepEqual(draftKingsNashEspnEventCandidates([nash],[espn,{...espn,id:'401123457'}]),[]);
+});
