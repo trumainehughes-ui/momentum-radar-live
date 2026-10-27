@@ -3,6 +3,7 @@ import {latestModelSgpIngest} from './model-sgp-ingest.js';
 import {blobCredentialMode} from '../lib/blob-storage-config.js';
 import {timingSafeEqual} from 'node:crypto';
 import {nbaPrepareEvidence} from '../lib/nba-pregame-model.js';
+import {nbaCrossCheckProjections} from '../lib/nba-com-cross-check.js';
 import {pregameAiAudit,nbaAiMatchupIdentityConflict} from '../lib/pregame-ai-review.js';
 import {sportsbookCoverageAudit} from '../lib/sportsbook-source-policy.js';
 import {sportResearchVerificationStatus} from '../lib/sport-sgp-verification-gate.js';
@@ -216,7 +217,8 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   nbaComPlayerLogs.push(...results.filter(Boolean));
  }
  const result={...evidence,nbaComEvidence,nbaComPlayerLogs,
-  playerProjections:(evidence.playerProjections||[]).map(p=>({
+  nbaComCrossCheckedAt:new Date(now).toISOString(),
+  playerProjections:nbaCrossCheckProjections(evidence.playerProjections||[],nbaComPlayerLogs).map(p=>({
    ...p,starterVerified:starterMatch(p),
    starterStatus:starterMatch(p)?'CONFIRMED_STARTER':'UNCONFIRMED',
    starterSource:starterMatch(p)?'ESPN_CORE_GAME_ROSTER_STARTER_FLAG':null})),
