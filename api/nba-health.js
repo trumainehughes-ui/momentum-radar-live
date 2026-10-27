@@ -206,7 +206,8 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   const tipoffDate=new Date(game.kickoff);
   const seasonStart=tipoffDate.getUTCFullYear()-(tipoffDate.getUTCMonth()<9?1:0);
   const season=seasonStart+'-'+String(seasonStart+1).slice(-2);
-  const unique=[...new Set(evidence.playerProjections.map(p=>p.name||p.player).filter(Boolean))].slice(0,4);
+  const unique=[...new Set(evidence.playerProjections.filter(p=>p.rotationEvidence?.eligible===true)
+   .map(p=>p.name||p.player).filter(Boolean))].slice(0,8);
   const results=await Promise.all(unique.map(async name=>{
    try{
     const u='https://'+process.env.VERCEL_URL+'/api/nba-open-data?'+new URLSearchParams({action:'player-name-log',name,season});
