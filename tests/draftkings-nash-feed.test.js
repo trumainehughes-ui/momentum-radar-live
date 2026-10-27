@@ -246,10 +246,10 @@ test('team and kickoff matching only produces unconfirmed unique crosswalk candi
 test('actual Nash event participant codes match ESPN abbreviations without self-confirming',async()=>{
  const {draftKingsNashEspnEventCandidates}=await import('../lib/draftkings-nash-feed.js');
  const date=new Date(Date.now()+86400000).toISOString();
- const nash={id:'34118182',startEventDate:date,participants:[
-  {type:'Team',metadata:{shortName:'GB'}},{type:'Team',metadata:{shortName:'CAR'}}]};
- const espn={id:'401123456',date,competitions:[{competitors:[
-  {team:{abbreviation:'CAR'}},{team:{abbreviation:'GB'}}]}]};
+ const nash={id:'34118182',startEventDate:date,status:'NOT_STARTED',participants:[
+  {type:'Team',venueRole:'Home',metadata:{shortName:'GB'}},{type:'Team',venueRole:'Away',metadata:{shortName:'CAR'}}]};
+ const espn={id:'401123456',date,status:{type:{name:'STATUS_SCHEDULED'}},competitions:[{competitors:[
+  {homeAway:'away',team:{abbreviation:'CAR'}},{homeAway:'home',team:{abbreviation:'GB'}}]}]};
  const matches=draftKingsNashEspnEventCandidates([nash],[espn]);
  assert.equal(matches.length,1);
  assert.equal(matches[0].confirmed,false);
