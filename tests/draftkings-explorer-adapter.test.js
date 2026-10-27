@@ -91,3 +91,17 @@ test('non-over-under outcomes and negative prop thresholds cannot enter the offe
  assert.equal(eligibleDraftKingsProp({...normalized[0],outcome:'under'},{activeStarter:true,offeredLines:[75],now}),true);
  assert.equal(eligibleDraftKingsProp({...normalized[0],outcome:'yes'},{activeStarter:true,offeredLines:[75],now}),false);
 });
+
+test('deduplicates identical DraftKings selection identities without merging distinct alternate lines',()=>{
+ const original=snapshot.markets[0].outcomes[0];
+ const duplicate={...snapshot,markets:[{...snapshot.markets[0],outcomes:[original,{...original},snapshot.markets[0].outcomes[1]]}]};
+ const props=normalizeDraftKingsSelections(duplicate,{sourceUrl,fetchedAt});
+ assert.equal(props.length,2);
+ assert.deepEqual(props.map(p=>p.selectionId),['sel-75','sel-80']);
+});
+test('eligibility fails closed if sportsbook price or market identity disappears',()=>{
+ const [prop]=normalizeDraftKingsSelections(snapshot,{sourceUrl,fetchedAt});
+ for(const bad of [{americanOdds:null},{americanOdds:50},{marketId:''},{eventId:''},{selectionId:' '}]){
+  assert.equal(eligibleDraftKingsProp({...prop,...bad},{activeStarter:true,offeredLines:[75],now}),false);
+ }
+});
