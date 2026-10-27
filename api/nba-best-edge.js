@@ -33,7 +33,7 @@ export default async function handler(req,res){
   }));
   const result=nbaBestEdgeParlay(games,{mode:'VERIFIED_MARKET'});
   const snapshotVersions=[...new Set(games.map(g=>g.snapshotModelVersion).filter(Boolean))];
-  const staleSnapshotGames=games.filter(g=>g.snapshotModelVersion!=='v15-preserve-newest-ten-player-history').map(g=>g.gameId);
+  const staleSnapshotGames=games.filter(g=>g.snapshotModelVersion!=='v16-preserve-current-season-first').map(g=>g.gameId);
   const snapshotHealth={scheduledGames:games.length,snapshotsAvailable:games.filter(g=>g.snapshotPresent).length,
    gamesWithPlayerProjections:games.filter(g=>g.playerProjections.length>0).length,
    snapshotModelVersions:snapshotVersions.slice(0,6),
@@ -81,7 +81,7 @@ export default async function handler(req,res){
     projection:Number(p.projection),baseProjection:Number(p.baseProjection)||null,matchupAdjustment:p.matchupAdjustment||null,defenseVsPosition:p.defenseVsPosition||null,sampleGames:p.sampleGames||0,
     sampleSource:p.sampleSource||null,historicalSeason:p.historicalSeason||null,starterVerified:p.starterVerified===true,
     snapshotModelVersion:g.snapshotModelVersion,snapshotCheckedAt:g.snapshotCheckedAt,
-    snapshotCurrentVersion:g.snapshotModelVersion==='v15-preserve-newest-ten-player-history',
+    snapshotCurrentVersion:g.snapshotModelVersion==='v16-preserve-current-season-first',
     starterEvidenceStatus:p.starterVerified===true?'CONFIRMED':'UNCONFIRMED',
     historyGamesAvailable:Array.isArray(p.historicalValues)?p.historicalValues.length:0,
     matchupLiftPercent:Number(p.baseProjection)>0?
