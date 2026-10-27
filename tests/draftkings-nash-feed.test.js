@@ -144,6 +144,7 @@ test('NFL catalog reports incomplete coverage rather than silently treating part
  assert.equal(feed.ok,false);
  assert.equal(feed.complete,false);
  assert.equal(feed.categories.length,4);
+ assert.deepEqual(feed.selections,[]);
  assert.equal(feed.verifiedSGPQuote,false);
 });
 
