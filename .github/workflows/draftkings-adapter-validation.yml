@@ -1,0 +1,29 @@
+name: DraftKings Adapter Branch Validation
+on:
+  push:
+    branches:
+      - feature/draftkings-explorer-adapter
+  pull_request:
+    paths:
+      - 'lib/draftkings-*.js'
+      - 'tests/draftkings-*.test.js'
+      - 'scripts/check-draftkings-nash.mjs'
+      - '.github/workflows/draftkings-*.yml'
+  workflow_dispatch:
+jobs:
+  adapter-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Syntax and adapter regression tests
+        run: |
+          node --check lib/draftkings-explorer-adapter.js
+          node --check lib/draftkings-nash-feed.js
+          node --check scripts/check-draftkings-nash.mjs
+          node --test tests/draftkings-explorer-adapter.test.js tests/draftkings-nash-feed.test.js
