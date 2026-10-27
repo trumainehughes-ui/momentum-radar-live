@@ -11,3 +11,8 @@ test('signed NFL collector fails closed while read-only public off-day health re
  assert.match(source,/if\(!games\.length&&cron\)blocking\.push\('games'\)/);
  assert.match(source,/if\(schedules\.every\(s=>!s\.ok\)\)blocking\.push\('schedule'\)/);
 });
+
+test('fallback model research excludes out, questionable and inactive players with real word boundaries',()=>{
+ assert.ok(source.includes('/\\b(OUT|INACTIVE|IR|DOUBTFUL|QUESTIONABLE|SUSPENDED)\\b/i.test('));
+ assert.ok(!source.includes('/\\\\b(OUT|INACTIVE|IR|DOUBTFUL|QUESTIONABLE|SUSPENDED)\\\\b/i.test('));
+});
