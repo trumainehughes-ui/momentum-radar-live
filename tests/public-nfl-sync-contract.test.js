@@ -46,8 +46,11 @@ test('incomplete model snapshot updates do not display partial Nuke legs as a pa
  }
  // Visible readiness must remain identical even if independently loaded
  // game snapshots carry different actual publication timestamps.
- const withoutVersion=html=>html.replace(/ data-published-game-version="[^"]*"/g,'');
- assert.equal(withoutVersion(oldHtml),withoutVersion(newHtml));
+ // Different source projections may change the independent player-forecast panel,
+ // but must not reveal partial selections inside the Nuke parlay card.
+ const nukeCard=html=>html.match(/<section class="sgp-slip" aria-label="Nuke incomplete research">[\s\S]*?<\/section>/)?.[0];
+ assert.ok(nukeCard(oldHtml));
+ assert.equal(nukeCard(oldHtml),nukeCard(newHtml));
 });
 test('public SGP uses the same published snapshot API and never calls owner refresh',()=>{
  assert.match(route,/nflSgpFindLatestBlob\(\{date,gameId\}\)/);
