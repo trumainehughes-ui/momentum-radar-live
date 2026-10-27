@@ -196,3 +196,16 @@ test('category handoff rejects duplicate, missing and invented category identiti
  assert.deepEqual(eligibleDraftKingsNflPlayerProps({...snapshot,categories:[categories[0],categories[0],categories[2],categories[3]]},gate),[]);
  assert.deepEqual(eligibleDraftKingsNflPlayerProps({...snapshot,categories:[categories[0],{stat:'made_up',ok:true},categories[2],categories[3]]},gate),[]);
 });
+
+test('ESPN schedule crosswalk requires confirmed exact DK event mapping and scheduled future kickoff',async()=>{
+ const {draftKingsGamesFromEspnSchedule}=await import('../lib/draftkings-nash-feed.js');
+ const now=Date.now(),date=new Date(now+86400000).toISOString();
+ const event={id:'401123456',date,competitions:[{status:{type:{name:'STATUS_SCHEDULED',completed:false}}}]};
+ const mapping={espnEventId:'401123456',draftKingsEventId:'34118182',confirmed:true};
+ assert.deepEqual(draftKingsGamesFromEspnSchedule([event],{eventCrosswalk:[],now}),[]);
+ assert.equal(draftKingsGamesFromEspnSchedule([event],{eventCrosswalk:[mapping],now})[0].draftKingsEventId,'34118182');
+ assert.deepEqual(draftKingsGamesFromEspnSchedule([event],{eventCrosswalk:[{...mapping,confirmed:false}],now}),[]);
+ assert.deepEqual(draftKingsGamesFromEspnSchedule([event],{eventCrosswalk:[mapping,{...mapping,draftKingsEventId:'34118183'}],now}),[]);
+ assert.deepEqual(draftKingsGamesFromEspnSchedule([{...event,date:new Date(now-1000).toISOString()}],{eventCrosswalk:[mapping],now}),[]);
+ assert.deepEqual(draftKingsGamesFromEspnSchedule([{...event,competitions:[{status:{type:{name:'STATUS_FINAL',completed:true}}}]}],{eventCrosswalk:[mapping],now}),[]);
+});
