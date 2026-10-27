@@ -8,7 +8,7 @@ import {nbaCrossCheckProjections} from '../lib/nba-com-cross-check.js';
 import {pregameAiAudit,nbaAiMatchupIdentityConflict} from '../lib/pregame-ai-review.js';
 import {sportsbookCoverageAudit} from '../lib/sportsbook-source-policy.js';
 import {sportResearchVerificationStatus} from '../lib/sport-sgp-verification-gate.js';
-import {fetchEspnEventStarters} from '../lib/espn-event-starter-evidence.js';
+import {fetchEspnEventStarters,parseEspnSummaryStarters} from '../lib/espn-event-starter-evidence.js';
 import {nflRunCollectorBatch} from '../lib/nfl-collector-readiness.js';
 import {pregamePhase,pregameEvidenceAudit,pregameNeedsAiReview}
  from '../lib/pregame-revalidation.js';
@@ -16,7 +16,7 @@ import {selectedShardGames,collectorAuditReport,writeCollectorAudit}
  from '../lib/pregame-collector-shards.js';
 const PREFIX='momentum-pregame/v1/nba-';
 const MS=60_000,LOOKAHEAD=36*60*MS;
-export const NBA_PREGAME_MODEL_VERSION='v16-preserve-current-season-first';
+export const NBA_PREGAME_MODEL_VERSION='v17-summary-starter-evidence';
 const path=id=>PREFIX+id+'.json';
 const DAY='America/New_York';
 const dateET=(when=new Date())=>{
@@ -194,7 +194,13 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   now,fetchJson:url=>fetchJson(url,4500)}):
   {checked:false,starters:[],startersConfirmed:false,teamsChecked:0,
    reason:'SUMMARY_UNAVAILABLE',source:'ESPN_CORE_GAME_ROSTER'};
- const starterIds=new Map(eventStarters.starters.map(p=>[p.playerId,p]));
+ const summaryStarters=observed?parseEspnSummaryStarters(observed,{
+  gameId:String(game.gameId),checkedAt:new Date(now).toISOString()}):null;
+ // Prefer the event-scoped roster; use the summary only when it explicitly
+ // confirms all five starters for both teams.
+ const selectedStarters=eventStarters.startersConfirmed?eventStarters:
+  summaryStarters?.startersConfirmed?summaryStarters:eventStarters;
+ const starterIds=new Map(selectedStarters.starters.map(p=>[p.playerId,p]));
  const starterMatch=p=>{
   const id=String(p?.playerId||p?.playerID||''),e=starterIds.get(id);
   return Boolean(e&&String(e.team)===String(p?.team)&&
@@ -301,7 +307,7 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
     ...p,starterVerified:starterMatch(p),
     starterStatus:starterMatch(p)?'CONFIRMED_STARTER':'UNCONFIRMED',
     starterSource:starterMatch(p)?'ESPN_CORE_GAME_ROSTER_STARTER_FLAG':null}));
-   const startersReady=eventStarters.startersConfirmed===true&&
+   const startersReady=selectedStarters.startersConfirmed===true&&
     legs.length>0&&legs.every(p=>p.starterVerified===true);
    return {...card,legs,
     status:card.status==='MODEL_CANDIDATE'&&eventStarters.checked===true&&!startersReady?'NOT_READY':card.status,
@@ -311,13 +317,13 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
      'Held: not every player is verified as a starter for this specific NBA game.':card.reason};
   }),
   starterEvidence:{checked:eventStarters.checked,
-   startersConfirmed:eventStarters.startersConfirmed,
-   reason:eventStarters.reason||'UNKNOWN',teamsChecked:eventStarters.teamsChecked||0,
+   startersConfirmed:selectedStarters.startersConfirmed,
+   reason:selectedStarters.reason||'UNKNOWN',teamsChecked:eventStarters.teamsChecked||0,
    teamReasons:eventStarters.teamReasons||{},
    teamRowDiagnostics:eventStarters.teamRowDiagnostics||{},
    teamCounts:eventStarters.starterCounts||{},
-   source:eventStarters.source,
-   playerIds:(eventStarters.starters||[]).map(x=>x.playerId).sort(),
+   source:selectedStarters.source,
+   playerIds:(selectedStarters.starters||[]).map(x=>x.playerId).sort(),
    officialInactivesVerified:false},
   gameId:game.gameId,kickoff:game.kickoff,
   home:game.home,away:game.away,
