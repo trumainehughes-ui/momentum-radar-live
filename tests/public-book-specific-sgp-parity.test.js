@@ -53,7 +53,8 @@ function sample({wrongFdLine=false,wrongFdCategory=false,oldFd=false}={}){
  if(wrongFdCategory)cats.receiving[0].books[1].category='rushing';
  if(oldFd)cats.receiving[0].books[1].checkedAt=new Date(at-60*60_000).toISOString();
  return{at,body:{ok:true,date,gameId,home:'JAX',away:'HOU',
-  validation:{injuryEligibilityChecked:true,officialInactivesVerified:true},
+  validation:{injuryEligibilityChecked:true,officialInactivesVerified:true,
+    injuryReportCheckedAt:new Date(at-30_000).toISOString()},
   categories:cats,sgps:{Analytics:[],
    DraftKings:[makeCard('DraftKings')],FanDuel:[makeCard('FanDuel')]}}};
 }
