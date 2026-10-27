@@ -76,3 +76,26 @@ test('ESPN summary fallback requires matching event and five explicit starters p
  summary.boxscore.players[0].statistics[0].athletes[0].starter=false;
  assert.equal(parseEspnSummaryStarters(summary,opts).startersConfirmed,false);
 });
+
+
+test('official sportsbook collector reports site challenges and never invents offers',async()=>{
+ const {collectDirectSportsbookEvidence}=await import('../lib/direct-sportsbook-collector.js');
+ const fetchPage=async(url)=>({
+  ok:true,url,status:200,text:async()=>url.includes('draftkings')?
+   '<html><body>Access denied: verify you are human</body></html>':
+   '<html><body>Sportsbook home</body></html>'
+ });
+ const result=await collectDirectSportsbookEvidence({
+  sport:'nba',gameId:'401909877',fetchPage,now:Date.now()});
+ assert.equal(result.offers.length,0);
+ assert.equal(result.attempts.find(a=>a.book==='DraftKings').status,'ACCESS_RESTRICTED');
+ assert.equal(result.attempts.find(a=>a.book==='FanDuel').status,'PAGE_REACHABLE');
+});
+test('official sportsbook collector rejects redirects to unrelated domains',async()=>{
+ const {collectDirectSportsbookEvidence}=await import('../lib/direct-sportsbook-collector.js');
+ const result=await collectDirectSportsbookEvidence({
+  sport:'nba',gameId:'401909877',
+  fetchPage:async()=>({ok:true,url:'https://example.org/redirect',text:async()=>'<html></html>'})});
+ assert.equal(result.offers.length,0);
+ assert.equal(result.attempts.every(a=>a.reason==='REDIRECT_OUTSIDE_OFFICIAL_BOOK'),true);
+});
