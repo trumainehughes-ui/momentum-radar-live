@@ -61,3 +61,18 @@ test('shared NBA market gate accepts verified two-digit odds only for matching t
  assert.equal(evaluateUniversalPlayerMarketGate({sport:'nba',gameId:'game-1',leg,role,offers,now}).ready,true);
  assert.equal(evaluateUniversalPlayerMarketGate({sport:'nba',gameId:'game-1',leg,role,offers:offers.map(o=>({...o,team:''})),now}).ready,false);
 });
+
+
+test('ESPN summary fallback requires matching event and five explicit starters per team',async()=>{
+ const {parseEspnSummaryStarters}=await import('../lib/espn-event-starter-evidence.js');
+ const makeRows=(start)=>Array.from({length:5},(_,i)=>({athlete:{id:String(start+i)},starter:true}));
+ const summary={header:{id:'401909877',competitions:[{competitors:[
+  {team:{id:'2',abbreviation:'BOS'}},{team:{id:'17',abbreviation:'BKN'}}]}]},
+  boxscore:{players:[{team:{id:'2'},statistics:[{athletes:makeRows(100)}]},
+   {team:{id:'17'},statistics:[{athletes:makeRows(200)}]}]}};
+ const opts={gameId:'401909877',checkedAt:new Date().toISOString()};
+ assert.equal(parseEspnSummaryStarters(summary,opts).startersConfirmed,true);
+ assert.equal(parseEspnSummaryStarters(summary,{...opts,gameId:'401909878'}).startersConfirmed,false);
+ summary.boxscore.players[0].statistics[0].athletes[0].starter=false;
+ assert.equal(parseEspnSummaryStarters(summary,opts).startersConfirmed,false);
+});
