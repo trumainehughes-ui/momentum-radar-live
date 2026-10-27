@@ -38,12 +38,12 @@ test('handoff only accepts externally confirmed starters with exact fresh offers
  const feedResult=await fetchDraftKingsNashSelections({...request,fetchImpl:async()=>({ok:true,json:async()=>feed})});
  const observedAt=Date.parse(feedResult.fetchedAt);
  assert.equal(eligibleNashPlayerProps(feedResult,{now:observedAt}).length,0);
- assert.equal(eligibleNashPlayerProps(feedResult,{now:observedAt,isActiveStarter:()=>false}).length,0);
- const eligible=eligibleNashPlayerProps(feedResult,{now:observedAt,isActiveStarter:()=>true});
+ assert.equal(eligibleNashPlayerProps(feedResult,{now:observedAt,isCurrentGame:()=>true,isActiveStarter:()=>false}).length,0);
+ const eligible=eligibleNashPlayerProps(feedResult,{now:observedAt,isCurrentGame:()=>true,isActiveStarter:()=>true});
  assert.equal(eligible.length,1);
  assert.equal(eligible[0].selectionId,'selection1');
  assert.equal(eligible[0].verifiedSGPQuote,false);
- assert.equal(eligibleNashPlayerProps(feedResult,{now:observedAt+20*60_000,isActiveStarter:()=>true}).length,0);
+ assert.equal(eligibleNashPlayerProps(feedResult,{now:observedAt+20*60_000,isCurrentGame:()=>true,isActiveStarter:()=>true}).length,0);
 });
 
 test('Nash fetch refuses HTML challenge pages and non-JSON content',async()=>{
@@ -65,11 +65,20 @@ test('season-long DraftKings futures cannot masquerade as game-day player props'
  const futures={...feed,markets:[{...feed.markets[0],name:'NFL Regular Season Receiving Yards'}]};
  const result=await fetchDraftKingsNashSelections({...request,fetchImpl:async()=>({ok:true,json:async()=>futures})});
  assert.equal(result.ok,true);
- assert.deepEqual(eligibleNashPlayerProps(result,{now:Date.parse(result.fetchedAt),isActiveStarter:()=>true}),[]);
+ assert.deepEqual(eligibleNashPlayerProps(result,{now:Date.parse(result.fetchedAt),isCurrentGame:()=>true,isActiveStarter:()=>true}),[]);
 });
 
 test('starter verification exceptions fail closed without leaking unverified props',async()=>{
  const result=await fetchDraftKingsNashSelections({...request,fetchImpl:async()=>({ok:true,json:async()=>feed})});
  assert.equal(result.ok,true);
- assert.deepEqual(eligibleNashPlayerProps(result,{now:Date.parse(result.fetchedAt),isActiveStarter:()=>{throw Error('injury service unavailable');}}),[]);
+ assert.deepEqual(eligibleNashPlayerProps(result,{now:Date.parse(result.fetchedAt),isCurrentGame:()=>true,isActiveStarter:()=>{throw Error('injury service unavailable');}}),[]);
+});
+
+test('game-day handoff rejects unverified, out-of-slate and failing event checks',async()=>{
+ const result=await fetchDraftKingsNashSelections({...request,fetchImpl:async()=>({ok:true,json:async()=>feed})});
+ const now=Date.parse(result.fetchedAt);
+ assert.deepEqual(eligibleNashPlayerProps(result,{now,isActiveStarter:()=>true}),[]);
+ assert.deepEqual(eligibleNashPlayerProps(result,{now,isCurrentGame:()=>false,isActiveStarter:()=>true}),[]);
+ assert.deepEqual(eligibleNashPlayerProps(result,{now,isCurrentGame:()=>{throw Error('schedule unavailable');},isActiveStarter:()=>true}),[]);
+ assert.equal(eligibleNashPlayerProps(result,{now,isCurrentGame:({eventId})=>eventId==='game1',isActiveStarter:()=>true}).length,1);
 });
