@@ -7,12 +7,21 @@ const statMap={NBA:{points:'PTS',rebounds:'REB',assists:'AST'},NFL:{passingYards
 const categoryMap={passingYards:'passing',rushingYards:'rushing',receivingYards:'receiving'};
 async function json(url){const r=await fetch(url,{signal:AbortSignal.timeout(6500),headers:{accept:'application/json'}});if(!r.ok)throw Error('UPSTREAM_'+r.status);return r.json();}
 function numericRows(box,league,gameId,gameDate){
- return (box?.players||[]).flatMap(t=>(t.statistics||[]).flatMap(group=>(group.athletes||[]).map(a=>
-  normalizePlayerBoxscoreRecord({league,gameId,gameDate,gameStatus:'STATUS_FINAL',
-   teamId:String(t.team?.id||''),teamName:t.team?.displayName,
-   playerId:String(a.athlete?.id||''),playerName:a.athlete?.displayName,
-   category:group.name||group.displayName||null,statLabels:group.labels||[],stats:a.stats||[]})
- )));
+ const rows=[];
+ for(const team of box?.players||[]){
+  for(const group of team.statistics||[]){
+   for(const athlete of group.athletes||[]){
+    rows.push(normalizePlayerBoxscoreRecord({
+     league,gameId,gameDate,gameStatus:'STATUS_FINAL',
+     teamId:String(team.team?.id||''),teamName:team.team?.displayName,
+     playerId:String(athlete.athlete?.id||''),playerName:athlete.athlete?.displayName,
+     category:group.name||group.displayName||null,
+     statLabels:group.labels||[],stats:athlete.stats||[]
+    }));
+   }
+  }
+ }
+ return rows;
 }
 export default async function handler(req,res){
  if(req.method!=='GET'){res.setHeader('Allow','GET');return res.status(405).json({ok:false,error:'METHOD_NOT_ALLOWED'});}
