@@ -47,6 +47,8 @@ export default async function handler(req,res){
    playersWithTenGameHistory:games.reduce((n,g)=>n+g.playerProjections.filter(p=>Array.isArray(p.historicalValues)&&p.historicalValues.length>=10).length,0),
    playersWithThreeToNineGameHistory:games.reduce((n,g)=>n+g.playerProjections.filter(p=>Array.isArray(p.historicalValues)&&p.historicalValues.length>=3&&p.historicalValues.length<10).length,0),
    playersWithAnyHistoricalValues:games.reduce((n,g)=>n+g.playerProjections.filter(p=>Array.isArray(p.historicalValues)&&p.historicalValues.length>0).length,0),
+   currentSeasonHistoryPlayers:games.reduce((n,g)=>n+g.playerProjections.filter(p=>p.sampleSource==='CURRENT_SEASON'&&Array.isArray(p.historicalValues)&&p.historicalValues.length>0).length,0),
+   priorSeasonHistoryPlayers:games.reduce((n,g)=>n+g.playerProjections.filter(p=>p.sampleSource==='PRIOR_SEASON'&&Array.isArray(p.historicalValues)&&p.historicalValues.length>0).length,0),
    gamesAiReviewed:games.filter(g=>g.aiReviewStatus==='REVIEWED').length,
    gamesAiUnavailable:games.filter(g=>g.aiReviewStatus==='UNAVAILABLE').length,
    gamesWithConfirmedStarters:games.filter(g=>g.starterEvidence?.startersConfirmed===true).length,
