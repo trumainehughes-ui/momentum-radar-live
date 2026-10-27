@@ -351,3 +351,15 @@ test('live Nash and ESPN bridge returns only unconfirmed matching event candidat
  assert.deepEqual(result.candidates,[{draftKingsEventId:'34118182',espnEventId:'401123456',kickoffDeltaMs:0,confirmed:false}]);
  assert.equal(result.sourceUrls.length,2);
 });
+
+test('DraftKings injury bridge rejects unverified inactives and current NFL injury holds',async()=>{
+ const {eligibleDraftKingsPlayersWithInjuryEvidence:check}=await import('../lib/draftkings-nash-feed.js');
+ const player={confirmed:true,active:true,starterOrHighSnap:true,espnAthleteId:'123456',name:'Example Receiver'};
+ const playerTeams={'123456':'GB'};
+ const evidence={weeklyCoverage:true,officialInactivesVerified:true,injuries:[]};
+ assert.deepEqual(check([player],{injuryEvidence:evidence,playerTeams}),[player]);
+ assert.deepEqual(check([player],{injuryEvidence:{...evidence,officialInactivesVerified:false},playerTeams}),[]);
+ assert.deepEqual(check([player],{injuryEvidence:{...evidence,weeklyCoverage:false},playerTeams}),[]);
+ assert.deepEqual(check([player],{injuryEvidence:{...evidence,injuries:[{team:'GB',name:'Example Receiver',status:'QUESTIONABLE',section:'WEEKLY'}]},playerTeams}),[]);
+ assert.deepEqual(check([player],{injuryEvidence:evidence,playerTeams:{}}),[]);
+});
