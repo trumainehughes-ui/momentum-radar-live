@@ -21,12 +21,12 @@ test('fails closed on missing provenance or malformed payload',()=>{
  assert.deepEqual(normalizeDraftKingsSelections(snapshot),[]);
  assert.deepEqual(normalizeDraftKingsSelections({markets:[]},{sourceUrl,fetchedAt}),[]);
 });
-test('requires active starter and exact offered five-yard line',()=>{
+test('requires active starter and exact offered line without invented increments',()=>{
  const prop=normalizeDraftKingsSelections(snapshot,{sourceUrl,fetchedAt})[0];
  assert.equal(eligibleDraftKingsProp(prop,{activeStarter:true,offeredLines:[75,80],now}),true);
  assert.equal(eligibleDraftKingsProp(prop,{activeStarter:false,offeredLines:[75],now}),false);
  assert.equal(eligibleDraftKingsProp(prop,{activeStarter:true,offeredLines:[70],now}),false);
- assert.equal(eligibleDraftKingsProp({...prop,line:77},{activeStarter:true,offeredLines:[77],now}),false);
+ assert.equal(eligibleDraftKingsProp({...prop,line:77},{activeStarter:true,offeredLines:[77],now}),true);
 });
 
 test('rejects spoofed DraftKings domains and empty price/line',()=>{
@@ -46,10 +46,11 @@ test('rejects stale or future DraftKings props even if the line exists',()=>{
  assert.equal(eligibleDraftKingsProp({...prop,sourceUrl:'https://draftkings.com.evil.test/'},{activeStarter:true,offeredLines:[75],now}),false);
 });
 
-test('reception counts use integer thresholds, not five-yard increments',()=>{
+test('reception thresholds must match the actual first-party offered market',()=>{
  const p=normalizeDraftKingsSelections({...snapshot,markets:[{...snapshot.markets[0],name:'Player Receptions',outcomes:[{playerName:'Example Receiver',points:4,oddsAmerican:-120}]}]},{sourceUrl,fetchedAt})[0];
  assert.equal(eligibleDraftKingsProp(p,{activeStarter:true,offeredLines:[4],now}),true);
- assert.equal(eligibleDraftKingsProp({...p,line:4.5},{activeStarter:true,offeredLines:[4.5],now}),false);
+ assert.equal(eligibleDraftKingsProp({...p,line:4.5},{activeStarter:true,offeredLines:[4.5],now}),true);
+ assert.equal(eligibleDraftKingsProp({...p,line:4.5},{activeStarter:true,offeredLines:[4],now}),false);
 });
 test('unknown markets are not eligible until explicitly mapped',()=>{
  const p=normalizeDraftKingsSelections(snapshot,{sourceUrl,fetchedAt})[0];
