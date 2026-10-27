@@ -8,8 +8,9 @@ function mock(method='POST', body={},headers={}) {
  return {req,res};
 }
 const old=process.env.GROQ_API_KEY;
+const oldBackup=process.env.OPENROUTER_API_KEY;
 test('rejects non-POST methods',async()=>{const {req,res}=mock('GET');await handler(req,res);assert.equal(res.statusCode,405)});
-test('fails safely without a key',async()=>{delete process.env.GROQ_API_KEY;const {req,res}=mock();await handler(req,res);assert.equal(res.statusCode,503);assert.equal(res.body.error,'ai_not_configured')});
+test('without provider keys returns a read-only deterministic advisory',async()=>{delete process.env.GROQ_API_KEY;delete process.env.OPENROUTER_API_KEY;const {req,res}=mock('POST',{mode:'guardian',data:{gameId:'no-provider-test'}});await handler(req,res);assert.equal(res.statusCode,200);assert.equal(res.body.aiAvailable,false);assert.equal(res.body.mechanics.canChangePicks,false)});
 test('rejects unrecognized modes',async()=>{process.env.GROQ_API_KEY='test-only';const {req,res}=mock('POST',{mode:'delete',data:{gameId:'123'}});await handler(req,res);assert.equal(res.statusCode,400)});
 test('rejects missing evidence',async()=>{process.env.GROQ_API_KEY='test-only';const {req,res}=mock('POST',{mode:'matchup'});await handler(req,res);assert.equal(res.statusCode,400)});
 test('rejects oversized payload',async()=>{process.env.GROQ_API_KEY='test-only';const {req,res}=mock('POST',{mode:'matchup',data:{rows:Array.from({length:25},(_,i)=>({id:i,nested:Array.from({length:25},()=>({text:'x'.repeat(500)}))}))}});await handler(req,res);assert.equal(res.statusCode,413)});
@@ -17,4 +18,4 @@ test('blocks unknown origins',async()=>{process.env.GROQ_API_KEY='test-only';con
 test('rejects array as top-level evidence',async()=>{process.env.GROQ_API_KEY='test-only';const {req,res}=mock('POST',{mode:'matchup',data:[{gameId:'123'}]});await handler(req,res);assert.equal(res.statusCode,400)});
 test('rejects malformed origin',async()=>{process.env.GROQ_API_KEY='test-only';const {req,res}=mock('POST',{mode:'matchup',data:{gameId:'123'}},{origin:'not-a-valid-origin'});await handler(req,res);assert.equal(res.statusCode,403)});
 test('rejects lookalike domain',async()=>{process.env.GROQ_API_KEY='test-only';const {req,res}=mock('POST',{mode:'matchup',data:{gameId:'123'}},{origin:'https://momentum-radar-live.vercel.app.attacker.example'});await handler(req,res);assert.equal(res.statusCode,403)});
-test.after(()=>{if(old===undefined)delete process.env.GROQ_API_KEY;else process.env.GROQ_API_KEY=old});
+test.after(()=>{if(old===undefined)delete process.env.GROQ_API_KEY;else process.env.GROQ_API_KEY=old;if(oldBackup===undefined)delete process.env.OPENROUTER_API_KEY;else process.env.OPENROUTER_API_KEY=oldBackup});
