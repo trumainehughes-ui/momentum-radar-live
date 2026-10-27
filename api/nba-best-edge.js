@@ -32,9 +32,12 @@ export default async function handler(req,res){
     awayTeam:c.competitors?.find(x=>x.homeAway==='away')?.team?.displayName||null};
   }));
   const result=nbaBestEdgeParlay(games,{mode:'VERIFIED_MARKET'});
+  const snapshotVersions=[...new Set(games.map(g=>g.snapshotModelVersion).filter(Boolean))];
+  const staleSnapshotGames=games.filter(g=>g.snapshotModelVersion!=='v15-preserve-newest-ten-player-history').map(g=>g.gameId);
   const snapshotHealth={scheduledGames:games.length,snapshotsAvailable:games.filter(g=>g.snapshotPresent).length,
    gamesWithPlayerProjections:games.filter(g=>g.playerProjections.length>0).length,
-   snapshotModelVersions:[...new Set(games.map(g=>g.snapshotModelVersion).filter(Boolean))].slice(0,6),
+   snapshotModelVersions:snapshotVersions.slice(0,6),
+   staleSnapshotGames,staleSnapshotCount:staleSnapshotGames.length,
    gamesWithInjuryChecks:games.filter(g=>g.injuryCheckedAt).length,
    gamesWithEspnListedGameTotals:games.filter(g=>Number.isFinite(Number(g.total))&&Number(g.total)>0).length,
    gamesWithEspnListedSpreads:games.filter(g=>g.spread!==null&&Number.isFinite(Number(g.spread))).length,
