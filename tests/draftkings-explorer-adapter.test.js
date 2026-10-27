@@ -154,3 +154,11 @@ test('malformed null Nash array entries fail closed without crashing normalizati
  assert.equal(props[0].selectionId,'sel1');
  assert.deepEqual(normalizeDraftKingsSelections({...malformed,events:[null]},{sourceUrl,fetchedAt}),[]);
 });
+
+test('empty market outcome arrays fall back to Nash top-level selections',()=>{
+ const feed={events:[{id:'game1'}],markets:[{id:'m1',eventId:'game1',name:'Receiving Yards',playerName:'Example Receiver',outcomes:[],selections:[]}],selections:[{id:'sel1',marketId:'m1',label:'Over 75.5',displayOdds:{american:'-110'}}]};
+ const props=normalizeDraftKingsSelections(feed,{sourceUrl,fetchedAt});
+ assert.equal(props.length,1);
+ assert.equal(props[0].selectionId,'sel1');
+ assert.equal(props[0].line,75.5);
+});
