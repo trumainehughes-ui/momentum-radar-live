@@ -5,6 +5,25 @@ export default async function handler(req,res){
  const date=String(req.query?.date||new Date().toISOString().slice(0,10));
  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(Date.parse(date)))return res.status(400).json({ok:false,error:'INVALID_DATE'});
  try{
+  const gameId=String(req.query?.gameId||'').trim();
+  if(gameId){
+   if(!/^\\d{5,9}$/.test(gameId))return res.status(400).json({ok:false,error:'INVALID_GAME_ID'});
+   const response=await fetch('https://statsapi.mlb.com/api/v1/game/'+gameId+'/boxscore',{
+    signal:AbortSignal.timeout(6500),headers:{accept:'application/json'}
+   });
+   if(!response.ok)throw Error('MLB_BOXSCORE_UPSTREAM_'+response.status);
+   const data=await response.json();
+   const records=['home','away'].flatMap(side=>
+    Object.values(data.teams?.[side]?.players||{}).map(player=>({
+     playerId:player.person?.id,name:player.person?.fullName,teamSide:side,
+     position:player.position?.abbreviation,batting:player.stats?.batting||null,
+     pitching:player.stats?.pitching||null
+    })));
+   return res.status(200).json({ok:true,league:'MLB',source:'mlb_official',gameId,
+    records,validation:validateSportsResearchEvidence('MLB',{
+     source:'mlb_official',observedAt:new Date().toISOString(),records
+    }),sportsbookVerified:false});
+  }
   const url='https://statsapi.mlb.com/api/v1/schedule?sportId=1&date='+encodeURIComponent(date);
   const response=await fetch(url,{signal:AbortSignal.timeout(6500),headers:{accept:'application/json'}});
   if(!response.ok)throw Error('MLB_UPSTREAM_'+response.status);
