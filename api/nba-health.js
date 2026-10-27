@@ -7,6 +7,7 @@ import {nbaPrepareEvidence} from '../lib/nba-pregame-model.js';
 import {nbaCrossCheckProjections} from '../lib/nba-com-cross-check.js';
 import {pregameAiAudit,nbaAiMatchupIdentityConflict} from '../lib/pregame-ai-review.js';
 import {sportsbookCoverageAudit} from '../lib/sportsbook-source-policy.js';
+import {collectDirectSportsbookEvidence} from '../lib/direct-sportsbook-collector.js';
 import {sportResearchVerificationStatus} from '../lib/sport-sgp-verification-gate.js';
 import {fetchEspnEventStarters,parseEspnSummaryStarters} from '../lib/espn-event-starter-evidence.js';
 import {nflRunCollectorBatch} from '../lib/nfl-collector-readiness.js';
@@ -349,15 +350,17 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
  result.propCategories=['points','rebounds','assists','threes','pra'];
  // Report missing sportsbook sourcing explicitly; ESPN player models are not
  // evidence that either sportsbook's public page was checked.
+ const directSportsbook=await collectDirectSportsbookEvidence({sport:'nba',gameId:game.gameId,now});
  result.sportsbookCoverage=sportsbookCoverageAudit({sport:'nba',gameId:game.gameId,
-  offers:[],attempts:[]});
+  offers:directSportsbook.offers,attempts:directSportsbook.attempts});
+ result.sportsbookSourceAttempts=directSportsbook.attempts;
  result.verifiedIndividualOffers=[];
  result.pregameVerification=sportResearchVerificationStatus({
   sport:'nba',gameId:game.gameId,now,
   injuryCheckedAt:result.injuryCheckedAt,
   injurySourceAvailable:injurySectionPresent,
   officialInactivesVerified:false,
-  startersConfirmed:eventStarters.startersConfirmed===true,bookOffers:[]});
+  startersConfirmed:selectedStarters.startersConfirmed===true,bookOffers:directSportsbook.offers});
  result.offenseDefenseStatus=result.offenseDefense?.status||'INSUFFICIENT_SAMPLES';
  // A failed data source must never overwrite an earlier populated model
  // without explaining the degradation. In either case, store audit metadata.
