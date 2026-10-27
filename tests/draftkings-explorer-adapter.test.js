@@ -129,3 +129,14 @@ test('Nash URL builder accepts only numeric IDs and fixed first-party host',()=>
  assert.equal(draftKingsNashCategoryUrl({leagueId:'88808',categoryId:'../other'}),null);
  assert.equal(draftKingsNashCategoryUrl({leagueId:'https://example.com',categoryId:'1286'}),null);
 });
+
+test('closed and settled Nash markets or selections are never eligible',()=>{
+ const mk=()=>({events:[{id:'game1'}],markets:[{id:'m1',eventId:'game1',name:'Receiving Yards',outcomes:[
+  {id:'sel1',playerName:'Example Receiver',label:'Over',points:75,oddsAmerican:-110}]}]});
+ for(const status of ['CLOSED','SETTLED','CANCELLED','INACTIVE','SUSPENDED']){
+  const market=mk();market.markets[0].status=status;
+  assert.equal(normalizeDraftKingsSelections(market,{sourceUrl,fetchedAt}).length,0,status+' market');
+  const selection=mk();selection.markets[0].outcomes[0].status=status;
+  assert.equal(normalizeDraftKingsSelections(selection,{sourceUrl,fetchedAt}).length,0,status+' selection');
+ }
+});
