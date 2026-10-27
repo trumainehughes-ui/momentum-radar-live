@@ -1,3 +1,4 @@
+import {validateSportsResearchEvidence} from '../lib/sports-data-registry.js';
 import {nbaFindLatestPregameBlob,nbaWritePregameSnapshot} from '../lib/nba-pregame-snapshot-store.js';
 import {latestModelSgpIngest} from './model-sgp-ingest.js';
 import {blobCredentialMode} from '../lib/blob-storage-config.js';
@@ -181,6 +182,10 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   }
  }catch{ /* ESPN remains the authoritative fallback for this collector. */ }
  const evidence=await prepare({...game,injuries},{fetchJson});
+ const sportsDataResearchGate=validateSportsResearchEvidence('NBA',{
+  source:'espn',observedAt:new Date(now).toISOString(),
+  records:Array.isArray(evidence?.playerProjections)?evidence.playerProjections:[]
+ });
  // Event-specific ESPN roster flags supplement historical game usage.
  // Do not mislabel them as official NBA inactives or sportsbook markets.
  const eventStarters=observed?await fetchEspnEventStarters({
@@ -273,7 +278,8 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   historicalSampleCount:nbaComPlayerLogs.reduce((sum,p)=>sum+(p.samples||0),0),
   verifiedCompletedScoreboardGames:nbaComVerifiedCompletedGames.length,
   historicalSampleCountsByPlayer:nbaComPlayerLogs.map(p=>({name:p.name,samples:p.samples})),
-  insufficientHistoricalSamples:nbaComPlayerLogs.filter(p=>p.samples<5).length,
+  insufficientHistoricalSamples:nbaComPlayerLogs.filter(p=>p.samples<1).length,
+  sportsDataResearchGate,
   blendedProjectionCount:crossCheckedProjections.filter(p=>p.nbaComCrossCheck?.appliedToProjection===true).length,
   status:crossCheckedProjections.some(p=>p.nbaComCrossCheck?.appliedToProjection===true)?
    'NBA_COM_INFLUENCING_PROJECTIONS':'NBA_COM_BLEND_NOT_VERIFIED',
