@@ -802,7 +802,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    }).join(''):
     '<p class="sgp-brief-status">No complete '+esc(book)+
     ' lineup with verified individual lines, cleared players, and a bookmaker-issued combined SGP quote. No estimated payout is shown.</p>';
-   const inactivesNote=cards.length&&d.inactivesVerified!==true?
+   const inactivesNote=d.inactivesVerified!==true?
     '<p class="sgp-brief-status">Official game-day inactives are not final. Recheck each player and exact sportsbook price 30 minutes before kickoff.</p>':'';
    return '<section class="sgp-book-lineup" aria-label="'+esc(book)+' same-game parlays">'+
     '<h3>'+esc(book)+' Same Game Parlays</h3>'+inactivesNote+
