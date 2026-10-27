@@ -1,4 +1,4 @@
-import {nbaBestEdgeParlay} from '../lib/nba-best-edge-parlay.js';
+import {nbaBestEdgeParlays} from '../lib/nba-best-edge-parlay.js';
 import {nbaReadPregame} from './nba-health.js';
 import {nbaAiMatchupIdentityConflict} from '../lib/pregame-ai-review.js';
 // The public endpoint does not accept client-supplied odds or player forecasts.
@@ -31,7 +31,7 @@ export default async function handler(req,res){
     homeTeam:c.competitors?.find(x=>x.homeAway==='home')?.team?.displayName||null,
     awayTeam:c.competitors?.find(x=>x.homeAway==='away')?.team?.displayName||null};
   }));
-  const result=nbaBestEdgeParlay(games,{mode:'VERIFIED_MARKET'});
+  const result=nbaBestEdgeParlays(games,{maxParlays:3});
   const snapshotHealth={scheduledGames:games.length,snapshotsAvailable:games.filter(g=>g.snapshotPresent).length,
    gamesWithPlayerProjections:games.filter(g=>g.playerProjections.length>0).length,
    snapshotModelVersions:[...new Set(games.map(g=>g.snapshotModelVersion).filter(Boolean))].slice(0,6),
