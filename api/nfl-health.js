@@ -1,3 +1,4 @@
+import {validateSportsResearchEvidence} from '../lib/sports-data-registry.js';
 import {put,list} from '@vercel/blob';
 import {blobCredentialMode} from '../lib/blob-storage-config.js';
 import {timingSafeEqual} from 'node:crypto';
@@ -203,6 +204,9 @@ async function autoLock(base,games){
    ...nflMarketFailureDetails(r?.status||200,m)};
   const prior=await priorSnapshot(g.gameId);
   const snap=historySnap(g,m,prior);
+  snap.sportsDataResearchGate=validateSportsResearchEvidence('NFL',{
+   source:'espn',observedAt:new Date().toISOString(),records:m&&typeof m==='object'?[m]:[]
+  });
   const audit=pregameEvidenceAudit(prior,snap,{league:'nfl'});
   snap.evidenceDigests=audit.evidenceDigests;
   snap.changedFields=audit.changedFields;
