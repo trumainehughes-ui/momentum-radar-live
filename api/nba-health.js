@@ -258,7 +258,8 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
     nbaComBoxScore.players=[...(d.game.homeTeam?.players||[]),
      ...(d.game.awayTeam?.players||[])].map(p=>({
       name:p.name||p.firstName+' '+p.familyName,personId:p.personId,
-      played:p.played===true||p.played==='1'||p.played===1,\n      starter:p.starter===true||p.starter==='1'||p.starter===1,
+      played:p.played===true||p.played==='1'||p.played===1,
+      starter:p.starter===true||p.starter==='1'||p.starter===1,
       points:p.statistics?.points??null,rebounds:p.statistics?.reboundsTotal??null,
       assists:p.statistics?.assists??null,threes:p.statistics?.threePointersMade??null,
       minutes:p.statistics?.minutes??null}));
