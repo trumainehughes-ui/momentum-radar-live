@@ -140,3 +140,9 @@ test('closed and settled Nash markets or selections are never eligible',()=>{
   assert.equal(normalizeDraftKingsSelections(selection,{sourceUrl,fetchedAt}).length,0,status+' selection');
  }
 });
+
+test('closed or suspended events cannot contribute player props',()=>{
+ for(const event of [{id:'game1',status:'CLOSED'},{id:'game1',isSuspended:true},{id:'game1',isOpen:false}]){
+  assert.deepEqual(normalizeDraftKingsSelections({...snapshot,events:[event]},{sourceUrl,fetchedAt}),[]);
+ }
+});
