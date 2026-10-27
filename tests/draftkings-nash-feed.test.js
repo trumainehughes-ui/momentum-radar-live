@@ -332,3 +332,22 @@ test('live ESPN and Nash event candidate bridge remains review-only',async()=>{
  assert.equal(result.reason,'SOURCE_UNAVAILABLE');
  assert.deepEqual(result.candidates,[]);
 });
+
+test('live Nash and ESPN bridge returns only unconfirmed matching event candidates',async()=>{
+ const {fetchDraftKingsEspnNflEventCandidates}=await import('../lib/draftkings-nash-feed.js');
+ const date=new Date(Date.now()+86400000).toISOString();
+ const dk={events:[{id:'34118182',name:'CAR Panthers @ GB Packers',startEventDate:date,status:'NOT_STARTED',
+  participants:[{type:'Team',venueRole:'Home',metadata:{shortName:'GB'}},
+   {type:'Team',venueRole:'Away',metadata:{shortName:'CAR'}}]}],
+  markets:[{id:'market1',eventId:'34118182',name:'Passing Yards',playerName:'Example Quarterback'}],
+  selections:[{id:'selection1',marketId:'market1',label:'Over 225.5',displayOdds:{american:'-110'},main:true}]};
+ const espn={events:[{id:'401123456',date,status:{type:{name:'STATUS_SCHEDULED'}},
+  competitions:[{competitors:[{homeAway:'home',team:{abbreviation:'GB'}},
+   {homeAway:'away',team:{abbreviation:'CAR'}}]}]}]};
+ const fetchImpl=async url=>({ok:true,headers:{get:()=>null},json:async()=>url.includes('scoreboard')?espn:dk});
+ const result=await fetchDraftKingsEspnNflEventCandidates({date:'20261101',fetchImpl});
+ assert.equal(result.ok,true);
+ assert.equal(result.confirmed,false);
+ assert.deepEqual(result.candidates,[{draftKingsEventId:'34118182',espnEventId:'401123456',kickoffDeltaMs:0,confirmed:false}]);
+ assert.equal(result.sourceUrls.length,2);
+});
