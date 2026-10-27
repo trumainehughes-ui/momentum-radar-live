@@ -118,7 +118,13 @@ test('incomplete and all-touchdown tiers show NOT READY without leaking player p
  const html=render(base({modelResearchTiers:[short,allTd]}));
  assert.match(html,/Nuke · NOT READY/);
  assert.match(html,/Small · NOT READY/);
- assert.doesNotMatch(html,/<ol class="sgp-leg-list">/);
+ // The separate player matchup forecast may still render its own list.
+ // Invalid Small/Nuke tier cards themselves must never contain a leg list.
+ for(const risk of ['Small','Nuke']){
+  const section=html.match(new RegExp('<section class="sgp-slip" aria-label="'+risk+' incomplete research"[\\s\\S]*?<\\/section>'))?.[0];
+  assert.ok(section,risk+' incomplete card');
+  assert.doesNotMatch(section,/<ol class="sgp-leg-list">/);
+ }
 });
 
 test('public tier composition accepts rushing and receiving without a passing market',()=>{
