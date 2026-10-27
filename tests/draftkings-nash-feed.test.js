@@ -363,3 +363,11 @@ test('DraftKings injury bridge rejects unverified inactives and current NFL inju
  assert.deepEqual(check([player],{injuryEvidence:{...evidence,injuries:[{team:'GB',name:'Example Receiver',status:'QUESTIONABLE',section:'WEEKLY'}]},playerTeams}),[]);
  assert.deepEqual(check([player],{injuryEvidence:evidence,playerTeams:{}}),[]);
 });
+
+test('final DraftKings prop handoff fails closed without independently verified inactive clearance',async()=>{
+ const {verifiedDraftKingsNflPlayerProps}=await import('../lib/draftkings-nash-feed.js');
+ const snapshot={complete:true,selections:[]};
+ const result=verifiedDraftKingsNflPlayerProps(snapshot,{injuryEvidence:{weeklyCoverage:true,officialInactivesVerified:false,injuries:[]}});
+ assert.deepEqual(result,[]);
+ assert.deepEqual(verifiedDraftKingsNflPlayerProps({...snapshot,complete:false}),[]);
+});
