@@ -26,3 +26,10 @@ test('NBA.com anomaly does not change projection',()=>{
  assert.equal(rows[0].projection,20);
  assert.equal(rows[0].nbaComCrossCheck.appliedToProjection,false);
 });
+
+test('null NBA.com box-score fields cannot masquerade as zero points',()=>{
+ const rows=nbaCrossCheckProjections([{name:'Test Player',category:'points',projection:20}],
+ [{name:'Test Player',samples:5,season:'2026-27',recent:Array.from({length:5},()=>({points:null}))}]);
+ assert.equal(rows[0].projection,20);
+ assert.equal(rows[0].nbaComCrossCheck.status,'INSUFFICIENT_SAMPLE');
+});
