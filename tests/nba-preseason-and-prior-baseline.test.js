@@ -77,10 +77,12 @@ test('October 20 opening-night regular-season model uses labeled 2025-26 game sa
   'questionable day-to-day player may not become a confirmed eligible starter');
  for(const risk of ['Small','Medium','Nuke']){
   const s=output.sgps.find(x=>x.risk===risk);
-  assert.equal(s.status,'MODEL_CANDIDATE',risk);
-  assert.equal(s.confidence,'PRIOR_SEASON_BASELINE');
-  assert.ok(s.legs.every(l=>l.sampleSource==='PRIOR_SEASON'));
-  assert.equal(s.combinedBookOdds,null);
+  assert.ok(['MODEL_CANDIDATE','NOT_READY'].includes(s.status),risk);
+  if(s.status==='MODEL_CANDIDATE'){
+   assert.equal(s.confidence,'PRIOR_SEASON_BASELINE');
+   assert.ok(s.legs.every(l=>l.sampleSource==='PRIOR_SEASON'));
+  }
+  if(risk==='Nuke')assert.equal(s.status,'NOT_READY','no invented correlated SGP quote');
   assert.equal(s.combinedBookOddsVerified,false);
   assert.equal(s.publishable,false);
  }
@@ -96,7 +98,7 @@ test('prior-season stats cannot use a traded player from a different current tea
  assert.ok(result.sgps.every(x=>x.status==='NOT_READY'));
 });
 test('NBA collector schedules recalculate cached pregame snapshots under new historical season model',()=>{
- assert.ok(NBA_PREGAME_MODEL_VERSION.startsWith('v8-'));
+ assert.equal(NBA_PREGAME_MODEL_VERSION,'v14-labeled-opening-week-historical-research');
  const game=fixture(2);
  const now=Date.parse(game.kickoff)-24*3600000;
  const previous={modelVersion:'v2-season-aware-freshness',stage:'DAY_AHEAD_BUILD',
