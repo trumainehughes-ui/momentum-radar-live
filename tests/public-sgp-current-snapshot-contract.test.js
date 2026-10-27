@@ -43,7 +43,7 @@ const bookCard=(opts={})=>({book:'DraftKings',risk:'Small',mode:'VERIFIED_BOOK_S
  checkedAt:now,...(players[i][2]==='td'?{}:{line:players[i][3]})}})),...opts});
 test('current published NFL tier research remains clearly model-only and includes brief AI explanations',()=>{
  const out=render(snapshot());
- assert.equal((out.match(/researched legs/g)||[]).length+(out.match(/NOT READY/g)||[]).length>=3,true);
+ assert.equal((out.match(/researched player projections/g)||[]).length,3);
  assert.match(out,/Starter Quarterback/);
  assert.match(out,/AI matchup and recent player usage/);
  assert.match(out,/NFL model research — not a sportsbook lineup/);
