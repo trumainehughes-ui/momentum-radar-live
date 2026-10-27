@@ -57,7 +57,7 @@ export default async function handler(req,res){
   const research=games.flatMap(g=>(g.playerProjections||[])
    .filter(p=>['points','rebounds','assists','threes','pra'].includes(p.category)&&
     Number.isFinite(Number(p.projection))&&Number(p.projection)>=0&&
-    !/\b(OUT|INACTIVE|DOUBTFUL|SUSPENDED)\b/i.test(String(p.injuryStatus||'')))
+    !/\b(OUT|INACTIVE|IR|INJURED RESERVE|DOUBTFUL|QUESTIONABLE|SUSPENDED)\b/i.test(String(p.injuryStatus||'')))
    .map(p=>({gameId:g.gameId,playerId:p.playerId||null,
     name:p.name||p.playerName||null,team:p.team||null,category:p.category,
     projection:Number(p.projection),baseProjection:Number(p.baseProjection)||null,matchupAdjustment:p.matchupAdjustment||null,defenseVsPosition:p.defenseVsPosition||null,sampleGames:p.sampleGames||0,
