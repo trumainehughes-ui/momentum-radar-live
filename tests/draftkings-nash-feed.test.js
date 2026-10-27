@@ -257,3 +257,20 @@ test('actual Nash event participant codes match ESPN abbreviations without self-
  assert.deepEqual(draftKingsNashEspnEventCandidates([nash],[{...espn,date:new Date(Date.now()+2*86400000).toISOString()}]),[]);
  assert.deepEqual(draftKingsNashEspnEventCandidates([nash],[espn,{...espn,id:'401123457'}]),[]);
 });
+
+test('ESPN roster evidence requires independent starter and injury clearance',async()=>{
+ const {draftKingsPlayersFromEspnEvidence}=await import('../lib/draftkings-nash-feed.js');
+ const roster=[{id:'123456',name:'Example Quarterback',position:'QB'}];
+ const eventCrosswalk=[{confirmed:true,espnEventId:'401123456',draftKingsEventId:'34118182'}];
+ const role={confirmed:true,espnEventId:'401123456',espnAthleteId:'123456',
+  active:true,starterOrHighSnap:true,injuryCleared:true,inactive:false};
+ const run=(r=role,m=eventCrosswalk)=>draftKingsPlayersFromEspnEvidence(roster,{eventCrosswalk:m,roleEvidence:[r]});
+ assert.equal(run().length,1);
+ assert.equal(run()[0].draftKingsEventId,'34118182');
+ assert.deepEqual(run({...role,injuryCleared:false}),[]);
+ assert.deepEqual(run({...role,inactive:true}),[]);
+ assert.deepEqual(run({...role,starterOrHighSnap:false}),[]);
+ assert.deepEqual(run({...role,espnAthleteId:'987654'}),[]);
+ assert.deepEqual(run(role,[{...eventCrosswalk[0],confirmed:false}]),[]);
+ assert.deepEqual(run(role,[...eventCrosswalk,{...eventCrosswalk[0],draftKingsEventId:'34118183'}]),[]);
+});
