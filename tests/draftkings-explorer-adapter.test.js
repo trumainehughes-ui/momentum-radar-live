@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {normalizeDraftKingsSelections, eligibleDraftKingsProp} from '../lib/draftkings-explorer-adapter.js';
+import {normalizeDraftKingsSelections, eligibleDraftKingsProp, draftKingsNashCategoryUrl} from '../lib/draftkings-explorer-adapter.js';
 const sourceUrl = 'https://sportsbook.draftkings.com/';
 const fetchedAt = '2026-10-26T20:00:00Z';
 const now = Date.parse(fetchedAt) + 60_000;
@@ -119,4 +119,13 @@ test('normalizes Nash top-level market selections and embedded line labels',()=>
  assert.deepEqual(props.map(p=>p.outcome),['over','under']);
  assert.equal(props[0].selectionId,'sel-75');
  assert.equal(props[0].verifiedSGPQuote,false);
+});
+
+test('Nash URL builder accepts only numeric IDs and fixed first-party host',()=>{
+ assert.equal(draftKingsNashCategoryUrl({leagueId:'88808',categoryId:'1286',subcategoryId:'13354'}),
+  'https://sportsbook-nash.draftkings.com/api/sportscontent/dkusoh/v1/leagues/88808/categories/1286/subcategories/13354');
+ assert.equal(draftKingsNashCategoryUrl({leagueId:'88808',categoryId:'1286'}),
+  'https://sportsbook-nash.draftkings.com/api/sportscontent/dkusoh/v1/leagues/88808/categories/1286');
+ assert.equal(draftKingsNashCategoryUrl({leagueId:'88808',categoryId:'../other'}),null);
+ assert.equal(draftKingsNashCategoryUrl({leagueId:'https://example.com',categoryId:'1286'}),null);
 });
