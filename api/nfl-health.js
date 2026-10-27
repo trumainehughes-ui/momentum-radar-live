@@ -67,7 +67,7 @@ export function historySnap(g,m,prior=null){
    receiving:categories.receiving||[],receptions:categories.receptions||[]})
    .flatMap(([cat,rows])=>rows.map(x=>({...x,cat})))
    .filter(x=>String(x.playerID||x.playerId||'')&&String(x.team||'')&&
-    !/\\b(OUT|INACTIVE|IR|DOUBTFUL|QUESTIONABLE|SUSPENDED)\\b/i.test(
+    !/\b(OUT|INACTIVE|IR|DOUBTFUL|QUESTIONABLE|SUSPENDED)\b/i.test(
      [x.injuryStatus,x.availability,x.starterStatus].join(' '))&&
     Number(x.projection??x.perGame)>0);
   const choose=(cat)=>{
