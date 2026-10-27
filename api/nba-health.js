@@ -253,7 +253,7 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
    starterStatus:starterMatch(p)?'CONFIRMED_STARTER':'UNCONFIRMED',
    starterSource:starterMatch(p)?'ESPN_CORE_GAME_ROSTER_STARTER_FLAG':null})),
   sgps:(evidence.sgps||[]).map(card=>{
-   const legs=(card.legs||[]).map(p=>({
+   const legs=nbaCrossCheckProjections(card.legs||[],nbaComPlayerLogs).map(p=>({
     ...p,starterVerified:starterMatch(p),
     starterStatus:starterMatch(p)?'CONFIRMED_STARTER':'UNCONFIRMED',
     starterSource:starterMatch(p)?'ESPN_CORE_GAME_ROSTER_STARTER_FLAG':null}));
