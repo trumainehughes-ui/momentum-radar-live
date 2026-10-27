@@ -28,7 +28,7 @@
     if(!response.ok||!result.ok)throw Error(result.error||'Research unavailable');
     if(!result.comparison?.ok){output.textContent='Insufficient completed-game evidence for this player, opponent and date selection. '+result.gamesExamined+' games examined.';return;}
     const c=result.comparison;
-    output.innerHTML='<strong>'+esc(form.elements.stat.selectedOptions[0].textContent)+'</strong>: player average <strong>'+esc(c.playerAverage)+'</strong> ('+esc(c.playerGames)+' games); opposing defense allows <strong>'+esc(c.defenseAllowed)+'</strong> ('+esc(c.defenseGames)+' games). Historical difference: <strong>'+esc(c.delta>0?'+':'')+esc(c.delta)+'</strong>. <span class="note">Not a player projection or sportsbook offer. '+esc(result.gamesExamined)+' games examined.</span>';
+    output.innerHTML='<strong>'+esc(form.elements.stat.selectedOptions[0].textContent)+'</strong>: player average <strong>'+esc(c.playerAverage)+'</strong> ('+esc(c.playerGames)+' games); opposing defense allows <strong>'+esc(c.defenseAllowed)+'</strong> ('+esc(c.defenseGames)+' games). Historical difference: <strong>'+esc(c.delta>0?'+':'')+esc(c.delta)+'</strong>. <span class="note">Not a player projection or sportsbook offer. '+esc(result.gamesExamined)+' games examined. '+esc(result.sampleQuality==='limited'?'Limited sample — interpret cautiously.':'')+'</span>';
    }catch(e){output.textContent='Matchup research unavailable: '+String(e.message||'unknown');}
   });
  }
