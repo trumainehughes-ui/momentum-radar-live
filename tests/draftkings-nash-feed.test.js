@@ -23,3 +23,12 @@ test('fails closed on HTTP, invalid feed, and invalid category ID',async()=>{
  const invalid=await fetchDraftKingsNashSelections({...request,categoryId:'../other',fetchImpl:async()=>{throw Error('should not fetch');}});
  assert.equal(invalid.reason,'INVALID_REQUEST');
 });
+
+test('empty or unidentifiable Nash markets never claim a successful usable feed',async()=>{
+ const empty=await fetchDraftKingsNashSelections({...request,fetchImpl:async()=>({ok:true,json:async()=>({events:[],markets:[],selections:[]})})});
+ assert.equal(empty.ok,false);
+ assert.equal(empty.reason,'NO_USABLE_SELECTIONS');
+ const noPlayer=await fetchDraftKingsNashSelections({...request,fetchImpl:async()=>({ok:true,json:async()=>({events:[{id:'game1'}],markets:[{id:'market1',eventId:'game1',name:'Receiving Yards'}],selections:[{id:'selection1',marketId:'market1',label:'Over',points:75,displayOdds:{american:'-110'}}]})})});
+ assert.equal(noPlayer.ok,false);
+ assert.equal(noPlayer.reason,'NO_USABLE_SELECTIONS');
+});
