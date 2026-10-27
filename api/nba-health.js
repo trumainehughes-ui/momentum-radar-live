@@ -163,7 +163,7 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   if(origin){
    const nbaFeed=await fetchJson(origin+'/api/nba-open-data?action=scoreboard',4500);
    const games=Array.isArray(nbaFeed?.games)?nbaFeed.games:[];
-   nbaComVerifiedCompletedGames=games.filter(g=>Number(g.gameStatus)===3&&/^\\d{10}$/.test(String(g.gameId))&&Date.parse(g.gameTimeUTC)<Date.parse(game.kickoff));
+   nbaComVerifiedCompletedGames=games.filter(g=>Number(g.gameStatus)===3&&/^\d{10}$/.test(String(g.gameId))&&Date.parse(g.gameTimeUTC)<Date.parse(game.kickoff));
    const match=games.find(x=>{
     const home=String(x?.homeTeam?.teamTricode||'').toUpperCase();
     const away=String(x?.awayTeam?.teamTricode||'').toUpperCase();
