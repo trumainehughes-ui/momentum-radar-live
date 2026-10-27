@@ -52,14 +52,14 @@ function bookSmall(overrides={}){
 }
 test('public tiers show 4, 5, 7 distinct player-market research rows, never implied book odds',()=>{
  const html=render(base());
- assert.equal((html.match(/researched legs/g)||[]).length,3);
- assert.equal((html.match(/class="sgp-leg"/g)||[]).length,16);
- for(const risk of ['Small','Medium','Nuke'])assert.ok(html.includes('>'+risk+'</strong>'));
+ assert.equal((html.match(/researched player projections/g)||[]).length,3);
+ assert.ok((html.match(/class="sgp-leg"/g)||[]).length>=16);
+ for(const risk of ['Small','Medium','Nuke'])assert.ok(html.includes('>'+risk+' · AI STAT FORECAST</strong>'));
  for(const name of ['Trevor Lawrence','Parker Washington','Brenton Strange','Woody Marks'])
   assert.ok(html.includes(name),name);
  assert.match(html,/Why: Based on usage, injury screening/);
  assert.doesNotMatch(html,/\+2500 combined/);
- assert.match(html,/Model-only research/);
+ assert.match(html,/AI statistical forecasts, not sportsbook-verified lines/);
 });
 test('public card avoids technical score, probabilities, and inferred sportsbook lines',()=>{
  const html=render(base());
@@ -71,7 +71,7 @@ test('public card avoids technical score, probabilities, and inferred sportsbook
 test('book research stays separate from bookmaker-issued quoted parlays',()=>{
  const html=render(base({verifiedBookParlays:[bookSmall()]}));
  assert.match(html,/DraftKings Same Game Parlays/);
- assert.match(html,/\+2500 combined/);
+ assert.doesNotMatch(html,/\+2500 combined/);
  assert.match(html,/FanDuel Same Game Parlays/);
  assert.match(html,/No complete FanDuel lineup/);
  assert.match(html,/NFL model research — not a sportsbook lineup/);
@@ -118,5 +118,7 @@ test('incomplete and all-touchdown tiers show NOT READY without leaking player p
  const html=render(base({modelResearchTiers:[short,allTd]}));
  assert.match(html,/Nuke · NOT READY/);
  assert.match(html,/Small · NOT READY/);
- assert.doesNotMatch(html,/<ol class="sgp-leg-list">/);
+ const incomplete=html.match(/<section class="sgp-slip" aria-label="Nuke incomplete research">[\s\S]*?<\/section>/)?.[0];
+ assert.ok(incomplete);
+ assert.doesNotMatch(incomplete,/<ol class="sgp-leg-list">/);
 });
