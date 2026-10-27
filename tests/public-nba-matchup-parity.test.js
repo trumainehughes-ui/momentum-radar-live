@@ -42,7 +42,7 @@ const js=page.match(/<script>([\s\S]*?)<\/script>/)?.[1]||'';
 test('NBA navigation mirrors customer NFL layout without mixing NFL TD and weather cards',()=>{
  const menu=page.match(/<nav id="nba-module-tabs"[\s\S]*?<\/nav>/)?.[0]||'';
  assert.deepEqual([...menu.matchAll(/data-nba-module="([^"]+)"/g)].map(x=>x[1]),
-  ['overview','points','rebounds','assists','threes','pra','sgps','injuries']);
+  ['overview','points','rebounds','assists','threes','pra','sgps','edge-hunter','injuries']);
  assert.ok(page.includes('id="nba-module-panel"'));
  assert.ok(js.includes("$('#nba-module-panel').hidden=nfl"));
  assert.ok(js.includes("$('#public-weather-impact').hidden=state.league==='nba'"));
