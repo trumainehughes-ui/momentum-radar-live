@@ -71,6 +71,8 @@ export default async function handler(req,res){
    readinessBlockers.push('TWO_FRESH_VERIFIED_BOOK_OFFERS_PER_PLAYER_MISSING');
   if(snapshotHealth.gamesWithInjuryChecks<2)
    readinessBlockers.push('PREGAME_INJURY_CHECKS_MISSING');
+  if(snapshotHealth.freshnessHeldGames.length>0)
+   readinessBlockers.push('PREGAME_SNAPSHOT_REFRESH_REQUIRED');
   const aiMatchupReviews=games.filter(g=>g.aiReviewStatus==='REVIEWED'&&g.aiReviewSummary)
    .map(g=>({gameId:g.gameId,homeTeam:g.homeTeam,awayTeam:g.awayTeam,
     checkedAt:g.aiReviewCheckedAt,summary:g.aiReviewSummary,advisoryOnly:true}));
