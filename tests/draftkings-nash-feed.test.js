@@ -293,3 +293,12 @@ test('injured reserve roster status blocks otherwise positive role evidence',asy
  const roleEvidence=[{confirmed:true,espnEventId:'401123456',espnAthleteId:'123456',active:true,starterOrHighSnap:true,injuryCleared:true}];
  assert.deepEqual(check(roster,{eventCrosswalk,roleEvidence}),[]);
 });
+
+test('non-active roster statuses are excluded even with positive role evidence',async()=>{
+ const {draftKingsPlayersFromEspnEvidence:check}=await import('../lib/draftkings-nash-feed.js');
+ const eventCrosswalk=[{confirmed:true,espnEventId:'401123456',draftKingsEventId:'34118182'}];
+ const roleEvidence=[{confirmed:true,espnEventId:'401123456',espnAthleteId:'123456',active:true,starterOrHighSnap:true,injuryCleared:true}];
+ const run=status=>check([{id:'123456',name:'Test Player',rosterStatus:status}],{eventCrosswalk,roleEvidence});
+ assert.equal(run('Active').length,1);
+ for(const status of ['Questionable','Out','Doubtful','Inactive','Suspended','Reserve'])assert.deepEqual(run(status),[]);
+});
