@@ -23,6 +23,46 @@
 #nflInjuries .nflInjuryStatus.ACTIVE,#nflInjuries .nflInjuryStatus.PROBABLE{color:#a7f7c9;background:#153a2c;border-color:#4a9970}
 #nflInjuries .nflInjuryRefreshBtn{background:#183749;color:#f5fbff;border:1px solid #6ca7c7;padding:9px 12px;border-radius:8px;font-weight:800;margin-top:11px;cursor:pointer}
 #nflInjuries .nflInjurySourceLink{color:#9ee7ff;text-decoration:underline;font-weight:800}
+
+/* Public readability and touch-accessibility pass — October 2026 */
+:root{--muted:#b3c4d1}
+body{line-height:1.5}
+button,select,input,textarea{font:inherit}
+button,.tab,.qtab,.nflMatchTab,.tinyBtn,.helpBtn{cursor:pointer}
+button:focus-visible,.tab:focus-visible,.qtab:focus-visible,.nflMatchTab:focus-visible,
+a:focus-visible,select:focus-visible,input:focus-visible{
+ outline:3px solid #9ee7ff;outline-offset:3px
+}
+.tab,.qtab,.nflMatchTab,.tinyBtn,.helpBtn{min-height:44px}
+.card{padding:14px}
+.name{font-size:16px;line-height:1.35;overflow-wrap:anywhere}
+.pick{font-size:15px;line-height:1.4}
+.rank,.meta,.note,.reason,.refresh{font-size:13px;line-height:1.55}
+.reason{min-height:0}
+.badge{font-size:12px;padding:5px 9px}
+.stat{font-size:12px;line-height:1.4;padding:9px 6px}
+.intel{font-size:13px;line-height:1.6}
+.analysis{min-height:44px;font-size:14px}
+.nflSgpMini .note,.dvpRows .note,.dvpRows .meta,.dvpRows .refresh{font-size:13px}
+.nflMarketLine{overflow-wrap:anywhere}
+@media(max-width:600px){
+ .wrap{padding:12px}
+ .panel{padding:14px}
+ .top{align-items:flex-start}
+ .status{font-size:13px;line-height:1.5}
+ .tabs,.qtabs{gap:8px}
+ .tab,.qtab{flex:1 1 auto;text-align:center}
+ .grid,.secondary,.nflPair{gap:12px}
+ .card{padding:15px}
+ .pct{font-size:30px}
+ .nflHero h1{font-size:25px;line-height:1.2}
+ .nflDashBox{padding:13px}
+ .nflGameRow{align-items:flex-start;flex-wrap:wrap}
+ .nflGameRow button{min-height:44px}
+}
+@media(prefers-reduced-motion:reduce){
+ *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
 </style><script type="module" src="/public-book-selector-bootstrap.js"></script><script type="module" src="/public-automatic-dk-book-bootstrap.js"></script><script type="module" src="/nfl-model-choice-bootstrap.js"></script><script type="module" src="/nfl-sgp-model-yardage-bootstrap.js"></script>
 </head><body><div class="wrap"><div class="top"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><div class="brand">Momentum Radar <span class="live">LIVE</span></div><span class="rockingChairMark" role="img" aria-label="Rocking chair" title="Sit back. Let the data work.">🪑</span><button id="nflHelp" class="helpBtn">❓ How to Use</button></div><div id="status" class="status">Connecting…</div></div><div id="nflGuide" class="guide" role="region" aria-label="Momentum Radar user guide"><h3>🪑 Momentum Radar — How to Use</h3><p class="note">New here? Start with a sport, choose a game, then explore the matchup and player categories. This guide explains the numbers, AI tools, and what is — and is not — a verified sportsbook selection.</p><div class="guideSteps">
 <div class="guideStep"><b>1. Choose a sport and date</b>⚾ MLB covers home-run opportunities. 🏈 NFL covers matchup analysis, player props and touchdown tracking. 🏀 NBA covers games, player stats and available SGP analysis. Select a game date to see that slate.</div>
