@@ -47,7 +47,7 @@ def payload(query):
             schedule = json.load(response)
         games = [g for day in schedule.get("leagueSchedule", {}).get("gameDates", [])
                  for g in day.get("games", [])
-                 if str(g.get("gameDateEst", ""))[:10] < before
+                 if str(g.get("gameDateTimeUTC", ""))[:10] < before
                  and int(g.get("gameStatus", 0)) == 3
                  and team in (g.get("homeTeam", {}).get("teamTricode"),
                               g.get("awayTeam", {}).get("teamTricode"))]
