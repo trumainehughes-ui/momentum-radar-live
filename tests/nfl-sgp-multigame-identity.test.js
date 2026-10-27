@@ -74,7 +74,7 @@ test("identity validation is independent of the requested Small/Medium/Nuke labe
 });
 test("production NFL market handler applies game identity gate across all games",()=>{
  const api=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
- assert.ok(api.includes('response.sgps.Analytics=(analyticsSgps||[]).filter(c=>'));
+ assert.ok(api.includes('response.sgps.Analytics=modelCandidates.filter(c=>'));
  assert.ok(api.includes("String(l.eventID||l.gameId||'')===String(gameId)"));
  assert.ok(api.includes('safeTeams.has(String(l.team||\'\').toUpperCase())'));
  assert.ok(api.includes('!eligibility.blockedIds.has(id)'));
