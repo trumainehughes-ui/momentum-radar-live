@@ -114,7 +114,7 @@
    }
    // Automatic historical evidence for selected players; never use the selected game's result
    // as its own defensive baseline. Missing history remains explicitly unavailable.
-   const candidatePlayers=[...d.players].filter(x=>/^\\d+$/.test(String(x.playerId||''))&&Number.isFinite(Number(x.points)))
+   const candidatePlayers=[...d.players].filter(x=>/^[0-9]+$/.test(String(x.playerId||''))&&Number.isFinite(Number(x.points)))
     .sort((a,b)=>Number(b.points)-Number(a.points)).slice(0,3);
    const kickoffDay=String(game.kickoff||'').slice(0,10);
    const priorDates=Array.from({length:4},(_,i)=>{
