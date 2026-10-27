@@ -48,3 +48,16 @@ test('NBA Edge Hunter does not skip blank entries in the latest ten box scores',
  assert.equal(result.diagnostics.marketRejected,0);
  assert.deepEqual(result.legs,[]);
 });
+
+
+test('shared NBA market gate accepts verified two-digit odds only for matching team',async()=>{
+ const {evaluateUniversalPlayerMarketGate}=await import('../lib/sport-sgp-verification-gate.js');
+ const now=Date.now(),checkedAt=new Date(now-60_000).toISOString();
+ const leg={playerId:'athlete-1',gameId:'game-1',team:'BOS',category:'points'};
+ const role={recommendationEligible:true,playerId:'athlete-1',team:'BOS',starterStatus:'CONFIRMED_STARTER',starterVerified:true,
+  verification:{role:{verified:true,checkedAt},availability:{verified:true,checkedAt,officialInactivesVerified:true}}};
+ const offers=['DraftKings','FanDuel'].map((book,i)=>({book,sport:'nba',gameId:'game-1',playerId:'athlete-1',team:'BOS',market:'points',side:'OVER',offerId:'offer-'+i,americanOdds:'-95',line:20.5,checkedAt,available:true,verifiedByServer:true,
+  sourceUrl:i?'https://sportsbook.fanduel.com/basketball':'https://sportsbook.draftkings.com/leagues/basketball/nba'}));
+ assert.equal(evaluateUniversalPlayerMarketGate({sport:'nba',gameId:'game-1',leg,role,offers,now}).ready,true);
+ assert.equal(evaluateUniversalPlayerMarketGate({sport:'nba',gameId:'game-1',leg,role,offers:offers.map(o=>({...o,team:''})),now}).ready,false);
+});
