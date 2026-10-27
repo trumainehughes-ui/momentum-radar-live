@@ -72,7 +72,7 @@ export default async function handler(req,res){
     checkedAt:g.aiReviewCheckedAt,summary:g.aiReviewSummary,advisoryOnly:true}));
   // Model projections are useful research even without a verified bookmaker
   // offer. Never mix them into publishable sportsbook legs.
-  const research=games.flatMap(g=>(g.playerProjections||[])
+  const research=games.filter(g=>g.snapshotModelVersion==='v16-preserve-current-season-first').flatMap(g=>(g.playerProjections||[])
    .filter(p=>['points','rebounds','assists','threes','pra'].includes(p.category)&&
     Number.isFinite(Number(p.projection))&&Number(p.projection)>=0&&
     !/\b(OUT|INACTIVE|IR|INJURED RESERVE|DOUBTFUL|QUESTIONABLE|SUSPENDED)\b/i.test(String([p.injuryStatus,p.availability].filter(Boolean).join(' '))))
