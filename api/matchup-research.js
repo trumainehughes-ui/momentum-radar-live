@@ -50,6 +50,8 @@ export default async function handler(req,res){
   const playerRows=fulfilled.flatMap(g=>g.rows.filter(r=>r.playerId===playerId&&(!category||r.category===category))
    .map(r=>({...r,category:stat, numericStats:{[stat]:r.numericStats[key]}}))
    .filter(r=>Number.isFinite(r.numericStats[stat])));
+  const playerTeamIds=new Set(fulfilled.flatMap(g=>g.rows.filter(r=>r.playerId===playerId).map(r=>r.teamId)));
+  if(playerTeamIds.has(opponentId))return res.status(400).json({ok:false,error:'OPPONENT_IS_PLAYER_TEAM'});
   const playerPosition=playerRows.find(r=>r.position)?.position||null;
   const allowanceRows=fulfilled.flatMap(g=>{
    const defenders=g.competitors.find(c=>String(c.team?.id)===opponentId);
