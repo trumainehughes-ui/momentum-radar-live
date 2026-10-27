@@ -24,6 +24,7 @@ test('final 90 minute window needs confirmed inactives and fresh injury screen',
   validation:{...base.validation,officialInactivesVerified:true,
    injuryReportCheckedAt:new Date(now-25*60000).toISOString()}});
  assert.equal(stale.finalRosterCheck.ready,false);
+ assert.equal(stale.inactivesVerified,false,'stale injury evidence cannot claim verified game-day inactives');
 });
 test('current final inactives plus a current injury check clear the public readiness gate',()=>{
  const confirmed=view({kickoff:new Date(now+20*60000).toISOString(),
