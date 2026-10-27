@@ -40,7 +40,7 @@ function fixture(){
   labels:{td:'Anytime TD',passing:'Passing yards',rushing:'Rushing yards',
    receiving:'Receiving yards',receptions:'Receptions'},
   $:key=>elements[key],
-  document:{querySelectorAll:sel=>sel==='[data-nba-module]'?[]:tabs},
+  document:{getElementById:()=>null,querySelectorAll:sel=>sel==='[data-nba-module]'?[]:tabs},
   renderRanks:()=>{calls.ranks++},
   renderExtras:()=>{calls.best++},
   renderGame:()=>{calls.game++},
