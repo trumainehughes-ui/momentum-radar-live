@@ -52,7 +52,7 @@ export async function nbaReadPregame(id,{strict=false}={}){
   // A prediction is not a confirmed starter or sportsbook offer.
   const eligible=new Map((d.playerProjections||[]).filter(p=>
    p.starterVerified===true&&
-   !/\\b(OUT|INACTIVE|DOUBTFUL|QUESTIONABLE|SUSPENDED)\\b/i.test(
+   !/\b(OUT|INACTIVE|IR|INJURED RESERVE|DOUBTFUL|QUESTIONABLE|SUSPENDED)\b/i.test(
     String(p.injuryStatus||p.availability||'')))
    .map(p=>[String(p.playerId||p.playerID),p]));
   const verified=(submitted.tiers||[]).filter(t=>(t.legs||[]).length>0&&
