@@ -15,7 +15,7 @@ function numericRows(box,league,gameId,gameDate){
      league,gameId,gameDate,gameStatus:'STATUS_FINAL',
      teamId:String(team.team?.id||''),teamName:team.team?.displayName,
      playerId:String(athlete.athlete?.id||''),playerName:athlete.athlete?.displayName,
-     position:athlete.athlete?.position?.abbreviation||null,
+     position:athlete.athlete?.position?.abbreviation|| (league==='NFL'&&group.name==='passing'?'QB':null),
      category:group.name||group.displayName||null,
      statLabels:group.labels||[],stats:athlete.stats||[]
     }));
