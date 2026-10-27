@@ -250,9 +250,21 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
  // games. Never apply the current matchup's live stats to a pregame forecast.
  const boxScoreObservations=nbaComBoxScore.status==='CONNECTED'?
   nbaComBoxScore.players.filter(p=>p.personId&&p.played===true):[];
- const result={...evidence,nbaComEvidence,nbaComBoxScore,boxScoreObservations,nbaComPlayerLogs,
+ const crossCheckedProjections=nbaCrossCheckProjections(evidence.playerProjections||[],nbaComPlayerLogs);
+ const nbaComIntegrationAudit={
+  scoreboardStatus:nbaComEvidence.status,
+  boxScoreStatus:nbaComBoxScore.status,
+  livePlayerObservations:boxScoreObservations.length,
+  historicalPlayerLogs:nbaComPlayerLogs.length,
+  historicalSampleCount:nbaComPlayerLogs.reduce((sum,p)=>sum+(p.samples||0),0),
+  blendedProjectionCount:crossCheckedProjections.filter(p=>p.nbaComCrossCheck?.appliedToProjection===true).length,
+  status:crossCheckedProjections.some(p=>p.nbaComCrossCheck?.appliedToProjection===true)?
+   'NBA_COM_INFLUENCING_PROJECTIONS':'NBA_COM_BLEND_NOT_VERIFIED',
+  checkedAt:new Date(now).toISOString()
+ };
+ const result={...evidence,nbaComEvidence,nbaComBoxScore,boxScoreObservations,nbaComIntegrationAudit,nbaComPlayerLogs,
   nbaComCrossCheckedAt:new Date(now).toISOString(),
-  playerProjections:nbaCrossCheckProjections(evidence.playerProjections||[],nbaComPlayerLogs).map(p=>({
+  playerProjections:crossCheckedProjections.map(p=>({
    ...p,starterVerified:starterMatch(p),
    starterStatus:starterMatch(p)?'CONFIRMED_STARTER':'UNCONFIRMED',
    starterSource:starterMatch(p)?'ESPN_CORE_GAME_ROSTER_STARTER_FLAG':null})),
