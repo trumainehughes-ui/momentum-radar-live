@@ -82,3 +82,25 @@ test('game-day handoff rejects unverified, out-of-slate and failing event checks
  assert.deepEqual(eligibleNashPlayerProps(result,{now,isCurrentGame:()=>{throw Error('schedule unavailable');},isActiveStarter:()=>true}),[]);
  assert.equal(eligibleNashPlayerProps(result,{now,isCurrentGame:({eventId})=>eventId==='game1',isActiveStarter:()=>true}).length,1);
 });
+
+test('streamed Nash responses stop at the byte limit before JSON parsing',async()=>{
+ let cancelled=false;
+ let reads=0;
+ const reader={
+  read:async()=>{reads++;return {done:false,value:new Uint8Array(1_100_000)};},
+  cancel:async()=>{cancelled=true;},
+  releaseLock:()=>{}
+ };
+ const result=await fetchDraftKingsNashSelections({...request,fetchImpl:async()=>({ok:true,headers:{get:()=> 'application/json'},body:{getReader:()=>reader},json:async()=>{throw Error('must not parse oversized body');}})});
+ assert.equal(result.reason,'RESPONSE_TOO_LARGE');
+ assert.equal(cancelled,true);
+ assert.equal(reads,2);
+});
+
+test('bounded streamed JSON still normalizes valid DraftKings selections',async()=>{
+ const bytes=new TextEncoder().encode(JSON.stringify(feed));
+ let done=false;
+ const result=await fetchDraftKingsNashSelections({...request,fetchImpl:async()=>({ok:true,headers:{get:()=> 'application/json'},body:{getReader:()=>({read:async()=>{if(done)return {done:true};done=true;return {done:false,value:bytes};},releaseLock:()=>{}})}})});
+ assert.equal(result.ok,true);
+ assert.equal(result.selections[0].selectionId,'selection1');
+});
