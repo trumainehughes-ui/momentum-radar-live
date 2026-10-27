@@ -9,7 +9,7 @@ export default async function handler(req,res){
  const route=ROUTES[league],config=getSportsDataConfig(league);
  if(!route||!config.ok||!config.enabled)return res.status(400).json({ok:false,error:'LEAGUE_NOT_ENABLED'});
   const gameId=String(req.query?.gameId||'').trim();
-  if(gameId&&!/^\\d{5,12}$/.test(gameId))return res.status(400).json({ok:false,error:'INVALID_GAME_ID'});
+  if(gameId&&!/^\d{5,12}$/.test(gameId))return res.status(400).json({ok:false,error:'INVALID_GAME_ID'});
  const date=String(req.query?.date||new Date().toISOString().slice(0,10));
  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(Date.parse(date)))return res.status(400).json({ok:false,error:'INVALID_DATE'});
  try{
@@ -25,11 +25,12 @@ export default async function handler(req,res){
    return {gameId:event.id,gameDate:event.date,status:event.status?.type?.name||null,
     home:team('home'),away:team('away')};
   });
+  const selected=gameId?records.filter(record=>String(record.gameId)===gameId):records;
   const validation=validateSportsResearchEvidence(league,{
-   source:'espn',observedAt:new Date().toISOString(),records
+   source:'espn',observedAt:new Date().toISOString(),records:selected
   });
-  return res.status(200).json({ok:true,league,source:'espn',date,records,validation,
-   sportsbookVerified:false,emptySlate:records.length===0});
+  return res.status(200).json({ok:true,league,source:'espn',date,records:selected,validation,
+   sportsbookVerified:false,emptySlate:selected.length===0});
  }catch(e){return res.status(503).json({ok:false,league,error:'RESEARCH_SOURCE_UNAVAILABLE',
   detail:String(e?.message||'unknown').slice(0,80),sportsbookVerified:false});}
 }
