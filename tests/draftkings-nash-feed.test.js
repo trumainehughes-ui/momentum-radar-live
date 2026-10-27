@@ -14,6 +14,7 @@ test('fetches and normalizes first-party Nash feed with exact provenance',async(
  assert.equal(result.verifiedSGPQuote,false);
  assert.equal(requested.url,'https://sportsbook-nash.draftkings.com/api/sportscontent/dkusoh/v1/leagues/88808/categories/1286/subcategories/13354');
  assert.equal(requested.options.redirect,'error');
+ assert.equal(requested.options.cache,'no-store');
 });
 test('fails closed on HTTP, invalid feed, and invalid category ID',async()=>{
  const http=await fetchDraftKingsNashSelections({...request,fetchImpl:async()=>({ok:false,status:403})});
@@ -42,4 +43,11 @@ test('handoff only accepts externally confirmed starters with exact fresh offers
  assert.equal(eligible[0].selectionId,'selection1');
  assert.equal(eligible[0].verifiedSGPQuote,false);
  assert.equal(eligibleNashPlayerProps(feedResult,{now:request.now+20*60_000,isActiveStarter:()=>true}).length,0);
+});
+
+test('Nash fetch refuses HTML challenge pages and non-JSON content',async()=>{
+ const result=await fetchDraftKingsNashSelections({...request,fetchImpl:async()=>({ok:true,headers:{get:()=> 'text/html'},json:async()=>feed})});
+ assert.equal(result.ok,false);
+ assert.equal(result.reason,'INVALID_CONTENT_TYPE');
+ assert.deepEqual(result.selections,[]);
 });
