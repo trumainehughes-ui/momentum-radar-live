@@ -14,3 +14,8 @@ test('allows only GET',async()=>{
  const res=response();await handler({method:'POST',query:{league:'NBA'}},res);
  assert.equal(res.code,405);assert.equal(res.headers.Allow,'GET');
 });
+
+test('rejects invalid game identifiers',async()=>{
+ const res=response();await handler({method:'GET',query:{league:'NBA',gameId:'not-a-game'}},res);
+ assert.equal(res.code,400);assert.equal(res.body.error,'INVALID_GAME_ID');
+});
