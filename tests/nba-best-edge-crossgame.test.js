@@ -37,3 +37,14 @@ test('NBA Edge Hunter refuses scheduled games with no player projections',()=>{
  assert.equal(result.reason,'FEWER_THAN_TWO_COMPETITIVE_HIGH_TOTAL_GAMES');
  assert.deepEqual(result.legs,[]);
 });
+
+
+test('NBA Edge Hunter does not skip blank entries in the latest ten box scores',()=>{
+ const now=Date.now();
+ const games=[1,2].map(i=>({gameId:String(i),status:'SCHEDULED',kickoff:new Date(now+3600000).toISOString(),total:240,spread:1,playerProjections:[{playerId:String(i),name:'Example Player',team:'ABC',category:'points',starterVerified:true,projection:30,historicalValues:[28,'   ',...Array(9).fill(28)]}]}));
+ const result=nbaBestEdgeParlay(games,{now});
+ assert.equal(result.status,'NO_QUALIFYING_PARLAY');
+ assert.equal(result.diagnostics.historyRejected,2);
+ assert.equal(result.diagnostics.marketRejected,0);
+ assert.deepEqual(result.legs,[]);
+});
