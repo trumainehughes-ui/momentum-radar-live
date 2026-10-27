@@ -274,3 +274,14 @@ test('ESPN roster evidence requires independent starter and injury clearance',as
  assert.deepEqual(run(role,[{...eventCrosswalk[0],confirmed:false}]),[]);
  assert.deepEqual(run(role,[...eventCrosswalk,{...eventCrosswalk[0],draftKingsEventId:'34118183'}]),[]);
 });
+
+test('duplicate player evidence fails closed',async()=>{
+ const {draftKingsPlayersFromEspnEvidence:check}=await import('../lib/draftkings-nash-feed.js');
+ const roster=[{id:'123456',name:'Test Player'}];
+ const eventCrosswalk=[{confirmed:true,espnEventId:'401123456',draftKingsEventId:'34118182'}];
+ const good={confirmed:true,espnEventId:'401123456',espnAthleteId:'123456',active:true,starterOrHighSnap:true,injuryCleared:true};
+ const run=roleEvidence=>check(roster,{eventCrosswalk,roleEvidence});
+ assert.equal(run([good]).length,1);
+ assert.deepEqual(run([good,{...good,active:false}]),[]);
+ assert.deepEqual(run([good,good]),[]);
+});
