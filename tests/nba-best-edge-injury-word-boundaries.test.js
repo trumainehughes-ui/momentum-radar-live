@@ -12,3 +12,12 @@ test('public NBA Edge Hunter research also withholds questionable and reserve-li
  const endpoint=readFileSync(new URL('../api/nba-best-edge.js',import.meta.url),'utf8');
  assert.ok(endpoint.includes('/\\b(OUT|INACTIVE|IR|INJURED RESERVE|DOUBTFUL|QUESTIONABLE|SUSPENDED)\\b/i.test('));
 });
+
+test('NBA Edge Hunter reports missing starters, last-ten histories and independently verified offers',()=>{
+ const endpoint=readFileSync(new URL('../api/nba-best-edge.js',import.meta.url),'utf8');
+ for(const blocker of ['GAME_SCOPED_STARTERS_NOT_CONFIRMED','TEN_GAME_PLAYER_HISTORY_MISSING',
+  'TWO_FRESH_VERIFIED_BOOK_OFFERS_PER_PLAYER_MISSING','PREGAME_INJURY_CHECKS_MISSING']){
+  assert.ok(endpoint.includes(blocker),blocker);
+ }
+ assert.ok(endpoint.includes('snapshotHealth,readinessBlockers,aiMatchupReviews'));
+});
