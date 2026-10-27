@@ -27,3 +27,13 @@ test('requires active starter and exact offered five-yard line',()=>{
  assert.equal(eligibleDraftKingsProp(prop,{activeStarter:true,offeredLines:[70]}),false);
  assert.equal(eligibleDraftKingsProp({...prop,line:77},{activeStarter:true,offeredLines:[77]}),false);
 });
+
+test('rejects spoofed DraftKings domains and empty price/line',()=>{
+ assert.deepEqual(normalizeDraftKingsSelections(snapshot,{sourceUrl:'https://draftkings.com.evil.test/',fetchedAt}),[]);
+ const bad={...snapshot,markets:[{...snapshot.markets[0],outcomes:[
+  {playerName:'Example Receiver',points:null,oddsAmerican:-110},
+  {playerName:'Example Receiver',points:75,oddsAmerican:null},
+  {playerName:'Example Receiver',points:75,oddsAmerican:''}
+ ]}]};
+ assert.deepEqual(normalizeDraftKingsSelections(bad,{sourceUrl,fetchedAt}),[]);
+});
