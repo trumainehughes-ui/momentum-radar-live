@@ -39,3 +39,9 @@ test('NBA recent form is ordered by scheduled game dates, not fetch order',()=>{
  assert.ok(!model.includes('minuteRows.slice(-3)'));
  assert.ok(!model.includes('usageRows.slice(-3)'));
 });
+
+test('NBA imported SGP candidates reject injured or uncertain availability using real word boundaries',()=>{
+ const health=readFileSync(new URL('../api/nba-health.js',import.meta.url),'utf8');
+ assert.ok(health.includes(String.raw`/\b(OUT|INACTIVE|IR|INJURED RESERVE|DOUBTFUL|QUESTIONABLE|SUSPENDED)\b/i.test(`));
+ assert.ok(!health.includes(String.raw`/\\b(OUT|INACTIVE|DOUBTFUL|QUESTIONABLE|SUSPENDED)\\b/i.test(`));
+});
