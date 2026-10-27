@@ -209,3 +209,20 @@ test('ESPN schedule crosswalk requires confirmed exact DK event mapping and sche
  assert.deepEqual(draftKingsGamesFromEspnSchedule([{...event,date:new Date(now-1000).toISOString()}],{eventCrosswalk:[mapping],now}),[]);
  assert.deepEqual(draftKingsGamesFromEspnSchedule([{...event,competitions:[{status:{type:{name:'STATUS_FINAL',completed:true}}}]}],{eventCrosswalk:[mapping],now}),[]);
 });
+
+test('ESPN schedule fetch accepts a valid bounded scoreboard and rejects untrusted input',async()=>{
+ const {fetchEspnNflSchedule}=await import('../lib/draftkings-nash-feed.js');
+ const now=Date.now(),events=[{id:'401123456',date:new Date(now+86400000).toISOString()}];
+ const good=await fetchEspnNflSchedule({date:'20261027',now,fetchImpl:async url=>{
+  assert.match(url,/site.api.espn.com/);
+  return {ok:true,headers:{get:()=>null},json:async()=>({events})};
+ }});
+ assert.equal(good.ok,true);
+ assert.deepEqual(good.events,events);
+ assert.equal((await fetchEspnNflSchedule({date:'2026-10-27',now,fetchImpl:async()=>{throw Error('should not fetch');}})).ok,false);
+ const oversized=await fetchEspnNflSchedule({date:'20261027',now,fetchImpl:async()=>({
+  ok:true,headers:{get:key=>key==='content-length'?'2000001':null},
+  json:async()=>{throw Error('should not parse');}
+ })});
+ assert.equal(oversized.reason,'RESPONSE_TOO_LARGE');
+});
