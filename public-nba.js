@@ -96,6 +96,10 @@
    '<div class="name">'+safe(game.away.name||game.away.abbr)+' @ '+safe(game.home.name||game.home.abbr)+'</div>'+
    '<div class="meta">'+safe(time(game.kickoff))+'</div></div>';
   qs('#nbaPlayers').innerHTML='<div class="msg">Retrieving ESPN game box score…</div>';
+  const matchupBox=document.createElement('div');matchupBox.className='panel';matchupBox.dataset.automaticMatchup='NBA';
+  qs('#nbaPlayers').before(matchupBox);
+  qs('#nbaDetail').querySelectorAll('[data-automatic-matchup="NBA"]').forEach((el)=>{if(el!==matchupBox)el.remove()});
+  window.momentumAutomaticMatchupResearch?.render(matchupBox,[]);
   qs('#nbaInjuries').textContent='Checking available ESPN injury evidence…';
   qs('#nbaSgps').textContent='Checking SGP readiness…';
   const request=++token;
