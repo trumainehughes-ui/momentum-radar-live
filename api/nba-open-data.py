@@ -10,7 +10,7 @@ def payload(query):
     from nba_api.stats.static import players, teams
     action = query.get("action", ["scoreboard"])[0]
     if action == "health":
-        return {"ok": True, "source": "nba_api", "mode": "ready", "checkedAt": datetime.now(timezone.utc).isoformat()}
+        return {"ok": True, "source": "nba_api", "mode": "adapter_available_upstream_unverified", "checkedAt": datetime.now(timezone.utc).isoformat()}
     if action == "players":
         name = query.get("name", [""])[0].strip()
         if not name or len(name) > 80:
