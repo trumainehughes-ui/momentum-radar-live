@@ -4,11 +4,8 @@ on:
     branches:
       - feature/draftkings-explorer-adapter
   pull_request:
-    paths:
-      - 'lib/draftkings-*.js'
-      - 'tests/draftkings-*.test.js'
-      - 'scripts/check-draftkings-nash.mjs'
-      - '.github/workflows/draftkings-*.yml'
+    branches:
+      - main
   workflow_dispatch:
 jobs:
   adapter-tests:
