@@ -1,5 +1,5 @@
 import {nbaBestEdgeParlay} from '../lib/nba-best-edge-parlay.js';
-import {nbaReadPregame} from './nba-health.js';
+import {nbaReadPregame,nbaPregameFreshness} from './nba-health.js';
 import {nbaAiMatchupIdentityConflict} from '../lib/pregame-ai-review.js';
 // The public endpoint does not accept client-supplied odds or player forecasts.
 // ESPN consensus lines are optional; missing lines result in NO_QUALIFYING_PARLAY.
@@ -25,13 +25,14 @@ export default async function handler(req,res){
    return {gameId:String(e.id),status:'SCHEDULED',kickoff:e.date,
     total:odds.overUnder??null,spread:spread??null,
     playerProjections:snapshot?.playerProjections||[],
-    injuryCheckedAt:snapshot?.injuryCheckedAt||null,gameChanges:snapshot?.gameChanges||[],snapshotPresent:Boolean(snapshot),snapshotCheckedAt:snapshot?.checkedAt||null,snapshotModelVersion:snapshot?.modelVersion||null,aiReviewStatus:reviewConflict?'IDENTITY_CONFLICT':snapshot?.aiReview?.status||'NOT_RUN',aiReviewCheckedAt:snapshot?.aiReview?.checkedAt||null,
+    injuryCheckedAt:snapshot?.injuryCheckedAt||null,gameChanges:snapshot?.gameChanges||[],snapshotPresent:Boolean(snapshot),snapshotCheckedAt:snapshot?.checkedAt||null,
+    snapshotFreshness:nbaPregameFreshness(snapshot,{gameStatus:'SCHEDULED'}).status,snapshotModelVersion:snapshot?.modelVersion||null,aiReviewStatus:reviewConflict?'IDENTITY_CONFLICT':snapshot?.aiReview?.status||'NOT_RUN',aiReviewCheckedAt:snapshot?.aiReview?.checkedAt||null,
     aiReviewSummary:snapshot?.aiReview?.status==='REVIEWED'&&!reviewConflict?String(snapshot.aiReview.summary||'').slice(0,1400):null,
     starterEvidence:snapshot?.starterEvidence||null,
     homeTeam:c.competitors?.find(x=>x.homeAway==='home')?.team?.displayName||null,
     awayTeam:c.competitors?.find(x=>x.homeAway==='away')?.team?.displayName||null};
   }));
-  const currentModelGames=games.filter(g=>g.snapshotModelVersion==='v16-preserve-current-season-first');
+  const currentModelGames=games.filter(g=>g.snapshotModelVersion==='v16-preserve-current-season-first'&&g.snapshotFreshness==='CURRENT');
   // Fail closed: stale snapshots must not enter verified selection either.
   const result=nbaBestEdgeParlay(currentModelGames,{mode:'VERIFIED_MARKET'});
   const snapshotVersions=[...new Set(games.map(g=>g.snapshotModelVersion).filter(Boolean))];
@@ -40,6 +41,7 @@ export default async function handler(req,res){
    gamesWithPlayerProjections:games.filter(g=>g.playerProjections.length>0).length,
    snapshotModelVersions:snapshotVersions.slice(0,6),
    staleSnapshotGames,staleSnapshotCount:staleSnapshotGames.length,
+   freshnessHeldGames:games.filter(g=>g.snapshotFreshness!=='CURRENT').map(g=>g.gameId),
    gamesWithInjuryChecks:games.filter(g=>g.injuryCheckedAt).length,
    gamesWithEspnListedGameTotals:games.filter(g=>Number.isFinite(Number(g.total))&&Number(g.total)>0).length,
    gamesWithEspnListedSpreads:games.filter(g=>g.spread!==null&&Number.isFinite(Number(g.spread))).length,
@@ -74,7 +76,7 @@ export default async function handler(req,res){
     checkedAt:g.aiReviewCheckedAt,summary:g.aiReviewSummary,advisoryOnly:true}));
   // Model projections are useful research even without a verified bookmaker
   // offer. Never mix them into publishable sportsbook legs.
-  const research=games.filter(g=>g.snapshotModelVersion==='v16-preserve-current-season-first').flatMap(g=>(g.playerProjections||[])
+  const research=currentModelGames.flatMap(g=>(g.playerProjections||[])
    .filter(p=>['points','rebounds','assists','threes','pra'].includes(p.category)&&
     Number.isFinite(Number(p.projection))&&Number(p.projection)>=0&&
     !/\b(OUT|INACTIVE|IR|INJURED RESERVE|DOUBTFUL|QUESTIONABLE|SUSPENDED)\b/i.test(String([p.injuryStatus,p.availability].filter(Boolean).join(' '))))
