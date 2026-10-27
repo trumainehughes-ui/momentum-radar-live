@@ -146,3 +146,21 @@ test('NFL catalog reports incomplete coverage rather than silently treating part
  assert.equal(feed.categories.length,4);
  assert.equal(feed.verifiedSGPQuote,false);
 });
+
+test('aggregate handoff rejects incomplete coverage even when one category has good selections',async()=>{
+ const {eligibleDraftKingsNflPlayerProps}=await import('../lib/draftkings-nash-feed.js');
+ const now=Date.now();
+ const prop={book:'DraftKings',eventId:'game1',marketId:'market1',selectionId:'sel1',
+  player:'Example Player',marketName:'Passing Yards O/U',outcome:'over',line:225.5,
+  americanOdds:-110,fetchedAt:new Date(now).toISOString(),
+  sourceUrl:'https://sportsbook-nash.draftkings.com/api/sportscontent/dkusoh/v1/leagues/88808/categories/1000/subcategories/9524',
+  verifiedSGPQuote:false};
+ const categories=['passing_yards','receiving_yards','rushing_yards','receptions'].map(stat=>({stat,ok:true}));
+ const validators={isActiveStarter:()=>true,isCurrentGame:()=>true,now};
+ const complete={ok:true,complete:true,categories,selections:[prop]};
+ assert.equal(eligibleDraftKingsNflPlayerProps(complete,validators).length,1);
+ assert.deepEqual(eligibleDraftKingsNflPlayerProps({...complete,complete:false},validators),[]);
+ assert.deepEqual(eligibleDraftKingsNflPlayerProps({...complete,categories:categories.map((c,i)=>i===1?{...c,ok:false}:c)},validators),[]);
+ assert.deepEqual(eligibleDraftKingsNflPlayerProps(complete,{...validators,isCurrentGame:()=>false}),[]);
+ assert.deepEqual(eligibleDraftKingsNflPlayerProps(complete,{...validators,isActiveStarter:()=>false}),[]);
+});
