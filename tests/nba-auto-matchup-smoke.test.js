@@ -6,9 +6,9 @@ import {parseNbaGame} from '../lib/nba-data-model.js';
 test('NBA summary parser exposes real athlete IDs and box score only for completed games',()=>{
  const summary={header:{id:'401809238',competitions:[{id:'401809238',status:{type:{state:'post'}},
   competitors:[{homeAway:'home',team:{abbreviation:'NY'}},{homeAway:'away',team:{abbreviation:'CLE'}}]}]},
-  boxscore:{players:[{team:{abbreviation:'CLE'},statistics:[{athletes:[{
+  boxscore:{players:[{team:{abbreviation:'CLE'},statistics:[{names:['MIN','PTS','REB','AST','3PM'],athletes:[{
    athlete:{id:'3912848',displayName:'Dean Wade',position:{abbreviation:'F'}},
-   stats:['29','2','5','0','0','1','3','0','0','4','2','0','6']
+   stats:['29','6','4','2','1']
   }]}]}]}};
  const result=parseNbaGame(summary,'401809238');
  assert.equal(result.ok,true);
