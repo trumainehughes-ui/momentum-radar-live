@@ -302,7 +302,9 @@ export default async function handler(req,res){
   const blocking=[],degraded=[];
   if(schedules.every(s=>!s.ok))blocking.push('schedule');
   const games=[...new Map(schedules.flatMap(s=>s.games||[]).map(g=>[String(g.gameId),g])).values()];
-  if(!games.length)blocking.push('games');
+  // Signed collection must fail closed when the schedule is empty, but a
+  // read-only public health request on an NFL off-day is healthy idle.
+  if(!games.length&&cron)blocking.push('games');
   // /api/nfl-schedule explicitly delegates sportsbook markets to the
   // separate /api/nfl-markets route; "markets.available=false" there does
   // NOT prove that the market route is down.
