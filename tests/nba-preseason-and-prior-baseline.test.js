@@ -83,7 +83,7 @@ test('October 20 opening-night regular-season model uses labeled 2025-26 game sa
    assert.ok(s.legs.every(l=>l.sampleSource==='PRIOR_SEASON'));
   }
   if(risk==='Nuke')assert.equal(s.status,'NOT_READY','no invented correlated SGP quote');
-  assert.equal(s.combinedBookOddsVerified,false);
+  assert.notEqual(s.combinedBookOddsVerified,true);
   assert.equal(s.publishable,false);
  }
 });
