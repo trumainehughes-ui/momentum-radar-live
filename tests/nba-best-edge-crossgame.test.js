@@ -1,0 +1,19 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {nbaBestEdgeParlay} from '../lib/nba-best-edge-parlay.js';
+
+test('NBA Edge Hunter rejects unsupported model-only mode',()=>{
+ const result=nbaBestEdgeParlay([],{mode:'MODEL_ONLY'});
+ assert.equal(result.status,'NO_QUALIFYING_PARLAY');
+ assert.equal(result.reason,'VERIFIED_MARKET_REQUIRED');
+ assert.deepEqual(result.legs,[]);
+});
+
+test('NBA Edge Hunter cannot publish a four-leg parlay without verified starters',()=>{
+ const now=Date.now();
+ const games=[1,2].map((i)=>({gameId:String(i),status:'SCHEDULED',kickoff:new Date(now+3600000).toISOString(),total:230,spread:2,playerProjections:[{playerId:String(i),name:'Example Player',team:'ABC',category:'points',starterVerified:false,projection:25,historicalValues:Array(10).fill(30)}]}));
+ const result=nbaBestEdgeParlay(games,{now});
+ assert.equal(result.status,'NO_QUALIFYING_PARLAY');
+ assert.equal(result.reason,'NO_CONFIRMED_GAME_STARTERS');
+ assert.deepEqual(result.legs,[]);
+});
