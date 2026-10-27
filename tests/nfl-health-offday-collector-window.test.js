@@ -7,7 +7,7 @@ test('signed NFL collector checks two days ahead without changing the 30-hour du
  assert.match(source,/const dates=cron\?\[today,nflAddDate\(today,1\),nflAddDate\(today,2\)\]/);
  assert.match(source,/const allDue=nflCollectorDueGames\(games\)/);
 });
-test('NFL health treats a successful empty off-day slate as idle, not an outage',()=>{
- assert.match(source,/if\(!games\.length&&schedules\.every\(x=>!x\.ok\)\)blocking\.push\('games'\)/);
+test('NFL collector continues to fail closed on an empty slate or failed schedule',()=>{
+ assert.match(source,/if\(!games\.length\)blocking\.push\('games'\)/);
  assert.match(source,/if\(schedules\.every\(s=>!s\.ok\)\)blocking\.push\('schedule'\)/);
 });
