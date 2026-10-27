@@ -302,3 +302,13 @@ test('non-active roster statuses are excluded even with positive role evidence',
  assert.equal(run('Active').length,1);
  for(const status of ['Questionable','Out','Doubtful','Inactive','Suspended','Reserve'])assert.deepEqual(run(status),[]);
 });
+
+test('duplicate DraftKings event mapping rejects both ESPN games regardless of order',async()=>{
+ const {draftKingsGamesFromEspnSchedule:check}=await import('../lib/draftkings-nash-feed.js');
+ const now=Date.now(),date=new Date(now+86400000).toISOString();
+ const status={type:{name:'STATUS_SCHEDULED',completed:false}};
+ const events=[{id:'401123456',date,competitions:[{status}]},{id:'401123457',date,competitions:[{status}]}];
+ const eventCrosswalk=[{confirmed:true,espnEventId:'401123456',draftKingsEventId:'34118182'},{confirmed:true,espnEventId:'401123457',draftKingsEventId:'34118182'}];
+ assert.deepEqual(check(events,{eventCrosswalk,now}),[]);
+ assert.deepEqual(check([...events].reverse(),{eventCrosswalk,now}),[]);
+});
