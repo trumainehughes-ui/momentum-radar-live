@@ -21,3 +21,9 @@ test('NBA Edge Hunter reports missing starters, last-ten histories and independe
  }
  assert.ok(endpoint.includes('snapshotHealth,readinessBlockers,aiMatchupReviews'));
 });
+
+test('NBA early-season baseline requests up to twenty prior-season games per team for last-ten evidence',()=>{
+ const model=readFileSync(new URL('../lib/nba-pregame-model.js',import.meta.url),'utf8');
+ assert.ok(model.includes('nbaCompletedTeamGames(x,game.kickoff,20)))].slice(0,40)'));
+ assert.ok(model.includes("sampleSource='PRIOR_SEASON'"));
+});
