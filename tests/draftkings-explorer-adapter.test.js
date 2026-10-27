@@ -162,3 +162,21 @@ test('empty market outcome arrays fall back to Nash top-level selections',()=>{
  assert.equal(props[0].selectionId,'sel1');
  assert.equal(props[0].line,75.5);
 });
+
+test('normalizes observed Nash top-level participant and Unicode odds fields',()=>{
+ const observed={
+  events:[{id:'34118182',name:'NFL matchup'}],
+  markets:[{id:'382675245',eventId:'34118182',name:'Jordan Love Passing Yards O/U'}],
+  selections:[{id:'0QA382675245#test',marketId:'382675245',label:'Over',
+   displayOdds:{american:'−113'},points:215.5,
+   participants:[{id:'470097',name:'Jordan Love',type:'Player'}],main:true}]
+ };
+ const rows=normalizeDraftKingsSelections(observed,{fetchedAt:new Date().toISOString(),
+  sourceUrl:'https://sportsbook-nash.draftkings.com/api/sportscontent/dkusoh/v1/leagues/88808/categories/1000/subcategories/9524'});
+ assert.equal(rows.length,1);
+ assert.equal(rows[0].player,'Jordan Love');
+ assert.equal(rows[0].line,215.5);
+ assert.equal(rows[0].americanOdds,-113);
+ assert.equal(rows[0].selectionId,'0QA382675245#test');
+ assert.equal(rows[0].verifiedSGPQuote,false);
+});
