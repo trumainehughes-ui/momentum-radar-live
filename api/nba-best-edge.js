@@ -77,7 +77,7 @@ export default async function handler(req,res){
      Math.round((Number(p.projection)/Number(p.baseProjection)-1)*1000)/10:null,
     marketVerified:false,modelOnly:true,
     basis:p.basis||'Historical box-score projection, not a sportsbook line'})))
-   .filter(p=>p.name&&Number(p.baseProjection)>=2&&Number(p.sampleGames)>=5).sort((a,b)=>{
+   .filter(p=>p.name&&Number(p.baseProjection)>=2&&Number(p.sampleGames)>=3).map(p=>({...p,sampleAdequacy:Number(p.sampleGames)>=10?'TEN_PLUS_GAMES':'LIMITED_SAMPLE_RESEARCH_ONLY'})).sort((a,b)=>{
     const lift=p=>Number(p.baseProjection)>0?(p.projection/Number(p.baseProjection)-1):-Infinity;
     const current=p=>p.sampleSource==='CURRENT_SEASON'?1:0;
     return current(b)-current(a)||lift(b)-lift(a)||b.sampleGames-a.sampleGames;
