@@ -291,7 +291,7 @@ export default async function handler(req,res){
   const today=date&&/^\d{4}-\d{2}-\d{2}$/.test(date)?date:day(new Date());
   // Sunday and Monday are separate ESPN date scopes; on Sunday the cron must
   // also prepare Monday instead of stopping at a nonempty Sunday schedule.
-  const dates=cron?[today,nflAddDate(today,1)]:date?[today]:[today];
+  const dates=cron?[today,nflAddDate(today,1),nflAddDate(today,2)]:date?[today]:[today];
   const schedules=await Promise.all(dates.map(async d=>{
    try{
     const r=await fetch(base+'/api/nfl-schedule?date='+encodeURIComponent(d),
@@ -302,7 +302,9 @@ export default async function handler(req,res){
   const blocking=[],degraded=[];
   if(schedules.every(s=>!s.ok))blocking.push('schedule');
   const games=[...new Map(schedules.flatMap(s=>s.games||[]).map(g=>[String(g.gameId),g])).values()];
-  if(!games.length)blocking.push('games');
+  // An empty slate is expected on NFL off-days. A successful schedule lookup
+  // with no games is healthy idle, not a production outage.
+  if(!games.length&&schedules.every(x=>!x.ok))blocking.push('games');
   // /api/nfl-schedule explicitly delegates sportsbook markets to the
   // separate /api/nfl-markets route; "markets.available=false" there does
   // NOT prove that the market route is down.
