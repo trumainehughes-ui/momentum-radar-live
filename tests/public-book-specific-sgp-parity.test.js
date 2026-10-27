@@ -134,7 +134,7 @@ test('published day-ahead SGPs remain visible with an official-inactives warning
  const v=publicNflGameView(data,{date,gameId,now});
  assert.equal(v.inactivesVerified,false);
  const h=render(v);
- assert.ok(h.includes('2500 combined'));
+ assert.ok(!h.includes('2500 combined'),'unverified inactives must withhold playable combined quotes');
  assert.ok(h.includes('Official game-day inactives are not final'));
  assert.ok(h.includes('30 minutes before kickoff'));
 });
