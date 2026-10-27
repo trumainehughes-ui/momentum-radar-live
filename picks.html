@@ -546,6 +546,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   return new Set(keys).size===keys.length&&
    new Set(cats).size>=3&&
    yards.length>=requiredYards&&new Set(yards).size>=2&&
+   // Match owner tier rules: two eligible yardage types suffice when QB props are unavailable.
    cats.filter(c=>c==='td').length<=maxTd;
  }
  function nflPublicTierPriceReady(risk,odds){
