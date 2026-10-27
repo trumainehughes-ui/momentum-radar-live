@@ -152,7 +152,7 @@ test('Nuke model rendering requires 5–7 valid diversified markets, not just fi
  assert.match(renderNflProjectedSgpTierDetails(details),/Nuke • NOT READY/);
 });
 
-test('incomplete Small and Medium research stays NOT READY even when risk targets differ',()=>{
+test('two-yardage-market Small and Medium model research remains unpriced even when composition is complete',()=>{
  const m={...market,sgps:{Analytics:[
  {risk:'Small',legs:[
   {player:'Rome Odunze',team:'CHI',category:'receiving'},
@@ -167,12 +167,11 @@ test('incomplete Small and Medium research stays NOT READY even when risk target
   {player:"D'Andre Swift",team:'CHI',category:'td'}]}
  ]}};
  const result=buildNflProjectedSgpTierDetails({...ctx,market:m});
- assert.deepEqual(result.tiers.map(x=>x.compositionComplete),[false,false]);
+ assert.deepEqual(result.tiers.map(x=>x.compositionComplete),[true,true]);
  assert.equal(result.tiers[1].differentiated,true);
  const html=renderNflProjectedSgpTierDetails(result);
- assert.match(html,/Small • NOT READY/);
- assert.match(html,/Medium • NOT READY/);
- assert.doesNotMatch(html,/Small • AI yardage projection candidates/);
- assert.doesNotMatch(html,/Medium • AI yardage projection candidates/);
+ assert.match(html,/Small • AI yardage projection candidates/);
+ assert.match(html,/Medium • AI yardage projection candidates/);
+ assert.doesNotMatch(html,/\+2500 combined|\+10000 combined/);
  assert.doesNotMatch(html,/Actual combined odds/);
 });
