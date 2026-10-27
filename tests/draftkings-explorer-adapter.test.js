@@ -1,0 +1,29 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {normalizeDraftKingsSelections, eligibleDraftKingsProp} from '../lib/draftkings-explorer-adapter.js';
+const sourceUrl = 'https://sportsbook.draftkings.com/';
+const fetchedAt = '2026-10-26T20:00:00Z';
+const snapshot = {events:[{id:'game1',name:'Example game'}],markets:[{id:'m1',eventId:'game1',name:'Receiving Yards',outcomes:[
+ {playerName:'Example Receiver',label:'Over',points:75,oddsAmerican:-110,main:true},
+ {playerName:'Example Receiver',label:'Over',points:80,oddsAmerican:140,main:false}
+]}]};
+test('preserves actual offered main and alternate lines without inventing a quote',()=>{
+ const props=normalizeDraftKingsSelections(snapshot,{sourceUrl,fetchedAt});
+ assert.equal(props.length,2);
+ assert.equal(props[0].line,75);
+ assert.equal(props[0].isMainLine,true);
+ assert.equal(props[1].isMainLine,false);
+ assert.equal(props[1].americanOdds,140);
+ assert.equal(props[0].verifiedSGPQuote,false);
+});
+test('fails closed on missing provenance or malformed payload',()=>{
+ assert.deepEqual(normalizeDraftKingsSelections(snapshot),[]);
+ assert.deepEqual(normalizeDraftKingsSelections({markets:[]},{sourceUrl,fetchedAt}),[]);
+});
+test('requires active starter and exact offered five-yard line',()=>{
+ const prop=normalizeDraftKingsSelections(snapshot,{sourceUrl,fetchedAt})[0];
+ assert.equal(eligibleDraftKingsProp(prop,{activeStarter:true,offeredLines:[75,80]}),true);
+ assert.equal(eligibleDraftKingsProp(prop,{activeStarter:false,offeredLines:[75]}),false);
+ assert.equal(eligibleDraftKingsProp(prop,{activeStarter:true,offeredLines:[70]}),false);
+ assert.equal(eligibleDraftKingsProp({...prop,line:77},{activeStarter:true,offeredLines:[77]}),false);
+});
