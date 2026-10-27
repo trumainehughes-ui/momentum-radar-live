@@ -310,18 +310,18 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
    const startersReady=selectedStarters.startersConfirmed===true&&
     legs.length>0&&legs.every(p=>p.starterVerified===true);
    return {...card,legs,
-    status:card.status==='MODEL_CANDIDATE'&&eventStarters.checked===true&&!startersReady?'NOT_READY':card.status,
+    status:card.status==='MODEL_CANDIDATE'&&selectedStarters.checked===true&&!startersReady?'NOT_READY':card.status,
     publishable:false,
     starterVerificationStatus:startersReady?'GAME_SCOPED_STARTERS_CONFIRMED':'UNCONFIRMED',
     reason:card.status==='MODEL_CANDIDATE'&&eventStarters.checked===true&&!startersReady?
      'Held: not every player is verified as a starter for this specific NBA game.':card.reason};
   }),
-  starterEvidence:{checked:eventStarters.checked,
+  starterEvidence:{checked:selectedStarters.checked,
    startersConfirmed:selectedStarters.startersConfirmed,
-   reason:selectedStarters.reason||'UNKNOWN',teamsChecked:eventStarters.teamsChecked||0,
-   teamReasons:eventStarters.teamReasons||{},
-   teamRowDiagnostics:eventStarters.teamRowDiagnostics||{},
-   teamCounts:eventStarters.starterCounts||{},
+   reason:selectedStarters.reason||'UNKNOWN',teamsChecked:selectedStarters.teamsChecked||eventStarters.teamsChecked||0,
+   teamReasons:selectedStarters.teamReasons||eventStarters.teamReasons||{},
+   teamRowDiagnostics:selectedStarters.teamRowDiagnostics||eventStarters.teamRowDiagnostics||{},
+   teamCounts:selectedStarters.starterCounts||{},
    source:selectedStarters.source,
    playerIds:(selectedStarters.starters||[]).map(x=>x.playerId).sort(),
    officialInactivesVerified:false},
