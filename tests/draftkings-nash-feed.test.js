@@ -316,3 +316,19 @@ test('duplicate DraftKings event mapping rejects both ESPN games regardless of o
  assert.deepEqual(check(events,{eventCrosswalk,now}),[]);
  assert.deepEqual(check([...events].reverse(),{eventCrosswalk,now}),[]);
 });
+
+test('live ESPN and Nash event candidate bridge remains review-only',async()=>{
+ const {fetchDraftKingsEspnNflEventCandidates}=await import('../lib/draftkings-nash-feed.js');
+ const date=new Date(Date.now()+86400000).toISOString();
+ const nash={id:'34118182',startEventDate:date,status:'NOT_STARTED',participants:[
+  {type:'Team',venueRole:'Home',metadata:{shortName:'GB'}},
+  {type:'Team',venueRole:'Away',metadata:{shortName:'CAR'}}]};
+ const espn={id:'401123456',date,status:{type:{name:'STATUS_SCHEDULED'}},competitions:[{
+  competitors:[{homeAway:'home',team:{abbreviation:'GB'}},{homeAway:'away',team:{abbreviation:'CAR'}}]}]};
+ const fetchImpl=async url=>({ok:true,headers:{get:()=>null},json:async()=>url.includes('scoreboard')?
+  {events:[espn]}:{events:[nash],markets:[{id:'42',eventId:'34118182'}],selections:[]}});
+ const result=await fetchDraftKingsEspnNflEventCandidates({date:'20261101',fetchImpl});
+ assert.equal(result.confirmed,false);
+ assert.equal(result.ok,false);
+ assert.deepEqual(result.candidates,[]);
+});
