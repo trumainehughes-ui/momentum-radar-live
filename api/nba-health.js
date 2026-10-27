@@ -372,7 +372,7 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
  if(reusable){
   result.aiReview=prior.aiReview;
   result.aiReviewed=true;
- }else if(hasForecasts&&plan.stage==='T_MINUS_30'&&
+ }else if(hasForecasts&&plan.stage==='FINAL_T_MINUS_30'&&
    (result.changedFromPrior||prior?.stage!==plan.stage||
     prior?.aiReview?.status!=='REVIEWED'||
     nbaAiMatchupIdentityConflict(prior?.aiReview?.summary,game))){
@@ -380,7 +380,7 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   result.aiReviewed=result.aiReview?.status==='REVIEWED';
  }else if(!hasForecasts){
   result.aiReview={status:'SKIPPED',reason:'No usable player forecasts; inspect ESPN completed-game and roster ingestion'};
- }else if(eligible&&plan.stage==='T_MINUS_30'&&pregameNeedsAiReview({stage:plan.stage,
+ }else if(eligible&&plan.stage==='FINAL_T_MINUS_30'&&pregameNeedsAiReview({stage:plan.stage,
    changedFields:audit.changedFields,priorAiReviewed:false})){
   result.aiReview=await review('nba',game,result);
   result.aiReviewed=result.aiReview?.status==='REVIEWED';
