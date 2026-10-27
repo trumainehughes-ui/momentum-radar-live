@@ -21,6 +21,15 @@ def payload(query):
     if action == "scoreboard":
         games = scoreboard.ScoreBoard().games.get_dict()
         return {"ok": True, "source": "nba_api", "asOf": datetime.now(timezone.utc).isoformat(), "games": games, "sportsbookVerified": False}
+    if action == "boxscore":
+        from nba_api.live.nba.endpoints import boxscore
+        game_id = query.get("gameId", [""])[0].strip()
+        if not (game_id.isdigit() and len(game_id) == 10):
+            raise ValueError("Valid 10-digit NBA gameId is required")
+        game = boxscore.BoxScore(game_id=game_id).game.get_dict()
+        return {"ok": True, "source": "nba_api_live", "gameId": game_id,
+                "asOf": datetime.now(timezone.utc).isoformat(),
+                "game": game, "sportsbookVerified": False}
     if action == "player-name-log":
         from nba_api.stats.endpoints import playergamelog
         name = query.get("name", [""])[0].strip()
