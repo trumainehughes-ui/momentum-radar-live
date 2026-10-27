@@ -75,6 +75,7 @@ test('NBA Small Medium Nuke reject two-leg mock parlays instead of presenting a 
  const html=area['#match-content'].innerHTML;
  assert.ok(html.includes('Small'));assert.ok(html.includes('Medium'));assert.ok(html.includes('Nuke'));
  assert.equal((html.match(/NOT READY/g)||[]).length,3);
+ assert.equal((html.match(/RESEARCH ONLY/g)||[]).length,3);
  assert.ok(!html.includes('Jayson Tatum'));assert.ok(!html.includes('Cade Cunningham'));
  assert.ok(!html.includes('sportsbook-issued combined quote confirmed'));
 });
