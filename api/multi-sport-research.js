@@ -26,6 +26,9 @@ export default async function handler(req,res){
     home:team('home'),away:team('away')};
   });
   const selected=gameId?records.filter(record=>String(record.gameId)===gameId):records;
+  if(gameId&&selected.length===0)return res.status(404).json({
+   ok:false,league,date,gameId,error:'GAME_NOT_FOUND_ON_DATE',sportsbookVerified:false
+  });
   const validation=validateSportsResearchEvidence(league,{
    source:'espn',observedAt:new Date().toISOString(),records:selected
   });
