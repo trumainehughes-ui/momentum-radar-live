@@ -10,7 +10,7 @@ on:
 jobs:
   adapter-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
@@ -24,3 +24,5 @@ jobs:
           node --check lib/draftkings-nash-feed.js
           node --check scripts/check-draftkings-nash.mjs
           node --test tests/draftkings-explorer-adapter.test.js tests/draftkings-nash-feed.test.js
+      - name: Full repository regression suite
+        run: npm test
