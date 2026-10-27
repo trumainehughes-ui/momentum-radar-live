@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fetchDraftKingsNashSelections,eligibleNashPlayerProps} from '../lib/draftkings-nash-feed.js';
-const request={leagueId:'88808',categoryId:'1286',subcategoryId:'13354',now:Date.parse('2026-10-26T20:00:00Z')};
+const request={leagueId:'88808',categoryId:'1286',subcategoryId:'13354',now:Date.now()};
 const feed={events:[{id:'game1',name:'Example'}],markets:[{id:'market1',eventId:'game1',name:'Receiving Yards',playerName:'Example Receiver'}],selections:[{id:'selection1',marketId:'market1',label:'Over 75.5',displayOdds:{american:'-110'},main:true}]};
 test('fetches and normalizes first-party Nash feed with exact provenance',async()=>{
  let requested;
