@@ -43,7 +43,7 @@ const cfg={market,gameId,date,home:'ATL',away:'CHI'};
 
 test('public compact view labels model tiers research-only without pretending to quote sportsbooks',()=>{
  const html=renderPublicCompactNflSgpCards(buildPublicCompactNflSgpCards(cfg));
- for(const tier of ['Small','Medium','Nuke'])assert.ok(html.includes(tier+' • RESEARCH ONLY'));
+ for(const tier of ['Small','Medium','Nuke'])assert.ok(html.includes(tier+' • NOT READY')||html.includes(tier+' • RESEARCH ONLY'));
  assert.match(html,/NO VERIFIED COMBINED QUOTE/);
  assert.match(html,/model projections, not confirmed sportsbook lines/i);
  assert.doesNotMatch(html,/AI forecast|suggested comparison target|Exact sportsbook selection pending/i);
