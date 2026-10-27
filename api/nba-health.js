@@ -233,7 +233,7 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
      recent:rows.slice(0,10).map(x=>({
       date:x.GAME_DATE,points:x.PTS==null?null:Number(x.PTS),
       rebounds:x.REB==null?null:Number(x.REB),assists:x.AST==null?null:Number(x.AST),
-      threes:x.FG3M==null?null:Number(x.FG3M),minutes:x.MIN==null?null:Number(x.MIN)}))};
+      threes:x.FG3M==null?null:Number(x.FG3M),minutes:x.MIN==null?null:(/^PT(?:(\\d+)M)?(?:(\\d+(?:\\.\\d+)?)S)?$/.test(String(x.MIN))?Number((Number((String(x.MIN).match(/(\\d+)M/)||[])[1]||0)+Number((String(x.MIN).match(/(\\d+(?:\\.\\d+)?)S/)||[])[1]||0)/60).toFixed(2)):Number(x.MIN))}))};
    }catch{return null}
   }));
   nbaComPlayerLogs.push(...results.filter(Boolean));
