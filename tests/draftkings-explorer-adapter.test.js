@@ -105,3 +105,18 @@ test('eligibility fails closed if sportsbook price or market identity disappears
   assert.equal(eligibleDraftKingsProp({...prop,...bad},{activeStarter:true,offeredLines:[75],now}),false);
  }
 });
+
+test('normalizes Nash top-level market selections and embedded line labels',()=>{
+ const feed={events:[{id:'game1',name:'Example game'}],
+  markets:[{id:'m1',eventId:'game1',name:'Receiving Yards',playerName:'Example Receiver'}],
+  selections:[
+   {id:'sel-75',marketId:'m1',label:'Over 75.5',displayOdds:{american:'−110'},main:true},
+   {id:'sel-80',marketId:'m1',label:'Under',points:80.5,displayOdds:{american:'+125'}}]};
+ const props=normalizeDraftKingsSelections(feed,{sourceUrl,fetchedAt});
+ assert.equal(props.length,2);
+ assert.deepEqual(props.map(p=>p.line),[75.5,80.5]);
+ assert.deepEqual(props.map(p=>p.americanOdds),[-110,125]);
+ assert.deepEqual(props.map(p=>p.outcome),['over','under']);
+ assert.equal(props[0].selectionId,'sel-75');
+ assert.equal(props[0].verifiedSGPQuote,false);
+});
