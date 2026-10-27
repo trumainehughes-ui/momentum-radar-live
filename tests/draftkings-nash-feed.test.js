@@ -164,3 +164,23 @@ test('aggregate handoff rejects incomplete coverage even when one category has g
  assert.deepEqual(eligibleDraftKingsNflPlayerProps(complete,{...validators,isCurrentGame:()=>false}),[]);
  assert.deepEqual(eligibleDraftKingsNflPlayerProps(complete,{...validators,isActiveStarter:()=>false}),[]);
 });
+
+test('independent evidence gate requires event ID, future kickoff and confirmed active player role',async()=>{
+ const {eligibleDraftKingsWithEvidence}=await import('../lib/draftkings-nash-feed.js');
+ const now=Date.now(),eventId='34118182';
+ const prop={book:'DraftKings',eventId,marketId:'382675245',selectionId:'dk-real-id',
+  player:'Jordan Love',marketName:'Passing Yards O/U',outcome:'over',line:215.5,
+  americanOdds:-113,fetchedAt:new Date(now).toISOString(),
+  sourceUrl:'https://sportsbook-nash.draftkings.com/api/sportscontent/dkusoh/v1/leagues/88808/categories/1000/subcategories/9524',
+  verifiedSGPQuote:false};
+ const categories=['passing_yards','receiving_yards','rushing_yards','receptions'].map(stat=>({stat,ok:true}));
+ const snapshot={ok:true,complete:true,categories,selections:[prop]};
+ const game={confirmed:true,scheduled:true,draftKingsEventId:eventId,kickoff:new Date(now+86400000).toISOString()};
+ const player={confirmed:true,active:true,starterOrHighSnap:true,draftKingsEventId:eventId,name:'Jordan Love'};
+ assert.equal(eligibleDraftKingsWithEvidence(snapshot,{games:[game],players:[player],now}).length,1);
+ assert.deepEqual(eligibleDraftKingsWithEvidence(snapshot,{games:[{...game,draftKingsEventId:'other'}],players:[player],now}),[]);
+ assert.deepEqual(eligibleDraftKingsWithEvidence(snapshot,{games:[{...game,kickoff:new Date(now-1000).toISOString()}],players:[player],now}),[]);
+ assert.deepEqual(eligibleDraftKingsWithEvidence(snapshot,{games:[game],players:[{...player,active:false}],now}),[]);
+ assert.deepEqual(eligibleDraftKingsWithEvidence(snapshot,{games:[game],players:[{...player,confirmed:false}],now}),[]);
+ assert.deepEqual(eligibleDraftKingsWithEvidence(snapshot,{games:[game],players:[{...player,draftKingsEventId:'other'}],now}),[]);
+});
