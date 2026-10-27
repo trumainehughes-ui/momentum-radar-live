@@ -43,8 +43,13 @@ def payload(query):
             raise ValueError("before must be YYYY-MM-DD")
         url = "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json"
         req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        with urlopen(req, timeout=5) as response:
-            schedule = json.load(response)
+        try:
+            with urlopen(req, timeout=5) as response:
+                schedule = json.load(response)
+        except Exception as exc:
+            return {"ok":False,"source":"nba_api_live","error":"nba_schedule_unavailable",
+                    "upstreamErrorType":type(exc).__name__,"recentGames":[],
+                    "sportsbookVerified":False}
         games = [g for day in schedule.get("leagueSchedule", {}).get("gameDates", [])
                  for g in day.get("games", [])
                  if str(g.get("gameDateTimeUTC", ""))[:10] < before
