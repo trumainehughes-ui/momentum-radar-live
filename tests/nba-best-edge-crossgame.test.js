@@ -99,3 +99,19 @@ test('official sportsbook collector rejects redirects to unrelated domains',asyn
  assert.equal(result.offers.length,0);
  assert.equal(result.attempts.every(a=>a.reason==='REDIRECT_OUTSIDE_OFFICIAL_BOOK'),true);
 });
+
+test('NBA Edge Hunter multi-slip response never includes incomplete or repeated-player parlays',async()=>{
+ const {nbaBestEdgeParlays}=await import('../lib/nba-best-edge-parlay.js');
+ const now=Date.now();
+ const games=[1,2].map(i=>({gameId:String(i),status:'SCHEDULED',
+  kickoff:new Date(now+3600000).toISOString(),total:240,spread:2,
+  playerProjections:Array.from({length:6},(_,j)=>({
+   playerId:String(i)+'-'+j,name:'Sample '+i+'-'+j,team:j%2?'HOME':'AWAY',
+   category:'points',starterVerified:false,projection:30,
+   historicalValues:Array(10).fill(32),verifiedMarkets:[]}))
+ }));
+ const result=nbaBestEdgeParlays(games,{now,maxParlays:3});
+ assert.deepEqual(result.parlays,[]);
+ assert.equal(result.status,'NO_QUALIFYING_PARLAY');
+ assert.deepEqual(result.legs,[]);
+});
