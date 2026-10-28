@@ -53,7 +53,7 @@ export default async function handler(req,res){
    // Research projections are independent of SGP candidate eligibility.
    // A missing confirmed starter must not erase a historical model estimate.
    data.playerProjections=data.status==='SCHEDULED'&&
-    Array.isArray(snapshot.playerProjections)?snapshot.playerProjections.map(p=>({
+    Array.isArray(snapshot.playerProjections)?snapshot.playerProjections.map(({historicalValues,...p})=>({
      ...p,marketVerified:false,modelOnly:true,
      historicalSnapshotStale:!current,
      researchStatus:current?'CURRENT_MODEL_RESEARCH':'STALE_HISTORICAL_RESEARCH_NOT_BETTABLE'
