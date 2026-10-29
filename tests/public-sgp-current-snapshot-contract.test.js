@@ -96,3 +96,11 @@ test('public NFL four-tier rendering keeps Large in the supported research set',
  assert.match(html,/\['Small','Medium','Large','Nuke'\]/);
  assert.match(html,/published four-tier model research visible separately/);
 });
+
+
+test('public NFL tier research only uses validation-first publication',()=>{
+ const source=readFileSync(new URL('../lib/public-nfl-view.js',import.meta.url),'utf8');
+ assert.match(source,/PUBLIC_NFL_TIER_PUBLICATION_RULE='VALIDATE_BEFORE_DEDUPLICATION'/);
+ const market=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
+ assert.match(market,/\.map\(publishedNflModelTier\)\.filter\(Boolean\)\.filter/);
+});
