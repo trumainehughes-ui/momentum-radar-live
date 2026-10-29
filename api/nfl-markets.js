@@ -1197,8 +1197,8 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
   fallbackModelTiers.push({risk,requiredLegs:count,legs:selected,tierAssessment,
    explanation:{summary:'Roster-vetted matchup projection research; not verified sportsbook lines or odds.'}});
  }
- const modelCandidates=[...completeImported,...fallbackModelTiers,...(analyticsSgps||[]).filter(t=>
-  !completeImported.some(i=>i.risk===t.risk))];
+ const modelCandidates=[...completeImported,...fallbackModelTiers,...(analyticsSgps||[])].filter((tier,index,all)=>
+  all.findIndex(other=>other.risk===tier.risk)===index);
  response.sgps.Analytics=modelCandidates.filter(c=>
   c.tierAssessment?.compositionOk===true&&Array.isArray(c.legs)&&
   c.legs.length>0&&eligibility.checked===true&&c.legs.every(l=>
