@@ -973,8 +973,7 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
  sgpGateDiagnostics.eligible++;return true});requestStage='book_sgp_build';const quoteSourceRows=nflAuthorizedBookSgpRows(sgpRows,{authorizedChange,signedSelectionRows:signedPropLineRows.length});oddsDebug.providerNativeRows=signedPropLineRows.length;const bookSgps=gameId?{DraftKings:buildBookSgp(quoteSourceRows,'DraftKings',ctx),FanDuel:buildBookSgp(quoteSourceRows,'FanDuel',ctx)}:{};const hasCompleteBookLegCandidate=Boolean(gameId&&Object.values(bookSgps).some(v=>(v||[]).some(s=>(s.legs||[]).length===s.requiredLegs)));requestStage='analytics_sgp_build';let analyticsSgps=[];
  if(gameId){
   try{
-   analyticsSgps=buildAnalyticsSgp(categories,ctx,roles,{gameId,home,away,
-    rosterChecked:eligibility?.checked===true,rosterById:eligibility?.rosterById,
+   analyticsSgps=buildAnalyticsSgp(categories,ctx,roles,{gameId,home,away,rosterChecked:eligibility?.checked===true,rosterById:eligibility?.rosterById,
     rosterByName:eligibility?.rosterByName,normalizeName:norm}).map(card=>({
      ...card,legs:(card.legs||[]).map(leg=>({...leg,
       hitChance:estimateNflHitChance(leg,leg.cat,{target:leg.analyticsThreshold})}))}));
