@@ -1,5 +1,5 @@
 import {nflSgpSnapshotPath,nflSgpFindLatestBlob} from '../lib/nfl-sgp-snapshot-status.js';
-import {publicNflGameView} from '../lib/public-nfl-view.js';
+import {publicNflGameView,PUBLIC_NFL_TIERS} from '../lib/public-nfl-view.js';
 import {publicSharpReview} from '../lib/public-sharp-review.js';
 
 // Fan-facing saved prediction data ONLY. No paid odds, ESPN, AI, admin APIs,
@@ -32,7 +32,7 @@ export default async function handler(req,res){
     parlays:[],verifiedQuotes:[]});
   // Public, read-only tier diagnostics based exclusively on sanitized output.
   // Never expose raw snapshots, athlete holds, unverified book prices or secrets.
-  const modelTierStatus=['Small','Medium','Nuke'].map(risk=>{
+  const modelTierStatus=PUBLIC_NFL_TIERS.map(risk=>{
    const tier=(safe.modelResearchTiers||[]).find(x=>x.risk===risk);
    return {risk,status:tier?.complete===true?'MODEL_RESEARCH_READY':
     tier?'MODEL_RESEARCH_INCOMPLETE':'NO_VALID_MODEL_TIER',
