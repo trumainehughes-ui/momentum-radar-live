@@ -109,7 +109,10 @@ test('visitor sees separate book sections and no cross-book substituted legs',()
  assert.ok(h.includes('DraftKings Same Game Parlays'));
  assert.ok(h.includes('55+ yards'));
  assert.ok(h.includes('60+ yards'));
- assert.equal((h.match(/class="sgp-leg-why"/g)||[]).length,8);
+ // The independent player forecast panel may add matchup explanations;
+ // count only the sportsbook sections for cross-book isolation.
+ const bookHtml=h.split('FanDuel Same Game Parlays')[1]?.split('NFL model research')[0]||'';
+ assert.equal((bookHtml.match(/class="sgp-leg-why"/g)||[]).length,8);
  const fd=h.split('FanDuel Same Game Parlays')[1].split('DraftKings Same Game Parlays')[0];
  const dk=h.split('DraftKings Same Game Parlays')[1].split('NFL model research')[0];
  assert.ok(fd.includes('<strong>60+ yards</strong>'));
