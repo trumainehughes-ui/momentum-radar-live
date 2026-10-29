@@ -122,7 +122,7 @@ test('anytime TD uses current completed weeks and counts one game per player',()
 });
 test('NFL market metadata preserves verified offers and opt-in bookmaker feeds',()=>{
  const src=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
- assert.ok(src.includes('const DIRECT_PUBLIC_ODDS_ONLY=String(process.env.MOMENTUM_VERIFIED_BOOK_FEEDS||'').toLowerCase()!=='enabled''));
+ assert.ok(src.includes("const DIRECT_PUBLIC_ODDS_ONLY=String(process.env.MOMENTUM_VERIFIED_BOOK_FEEDS||'').toLowerCase()!=='enabled'"));
  assert.ok(src.includes('const exactSiteOffers='));
  assert.ok(src.includes("String(o.gameId||'')===String(gameId)"));
  assert.ok(src.includes("Number.isFinite(Date.parse(o.observedAt||''))"));
