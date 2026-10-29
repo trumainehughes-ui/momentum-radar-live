@@ -1152,8 +1152,9 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
  // Model-only research fallback: use vetted, game-scoped player pool when
  // adaptive sportsbook-oriented tier construction returns empty candidates.
  const fallbackModelTiers=[];
- const already=new Set(completeImported.map(t=>t.risk).concat(
-  (analyticsSgps||[]).filter(t=>t.tierAssessment?.compositionOk===true).map(t=>t.risk)));
+ // Build fallback candidates even when an imported or adaptive tier exists;
+ // those upstream tiers may fail final roster and injury checks.
+ const already=new Set();
  const fallbackRows=['passing','rushing','receiving','receptions','td'].flatMap(cat=>
   (categories[cat]||[]).map(row=>({...row,cat}))).filter(row=>{
    const id=String(row.playerID||row.playerId||'');
@@ -1197,8 +1198,7 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
   fallbackModelTiers.push({risk,requiredLegs:count,legs:selected,tierAssessment,
    explanation:{summary:'Roster-vetted matchup projection research; not verified sportsbook lines or odds.'}});
  }
- const modelCandidates=[...completeImported,...fallbackModelTiers,...(analyticsSgps||[])].filter((tier,index,all)=>
-  all.findIndex(other=>other.risk===tier.risk)===index);
+ const modelCandidates=[...completeImported,...(analyticsSgps||[]),...fallbackModelTiers];
  response.sgps.Analytics=modelCandidates.filter(c=>
   c.tierAssessment?.compositionOk===true&&Array.isArray(c.legs)&&
   c.legs.length>0&&eligibility.checked===true&&c.legs.every(l=>
@@ -1210,7 +1210,8 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
      !eligibility.blockedIds.has(id)&&!eligibility.blockedNames.has(norm(l.name));})()&&
    !/\\b(OUT|INACTIVE|IR|DOUBTFUL|QUESTIONABLE|SUSPENDED)\\b/i.test(
     [l.injuryStatus,l.availability,l.starterStatus].join(' '))
-  )).map(publishedNflModelTier).filter(Boolean);
+  )).map(publishedNflModelTier).filter(Boolean).filter((tier,index,all)=>
+   all.findIndex(other=>other.risk===tier.risk)===index);
  console.info('[nfl-sgp-publication]',JSON.stringify({
   gameId,rosterChecked:eligibility.checked===true,
   sourceTiers:(analyticsSgps||[]).map(t=>({risk:t.risk,legs:t.legs?.length||0,

@@ -99,6 +99,13 @@ test('active route serializes exactly once without deleting tier metadata',()=>{
 
 test('publication selects at most one model candidate per NFL tier',()=>{
  const api=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
- assert.match(api,/const modelCandidates=\[\.\.\.completeImported,\.\.\.fallbackModelTiers,\.\.\.\(analyticsSgps\|\|\[\]\)\]\.filter/);
+ assert.match(api,/const modelCandidates=\[\.\.\.completeImported,\.\.\.\(analyticsSgps\|\|\[\]\),\.\.\.fallbackModelTiers\]/);
  assert.match(api,/all\.findIndex\(other=>other\.risk===tier\.risk\)===index/);
+});
+
+
+test('invalid upstream tier cannot suppress roster-vetted fallback',()=>{
+ const api=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
+ assert.match(api,/const already=new Set\(\);/);
+ assert.match(api,/\.map\(publishedNflModelTier\)\.filter\(Boolean\)\.filter/);
 });
