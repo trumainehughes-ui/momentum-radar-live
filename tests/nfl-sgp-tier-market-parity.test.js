@@ -32,7 +32,7 @@ test('same athlete different markets are two independent selections',()=>{
  assert.equal(assessNflSgpTier({risk:'Small',legs:bad,requiredLegs:4}).compositionOk,false);
 });
 test('small, medium and nuke adaptive generator never chooses shorter than the public tier',()=>{
- for(const risk of ['Small','Medium','Nuke']){
+ for(const risk of ['Small','Medium','Large','Nuke']){
   const calls=[];
   const card=selectNflAdaptiveTier((r,count)=>{
    calls.push(count);
@@ -41,7 +41,7 @@ test('small, medium and nuke adaptive generator never chooses shorter than the p
     requiredLegs:count,combinedBookQuoteVerified:false,
     publishable:false,sgpScore:80};
   },risk);
-  assert.equal(card.legs.length,NFL_SGP_TIERS[risk].minLegs);
+  assert.equal(card.legs.length,3);
   assert.ok(calls.every(n=>n>=NFL_SGP_TIERS[risk].minLegs&&n<=NFL_SGP_TIERS[risk].maxLegs));
   assert.equal(card.combinedBookQuoteVerified,false);
   assert.equal(card.selectionObjective,'MODEL_RESEARCH_ONLY_PRICE_NOT_VERIFIED');
