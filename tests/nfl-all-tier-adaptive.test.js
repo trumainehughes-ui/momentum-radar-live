@@ -22,7 +22,7 @@ test('all tiers are wired into NFL market builder and cache',()=>{
 
 test('a verified price must fall within the requested tier band',()=>{
  const make=(risk,n)=>({risk,legs:Array.from({length:n},(_,i)=>leg(i)),tierAssessment:{compositionOk:n===3||n===4},
-  combinedBookQuoteVerified:true,actualSgpOdds:n===3?2000:1000,estimatedHitProbability:n===3?.8:.6});
+  combinedBookQuoteVerified:true,publishable:true,actualSgpOdds:n===3?2000:1000,estimatedHitProbability:n===3?.8:.6});
  const picked=selectNflAdaptiveTier(make,'Small');
  assert.equal(picked.adaptiveLegCount,4);
 });
