@@ -107,10 +107,32 @@
    const d=await detail(id);if(request!==token||selected!==id)return;
    qs('#nbaSgps').innerHTML=sgps(d);
    renderInjuries(d);
+   if(d.status==='SCHEDULED'){
+    // Pregame box scores are empty by design. Show independently collected
+    // historical research without mislabeling it as actual game results.
+    const projections=Array.isArray(d.playerProjections)?d.playerProjections:[];
+    const rows=projections.filter(p=>p&&p.name&&p.category&&
+     Number.isFinite(Number(p.baseProjection))&&Number(p.sampleGames)>0)
+     .sort((a,b)=>Number(b.sampleGames)-Number(a.sampleGames)||
+      Number(b.baseProjection)-Number(a.baseProjection)).slice(0,30);
+    qs('#nbaPlayers').innerHTML=rows.length?
+     '<div class="refresh">PREGAME HISTORICAL RESEARCH — not game results, verified starters, or sportsbook offers'+
+     (rows.some(p=>p.historicalSnapshotStale)?' • STALE SNAPSHOT':'')+'</div>'+
+     rows.map(p=>'<div class="nflMarketLine"><b>'+safe(p.name)+' • '+safe(p.team)+'</b>'+
+      '<div class="meta">'+safe(cats[p.category]||p.category)+
+      ' • historical average '+safe(p.baseProjection)+
+      ' • model estimate '+safe(p.projection)+
+      ' • '+safe(p.sampleGames)+' completed games</div>'+
+      '<div class="note">Opponent '+safe(p.matchupAdjustment?.opponent||'unverified')+
+      ' • matchup evidence '+safe(p.matchupAdjustment?.status||'unavailable')+
+      ' • defense vs position '+safe(p.defenseVsPosition?.status||'unavailable')+
+      ' • '+safe(p.recentForm?.seasonSource==='PRIOR_SEASON'?'PRIOR-SEASON BASELINE':'historical sample')+
+      '</div></div>').join(''):
+     '<div class="msg">Pregame historical player statistics are unavailable for this matchup. No estimates or verified starters have been invented; game box-score results will appear after tip-off.</div>';
+    return;
+   }
    if(!d.players?.length){
-    qs('#nbaPlayers').innerHTML='<div class="msg">'+
-     (d.status==='SCHEDULED'?'Game has not started. See the separate SGP section for any current model-only historical candidates; player box-score RESULTS will appear after tip-off.':'No verified player box-score statistics yet.')+
-     '</div>';return;
+    qs('#nbaPlayers').innerHTML='<div class="msg">No verified player box-score statistics yet.</div>';return;
    }
    // Automatic historical evidence for selected players; never use the selected game's result
    // as its own defensive baseline. Missing history remains explicitly unavailable.
