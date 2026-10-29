@@ -498,7 +498,52 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
    (nuke?.reason||'Nuke not ready')+' Blocker: '+nukeEvidence.blocker+'. '+nukeEvidence.uniqueEligibleAthletes+
     ' eligible athletes; '+nukeEvidence.supportedYardageRows+' ceiling-backed yardage rows across '+
     nukeEvidence.distinctYardageMarkets+' yardage markets.'};
- const nukeHasStat=Boolean(nukeWithEvidence?.legs?.some(x=>x.cat!=='td'));return[{...small,poolDiagnostics,payoutTarget:sgpPayoutLabel('Small'),targetOddsBand:SGP_ODDS_BANDS.Small},{...medium,payoutTarget:sgpPayoutLabel('Medium'),targetOddsBand:SGP_ODDS_BANDS.Medium,poolDiagnostics},{...large,payoutTarget:sgpPayoutLabel('Large'),targetOddsBand:SGP_ODDS_BANDS.Large,poolDiagnostics},{...(nukeHasStat?nukeWithEvidence:{...nukeWithEvidence,legs:[],marketMix:[],reason:nukeWithEvidence.reason}),payoutTarget:sgpPayoutLabel('Nuke'),targetOddsBand:SGP_ODDS_BANDS.Nuke,poolDiagnostics}];
+ // AI fallback: publish evidence-backed research candidates when strict sportsbook
+ // composition/quote requirements cannot be met. Never imply verified odds.
+ const aiFallback=(tier,original)=>{
+  if(original?.legs?.length)return original;
+  const selected=[],perAthlete=new Map(),seen=new Set();
+  const order=['passing','rushing','receiving','receptions','td'];
+  const candidates=[...pool].sort((a,b)=>{
+   const aCat=order.indexOf(a.cat),bCat=order.indexOf(b.cat);
+   return (aCat-bCat)||strength(b,tier)-strength(a,tier);
+  });
+  const desired=tier==='Small'?3:tier==='Medium'?4:tier==='Large'?5:7;
+  for(const x of candidates){
+   if(selected.length>=desired)break;
+   const role=roleFor(roles,x),pos=String(x.position||'').toUpperCase();
+   if(!role?.recommendationEligible||!['QB','RB','WR','TE'].includes(pos))continue;
+   if(pos==='QB'&&!(
+     (['CONFIRMED_STARTER','EXPECTED_STARTER'].includes(String(role.starterStatus||''))&&isNflConfirmedGameQb({position:pos,role}))||
+     nflProjectedDepthChartQbEligible(role)))continue;
+   if(pos!=='QB'&&!(
+     (role.verification?.role?.verified===true&&['CONFIRMED_STARTER','EXPECTED_STARTER'].includes(String(role.starterStatus||'')))||
+     (role.gameModelOnly===true&&role.starterStatus==='PROJECTED_HIGH_USAGE_ROLE'&&role.roleSource==='ESPN 2026 completed-game usage and same-game current roster')))continue;
+   const athlete=String(x.playerID||x.playerId||norm(x.name));
+   if((perAthlete.get(athlete)||0)>=2||seen.has(athlete+'|'+x.cat))continue;
+   if(x.cat==='td'&&selected.some(y=>y.cat==='td'))continue;
+   const requested=analyticsLine(x,x.cat,tier,ctx);
+   const target=modelNflSgpStatThreshold(x,x.cat,tier,requested);
+   if(target===null)continue;
+   selected.push({...x,eventID:String(identity?.gameId||x.eventID||x.gameId||''),
+    analyticsThreshold:target,sportsbookVerified:false,availableAt:[],
+    modelRequestedThreshold:x.cat==='td'?null:Number(requested),
+    modelCeilingOnly:tier==='Nuke',aiPredictionFallback:true});
+   perAthlete.set(athlete,(perAthlete.get(athlete)||0)+1);
+   seen.add(athlete+'|'+x.cat);
+  }
+  if(!selected.length)return original;
+  const corr=sgpCorrelation(selected);
+  return {...original,legs:selected,modelOnly:true,aiPredictionFallback:true,
+   candidateComplete:selected.length>=desired,publishable:false,
+   combinedBookQuoteVerified:false,estimatedOdds:null,verifiedLegs:0,
+   requiredLegs:desired,marketMix:[...new Set(selected.map(x=>x.cat))],
+   explanation:sgpExplanation(tier,selected,corr),correlation:corr,
+   reason:'AI-generated matchup projections only. Sportsbook lines, combined SGP odds and payout targets are NOT verified.'};
+ };
+ const aiSmall=aiFallback('Small',small),aiMedium=aiFallback('Medium',medium),
+  aiLarge=aiFallback('Large',large),aiNuke=aiFallback('Nuke',nukeWithEvidence);
+ const nukeHasStat=Boolean(aiNuke?.legs?.some(x=>x.cat!=='td'));return[{...aiSmall,poolDiagnostics,payoutTarget:sgpPayoutLabel('Small'),targetOddsBand:SGP_ODDS_BANDS.Small},{...aiMedium,payoutTarget:sgpPayoutLabel('Medium'),targetOddsBand:SGP_ODDS_BANDS.Medium,poolDiagnostics},{...aiLarge,payoutTarget:sgpPayoutLabel('Large'),targetOddsBand:SGP_ODDS_BANDS.Large,poolDiagnostics},{...(nukeHasStat?aiNuke:{...aiNuke,legs:[],marketMix:[],reason:aiNuke.reason}),payoutTarget:sgpPayoutLabel('Nuke'),targetOddsBand:SGP_ODDS_BANDS.Nuke,poolDiagnostics}];
 }
 async function gameRoleGate(gameId,base){if(!gameId)return{checked:false,roles:new Map()};try{const r=await timedFetch(base+'/api/nfl-game?gameId='+encodeURIComponent(gameId)+'&ts='+Date.now(),{cache:'no-store'});if(!r.ok)return{checked:false,roles:new Map()};const d=await r.json(),m=new Map();for(const x of d.playerProjections||[]){if(x.playerId)m.set(String(x.playerId),x);if(x.name)m.set('name:'+norm(x.name),x)}return{checked:true,roles:m,players:d.playerProjections||[],source:d.source||null,gameScopedStarters:d.gameScopedStarters||null}}catch{return{checked:false,roles:new Map()}}}
 function roleFor(gate,x){const roles=gate?.roles||new Map();return roles.get(String(x.playerID||x.playerId||''))||roles.get('name:'+norm(x.name))||null}
