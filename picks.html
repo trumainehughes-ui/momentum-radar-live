@@ -678,6 +678,27 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     playerForecasts.push({...leg,category,projection});
    }
   }
+  // Publish independently validated player forecasts even when no model SGP
+  // passes the stricter composition gate. These are NOT sportsbook selections.
+  // Only the same current, game-scoped sanitized public snapshot is used.
+  if(snapshotFresh){
+   for(const category of ['passing','rushing','receiving','receptions','td']){
+    const rows=Array.isArray(d.categories?.[category])?d.categories[category]:[];
+    for(const row of rows){
+     const player=String(row.name||'').trim();
+     const projection=category==='td'?null:Number(row.projection);
+     if(!player)continue;
+     if(category!=='td'&&(!Number.isFinite(projection)||projection<=0))continue;
+     const key=player.toUpperCase()+'|'+category;
+     if(seenForecasts.has(key))continue;
+     seenForecasts.add(key);
+     playerForecasts.push({player,team:row.team,category,projection,
+      modelChancePct:category==='td'?row.modelChancePct:null,
+      modelTarget:category==='td'?null:row.suggestedTarget,
+      projectionNote:row.projectionNote});
+    }
+   }
+  }
   const statNames={passing:'Passing yards',rushing:'Rushing yards',receiving:'Receiving yards',receptions:'Receptions',td:'Touchdown'};
   const playerEdgeHtml='<section class="sgp-slip" aria-label="AI player matchup advantages"><div class="sgp-slip-head"><strong>AI Player Matchup Advantages</strong></div>'+
    '<p class="sgp-brief-status">Statistical forecasts from screened matchup research. No sportsbook odds or prop lines required. Starting status must be verified before labeling a player a confirmed starter.</p>'+
