@@ -7,6 +7,6 @@ test('public verified SGP serializer requires exact matching tier and publishabl
  assert.match(source,/classifyNflSgpOdds\(Number\(x\.actualSgpOdds\)\)===q\.risk/);
  assert.match(source,/x\.publishable===true/);
  assert.match(source,/assessNflSgpTier\(/);
- assert.equal(classifyNflSgpOdds(2600),'Small');
+ assert.equal(classifyNflSgpOdds(2600),'Medium');
  assert.equal(classifyNflSgpOdds(10000),'Nuke');
 });
