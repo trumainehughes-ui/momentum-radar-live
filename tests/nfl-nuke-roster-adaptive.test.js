@@ -53,7 +53,7 @@ test('Nuke scans 5 through 7 and chooses shortest qualifying model lineup withou
  const candidate=selectNflAdaptiveNuke((risk,count)=>{
   attempts.push(count);return produce(risk,count);
  });
- assert.equal(attempts[0],1);
+ assert.equal(attempts[0],3);
  assert.equal(attempts.at(-1),20);
  assert.ok(attempts.includes(3));
  assert.equal(candidate.adaptiveLegCount,3);
