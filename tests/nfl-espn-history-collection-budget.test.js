@@ -13,5 +13,5 @@ test('a missing ESPN rushing model does not fabricate bookmaker legs',()=>{
  assert.match(api,/ESPN_COMPLETED_GAME_BOXSCORES/);
  assert.match(api,/MISSING_COMPLETED_GAME_EVIDENCE/);
  assert.match(api,/nflBookOfferEligible\(m,offer,name\)/);
- assert.match(api,/const DIRECT_PUBLIC_ODDS_ONLY=true/);
+ assert.match(api,/const DIRECT_PUBLIC_ODDS_ONLY=String(process.env.MOMENTUM_VERIFIED_BOOK_FEEDS||'').toLowerCase()!=='enabled'/);
 });
