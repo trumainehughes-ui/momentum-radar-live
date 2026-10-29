@@ -21,8 +21,8 @@ test('bad or undersized tier requests are rejected before any paid provider or t
  process.env.CRON_SECRET='quote-regression-only';
  try{
   for(const [risk,n] of [
-   ['Small',3],['Small',5],['Medium',4],['Medium',6],
-   ['Nuke',4],['Nuke',8],['',5],['unknown',5]
+   ['Small',2],['Medium',2],['Large',2],
+   ['Nuke',2],['',5],['unknown',5]
   ]){
    const res=response();
    await handler(buildReq(risk,n),res);
@@ -33,10 +33,10 @@ test('bad or undersized tier requests are rejected before any paid provider or t
   if(prev===undefined)delete process.env.CRON_SECRET;else process.env.CRON_SECRET=prev;
  }
 });
-test('one signed roster-change may price each tier once for each bookmaker, never more than six',()=>{
+test('one signed roster-change may price each tier once for each bookmaker, with the existing strict provider budget',()=>{
  assert.ok(apiSource.includes("for(const risk of ['Small','Medium','Nuke'])"));
  assert.ok(apiSource.includes('quoteCandidates.map(async'));
- assert.ok(apiSource.includes('candidates.slice(0,6)'));
+ assert.ok(apiSource.includes('candidates.slice(0,8)'));
  assert.ok(apiSource.includes('chooseNflCheckpointQuotes(candidates,'));
  assert.ok(apiSource.includes('await Promise.all('));
  assert.ok(apiSource.includes('if(authorizedChange&&gameId&&!DIRECT_PUBLIC_ODDS_ONLY)'));
@@ -47,7 +47,7 @@ test('one signed roster-change may price each tier once for each bookmaker, neve
  assert.ok(gate.includes("offer.sourceProvider!=='PropLine'"));
  assert.ok(quoteSource.includes("const claimPath='momentum-propline-sgp-claims/v1/'+token+'/'+bookmaker+(league==='nfl'?'/'+risk:'')+'.json'"));
  assert.ok(quoteSource.includes('allowOverwrite:false'));
- assert.ok(quoteSource.includes('const NFL_TIER_LEGS={Small:[4,4],Medium:[5,5],Nuke:[5,7]}'));
+ assert.ok(quoteSource.includes('const NFL_TIER_LEGS={Small:[3,10],Medium:[3,10],Large:[3,10],Nuke:[3,10]}'));
  assert.ok(!apiSource.includes('Quote at most one complete candidate per bookmaker'));
 });
 test('every tier independently requires an authenticated, fresh correctly priced book quote',()=>{
