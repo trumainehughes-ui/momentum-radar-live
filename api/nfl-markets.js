@@ -450,7 +450,7 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
       (role?.verification?.role?.verified===true&&
        ['CONFIRMED_STARTER','EXPECTED_STARTER'].includes(String(role?.starterStatus||'').toUpperCase()))||
       (role?.gameModelOnly===true&&role?.starterStatus==='PROJECTED_HIGH_USAGE_ROLE'&&
-       role?.verification?.availability?.verified===true));
+       role?.roleSource==='ESPN 2026 completed-game usage and same-game current roster'));
     // Existing "HIGH_USAGE_ROLE" flags are not a confirmed QB starter.
     // Day-ahead model allows ESPN depth-chart QB1 ONLY after game roster,
     // injury eligibility and 2+ game passing samples have been verified.
