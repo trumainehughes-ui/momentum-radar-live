@@ -155,6 +155,24 @@
    qs('#nbaTopBoard').innerHTML='<div class="msg">Choose any listed game to view NBA player box scores, injury evidence, and SGP readiness.</div>';
    return;
   }
+  if(tab==='edgehunter'){
+   qs('#nbaTopTitle').textContent='NBA Edge Hunter — Four-Leg Research';
+   qs('#nbaTopBoard').innerHTML='<div class="msg">Checking NBA slate, player evidence and sportsbook verification…</div>';
+   try{
+    const d=await json('/api/nba-edge-hunter?date='+encodeURIComponent(qs('#nbaDate').value));
+    if(tab!=='edgehunter')return;
+    const s=d.selection||{},legs=Array.isArray(s.legs)?s.legs:[];
+    qs('#nbaTopBoard').innerHTML='<div class="note"><b>'+safe(s.status||'NOT_READY')+'</b> • '+safe(d.slateGames??0)+' scheduled games • '+safe(d.snapshotProjectionCount??0)+' historical projections<br>'+
+     'Research only; no sportsbook prices or publishable parlays are implied.</div>'+
+     (legs.length===4?legs.map(p=>'<div class="nflMarketLine"><b>'+safe(p.name)+' • '+safe(p.category)+'</b><div class="pick">Over '+safe(p.line)+'</div>'+
+      '<div class="meta">Last 10 hit rate '+safe(Math.round(p.hitRate*100))+'% • projection edge '+safe(Math.round(p.edge*100))+'%</div></div>').join(''):
+      '<div class="msg">No verified four-leg Edge Hunter selection is ready. '+safe(s.reason||'Required evidence unavailable.')+'</div>')+
+     '<div class="note">Still needed: '+safe((d.missingInputs||[]).join(', ').replaceAll('_',' '))+'</div>';
+   }catch{
+    if(tab==='edgehunter')qs('#nbaTopBoard').innerHTML='<div class="msg">Edge Hunter source unavailable. No unverified picks displayed.</div>';
+   }
+   return;
+  }
   if(tab==='sgp'){
    qs('#nbaTopTitle').textContent='NBA Same Game Parlays';
    qs('#nbaTopBoard').innerHTML='<div class="note"><b>Small • Medium • Nuke</b><br>'+
@@ -215,7 +233,7 @@
   }finally{loading=false}
  }
  function switchTab(next){
-  if(!['gameday','points','rebounds','assists','threes','pra','sgp'].includes(next))return;
+  if(!['gameday','points','rebounds','assists','threes','pra','sgp','edgehunter'].includes(next))return;
   tab=next;++token;
   document.querySelectorAll('[data-nbatab]').forEach(b=>b.classList.toggle('active',b.dataset.nbatab===tab));
   selected=null;qs('#nbaDetail').style.display='none';qs('#nbaHome').style.display='block';
