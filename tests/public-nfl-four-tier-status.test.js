@@ -10,3 +10,9 @@ test('public NFL endpoint derives status for all four payout tiers, including mi
  assert.match(source,/tier\?'MODEL_RESEARCH_INCOMPLETE':'NO_VALID_MODEL_TIER'/);
  assert.doesNotMatch(source,/\['Small','Medium','Nuke'\]\.map/);
 });
+
+test('public NFL four-tier status explicitly marks unpriced research',()=>{
+ const source=readFileSync(new URL('../api/public-nfl-game.js',import.meta.url),'utf8');
+ assert.match(source,/researchOnly:true/);
+ assert.match(source,/playable:false,bookmakerCombinedPriceVerified:false/);
+});
