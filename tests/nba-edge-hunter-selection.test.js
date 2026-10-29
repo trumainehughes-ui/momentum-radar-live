@@ -30,3 +30,11 @@ test('Edge Hunter rejects six-point spreads and same-player duplicate markets',(
  a.spread=5;a.players[1].playerId=a.players[0].playerId;
  assert.equal(selectNbaEdgeHunter([a,b]).status,'NOT_READY');
 });
+
+test('Edge Hunter does not silently substitute third-highest game when second-highest lacks evidence',()=>{
+ const top=game('top',250,2),second=game('second',245,2),third=game('third',240,2);
+ second.players[0].marketVerified=false;
+ const result=selectNbaEdgeHunter([third,second,top]);
+ assert.equal(result.status,'NOT_READY');
+ assert.equal(result.legs.length,0);
+});
