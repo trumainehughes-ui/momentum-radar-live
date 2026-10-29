@@ -2,7 +2,7 @@ import {put,list} from '@vercel/blob';
 import {timingSafeEqual} from 'node:crypto';
 
 const PREFIX='momentum-model-ingest/v1/';
-const risks=['Small','Medium','Nuke'];
+const risks=['Small','Medium','Large','Nuke'];
 const markets={nfl:new Set(['passing','rushing','receiving','receptions','td']),
  nba:new Set(['points','rebounds','assists','threes','pra'])};
 const same=(a,b)=>{const x=Buffer.from(String(a||'')),y=Buffer.from(String(b||''));return x.length===y.length&&timingSafeEqual(x,y)};
@@ -25,13 +25,15 @@ export default async function handler(req,res){
   const body=typeof req.body==='string'?JSON.parse(req.body):req.body;
   const league=clean(body?.league).toLowerCase(),gameId=clean(body?.gameId);
   if(!markets[league]||!/^[0-9]{7,12}$/.test(gameId))return res.status(400).json({error:'invalid_game'});
-  if(!Array.isArray(body.tiers)||body.tiers.length!==3)return res.status(400).json({error:'three_tiers_required'});
+  if(!Array.isArray(body.tiers)||body.tiers.length!==4)return res.status(400).json({error:'four_tiers_required'});
   const teams=new Set((body.teams||[]).map(x=>clean(x).toUpperCase()));
   if(teams.size!==2)return res.status(400).json({error:'two_teams_required'});
   const tiers=[];
+  const signatures=new Set();
   for(const risk of risks){
    const t=body.tiers.find(x=>x.risk===risk);
-   const min=risk==='Small'?4:5,max=risk==='Nuke'?7:5;
+   const min=risk==='Small'?3:risk==='Medium'?4:risk==='Large'?5:5,
+    max=risk==='Small'?5:risk==='Medium'?6:risk==='Large'?7:10;
    if(!t||!Array.isArray(t.legs)||t.legs.length<min||t.legs.length>max)
     return res.status(400).json({error:'invalid_tier_'+risk});
    const seen=new Set(),legs=[];
@@ -49,6 +51,9 @@ export default async function handler(req,res){
      source:clean(leg.source),explanation:clean(leg.explanation),
      target:null,sportsbookVerified:false,marketSelectionStatus:'MODEL_ONLY_NOT_BOOK_VERIFIED'});
    }
+   const signature=JSON.stringify(legs.map(l=>[l.playerId,l.category,l.modelTarget]).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))));
+   if(signatures.has(signature))return res.status(400).json({error:'duplicate_tier_'+risk});
+   signatures.add(signature);
    tiers.push({risk,legs,requiredLegs:legs.length,mode:'MODEL_ONLY',publishable:false,
     combinedBookQuoteVerified:false,actualSgpOdds:null,estimatedOdds:null,
     explanation:clean(t.explanation),source:'CHATGPT_PLUGIN_MODEL_RESEARCH'});
