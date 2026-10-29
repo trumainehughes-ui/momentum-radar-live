@@ -442,8 +442,9 @@ async function nflPollPublishedMatchup(){
   const report=await r.json();
   if(!report?.ok||!nflSelected||String(nflSelected.gameId)!==id||nflData?.date!==date)
    return;
-  if(nflOwnerPublishedVersions.get(id)===report.updatedAt&&
-   document.querySelector('[data-owner-nfl-parity]')?.getAttribute('data-published-game-version')===String(report.updatedAt||''))return;
+  // Freshness can expire without updatedAt changing. Re-evaluate the signed snapshot
+  // on every poll so old model research never remains labeled CURRENT.
+  // A later valid snapshot can also recover a previously NOT READY panel.
   const mod=await import('/lib/nfl-owner-public-parity.js');
   const parity=mod.ownerNflPublishedParity(null,report,{date,gameId:id});
   if(!nflSelected||String(nflSelected.gameId)!==id||nflData?.date!==date)return;
