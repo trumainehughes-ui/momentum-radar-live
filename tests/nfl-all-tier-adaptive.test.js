@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {selectNflAdaptiveTier} from '../lib/ai-mechanics/nfl-sgp-tiers.js';
+import {selectNflAdaptiveTier,fillNflSgpMarketMix} from '../lib/ai-mechanics/nfl-sgp-tiers.js';
 const leg=i=>({cat:['passing','rushing','receiving'][i%3],playerID:String(i),projection:100,analyticsThreshold:150});
 for(const [risk,minimum] of [['Small',3],['Medium',3],['Large',3],['Nuke',3]]){
  test(risk+' respects minimum complete SGP composition',()=>{
@@ -32,4 +32,22 @@ test('uncalibrated pseudo-probability cannot outrank a shorter valid Nuke',()=>{
   estimatedHitProbability:n===6?75:0,sgpScore:n===6?90:30});
  const picked=selectNflAdaptiveTier(make,'Nuke');
  assert.equal(picked.adaptiveLegCount,5);
+});
+
+test('adaptive tiers never call builder with impossible one- or two-leg requests',()=>{
+ for(const risk of ['Small','Medium','Large','Nuke']){
+  const calls=[];
+  const selected=selectNflAdaptiveTier((r,count)=>{
+   calls.push(count);
+   return {risk:r,legs:[],tierAssessment:{compositionOk:false}};
+  },risk);
+  assert.ok(calls.length>0);
+  assert.ok(calls.every(count=>count>=3),risk+' attempted impossible candidate');
+  assert.deepEqual(selected.legs,[]);
+ }
+});
+test('invalid market mix still returns a failed tier assessment',()=>{
+ const mix=fillNflSgpMarketMix({risk:'Small',count:1,pool:[],legs:[],add:()=>false});
+ assert.equal(mix.filled,false);
+ assert.equal(mix.assessment.compositionOk,false);
 });
