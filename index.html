@@ -378,7 +378,7 @@ function nflPublishedSgpParityHtml(parity){
    if(!ready||!t)return '<div class="nflSgpMini" data-risk="'+nflEscape(risk)+'"><b>'+
      nflEscape(risk)+' • NOT READY</b><div class="note">'+
      (ready?'This tier has insufficient screened research selections.':
-      'Owner and public data could not be matched to the same saved snapshot. Refresh to retry.')+
+      ('Snapshot validation: '+nflEscape(parity?.reason||'publication unavailable')+'. Awaiting a fresh injury-screened published game update; no unverified picks will be shown.'))+
      '</div></div>';
    const legSignature=legs=>JSON.stringify((legs||[]).map(l=>[l.player,l.category,l.target??null,l.projection??null]));
    const previous=tiers.filter(x=>['Small','Medium','Large','Nuke'].indexOf(x?.risk)<['Small','Medium','Large','Nuke'].indexOf(risk));
@@ -442,7 +442,7 @@ async function nflPollPublishedMatchup(){
   const report=await r.json();
   if(!report?.ok||!nflSelected||String(nflSelected.gameId)!==id||nflData?.date!==date)
    return;
-  if(nflOwnerPublishedVersions.get(id)===report.updatedAt)return;
+  if(nflOwnerPublishedVersions.get(id)===report.updatedAt&&\n   document.querySelector('[data-owner-nfl-parity]')?.getAttribute('data-published-game-version')===String(report.updatedAt||''))return;
   const mod=await import('/lib/nfl-owner-public-parity.js');
   const parity=mod.ownerNflPublishedParity(null,report,{date,gameId:id});
   if(!nflSelected||String(nflSelected.gameId)!==id||nflData?.date!==date)return;
