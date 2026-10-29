@@ -94,7 +94,8 @@ export function historySnap(g,m,prior=null){
   };
   const hasCore=['passing','rushing','receiving'].every(choose);
   if(!hasCore)continue;
-  for(const cat of ['receptions','receiving','rushing','passing','receptions','receiving','rushing'])
+  for(const cat of ['receptions','receiving','rushing','passing','receptions','receiving','rushing',
+   'receptions','passing','receiving','rushing','receptions','receiving','passing'])
    if(selected.length<count)choose(cat);
   if(selected.length!==count)continue;
   usedTierKeys.push(keys);
