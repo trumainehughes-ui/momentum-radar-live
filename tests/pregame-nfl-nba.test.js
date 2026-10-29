@@ -70,7 +70,7 @@ test('ineligible reported NBA players are removed and model recomputes automatic
 test('missing sufficient source data leaves all tiers Not Ready, never synthetic prices',()=>{
  const result=nbaBuildPregameModels({gameId:game.gameId,home:'BOS',away:'MIA',
   tipoff:game.kickoff,roster,historical:[past(1,'BOS'),past(2,'MIA')]});
- assert.deepEqual(result.sgps.map(x=>x.status),['NOT_READY','NOT_READY','NOT_READY']);
+ assert.deepEqual(result.sgps.map(x=>x.status),['NOT_READY','NOT_READY','NOT_READY','NOT_READY']);
  assert.ok(result.sgps.every(x=>x.legs.length===0&&x.combinedBookOdds===null));
 });
 test('NBA T-30 and day-before windows revalidate early and later than thirty minutes',()=>{
