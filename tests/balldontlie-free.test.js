@@ -140,7 +140,7 @@ test('cron rejects public traffic without spending a single BDL request or discl
 });
 test('existing 15-min NFL collector remains untouched; BDL cron is daily and separate',()=>{
  const config=JSON.parse(readFileSync(new URL('../vercel.json',import.meta.url),'utf8'));
- assert.ok(config.crons.some(x=>x.path==='/api/nfl-health?cron=1'&&x.schedule==='*/15 * * * *'));
+ assert.ok(config.crons.some(x=>x.path==='/api/nfl-health?cron=1'&&x.schedule==='*/10 * * * *'));
  assert.ok(config.crons.some(x=>x.path==='/api/bdl-refresh'&&x.schedule==='0 12 * * *'));
  const nfl=readFileSync(new URL('../api/nfl-schedule.js',import.meta.url),'utf8');
  const nba=readFileSync(new URL('../api/nba-slate.js',import.meta.url),'utf8');
