@@ -1196,7 +1196,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   if(!rows.length)return noData('NBA player matchup research pending',
    'Waiting for roster-screened completed-game samples for this matchup.');
   return '<section class="nba-forecast"><h3>AI Player Matchup Advantages</h3>'+
-   '<p class="sub">Ranked by the statistical matchup adjustment, not betting odds or player popularity. Starter confirmation is shown separately.</p>'+
+   '<p class="sub">Pregame historical research, not live box scores. Ranked by statistical matchup adjustment, not betting odds or player popularity. Starter confirmation is shown separately; stale samples are not verified game-day evidence.</p>'+
    '<div class="nba-picks-list">'+rows.map((p,i)=>{
     const baseline=Number(p.baseProjection),projection=Number(p.projection);
     const pct=baseline>0?(100*(projection/baseline-1)):0;
