@@ -30,7 +30,7 @@
     },
     {
       "path": "/api/nba-health",
-      "schedule": "*/10 * * * *"
+      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/nfl-game?mode=archive-history",
@@ -42,7 +42,7 @@
     },
     {
       "path": "/api/nba-health?shard=1",
-      "schedule": "*/10 * * * *"
+      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/nfl-sunday-td-prime?shard=0",
