@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {selectNflAdaptiveTier} from '../lib/ai-mechanics/nfl-sgp-tiers.js';
-const leg=i=>({cat:'passing',playerID:String(i),projection:100,analyticsThreshold:150});
+const leg=i=>({cat:['passing','rushing','receiving'][i%3],playerID:String(i),projection:100,analyticsThreshold:150});
 for(const [risk,minimum] of [['Small',3],['Medium',3],['Large',3],['Nuke',3]]){
  test(risk+' respects minimum complete SGP composition',()=>{
   const selected=selectNflAdaptiveTier((r,n)=>({risk:r,
