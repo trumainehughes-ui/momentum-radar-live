@@ -206,7 +206,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   <button type="button" class="nfl-module-tab" data-nba-module="injuries" aria-pressed="false">Injuries</button>
  </nav>
  <section id="edge-hunter-panel" class="panel" hidden><div id="edge-hunter-board" class="nba-forecast"><h3>🎯 Edge Hunter</h3><p class="sub">Choose a slate date to scan the two best qualifying NBA games.</p></div></section>
- <p id="nba-module-message" class="nfl-module-message">Select any NBA game below to see player props, injuries and available Small / Medium / Large / Nuke model picks.</p>
+ <p id="nba-module-message" class="nfl-module-message">Select any NBA game below to see player props, injuries and available Small / Medium / Nuke model picks.</p>
 </section>
 <div id="game-day-board"><p id="date-caption" class="sub" style="margin:16px 0 11px" aria-live="polite">Loading scheduled games…</p><div id="games" class="game-grid"><div class="empty loading grid-span">Loading matchups…</div></div><div id="game-panel-home" hidden></div></div></section>
 <section class="section" id="game-section" hidden><div class="panel"><div class="details-top"><div><div class="eyebrow">Matchup breakdown</div><div id="match-title" class="matchup">Select a game</div><p id="match-subtitle" class="sub">Model forecasts are screened before appearing here.</p></div><div id="freshness" class="fresh"></div></div><div id="match-content"><div class="empty" style="margin-top:18px">Choose a matchup above to view the player outlook and parlay tiers.</div></div><section id="public-weather-impact" class="panel" aria-label="NFL Weather Impact" style="margin-top:14px"><h3>🌦 Kickoff Weather</h3><div id="public-weather-content" class="sub">Open a matchup to see its kickoff forecast.</div></section></div></section>
@@ -1290,7 +1290,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     noData('Player forecasts not yet populated','The collector has not supplied usable player projections for this game.'))+
    '</section>';
   const cards=(Array.isArray(d.sgps)?d.sgps:[]);
-  const html=['Small','Medium','Large','Nuke'].map(name=>{
+  const html=['Small','Medium','Nuke'].map(name=>{
    const c=cards.find(x=>x.risk===name);
    const legs=Array.isArray(c?.legs)?c.legs:[];
    const min=name==='Small'?4:5,max=name==='Nuke'?7:min;
