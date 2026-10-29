@@ -96,3 +96,9 @@ test('active route serializes exactly once without deleting tier metadata',()=>{
  assert.match(api,/c\.tierAssessment\?\.compositionOk===true/);
  assert.match(api,/Number\(c\.requiredLegs\)===c\.legs\.length/);
 });
+
+test('publication selects at most one model candidate per NFL tier',()=>{
+ const api=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
+ assert.match(api,/const modelCandidates=\[\.\.\.completeImported,\.\.\.fallbackModelTiers,\.\.\.\(analyticsSgps\|\|\[\]\)\]\.filter/);
+ assert.match(api,/all\.findIndex\(other=>other\.risk===tier\.risk\)===index/);
+});
