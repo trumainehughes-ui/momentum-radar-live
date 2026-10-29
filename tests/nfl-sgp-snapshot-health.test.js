@@ -178,3 +178,8 @@ test('matchup view shows direct evidence counts and read-only link; keeps sports
  assert.ok(!/SPORTSGAMEODDS_API_KEY|THE_ODDS_API_KEY|GROQ_API_KEY|BALLDONTLIE_API_KEY/.test(api));
  assert.ok(api.includes("req.method!=='GET'"));
 });
+
+test('saved NFL snapshot readiness includes Large alongside all other tiers',()=>{
+ const result=nflSgpSnapshotReadiness(sample(),{now,gameId});
+ assert.deepEqual(result.tiers.map(x=>x.risk),['Small','Medium','Large','Nuke']);
+});
