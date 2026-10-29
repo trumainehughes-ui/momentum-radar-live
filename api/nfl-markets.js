@@ -1019,7 +1019,7 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
   const quoteCandidates=changeType==='scheduled_checkpoint'?
    chooseNflCheckpointQuotes(candidates,{gameId,
     stage:String(req.query.checkpointStage||''),max:3}):
-   candidates.slice(0,6);
+   candidates.slice(0,8);
   // Candidate eligibility is not actual provider spend: signed checkpoints
   // deliberately cap attempts at three across both sportsbooks.
   if(!origin){
