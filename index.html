@@ -363,7 +363,7 @@ function nflPublishedSgpParityHtml(parity){
  const quotes=ready&&Array.isArray(parity.bookParlays)?parity.bookParlays.filter(q=>
   q?.mode==='VERIFIED_BOOK_SGP'&&q.combinedOddsVerified===true&&
   ['DraftKings','FanDuel'].includes(q.book)&&
-  ['Small','Medium','Nuke'].includes(q.risk)&&
+  ['Small','Medium','Large','Nuke'].includes(q.risk)&&
   Number.isSafeInteger(Number(q.americanOdds))&&Number(q.americanOdds)>0&&
   Date.now()-Date.parse(q.quotedAt)>-60000&&
   Date.now()-Date.parse(q.quotedAt)<=15*60000&&
@@ -371,9 +371,9 @@ function nflPublishedSgpParityHtml(parity){
    l.bookOffer?.attested===true&&l.bookOffer?.book===q.book)):[];
  return '<div class="card" data-owner-nfl-parity="1" data-published-game-version="'+
   nflEscape(parity?.updatedAt||'')+
-  '" style="grid-column:1/-1"><b>Published Small / Medium / Nuke • same player forecasts as customer site</b>'+
+  '" style="grid-column:1/-1"><b>Published Small / Medium / Large / Nuke • same player forecasts as customer site</b>'+
   '<div class="note">One screened game snapshot for both sites • '+nflEscape(parity?.updatedAt||'Awaiting current saved update')+'. These are model projections, NOT verified sportsbook selections or correlated prices. Advanced bookmaker-source and injury diagnostics remain separate.</div>'+
-  ['Small','Medium','Nuke'].map(risk=>{
+  ['Small','Medium','Large','Nuke'].map(risk=>{
    const t=tiers.find(x=>x?.risk===risk);
    if(!ready||!t)return '<div class="nflSgpMini" data-risk="'+nflEscape(risk)+'"><b>'+
      nflEscape(risk)+' • NOT READY</b><div class="note">'+
@@ -381,7 +381,7 @@ function nflPublishedSgpParityHtml(parity){
       'Owner and public data could not be matched to the same saved snapshot. Refresh to retry.')+
      '</div></div>';
    const legSignature=legs=>JSON.stringify((legs||[]).map(l=>[l.player,l.category,l.target??null,l.projection??null]));
-   const previous=tiers.filter(x=>['Small','Medium','Nuke'].indexOf(x?.risk)<['Small','Medium','Nuke'].indexOf(risk));
+   const previous=tiers.filter(x=>['Small','Medium','Large','Nuke'].indexOf(x?.risk)<['Small','Medium','Large','Nuke'].indexOf(risk));
    if(previous.some(x=>legSignature(x.legs)===legSignature(t.legs)))return '<div class="nflSgpMini" data-risk="'+nflEscape(risk)+'"><b>'+nflEscape(risk)+' • NOT READY</b><div class="note">Duplicate of a lower-risk tier. Independent betting thresholds and sportsbook verification are required before publication.</div></div>';
    if(risk!=='Small'&&!t.legs.some(l=>l.target!=null||l.bookOffer?.target!=null))return '<div class="nflSgpMini" data-risk="'+nflEscape(risk)+'"><b>'+nflEscape(risk)+' • NOT READY</b><div class="note">Only player projections were supplied, not distinct selectable betting thresholds. Rebuild this tier before publication.</div></div>';
    return '<div class="nflSgpMini" data-risk="'+nflEscape(risk)+'"><b>'+nflEscape(risk)+' • MODEL RESEARCH</b><div class="meta">'+t.legs.length+
@@ -573,7 +573,7 @@ const observedBookRows=(()=>{
   for(const book of ['FanDuel','DraftKings']){
    const rows=observedBookRows.filter(x=>x.book===book);
    if(!rows.length)continue;
-   for(const risk of ['Small','Medium','Nuke']){
+   for(const risk of ['Small','Medium','Large','Nuke']){
     const tier=tiers.find(x=>x.risk===risk);
     if(!Array.isArray(tier?.legs)||!tier.legs.length)continue;
     const matched=[],used=new Set();
@@ -795,7 +795,7 @@ async function loadNFLMulti(){
   box.innerHTML='<div class="msg">Best of Slate published research is temporarily unavailable. No unscreened market fallback is shown.</div>';
  }
 }
-async function loadNFLHistory(){const box=$('#nflHistoryBoard');if(!box)return;box.innerHTML='<div class="msg">Loading completed results…</div>';try{const r=await fetch('/api/nfl-game?mode=history-list&ts='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('history');const d=await r.json(),locks=d.history||[],archive=d.archive||[];const graded=await Promise.all(locks.map(async x=>{try{const q=await fetch('/api/nfl-game?mode=history-grade&gameId='+encodeURIComponent(x.gameId)+'&ts='+Date.now(),{cache:'no-store'});return q.ok?q.json():null}catch{return null}})),finals=graded.filter(x=>x?.final),archiveHtml=archive.length?'<details class="card historyCompact"><summary><div><div class="rank">ARCHIVE</div><div class="name">Older graded games</div><div class="pick">'+archive.length+' compact summaries preserved</div></div><span class="tinyBtn">Open archive</span></summary><div class="historyDetails">'+archive.map(x=>{const tiers=x.tiers||{},tierText=['Small','Medium','Nuke'].filter(k=>tiers[k]?.total).map(k=>k+' '+tiers[k].hits+'/'+tiers[k].total).join(' • ');return '<div class="nflMarketLine"><b>'+nflEscape(x.score||x.gameId)+'</b><div class="historyNumbers">'+(x.playerTotal?'Player picks '+x.playerHits+'/'+x.playerTotal+' • ':'')+'SGPs '+x.sgpHits+'/'+x.sgpTotal+(tierText?' • '+nflEscape(tierText):'')+'</div></div>'}).join('')+'</div></details>':'';box.innerHTML=(finals.length?finals.map(nflHistoryCard).join(''):'<div class="msg">No completed games from the last 24 hours.</div>')+archiveHtml}catch{box.innerHTML='<div class="msg">History is temporarily unavailable.</div>'}}
+async function loadNFLHistory(){const box=$('#nflHistoryBoard');if(!box)return;box.innerHTML='<div class="msg">Loading completed results…</div>';try{const r=await fetch('/api/nfl-game?mode=history-list&ts='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('history');const d=await r.json(),locks=d.history||[],archive=d.archive||[];const graded=await Promise.all(locks.map(async x=>{try{const q=await fetch('/api/nfl-game?mode=history-grade&gameId='+encodeURIComponent(x.gameId)+'&ts='+Date.now(),{cache:'no-store'});return q.ok?q.json():null}catch{return null}})),finals=graded.filter(x=>x?.final),archiveHtml=archive.length?'<details class="card historyCompact"><summary><div><div class="rank">ARCHIVE</div><div class="name">Older graded games</div><div class="pick">'+archive.length+' compact summaries preserved</div></div><span class="tinyBtn">Open archive</span></summary><div class="historyDetails">'+archive.map(x=>{const tiers=x.tiers||{},tierText=['Small','Medium','Large','Nuke'].filter(k=>tiers[k]?.total).map(k=>k+' '+tiers[k].hits+'/'+tiers[k].total).join(' • ');return '<div class="nflMarketLine"><b>'+nflEscape(x.score||x.gameId)+'</b><div class="historyNumbers">'+(x.playerTotal?'Player picks '+x.playerHits+'/'+x.playerTotal+' • ':'')+'SGPs '+x.sgpHits+'/'+x.sgpTotal+(tierText?' • '+nflEscape(tierText):'')+'</div></div>'}).join('')+'</div></details>':'';box.innerHTML=(finals.length?finals.map(nflHistoryCard).join(''):'<div class="msg">No completed games from the last 24 hours.</div>')+archiveHtml}catch{box.innerHTML='<div class="msg">History is temporarily unavailable.</div>'}}
 
 // Ranking is model-led across the selected slate. Missing individual book odds
 // never prevent a model scorer from appearing in Sunday's Top 10.
