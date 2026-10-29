@@ -60,7 +60,7 @@ test('public-site endpoint does not depend on odds APIs and checks both primary 
 
 test('NFL market route defaults to official-site offers and supports opt-in verified book feeds',()=>{
  const market=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
- assert.ok(market.includes('const DIRECT_PUBLIC_ODDS_ONLY=String(process.env.MOMENTUM_VERIFIED_BOOK_FEEDS||'').toLowerCase()!=='enabled''));
+ assert.ok(market.includes("const DIRECT_PUBLIC_ODDS_ONLY=String(process.env.MOMENTUM_VERIFIED_BOOK_FEEDS||'').toLowerCase()!=='enabled'"));
  assert.ok(market.includes('if(!modelOnlyPrimer&&!DIRECT_PUBLIC_ODDS_ONLY)try{'));
  assert.ok(market.includes('if(process.env.PLAYER_PROPS_API_KEY&&authorizedChange&&!DIRECT_PUBLIC_ODDS_ONLY)'));
  assert.ok(market.includes("const sgoEnabled=Boolean(process.env.SPORTSGAMEODDS_API_KEY)&&sgoFlag!=='false'&&!modelOnlyPrimer&&!DIRECT_PUBLIC_ODDS_ONLY"));
