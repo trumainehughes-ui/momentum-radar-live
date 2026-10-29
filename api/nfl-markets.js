@@ -534,7 +534,9 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
   };
   // Matchup-ranked yardage foundations first, then TD exposure and extra
   // receptions/yardage. Never manufacture an unsupported TD prediction.
-  for(const cat of ['passing','rushing','receiving']){
+  // Reserve a scoring slot in Small; otherwise three yardage seeds fill it.
+  const seedCategories=tier==='Small'?['passing','rushing']:['passing','rushing','receiving'];
+  for(const cat of seedCategories){
    for(const x of ranked.filter(v=>v.cat===cat)){if(add(x))break}
   }
   for(const x of ranked.filter(v=>['passing','rushing','receiving'].includes(v.cat)))
