@@ -60,8 +60,8 @@ test('public snapshot preserves 4/5/5 tier counts but flags repeated markets acr
  const raw=snapshot();
  assert.equal(raw.body.sgps.Analytics.length,3);
  const status=nflSgpSnapshotReadiness(raw,{now:at+20_000,gameId});
- assert.deepEqual(status.tiers.map(x=>x.legCount),[4,5,5]);
- assert.ok(status.tiers.every(x=>x.status==='MODEL_CANDIDATE'));
+ assert.deepEqual(status.tiers.map(x=>x.legCount),[4,5,0,5]);
+ assert.deepEqual(status.tiers.map(x=>x.status),['MODEL_CANDIDATE','MODEL_CANDIDATE','NOT_READY','MODEL_CANDIDATE']);
  const view=publicNflGameView(raw,{date,gameId,now:at+20_000});
  assert.equal(view.status,'CURRENT');
  assert.deepEqual(view.modelResearchTiers.map(x=>x.legCount),[4,5,5]);
