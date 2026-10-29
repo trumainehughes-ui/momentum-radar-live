@@ -11,7 +11,8 @@ test('automated owner polling reads the identical, already-screened saved game t
  assert.match(poll,/fetch\('\/api\/public-nfl-game\?'/);
  assert.match(poll,/\{cache:'no-store'\}/);
  assert.match(poll,/ownerNflPublishedParity\(null,report/);
- assert.match(poll,/nflOwnerPublishedVersions\.get\(id\)===report\.updatedAt/);
+ assert.doesNotMatch(poll,/nflOwnerPublishedVersions\.get\(id\)===report\.updatedAt/);
+ assert.match(poll,/Freshness can expire without updatedAt changing/);
  assert.match(poll,/node\.outerHTML=nflPublishedSgpParityHtml\(parity\)/);
  assert.match(poll,/props\.innerHTML=nflSharedPropsHtml\(parity\)/);
  assert.match(poll,/outcome\.innerHTML=nflSharedOutcomeHtml\(parity\.ok\?report:null\)/);

@@ -88,7 +88,7 @@ test('read-only public SGP status shows two-direction risk and injury counts, no
  assert.deepEqual(actual.matchupAudit.sides.map(x=>[x.offense,x.opponentDefense]),
   [['LAR','BUF'],['BUF','LAR']]);
  assert.equal(actual.matchupAudit.tiers[0].status,'REVIEW_OR_PASS');
- assert.deepEqual(actual.matchupAudit.tiers[2].holdReasons,['LIMITED_COMPLETED_GAME_SAMPLE']);
+ assert.deepEqual(actual.matchupAudit.tiers.find(x=>x.risk==='Nuke').holdReasons,['LIMITED_COMPLETED_GAME_SAMPLE']);
  assert.equal(actual.matchupAudit.tiers[1].bookmakerPriceVerified,false);
  assert.deepEqual(actual.injuryReportObservations,{OUT:1,QUESTIONABLE:1});
  assert.equal(actual.sportsbookCombinedOddsVerified,false);

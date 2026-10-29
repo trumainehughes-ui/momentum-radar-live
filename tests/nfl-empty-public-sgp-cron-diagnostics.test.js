@@ -11,3 +11,8 @@ test('NFL cron distinguishes successful refresh from zero published model tiers'
  assert.ok(source.includes('publicModelTierCounts:Object.fromEntries'));
  assert.ok(source.includes('publicTierCounts:historyLocks.reduce'));
 });
+
+test('NFL scheduled fallback attempts all four SGP research tiers',()=>{
+ const source=readFileSync(new URL('../api/nfl-health.js',import.meta.url),'utf8');
+ assert.match(source,/const plans=\[\['Small',4\],\['Medium',5\],\['Large',6\],\['Nuke',7\]\]/);
+});

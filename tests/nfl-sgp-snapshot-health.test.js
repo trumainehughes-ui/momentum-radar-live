@@ -39,7 +39,7 @@ test('snapshot path exactly matches production cache naming without charging any
 test('no completed Small, Medium, Nuke reports concrete missing-yardage vs identity, not invented lines',()=>{
  const status=nflSgpSnapshotReadiness(sample(),{now,gameId});
  assert.equal(status.status,'NOT_READY');
- assert.deepEqual(status.tiers.map(x=>x.status),['NOT_READY','NOT_READY','NOT_READY']);
+ assert.deepEqual(status.tiers.map(x=>x.status),['NOT_READY','NOT_READY','NOT_READY','NOT_READY']);
  assert.ok(status.tiers[0].reason.includes('rushing / receiving'));
  assert.equal(status.roleSummary.projectedHighUsageRoles,3);
  assert.equal(status.roleSummary.missingRosterOrGameIdentity,1);
@@ -177,4 +177,9 @@ test('matchup view shows direct evidence counts and read-only link; keeps sports
  const api=readFileSync(new URL('../api/nfl-sgp-status.js',import.meta.url),'utf8');
  assert.ok(!/SPORTSGAMEODDS_API_KEY|THE_ODDS_API_KEY|GROQ_API_KEY|BALLDONTLIE_API_KEY/.test(api));
  assert.ok(api.includes("req.method!=='GET'"));
+});
+
+test('saved NFL snapshot readiness includes Large alongside all other tiers',()=>{
+ const result=nflSgpSnapshotReadiness(sample(),{now,gameId});
+ assert.deepEqual(result.tiers.map(x=>x.risk),['Small','Medium','Large','Nuke']);
 });

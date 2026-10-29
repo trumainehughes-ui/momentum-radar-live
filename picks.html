@@ -590,6 +590,8 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   // A public SGP slip must never combine teams from other matchups or
   // display saved stale selections as if they were actionable game picks.
   const matchupTeams=new Set([String(d.home||'').toUpperCase(),String(d.away||'').toUpperCase()]);
+  // Keep the published four-tier model research visible separately from bookable slips.
+  // No model-only selection is promoted into a verified sportsbook quote.
   const candidateModels=Array.isArray(d.researchParlays)?d.researchParlays:[];
   const models=candidateModels.filter(c=>{
    // Public SGP slips must not show projection-only targets, even with

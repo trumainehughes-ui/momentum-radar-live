@@ -60,8 +60,8 @@ test('public snapshot preserves 4/5/5 tier counts but flags repeated markets acr
  const raw=snapshot();
  assert.equal(raw.body.sgps.Analytics.length,3);
  const status=nflSgpSnapshotReadiness(raw,{now:at+20_000,gameId});
- assert.deepEqual(status.tiers.map(x=>x.legCount),[4,5,5]);
- assert.ok(status.tiers.every(x=>x.status==='MODEL_CANDIDATE'));
+ assert.deepEqual(status.tiers.map(x=>x.legCount),[4,5,0,5]);
+ assert.deepEqual(status.tiers.map(x=>x.status),['MODEL_CANDIDATE','MODEL_CANDIDATE','NOT_READY','MODEL_CANDIDATE']);
  const view=publicNflGameView(raw,{date,gameId,now:at+20_000});
  assert.equal(view.status,'CURRENT');
  assert.deepEqual(view.modelResearchTiers.map(x=>x.legCount),[4,5,5]);
@@ -95,4 +95,10 @@ test('active route serializes exactly once without deleting tier metadata',()=>{
  assert.match(api,/\.map\(publishedNflModelTier\)\.filter\(Boolean\)/);
  assert.match(api,/c\.tierAssessment\?\.compositionOk===true/);
  assert.match(api,/Number\(c\.requiredLegs\)===c\.legs\.length/);
+});
+
+test('publication selects at most one model candidate per NFL tier',()=>{
+ const api=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
+ assert.match(api,/const modelCandidates=\[\.\.\.completeImported,\.\.\.fallbackModelTiers,\.\.\.\(analyticsSgps\|\|\[\]\)\]\.filter/);
+ assert.match(api,/all\.findIndex\(other=>other\.risk===tier\.risk\)===index/);
 });

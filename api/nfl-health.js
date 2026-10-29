@@ -59,7 +59,7 @@ export function historySnap(g,m,prior=null){
  // This never claims an offered sportsbook line or combined parlay price.
  const categories=m.categories||{};
  const usedTierKeys=[];
- const plans=[['Small',4],['Medium',5],['Nuke',7]];
+ const plans=[['Small',4],['Medium',5],['Large',6],['Nuke',7]];
  for(const [risk,count] of plans){
   if(sgps.some(s=>s.risk===risk))continue;
   const selected=[],keys=new Set(),athletes=new Map();
@@ -94,7 +94,8 @@ export function historySnap(g,m,prior=null){
   };
   const hasCore=['passing','rushing','receiving'].every(choose);
   if(!hasCore)continue;
-  for(const cat of ['receptions','receiving','rushing','passing','receptions','receiving','rushing'])
+  for(const cat of ['receptions','receiving','rushing','passing','receptions','receiving','rushing',
+   'receptions','passing','receiving','rushing','receptions','receiving','passing'])
    if(selected.length<count)choose(cat);
   if(selected.length!==count)continue;
   usedTierKeys.push(keys);

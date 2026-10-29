@@ -110,3 +110,14 @@ test('older raw cache cannot suppress a newer published player forecast or resur
  assert.deepEqual(canonical.publicResearchTiers[0].legs.map(l=>l.player),rawLegs.map(x=>x.name));
  assert.equal(canonical.bookParlays.length,0);
 });
+
+test('owner preserves independently screened Large research tier alongside Small Medium and Nuke',()=>{
+ const p=published();
+ p.modelResearchTiers=[...p.modelResearchTiers,{risk:'Large',complete:true,requiredLegs:4,
+  legs:rawLegs.map(x=>({...safeRow(x),player:x.name}))}];
+ const v=ownerNflPublishedParity(original(),p,{date,gameId,now});
+ assert.equal(v.ok,true);
+ assert.deepEqual(v.publicResearchTiers.map(x=>x.risk),['Small','Large']);
+ assert.equal(v.publicResearchTiers[1].legs.length,4);
+ assert.equal(v.tiers[1].publishable,false);
+});

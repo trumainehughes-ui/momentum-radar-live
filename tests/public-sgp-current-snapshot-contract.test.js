@@ -91,3 +91,8 @@ test('public NFL renderer escapes player names and rejects incomplete and all-TD
  assert.match(clean,/&lt;img/);
  assert.doesNotMatch(clean,/<img src=x/);
 });
+
+test('public NFL four-tier rendering keeps Large in the supported research set',()=>{
+ assert.match(html,/\['Small','Medium','Large','Nuke'\]/);
+ assert.match(html,/published four-tier model research visible separately/);
+});
