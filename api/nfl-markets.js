@@ -58,7 +58,7 @@ const DIRECT_PUBLIC_ODDS_ONLY=true;
 // This contract is intentionally sport-portable so the future NBA module can use NBA.com / ESPN + public DK/FD the same way.
 const MARKET_SOURCE_POLICY={projection:['NFL.com','ESPN','team offense vs defense','DVP','injuries/roles','DraftKings public stats/trends','FanDuel public stats/trends'],marketResearch:['DraftKings public markets','FanDuel public markets'],apiAssist:[],apiRequired:false,publicBookResearchRequired:true,publicBookEvidence:['lines','alternate lines','American odds','recent-game results','hit-rate/trend context','player matchup notes','TD markets','passing/rushing/receiving/receptions markets'],rule:'combine_all_public_evidence_projection_first_api_optional'};
 function sgpOddsInBand(risk,odds){const value=Number(odds);return Number.isSafeInteger(value)&&classifyNflSgpOdds(value)===risk}
-function sgpPayoutLabel(risk){return risk==='Small'?'$10 stake → $200–under $300 NET profit (target +2000 to +2999)':risk==='Medium'?'$10 stake → $300–$800 NET profit (target +3000 to +8000)':'$10 stake → $1,000+ NET profit (target +10000 or higher)'}
+function sgpPayoutLabel(risk){const labels={Small:'$10 stake → $50–$150 NET profit (+500 to +1500)',Medium:'$10 stake → $200–under $400 NET profit (+2000 to +3999)',Large:'$10 stake → $400–$800 NET profit (+4000 to +8000)',Nuke:'$10 stake → $1,000+ NET profit (+10000 or higher)'};return labels[risk]||'Unverified payout'}
 function manualAtlNoTonightSgps(date,home,away){
  const teams=new Set([norm(home),norm(away)]);if(date!=='2026-10-05'||!teams.has('ATL')||!(teams.has('NO')||teams.has('NOS')))return null;
  const src='ESPN + NFL.com • 2026 Weeks 1–3 • matchup model';
@@ -124,7 +124,7 @@ function nflVerifiedOnlySgpResponse(body){
  sgps.Analytics=(Array.isArray(sgps.Analytics)?sgps.Analytics:[]).filter(c=>
   c?.mode==='MODEL_ONLY'&&c?.publishable===false&&
   c?.combinedBookQuoteVerified===false&&
-  ['Small','Medium','Nuke'].includes(c?.risk)&&
+  ['Small','Medium','Large','Nuke'].includes(c?.risk)&&
   Array.isArray(c.legs)&&c.legs.length>0&&
   c.tierAssessment?.compositionOk===true&&
   c.legs.length>=NFL_SGP_TIERS[c.risk].minLegs&&
@@ -252,7 +252,7 @@ function buildBookSgp(rows,book,ctx){
  // exact, book-offered legs based on multiplied odds; a genuine correlated
  // combined sportsbook price must be quoted separately.
  return filterCompleteNflBookSgps([
-  findTier('Small',4,0),findTier('Medium',5,1),dynamicNuke()
+  findTier('Small',4,0),findTier('Medium',5,1),findTier('Large',6,2),dynamicNuke()
  ]);
 }
 function analyticsMetric(cat,pos){
@@ -438,7 +438,7 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
  const make=(risk,count)=>{
   const priorKeys=risk==='Small'?[]:risk==='Medium'?[selectedTierKeys.get('Small')].filter(Boolean):
    [selectedTierKeys.get('Small'),selectedTierKeys.get('Medium')].filter(Boolean);
-  const maxShared=risk==='Medium'?2:risk==='Nuke'?3:Infinity;
+  const maxShared=risk==='Medium'?2:risk==='Large'?3:risk==='Nuke'?4:Infinity;
   const legs=[],used=new Set(),cats=new Set(),riskPool=[...pool].sort((a,b)=>{
    // Prioritize new athletes and markets in later tiers. Rejecting only
    // after filling can exhaust the count before alternatives are considered.
@@ -500,7 +500,7 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
    (nuke?.reason||'Nuke not ready')+' Blocker: '+nukeEvidence.blocker+'. '+nukeEvidence.uniqueEligibleAthletes+
     ' eligible athletes; '+nukeEvidence.supportedYardageRows+' ceiling-backed yardage rows across '+
     nukeEvidence.distinctYardageMarkets+' yardage markets.'};
- const nukeHasStat=Boolean(nukeWithEvidence?.legs?.some(x=>x.cat!=='td'));return[{...small,poolDiagnostics,payoutTarget:sgpPayoutLabel('Small'),targetOddsBand:SGP_ODDS_BANDS.Small},{...medium,payoutTarget:sgpPayoutLabel('Medium'),targetOddsBand:SGP_ODDS_BANDS.Medium,poolDiagnostics},{...(nukeHasStat?nukeWithEvidence:{...nukeWithEvidence,legs:[],marketMix:[],reason:nukeWithEvidence.reason}),payoutTarget:sgpPayoutLabel('Nuke'),targetOddsBand:SGP_ODDS_BANDS.Nuke,poolDiagnostics}];
+ const nukeHasStat=Boolean(nukeWithEvidence?.legs?.some(x=>x.cat!=='td'));return[{...small,poolDiagnostics,payoutTarget:sgpPayoutLabel('Small'),targetOddsBand:SGP_ODDS_BANDS.Small},{...medium,payoutTarget:sgpPayoutLabel('Medium'),targetOddsBand:SGP_ODDS_BANDS.Medium,poolDiagnostics},{...large,payoutTarget:sgpPayoutLabel('Large'),targetOddsBand:SGP_ODDS_BANDS.Large,poolDiagnostics},{...(nukeHasStat?nukeWithEvidence:{...nukeWithEvidence,legs:[],marketMix:[],reason:nukeWithEvidence.reason}),payoutTarget:sgpPayoutLabel('Nuke'),targetOddsBand:SGP_ODDS_BANDS.Nuke,poolDiagnostics}];
 }
 async function gameRoleGate(gameId,base){if(!gameId)return{checked:false,roles:new Map()};try{const r=await timedFetch(base+'/api/nfl-game?gameId='+encodeURIComponent(gameId)+'&ts='+Date.now(),{cache:'no-store'});if(!r.ok)return{checked:false,roles:new Map()};const d=await r.json(),m=new Map();for(const x of d.playerProjections||[]){if(x.playerId)m.set(String(x.playerId),x);if(x.name)m.set('name:'+norm(x.name),x)}return{checked:true,roles:m,players:d.playerProjections||[],source:d.source||null,gameScopedStarters:d.gameScopedStarters||null}}catch{return{checked:false,roles:new Map()}}}
 function roleFor(gate,x){const roles=gate?.roles||new Map();return roles.get(String(x.playerID||x.playerId||''))||roles.get('name:'+norm(x.name))||null}
@@ -1003,7 +1003,7 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
  if(authorizedChange&&gameId&&!DIRECT_PUBLIC_ODDS_ONLY){
   const candidates=[];
   for(const [book,bookmaker] of [['DraftKings','draftkings'],['FanDuel','fanduel']]){
-   for(const risk of ['Small','Medium','Nuke']){
+   for(const risk of ['Small','Medium','Large','Nuke']){
     const candidate=(sgpResponse[book]||[]).find(s=>s.risk===risk&&
       s.quoteEligibility==='READY_FOR_AUTHORIZED_QUOTE'&&s.quoteRequest);
     if(candidate)candidates.push({book,bookmaker,risk,candidate});
@@ -1170,20 +1170,20 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
       [row.injuryStatus,row.availability,row.starterStatus].join(' '))&&
     Number(row.projection??row.perGame)>0;
   });
- for(const [risk,count] of [['Small',4],['Medium',5],['Nuke',7]]){
+ for(const [risk,count] of [['Small',4],['Medium',5],['Large',6],['Nuke',7]]){
   if(already.has(risk))continue;
   const selected=[],used=new Set(),athleteCounts=new Map();
   const add=cat=>{
    const rows=fallbackRows.filter(x=>x.cat===cat).sort((a,b)=>
     Number(b.projection??b.perGame)-Number(a.projection??a.perGame));
-   const offset=risk==='Small'?0:risk==='Medium'?2:4;
+   const offset=risk==='Small'?0:risk==='Medium'?2:risk==='Large'?3:4;
    const shift=rows.length?offset%rows.length:0;
    const rotated=rows.slice(shift).concat(rows.slice(0,shift));
    for(const x of rotated){
     const id=String(x.playerID||x.playerId),key=id+'|'+cat;
     if(used.has(key)||(athleteCounts.get(id)||0)>=2)continue;
     const projection=Number(x.projection??x.perGame);
-    const factor=risk==='Small'?.7:risk==='Medium'?.95:1.2;
+    const factor=risk==='Small'?.7:risk==='Medium'?.95:risk==='Large'?1.05:1.2;
     const target=cat==='receptions'?Math.max(1,Math.floor(projection*factor)):
      cat==='td'?1:Math.max(5,Math.floor(projection*factor/5)*5);
     selected.push({...x,name:String(x.name||x.player),playerID:id,eventID:String(gameId),
