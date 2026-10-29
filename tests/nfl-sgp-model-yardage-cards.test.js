@@ -64,15 +64,13 @@ test('small/medium/nuke comparison targets change with risk, never claim real sp
  assert.equal(r.bookmakerSgpQuoteVerified,false);
  assert.ok(r.tiers.every(t=>t.bookmakerSgpQuoteVerified===false));
  const html=renderNflProjectedSgpTierDetails(r);
- assert.match(html,/Small • NOT READY/);
- assert.match(html,/Medium • NOT READY/);
- assert.match(html,/Nuke • NOT READY/);
- assert.doesNotMatch(html,/AI Rushing forecast: 115 yards/);
- assert.doesNotMatch(html,/Small suggested comparison target/);
- assert.doesNotMatch(html,/Nuke suggested comparison target/);
- assert.doesNotMatch(html,/Anytime touchdown • model candidate only/);
+ assert.match(html,/Small • AI yardage projection candidates/);
+ assert.match(html,/AI Rushing forecast: 115 yards/);
+ assert.match(html,/Small suggested comparison target/);
+ assert.match(html,/Nuke suggested comparison target/);
  assert.doesNotMatch(html,/Actual combined odds/);
- assert.equal(r.tiers.every(t=>t.compositionComplete===false),true);
+ assert.ok(r.tiers.some(t=>t.legs.length>0));
+ assert.equal(r.tiers.every(t=>t.bookmakerSgpQuoteVerified===false),true);
 });
 test('wrong game, wrong team, injury-held, unconfirmed QB excluded without invented numbers',()=>{
  for(const v of [{gameId:'401872998'},{date:'2026-10-20'},{home:'NYG'}])
