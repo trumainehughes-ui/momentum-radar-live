@@ -1,6 +1,7 @@
 import {parseNbaScoreboard} from '../lib/nba-data-model.js';
 import {nbaReadPregame} from './nba-health.js';
 import {researchVerifiedNbaEdgeHunter} from '../lib/nba-edge-hunter-verified-adapter.js';
+import {collectDirectSportsbookEvidence} from '../lib/direct-sportsbook-collector.js';
 const ESPN='https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard';
 const iso=x=>/^\d{4}-\d{2}-\d{2}$/.test(String(x))?String(x):null;
 const etToday=()=>{const p=Object.fromEntries(new Intl.DateTimeFormat('en-US',
@@ -27,12 +28,14 @@ export default async function handler(req,res){
   }));
   // No structured official-book offers are collected yet. Keep this explicit;
   // the verified adapter is the sole eligibility boundary for future ingestion.
-  const verifiedOffers=[];
+  const sourceCheck=await collectDirectSportsbookEvidence({sport:'nba',gameId:'SLATE'});
+  const verifiedOffers=sourceCheck.offers;
   const selection=researchVerifiedNbaEdgeHunter({games,offers:verifiedOffers});
   return res.status(200).json({ok:true,date,source:'ESPN NBA scoreboard and stored pregame research',
    status:selection.status,selection,slateGames:games.length,
    snapshotProjectionCount:games.reduce((n,g)=>n+g.historicalProjections,0),
-   verifiedBookOfferCount:verifiedOffers.length,marketIngestionStatus:'NO_VERIFIED_OFFERS',
+   verifiedBookOfferCount:verifiedOffers.length,marketIngestionStatus:sourceCheck.status,
+   sportsbookSourceChecks:sourceCheck.attempts,
    missingInputs:['verified_game_totals','verified_point_spreads','verified_player_prop_lines',
     'last_ten_market_results','confirmed_starters','book_native_combined_sgp_quote'],
    note:'Edge Hunter is not publishable until current book-sourced markets and game-specific player evidence are verified.'});
