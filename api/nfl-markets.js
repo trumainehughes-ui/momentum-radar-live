@@ -48,8 +48,8 @@ const SNAP_PREFIX='momentum-nfl-markets/v2/';
 // Small: +2000..+2999; Medium: +3000..+8000; Nuke: +10000 and above.
 const SGP_ODDS_BANDS=Object.fromEntries(Object.entries(NFL_SGP_TIERS).map(
  ([risk,tier])=>[risk,{min:tier.minOdds,max:tier.maxOdds}]));
-// Public sites are the sole odds authority; third-party odds APIs are disabled.
-const DIRECT_PUBLIC_ODDS_ONLY=true;
+// Default to public-site-only sourcing. Explicit production opt-in enables existing\n// verified DraftKings/FanDuel bookmaker feeds without fabricating sportsbook quotes.
+const DIRECT_PUBLIC_ODDS_ONLY=String(process.env.MOMENTUM_VERIFIED_BOOK_FEEDS||'').toLowerCase()!=='enabled';
 // Mandatory website-first odds policy:
 // 1) DraftKings and FanDuel public sportsbook pages supply exact, observed market lines/prices ONLY.
 // 2) NFL.com / ESPN roles, injuries, team offense/defense and DVP drive independent projections.
@@ -718,7 +718,7 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
    directRows=[];
   }
 
-  // Ordinary reads try the configured market provider only. The SGO reserve
+  // When verified bookmaker feeds are enabled, use configured providers for\n  // exact DK/FD market observations; never substitute consensus for a book line.\n  // Ordinary reads try the configured market provider only. The SGO reserve
   // budget is never touched by routine UI polls or manual "Refresh" clicks.
   if(!modelOnlyPrimer&&!DIRECT_PUBLIC_ODDS_ONLY)try{
    requestStage='primary_book_provider';const alt=await oddsApiFallback(date,home,away,gameId);
