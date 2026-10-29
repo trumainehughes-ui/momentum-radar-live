@@ -548,7 +548,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   const maxTd=risk==='Nuke'?2:1;
   return new Set(keys).size===keys.length&&
    [...athletes.values()].every(n=>n<=2)&&
-   new Set(cats).size>=3&&yards.length>=(risk==='Nuke'?3:2)&&
+   new Set(cats).size>=3&&yards.length>=(risk==='Small'?2:3)&&
    new Set(yards).size>=2&&cats.filter(cat=>cat==='td').length<=maxTd;
  }
  function nflPublicTierPriceReady(risk,odds){
