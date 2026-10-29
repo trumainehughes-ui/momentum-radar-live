@@ -59,5 +59,5 @@ test('production eligible changed-event pulls native book IDs regardless of Odds
  // No provider spend on public reads or automatic every-15-minute collector.
  assert.ok(src.includes("authorizedChange=Boolean(process.env.CRON_SECRET)"));
  assert.ok(src.includes('authorizedQuoteCandidates=candidates.length'));
- assert.ok(src.includes('candidates.slice(0,6)'));
+ assert.ok(src.includes('candidates.slice(0,8)'));
 });
