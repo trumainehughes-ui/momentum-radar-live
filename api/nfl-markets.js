@@ -501,45 +501,57 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
  // AI fallback: publish evidence-backed research candidates when strict sportsbook
  // composition/quote requirements cannot be met. Never imply verified odds.
  const aiFallback=(tier,original)=>{
-  if(original?.legs?.length)return original;
+  // The sportsbook composition engine can return yardage-only cards. Build
+  // tier-specific model combinations from the same injury-screened pool.
+  const desired={Small:3,Medium:4,Large:5,Nuke:7}[tier];
+  const tdQuota={Small:1,Medium:1,Large:1,Nuke:2}[tier];
+  const yardQuota={Small:2,Medium:3,Large:3,Nuke:4}[tier];
   const selected=[],perAthlete=new Map(),seen=new Set();
-  const order=['passing','rushing','receiving','receptions','td'];
-  const candidates=[...pool].sort((a,b)=>{
-   const aCat=order.indexOf(a.cat),bCat=order.indexOf(b.cat);
-   return (aCat-bCat)||strength(b,tier)-strength(a,tier);
-  });
-  const desired=tier==='Small'?3:tier==='Medium'?4:tier==='Large'?5:7;
-  for(const x of candidates){
-   if(selected.length>=desired)break;
+  const eligible=x=>{
    const role=roleFor(roles,x),pos=String(x.position||'').toUpperCase();
-   if(!role?.recommendationEligible||!['QB','RB','WR','TE'].includes(pos))continue;
-   if(pos==='QB'&&!(
-     (['CONFIRMED_STARTER','EXPECTED_STARTER'].includes(String(role.starterStatus||''))&&isNflConfirmedGameQb({position:pos,role}))||
-     nflProjectedDepthChartQbEligible(role)))continue;
-   if(pos!=='QB'&&!(
-     (role.verification?.role?.verified===true&&['CONFIRMED_STARTER','EXPECTED_STARTER'].includes(String(role.starterStatus||'')))||
-     (role.gameModelOnly===true&&role.starterStatus==='PROJECTED_HIGH_USAGE_ROLE'&&role.roleSource==='ESPN 2026 completed-game usage and same-game current roster')))continue;
-   const athlete=String(x.playerID||x.playerId||norm(x.name));
-   if((perAthlete.get(athlete)||0)>=2||seen.has(athlete+'|'+x.cat))continue;
-   if(x.cat==='td'&&selected.some(y=>y.cat==='td'))continue;
+   if(!role?.recommendationEligible||!['QB','RB','WR','TE'].includes(pos))return false;
+   if(pos==='QB')return (
+    (['CONFIRMED_STARTER','EXPECTED_STARTER'].includes(String(role.starterStatus||''))&&isNflConfirmedGameQb({position:pos,role}))||
+    nflProjectedDepthChartQbEligible(role));
+   return (role.verification?.role?.verified===true&&['CONFIRMED_STARTER','EXPECTED_STARTER'].includes(String(role.starterStatus||'')))||
+    (role.gameModelOnly===true&&role.starterStatus==='PROJECTED_HIGH_USAGE_ROLE'&&role.roleSource==='ESPN 2026 completed-game usage and same-game current roster');
+  };
+  const ranked=[...pool].filter(eligible).sort((a,b)=>strength(b,tier)-strength(a,tier));
+  const add=x=>{
+   if(!x||selected.length>=desired)return false;
+   const athlete=String(x.playerID||x.playerId||norm(x.name)),key=athlete+'|'+x.cat;
+   if(seen.has(key)||(perAthlete.get(athlete)||0)>=2)return false;
+   if(x.cat==='td'&&selected.filter(y=>y.cat==='td').length>=tdQuota)return false;
    const requested=analyticsLine(x,x.cat,tier,ctx);
    const target=modelNflSgpStatThreshold(x,x.cat,tier,requested);
-   if(target===null)continue;
+   if(target===null)return false;
    selected.push({...x,eventID:String(identity?.gameId||x.eventID||x.gameId||''),
     analyticsThreshold:target,sportsbookVerified:false,availableAt:[],
     modelRequestedThreshold:x.cat==='td'?null:Number(requested),
     modelCeilingOnly:tier==='Nuke',aiPredictionFallback:true});
-   perAthlete.set(athlete,(perAthlete.get(athlete)||0)+1);
-   seen.add(athlete+'|'+x.cat);
+   seen.add(key);perAthlete.set(athlete,(perAthlete.get(athlete)||0)+1);
+   return true;
+  };
+  // Matchup-ranked yardage foundations first, then TD exposure and extra
+  // receptions/yardage. Never manufacture an unsupported TD prediction.
+  for(const cat of ['passing','rushing','receiving']){
+   for(const x of ranked.filter(v=>v.cat===cat)){if(add(x))break}
   }
+  for(const x of ranked.filter(v=>['passing','rushing','receiving'].includes(v.cat)))
+   if(selected.filter(v=>['passing','rushing','receiving'].includes(v.cat)).length<yardQuota)add(x);
+  for(const x of ranked.filter(v=>v.cat==='td'))
+   if(selected.filter(v=>v.cat==='td').length<tdQuota)add(x);
+  for(const x of ranked.filter(v=>v.cat==='receptions'))add(x);
+  for(const x of ranked) add(x);
   if(!selected.length)return original;
   const corr=sgpCorrelation(selected);
   return {...original,mode:'MODEL_ONLY',legs:selected,modelOnly:true,aiPredictionFallback:true,
    candidateComplete:selected.length>=desired,publishable:false,
    combinedBookQuoteVerified:false,estimatedOdds:null,verifiedLegs:0,
-   requiredLegs:desired,marketMix:[...new Set(selected.map(x=>x.cat))],
+   requiredLegs:selected.length,marketMix:[...new Set(selected.map(x=>x.cat))],
    explanation:sgpExplanation(tier,selected,corr),correlation:corr,
-   reason:'AI-generated matchup projections only. Sportsbook lines, combined SGP odds and payout targets are NOT verified.'};
+   reason:'AI matchup prediction, not a bookmaker quote. '+selected.filter(v=>v.cat==='td').length+
+    ' touchdown legs; '+selected.length+' total model legs. No payout is guaranteed.'};
  };
  const aiSmall=aiFallback('Small',small),aiMedium=aiFallback('Medium',medium),
   aiLarge=aiFallback('Large',large),aiNuke=aiFallback('Nuke',nukeWithEvidence);
