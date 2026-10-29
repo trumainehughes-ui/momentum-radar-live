@@ -15,16 +15,14 @@ const players=[
  {playerID:'wr2',name:'Other WR',cat:'receiving',projection:45,analyticsThreshold:65},
  {playerID:'rb2',name:'Other RB',cat:'rushing',projection:43,analyticsThreshold:65}
 ];
-test('only 4-leg Small and 5-leg Medium are valid model compositions',()=>{
- assert.deepEqual([NFL_SGP_TIERS.Small.minLegs,NFL_SGP_TIERS.Small.maxLegs],[4,4]);
- assert.deepEqual([NFL_SGP_TIERS.Medium.minLegs,NFL_SGP_TIERS.Medium.maxLegs],[5,5]);
- assert.deepEqual([NFL_SGP_TIERS.Nuke.minLegs,NFL_SGP_TIERS.Nuke.maxLegs],[5,7]);
- for(const risk of ['Small','Medium','Nuke']){
-  assert.equal(assessNflSgpTier({risk,legs:players.slice(0,3),requiredLegs:3}).compositionOk,false);
+test('four tiers allow flexible leg counts while retaining market diversity',()=>{
+ for(const risk of ['Small','Medium','Large','Nuke']){
+  assert.ok(NFL_SGP_TIERS[risk].minLegs<=3);
+  assert.ok(NFL_SGP_TIERS[risk].maxLegs>=7);
+  assert.equal(assessNflSgpTier({risk,legs:players.slice(0,3),requiredLegs:3}).compositionOk,true);
+  assert.equal(assessNflSgpTier({risk,legs:players.slice(0,2),requiredLegs:2}).compositionOk,false);
+  assert.equal(assessNflSgpTier({risk,legs:players.slice(0,5),requiredLegs:5}).compositionOk,true);
  }
- assert.equal(assessNflSgpTier({risk:'Small',legs:players.slice(0,4),requiredLegs:4}).compositionOk,true);
- assert.equal(assessNflSgpTier({risk:'Medium',legs:players.slice(0,5),requiredLegs:5}).compositionOk,true);
- assert.equal(assessNflSgpTier({risk:'Nuke',legs:players.slice(0,5),requiredLegs:5}).compositionOk,true);
 });
 test('same athlete different markets are two independent selections',()=>{
  const valid=players.slice(0,4);
