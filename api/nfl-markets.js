@@ -1176,7 +1176,10 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
   const add=cat=>{
    const rows=fallbackRows.filter(x=>x.cat===cat).sort((a,b)=>
     Number(b.projection??b.perGame)-Number(a.projection??a.perGame));
-   for(const x of rows){
+   const offset=risk==='Small'?0:risk==='Medium'?2:4;
+   const shift=rows.length?offset%rows.length:0;
+   const rotated=rows.slice(shift).concat(rows.slice(0,shift));
+   for(const x of rotated){
     const id=String(x.playerID||x.playerId),key=id+'|'+cat;
     if(used.has(key)||(athleteCounts.get(id)||0)>=2)continue;
     const projection=Number(x.projection??x.perGame);
