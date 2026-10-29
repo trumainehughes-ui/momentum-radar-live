@@ -78,7 +78,7 @@ test('pregame boxscore is never presented as projections',()=>{
  const d=parseNbaGame(summary('pre'),'401900101');
  assert.equal(d.status,'SCHEDULED');
  assert.deepEqual(d.players,[]);
- assert.equal(d.sgps.length,3);
+ assert.equal(d.sgps.length,4);
  assert.ok(d.sgps.every(x=>x.status==='NOT_READY'&&x.legs.length===0&&x.combinedBookOdds===null));
 });
 test('wrong-game ESPN summary is blocked before displaying player stats',()=>{
@@ -87,7 +87,7 @@ test('wrong-game ESPN summary is blocked before displaying player stats',()=>{
  assert.equal(d.error,'nba_game_id_mismatch');
 });
 test('Small/Medium/Nuke enforce tier mix, roster, team identity and book eligibility',()=>{
- const names=['Small','Medium','Nuke'];
+ const names=['Small','Medium','Large','Nuke'];
  assert.deepEqual(Object.keys(NBA_TIERS),names);
  assert.deepEqual(nbaNotReadyTiers('Waiting').map(x=>x.risk),names);
  const ids=Array.from({length:7},(_,i)=>String(i+101));
@@ -98,6 +98,7 @@ test('Small/Medium/Nuke enforce tier mix, roster, team identity and book eligibi
  const opts={gameId:'401900101',home:'MIA',away:'BOS',verifiedPlayers:roles};
  assert.equal(validateNbaSgp('Small',input.slice(0,4),opts).publishable,true);
  assert.equal(validateNbaSgp('Medium',input.slice(0,5),opts).publishable,true);
+ assert.equal(validateNbaSgp('Large',input.slice(0,6),opts).publishable,true);
  assert.equal(validateNbaSgp('Nuke',input.slice(0,7),opts).publishable,true);
  assert.ok(validateNbaSgp('Small',input.slice(0,2),opts).reasons.includes('invalid_leg_count'));
  assert.ok(validateNbaSgp('Medium',input.slice(0,4),opts).reasons.includes('invalid_leg_count'));

@@ -57,7 +57,7 @@ test('before October 20, preseason snapshots should not create pretend current r
  const output=await nbaPrepareEvidence(game,{fetchJson:dataMock(calls)});
  assert.equal(output.status,'NOT_READY');
  assert.equal(output.samplesUsed,0);
- assert.deepEqual(output.sgps.map(x=>x.status),['NOT_READY','NOT_READY','NOT_READY']);
+ assert.deepEqual(output.sgps.map(x=>x.status),['NOT_READY','NOT_READY','NOT_READY','NOT_READY']);
  assert.match(output.reason,/Preseason sample is insufficient/);
  assert.ok(calls.every(x=>!x.includes('season=2026&seasontype=2')),
   'last season must not be silently treated as preseason');
@@ -75,7 +75,7 @@ test('October 20 opening-night regular-season model uses labeled 2025-26 game sa
  assert.ok(output.playerProjections.every(x=>x.basis.includes('Previous-season')));
  assert.ok(output.playerProjections.every(x=>x.name!=='BOS player 0'),
   'questionable day-to-day player may not become a confirmed eligible starter');
- for(const risk of ['Small','Medium','Nuke']){
+ for(const risk of ['Small','Medium','Large','Nuke']){
   const s=output.sgps.find(x=>x.risk===risk);
   assert.ok(['MODEL_CANDIDATE','NOT_READY'].includes(s.status),risk);
   if(s.status==='MODEL_CANDIDATE'){
