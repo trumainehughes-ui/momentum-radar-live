@@ -28,7 +28,7 @@ test('NFL sportsbook availability is derived from exact qualified offers, not an
  assert.ok(src.includes("state:sgpGateDiagnostics.eligible?'VERIFIED_INDIVIDUAL_PROPS':'NO_VERIFIED_PLAYER_PROPS'"));
  assert.ok(src.includes("sgpEligibleMarketRows:sgpGateDiagnostics.eligible"));
  assert.ok(src.includes('book,sgpRows.filter(m=>bookFor(m,book)).length'));
- assert.ok(src.includes('const DIRECT_PUBLIC_ODDS_ONLY=String(process.env.MOMENTUM_VERIFIED_BOOK_FEEDS||'').toLowerCase()!=='enabled''));
+ assert.ok(src.includes("const DIRECT_PUBLIC_ODDS_ONLY=String(process.env.MOMENTUM_VERIFIED_BOOK_FEEDS||'').toLowerCase()!=='enabled'"));
  assert.ok(src.includes('if(!modelOnlyPrimer&&!DIRECT_PUBLIC_ODDS_ONLY)try{'));
  assert.ok(src.includes('if(authorizedChange&&gameId&&!DIRECT_PUBLIC_ODDS_ONLY)'));
  assert.ok(!src.includes('publicSportsbookStatsUsed:true'));
