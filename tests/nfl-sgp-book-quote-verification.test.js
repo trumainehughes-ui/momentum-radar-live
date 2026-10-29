@@ -11,21 +11,21 @@ const legs=[
 ];
 const quote=(overrides={})=>({
  sourceType:"BOOK_ISSUED_COMBINED_SGP",book:"FanDuel",gameId:game,
- sourceQuoteAt:new Date(now-30000).toISOString(),americanOdds:2500,
+ sourceQuoteAt:new Date(now-30000).toISOString(),americanOdds:1000,
  legs:[...legs].reverse(),...overrides
 });
 const check=(q=quote(),params={})=>verifyNflBookCombinedSgpQuote({
  quote:q,book:"FanDuel",gameId:game,legs,risk:"Small",
  now,providerAuthenticated:true,...params
 });
-test("genuine book-issued combined +2500 yields $250 NET profit on $10 stake",()=>{
+test("genuine book-issued combined +1000 yields $100 NET profit on $10 stake",()=>{
  const r=check();
  assert.equal(r.verified,true);
  assert.equal(r.tierVerified,true);
  assert.equal(r.book,"FanDuel");
- assert.equal(r.actualCombinedOdds,2500);
- assert.equal(r.actualNetProfit,250);
- assert.equal(r.actualTotalReturn,260);
+ assert.equal(r.actualCombinedOdds,1000);
+ assert.equal(r.actualNetProfit,100);
+ assert.equal(r.actualTotalReturn,110);
  assert.equal(r.notGuaranteedAtPlacement,true);
 });
 test("cross-tier real bookmaker combined price blocks falsely small classification",()=>{
@@ -85,8 +85,8 @@ test("book, ESPN event and actual quote odds must all match trusted source",()=>
 });
 test("net tier boundaries are consistent for all games",()=>{
  for(const [odds,risk,expectedProfit] of [
-  [2000,"Small",200],[2999,"Small",299.9],[3000,"Medium",300],
-  [3001,"Medium",300.1],[8000,"Medium",800],
+  [500,"Small",50],[1500,"Small",150],[2000,"Medium",200],
+  [3000,"Medium",300],[3999,"Medium",399.9],[4000,"Large",400],[8000,"Large",800],
   [10000,"Nuke",1000],[10001,"Nuke",1000.1],[25362,"Nuke",2536.2]
  ]){
   const checked=check(quote({americanOdds:odds}),{risk});
