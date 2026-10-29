@@ -24,3 +24,14 @@ test('collector rejects duplicate athlete and market',()=>{
  const duplicate=make('Small',[['QB1','passing'],['RB1','rushing'],['WR1','receiving'],['QB1','passing']]);
  assert.equal(nflTierReadiness({sgps:{Analytics:[duplicate]}}).Small.status,'NOT_READY');
 });
+
+test('collector evaluates Large independently as the fourth named tier',()=>{
+ const large=make('Large',[['QB3','passing'],['RB3','rushing'],['WR3','receiving'],['TE3','receptions'],['RB4','td'],['WR4','receiving']]);
+ const tiers=nflTierReadiness({sgps:{Analytics:[small,medium,large]}});
+ assert.equal(tiers.Large.status,'MODEL_CANDIDATE');
+ assert.equal(tiers.Large.legs,6);
+});
+test('collector accepts an eight-leg diversified Nuke without treating it as invalid solely for leg count',()=>{
+ const eight=make('Nuke',[['QB3','passing'],['RB3','rushing'],['WR3','receiving'],['TE3','receptions'],['RB4','td'],['WR4','receiving'],['RB5','rushing'],['WR5','td']]);
+ assert.equal(nflTierReadiness({sgps:{Analytics:[eight]}}).Nuke.status,'MODEL_CANDIDATE');
+});
