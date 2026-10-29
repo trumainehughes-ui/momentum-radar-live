@@ -75,7 +75,7 @@ test('production calls strict quote validator and preserves unquoted status on w
  assert.ok(source.includes('verifyPropLineSgpResponse({league,gameId,eventId,bookmaker,legs},data)'));
  assert.ok(!source.includes('data.legs.every(l=>l.accepted===true)'));
  const markets=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
- assert.ok(markets.includes("findTier('Small',4,0),findTier('Medium',5,1),dynamicNuke()"));
+ assert.ok(markets.includes("findTier('Small',0),findTier('Medium',1),findTier('Large',2),findTier('Nuke',3)"));
  assert.ok(markets.includes('for(const n of [7,6,5])'));
  assert.ok(!markets.includes("for(let n=3;n<=Math.min(8,nukePool.length);n++)"));
  assert.ok(markets.includes('return {...s,estimatedOdds:null,bookVerificationPending:true'));
