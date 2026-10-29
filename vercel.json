@@ -22,7 +22,7 @@
   "crons": [
     {
       "path": "/api/nfl-health?cron=1",
-      "schedule": "*/15 * * * *"
+      "schedule": "*/10 * * * *"
     },
     {
       "path": "/api/bdl-refresh",
@@ -38,7 +38,7 @@
     },
     {
       "path": "/api/nfl-health?cron=1&shard=1",
-      "schedule": "*/15 * * * *"
+      "schedule": "*/10 * * * *"
     },
     {
       "path": "/api/nba-health?shard=1",

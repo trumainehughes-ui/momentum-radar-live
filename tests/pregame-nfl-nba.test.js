@@ -154,7 +154,7 @@ test('both protected cron routes, separate T-30 schedules, and NBA game readout 
   assert.equal(result.error,'cron_auth_required');
  }finally{if(env!==undefined)process.env.CRON_SECRET=env}
  const cfg=JSON.parse(readFileSync(new URL('../vercel.json',import.meta.url),'utf8'));
- assert.ok(cfg.crons.some(x=>x.path==='/api/nfl-health?cron=1'&&x.schedule==='*/15 * * * *'));
+ assert.ok(cfg.crons.some(x=>x.path==='/api/nfl-health?cron=1'&&x.schedule==='*/10 * * * *'));
  assert.ok(cfg.crons.some(x=>x.path==='/api/nba-health'&&x.schedule==='*/15 * * * *'));
  const nba=readFileSync(new URL('../api/nba-game.js',import.meta.url),'utf8');
  assert.ok(nba.includes('nbaReadPregame(gameId)'));
