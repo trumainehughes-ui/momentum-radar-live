@@ -45,5 +45,6 @@ test('NFL model annotates the Nuke attempt without loosening strict composition 
  assert.ok(source.includes('summarizeNflNukeEvidence(pool.map(x=>'));
  assert.ok(source.includes('const nuke=selectNflAdaptiveNuke(make);'));
  assert.ok(source.includes('nflLegMatchesGameRoster(x,identity)'));
- assert.ok(source.includes('const nukeHasStat=Boolean(nukeWithEvidence?.legs?.some'));
+ assert.ok(source.includes("const aiNuke=aiFallback('Nuke',nukeWithEvidence);"));
+ assert.ok(source.includes('const nukeHasStat=Boolean(aiNuke?.legs?.some'));
 });
