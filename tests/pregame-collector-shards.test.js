@@ -44,7 +44,7 @@ test('cron config preserves previously protected endpoints and adds both league 
  const expected=['/api/nfl-health?cron=1','/api/nfl-health?cron=1&shard=1',
   '/api/nba-health','/api/nba-health?shard=1'];
  for(const endpoint of expected){
-  assert.ok(cfg.crons.some(x=>x.path===endpoint&&x.schedule==='*/15 * * * *'),endpoint);
+  assert.ok(cfg.crons.some(x=>x.path===endpoint&&x.schedule===(endpoint.startsWith('/api/nfl-health')?'*/10 * * * *':'*/15 * * * *')),endpoint);
  }
  assert.equal(cfg.crons.filter(x=>x.path.startsWith('/api/nfl-health')).length,2);
  assert.equal(cfg.crons.filter(x=>x.path.startsWith('/api/nba-health')).length,2);
