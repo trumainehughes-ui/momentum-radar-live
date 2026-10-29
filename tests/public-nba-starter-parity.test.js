@@ -8,7 +8,7 @@ test('public NBA research card labels each game starter evidence honestly',()=>{
 });
 test('NBA collector marks a candidate tier not ready when observed starter evidence excludes a leg',()=>{
  const js=readFileSync(new URL('../api/nba-health.js',import.meta.url),'utf8');
- assert.match(js,/eventStarters\.checked===true&&!startersReady\?'NOT_READY'/);
+ assert.match(js,/selectedStarters\.checked===true&&!startersReady\?'NOT_READY'/);
 });
 
 test('shared public guard never promotes roster membership to verified starter or a playable SGP',async()=>{

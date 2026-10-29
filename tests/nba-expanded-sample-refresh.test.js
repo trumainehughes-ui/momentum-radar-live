@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {NBA_PREGAME_MODEL_VERSION,nbaPregameStage} from '../api/nba-health.js';
 test('expanded NBA historical sample forces stale stored snapshots to rebuild',()=>{
- assert.match(NBA_PREGAME_MODEL_VERSION,/^v14-labeled-opening-week-historical-research$/);
+ assert.match(NBA_PREGAME_MODEL_VERSION,/^v17-summary-starter-evidence$/);
  const game={status:'SCHEDULED',kickoff:new Date(Date.now()+4*3600000).toISOString()};
  const prior={modelVersion:'v7-game-scoped-starter-lineup-evidence',stage:'DAY_AHEAD_BUILD',checkedAt:new Date().toISOString()};
  const stage=nbaPregameStage(game,prior);
