@@ -75,7 +75,7 @@ test('GET history listing contains no auto-archive write side effects; daily cro
  assert.ok(code.includes("const HISTORY_PREFIX='momentum-history/v1/nfl-'"));
  assert.ok(cron.includes("await put(P+g.gameId+'.json'"));
  assert.ok(cfg.crons.some(x=>x.path==='/api/nfl-game?mode=archive-history'&&x.schedule==='0 11 * * *'));
- assert.ok(cfg.crons.some(x=>x.path==='/api/nfl-health?cron=1'&&x.schedule==='*/15 * * * *'));
+ assert.ok(cfg.crons.some(x=>x.path==='/api/nfl-health?cron=1'&&x.schedule==='*/10 * * * *'));
 });
 test('record source is server-generated, not client-submitted',()=>{
  const game={gameId:'401811111',kickoff:'2027-01-01T23:00:00Z',
