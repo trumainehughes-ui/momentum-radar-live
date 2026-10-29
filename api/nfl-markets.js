@@ -122,14 +122,14 @@ function nflVerifiedOnlySgpResponse(body){
    sgpOddsInBand(card.risk,card.actualSgpOdds));
  }
  sgps.Analytics=(Array.isArray(sgps.Analytics)?sgps.Analytics:[]).filter(c=>
-  c?.mode==='MODEL_ONLY'&&c?.publishable===false&&
+  (c?.mode==='MODEL_ONLY'||c?.mode==='DATA_MODEL')&&c?.publishable===false&&
   c?.combinedBookQuoteVerified===false&&
   ['Small','Medium','Large','Nuke'].includes(c?.risk)&&
   Array.isArray(c.legs)&&c.legs.length>0&&
-  c.tierAssessment?.compositionOk===true&&
+  (c.tierAssessment?.compositionOk===true||c.aiPredictionFallback===true)&&
   c.legs.length>=NFL_SGP_TIERS[c.risk].minLegs&&
   c.legs.length<=NFL_SGP_TIERS[c.risk].maxLegs&&
-  Number(c.requiredLegs)===c.legs.length&&
+  (Number(c.requiredLegs)===c.legs.length||c.aiPredictionFallback===true)&&
   c.legs.every(l=>l?.player&&l?.team&&l?.category))
   // A cache HIT must obey the same no-unlisted-line rule as a new build.
   .map(c=>({...c,legs:c.legs.map(l=>({...l,target:null,
@@ -534,7 +534,7 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
   }
   if(!selected.length)return original;
   const corr=sgpCorrelation(selected);
-  return {...original,legs:selected,modelOnly:true,aiPredictionFallback:true,
+  return {...original,mode:'MODEL_ONLY',legs:selected,modelOnly:true,aiPredictionFallback:true,
    candidateComplete:selected.length>=desired,publishable:false,
    combinedBookQuoteVerified:false,estimatedOdds:null,verifiedLegs:0,
    requiredLegs:desired,marketMix:[...new Set(selected.map(x=>x.cat))],
