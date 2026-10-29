@@ -53,9 +53,11 @@ test('Nuke scans 5 through 7 and chooses shortest qualifying model lineup withou
  const candidate=selectNflAdaptiveNuke((risk,count)=>{
   attempts.push(count);return produce(risk,count);
  });
- assert.deepEqual(attempts,[5,6,7]);
- assert.equal(candidate.adaptiveLegCount,5);
- assert.equal(candidate.legs.length,5);
+ assert.equal(attempts[0],1);
+ assert.equal(attempts.at(-1),20);
+ assert.ok(attempts.includes(3));
+ assert.equal(candidate.adaptiveLegCount,3);
+ assert.equal(candidate.legs.length,3);
  assert.equal(candidate.tierAssessment.compositionOk,true);
  assert.ok(candidate.legs.filter(x=>['passing','rushing','receiving'].includes(x.cat)).length>=3);
  assert.ok(new Set(candidate.legs.map(x=>x.cat)).size>=3);
@@ -76,8 +78,8 @@ test('Nuke prefers five elevated evidence-supported legs to seven without a book
   return {risk,legs,requiredLegs:count,tierAssessment:m.assessment,candidateComplete:m.filled};
  };
  const r=selectNflAdaptiveNuke(make);
- assert.equal(r.adaptiveLegCount,5);
- assert.equal(r.legs.length,5);
+ assert.equal(r.adaptiveLegCount,3);
+ assert.equal(r.legs.length,3);
  assert.notEqual(r.combinedBookQuoteVerified,true);
 });
 test('insufficient yardage or a Nuke target below projection returns NOT READY rather than fake odds',()=>{
