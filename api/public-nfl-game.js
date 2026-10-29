@@ -37,6 +37,7 @@ export default async function handler(req,res){
    return {risk,status:tier?.complete===true?'MODEL_RESEARCH_READY':
     tier?'MODEL_RESEARCH_INCOMPLETE':'NO_VALID_MODEL_TIER',
     legCount:Number(tier?.legCount)||0,
+    researchOnly:true,
     // Research composition is never a verified sportsbook selection.
     playable:false,bookmakerCombinedPriceVerified:false};
   });

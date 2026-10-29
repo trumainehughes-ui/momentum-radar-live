@@ -1266,7 +1266,9 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
    }
    return false;
   };
-  if(!['passing','rushing','receiving'].every(add))continue;
+  // Use available matchup-backed markets: a missing passing or receiving row
+  // must not block a valid rushing/receiving/receptions research combination.
+  for(const cat of ['passing','rushing','receiving'])add(cat);
   for(const cat of ['receptions','receiving','rushing','passing','td','receptions','receiving','rushing','td'])
    if(selected.length<count)add(cat);
   if(selected.length!==count)continue;
