@@ -80,7 +80,7 @@ test('non-confirmed individual offers cannot create a correlated bettable slip',
  assert.doesNotMatch(render(fakeOnly),/\+2500 combined/);
 });
 test('public NFL renderer escapes player names and rejects incomplete and all-TD SGP lineups',()=>{
- const incomplete=tier('Nuke',3);incomplete.complete=true;
+ const incomplete=tier('Nuke',2);incomplete.complete=true;
  const allTd=tier('Small',4);allTd.legs=allTd.legs.map(x=>({...x,category:'td'}));
  const broken=render(snapshot({modelResearchTiers:[incomplete,allTd]}));
  assert.match(broken,/Nuke · NOT READY/);
