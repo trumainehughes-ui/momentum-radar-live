@@ -206,7 +206,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   <button type="button" class="nfl-module-tab" data-nba-module="injuries" aria-pressed="false">Injuries</button>
  </nav>
  <section id="edge-hunter-panel" class="panel" hidden><div id="edge-hunter-board" class="nba-forecast"><h3>🎯 Edge Hunter</h3><p class="sub">Choose a slate date to scan the two best qualifying NBA games.</p></div></section>
- <p id="nba-module-message" class="nfl-module-message">Select any NBA game below to see player props, injuries and available Small / Medium / Nuke model picks.</p>
+ <p id="nba-module-message" class="nfl-module-message">Select any NBA game below to see player props, injuries and available Small / Medium / Large / Nuke model picks.</p>
 </section>
 <div id="game-day-board"><p id="date-caption" class="sub" style="margin:16px 0 11px" aria-live="polite">Loading scheduled games…</p><div id="games" class="game-grid"><div class="empty loading grid-span">Loading matchups…</div></div><div id="game-panel-home" hidden></div></div></section>
 <section class="section" id="game-section" hidden><div class="panel"><div class="details-top"><div><div class="eyebrow">Matchup breakdown</div><div id="match-title" class="matchup">Select a game</div><p id="match-subtitle" class="sub">Model forecasts are screened before appearing here.</p></div><div id="freshness" class="fresh"></div></div><div id="match-content"><div class="empty" style="margin-top:18px">Choose a matchup above to view the player outlook and parlay tiers.</div></div><section id="public-weather-impact" class="panel" aria-label="NFL Weather Impact" style="margin-top:14px"><h3>🌦 Kickoff Weather</h3><div id="public-weather-content" class="sub">Open a matchup to see its kickoff forecast.</div></section></div></section>
@@ -302,7 +302,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
   const note=$('#nfl-module-message');
   note.hidden=!nfl||!(gameModules.has(module)||module==='live');
   if(nfl)note.textContent=module==='sgps'?
-   'Select a matchup below to see its Small, Medium and Nuke SGP research and any verified book quotes.':
+   'Select a matchup below to see its Small, Medium, Large and Nuke SGP research and any verified book quotes.':
    module==='live'?'Showing touchdowns from ALL NFL games on this date, including completed games. Scoring data updates automatically.':
    'Select a matchup below to open all of its game analytics.';
   if(ranking){
@@ -531,28 +531,27 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    action+'</section>';
  }
  function nflPublicTierCountReady(risk,legs){
-  const n=Array.isArray(legs)?legs.length:0;
-  return risk==='Small'?n===4:risk==='Medium'?n===5:
-   risk==='Nuke'?n>=5&&n<=7:false;
+  return ['Small','Medium','Large','Nuke'].includes(risk)&&
+   Array.isArray(legs)&&legs.length>=1&&legs.length<=20;
  }
  function nflPublicTierMarketMixReady(risk,legs){
   if(!nflPublicTierCountReady(risk,legs))return false;
-  const cats=legs.map(l=>String(l.category||l.cat||'').toLowerCase());
-  const yards=cats.filter(c=>['passing','rushing','receiving'].includes(c));
-  const requiredYards=risk==='Small'?2:3;
-  const maxTd=risk==='Nuke'?2:1;
   const keys=legs.map(l=>String(l.player||l.name||'').toUpperCase()+'|'+
    String(l.team||'').toUpperCase()+'|'+String(l.category||l.cat||'').toLowerCase());
+  const athletes=new Map();
+  for(const l of legs){
+   const id=String(l.player||l.name||'').toUpperCase()+'|'+String(l.team||'').toUpperCase();
+   athletes.set(id,(athletes.get(id)||0)+1);
+  }
   return new Set(keys).size===keys.length&&
-   new Set(cats).size>=3&&
-   yards.length>=requiredYards&&new Set(yards).size>=2&&
-   cats.filter(c=>c==='td').length<=maxTd;
+   [...athletes.values()].every(n=>n<=2);
  }
  function nflPublicTierPriceReady(risk,odds){
   const n=Number(odds);
   if(!Number.isSafeInteger(n))return false;
-  return risk==='Small'?n>=2000&&n<3000:
-   risk==='Medium'?n>=3000&&n<=8000:
+  return risk==='Small'?n>=500&&n<=1500:
+   risk==='Medium'?n>=2000&&n<4000:
+   risk==='Large'?n>=4000&&n<=8000:
    risk==='Nuke'?n>=10000:false;
  }
  function renderParlays(d){
@@ -576,7 +575,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    window.momentumNflModelChoice.renderNflModelChoiceBoard(modelBoard):
    '<p class="sgp-brief-status">Model yardage forecasts will appear once current game and injury/role evidence is screened. Players with OUT/IR designations are not shown.</p>';
   const quotes=(d.verifiedQuotes||[]).filter(q=>q&&['DraftKings','FanDuel'].includes(q.book)&&
-   ['Small','Medium','Nuke'].includes(q.risk)&&Number.isFinite(Number(q.americanOdds))&&
+   ['Small','Medium','Large','Nuke'].includes(q.risk)&&Number.isFinite(Number(q.americanOdds))&&
    Number(q.americanOdds)!==0);
   const ready=d.inactivesVerified===true&&d.updatedDataCurrent===true&&quotes.length>0;
   // The public endpoint deliberately labels older saved model picks
@@ -606,7 +605,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
      (l.category==='td'||l.target!=null&&o.line!=null&&Number(o.line)===Number(l.target))&&
      Number.isFinite(Number(o.odds));
    }))return false;
-   if(!['Small','Medium','Nuke'].includes(c?.risk)||
+   if(!['Small','Medium','Large','Nuke'].includes(c?.risk)||
       c.mode!=='MODEL_ONLY'||c.outdated===true||
       (!c.researchFromCurrentMarkets&&(d.status==='LAST_SAVED'||d.updatedDataCurrent===false))||
       !Array.isArray(c.legs))return false;
@@ -715,7 +714,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
      (goal!==null?'<div class="sgp-leg-why">AI goal: '+esc(goal)+(leg.category==='receptions'?' receptions':' yards')+'</div>':'')+
      '<div class="sgp-leg-why">Matchup: '+esc(leg.projectionNote||'Roster-screened offense versus defense projection; individual matchup detail not yet available.')+'</div></li>';
    }).join('')+'</ol>':'<p class="sgp-brief-status">No eligible game-scoped player projections have been published yet.</p>')+'</section>';
-  const syncedHtml='<div class="sgp-slips">'+['Small','Medium','Nuke'].map(risk=>{
+  const syncedHtml='<div class="sgp-slips">'+['Small','Medium','Large','Nuke'].map(risk=>{
    const card=savedTiers.find(c=>c?.risk===risk&&
     c.mode==='MODEL_RESEARCH'&&
     Array.isArray(c.legs)&&c.legs.length>0);
@@ -776,7 +775,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     d.verifiedBookParlays.filter(c=>{
      if(c?.book!==book||c.mode!=='VERIFIED_BOOK_SGP'||
        c.combinedOddsVerified!==true||
-       !['Small','Medium','Nuke'].includes(c.risk)||
+       !['Small','Medium','Large','Nuke'].includes(c.risk)||
        !Number.isSafeInteger(Number(c.americanOdds))||
        !Number.isFinite(Date.parse(c.quotedAt||''))||
        Date.parse(c.quotedAt)>Date.now()+60*1000||
@@ -975,7 +974,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    '<button class="soft" type="button" data-view="props">All player props →</button></div>'+
    '<div class="players-grid">'+['passing','rushing','receiving','receptions'].flatMap(cat=>
     (d.categories?.[cat]||[]).slice(0,1).map(x=>renderPlayer(x,cat))).join('')+'</div>'+
-   '<div class="section-head" style="margin-top:25px"><div><h3>Small / Medium / Nuke</h3><p class="sub">Simple player and prop selections</p></div>'+
+   '<div class="section-head" style="margin-top:25px"><div><h3>Small / Medium / Large / Nuke</h3><p class="sub">Simple player and prop selections</p></div>'+
    '<button class="soft" type="button" data-view="sgps">Full parlays →</button></div>'+
    renderParlays(d);
  }
@@ -1291,7 +1290,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
     noData('Player forecasts not yet populated','The collector has not supplied usable player projections for this game.'))+
    '</section>';
   const cards=(Array.isArray(d.sgps)?d.sgps:[]);
-  const html=['Small','Medium','Nuke'].map(name=>{
+  const html=['Small','Medium','Large','Nuke'].map(name=>{
    const c=cards.find(x=>x.risk===name);
    const legs=Array.isArray(c?.legs)?c.legs:[];
    const min=name==='Small'?4:5,max=name==='Nuke'?7:min;
