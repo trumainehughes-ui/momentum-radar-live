@@ -91,8 +91,8 @@ test("positive American odds for a $10 stake are NET profit, not return",()=>{
 });
 test("NFL model text describes NET payout targets, never total return",()=>{
  const api=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
- assert.ok(api.includes("$200–under $300 NET profit"));
- assert.ok(api.includes("$300–$800 NET profit"));
+ assert.ok(api.includes("$50–$150 NET profit"));
+ assert.ok(api.includes("$200–under $400 NET profit"));
  assert.ok(api.includes("$1,000+ NET profit"));
  assert.ok(api.includes("Object.entries(NFL_SGP_TIERS).map("));
  assert.ok(api.includes("classifyNflSgpOdds(value)===risk"));
