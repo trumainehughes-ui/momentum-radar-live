@@ -39,7 +39,7 @@ test('snapshot path exactly matches production cache naming without charging any
 test('no completed Small, Medium, Nuke reports concrete missing-yardage vs identity, not invented lines',()=>{
  const status=nflSgpSnapshotReadiness(sample(),{now,gameId});
  assert.equal(status.status,'NOT_READY');
- assert.deepEqual(status.tiers.map(x=>x.status),['NOT_READY','NOT_READY','NOT_READY']);
+ assert.deepEqual(status.tiers.map(x=>x.status),['NOT_READY','NOT_READY','NOT_READY','NOT_READY']);
  assert.ok(status.tiers[0].reason.includes('rushing / receiving'));
  assert.equal(status.roleSummary.projectedHighUsageRoles,3);
  assert.equal(status.roleSummary.missingRosterOrGameIdentity,1);
