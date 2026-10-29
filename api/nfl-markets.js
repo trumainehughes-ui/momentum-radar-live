@@ -970,7 +970,23 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
  if(cat!=='td'&&!analyticsUsageEligible(x,r,cat)){
   sgpGateDiagnostics.insufficientUsage++;return false;
  }
- sgpGateDiagnostics.eligible++;return true});requestStage='book_sgp_build';const quoteSourceRows=nflAuthorizedBookSgpRows(sgpRows,{authorizedChange,signedSelectionRows:signedPropLineRows.length});oddsDebug.providerNativeRows=signedPropLineRows.length;const bookSgps=gameId?{DraftKings:buildBookSgp(quoteSourceRows,'DraftKings',ctx),FanDuel:buildBookSgp(quoteSourceRows,'FanDuel',ctx)}:{};const hasCompleteBookLegCandidate=Boolean(gameId&&Object.values(bookSgps).some(v=>(v||[]).some(s=>(s.legs||[]).length===s.requiredLegs)));requestStage='analytics_sgp_build';const analyticsSgps=gameId?buildAnalyticsSgp(categories,ctx,roles,{gameId,home,away,rosterChecked:eligibility?.checked===true,rosterById:eligibility?.rosterById,rosterByName:eligibility?.rosterByName,normalizeName:norm}).map(card=>({...card,legs:(card.legs||[]).map(leg=>({...leg,hitChance:estimateNflHitChance(leg,leg.cat,{target:leg.analyticsThreshold})}))})):[];const sgpEngineDiagnostics=(analyticsSgps||[]).map(c=>({tier:c.risk,complete:c.tierAssessment?.compositionOk===true,legs:c.legs?.length||0,required:c.requiredLegs||0,marketMix:c.marketMix||[],blocker:String(c.reason||'').slice(0,300),pool:c.poolDiagnostics||null,composition:c.tierAssessment?.reason||null,missingMarkets:['passing','rushing','receiving'].filter(cat=>!(c.marketMix||[]).includes(cat))}));oddsDebug.sgpEngineDiagnostics=sgpEngineDiagnostics;requestStage='sgp_tier_assembly';
+ sgpGateDiagnostics.eligible++;return true});requestStage='book_sgp_build';const quoteSourceRows=nflAuthorizedBookSgpRows(sgpRows,{authorizedChange,signedSelectionRows:signedPropLineRows.length});oddsDebug.providerNativeRows=signedPropLineRows.length;const bookSgps=gameId?{DraftKings:buildBookSgp(quoteSourceRows,'DraftKings',ctx),FanDuel:buildBookSgp(quoteSourceRows,'FanDuel',ctx)}:{};const hasCompleteBookLegCandidate=Boolean(gameId&&Object.values(bookSgps).some(v=>(v||[]).some(s=>(s.legs||[]).length===s.requiredLegs)));requestStage='analytics_sgp_build';let analyticsSgps=[];
+ if(gameId){
+  try{
+   analyticsSgps=buildAnalyticsSgp(categories,ctx,roles,{gameId,home,away,rosterChecked:eligibility?.checked===true,rosterById:eligibility?.rosterById,
+    rosterByName:eligibility?.rosterByName,normalizeName:norm}).map(card=>({
+     ...card,legs:(card.legs||[]).map(leg=>({...leg,
+      hitChance:estimateNflHitChance(leg,leg.cat,{target:leg.analyticsThreshold})}))}));
+  }catch(error){
+   // An adaptive-model exception must not suppress roster-vetted fallback
+   // research or the shared public snapshot. Never invent sportsbook prices.
+   console.error('nfl_analytics_sgp_build_failed',JSON.stringify({
+    gameId:String(gameId),errorType:String(error?.name||'Error'),
+    message:String(error?.message||'').slice(0,240),
+    stack:String(error?.stack||'').slice(0,1600)}));
+   analyticsSgps=[];
+  }
+ }const sgpEngineDiagnostics=(analyticsSgps||[]).map(c=>({tier:c.risk,complete:c.tierAssessment?.compositionOk===true,legs:c.legs?.length||0,required:c.requiredLegs||0,marketMix:c.marketMix||[],blocker:String(c.reason||'').slice(0,300),pool:c.poolDiagnostics||null,composition:c.tierAssessment?.reason||null,missingMarkets:['passing','rushing','receiving'].filter(cat=>!(c.marketMix||[]).includes(cat))}));oddsDebug.sgpEngineDiagnostics=sgpEngineDiagnostics;requestStage='sgp_tier_assembly';
  // Respond before legacy malformed/commented response tail; all candidates are unquoted.
  const unquoted=(rows,book)=>(rows||[]).map(s=>({...s,bookVerificationPending:true,combinedBookQuoteVerified:false,actualSgpOdds:null,publishable:false,displayLabel:book+' individual-prop candidate (unquoted)'}));
  const quoteReady=(rows,book)=>(rows||[]).map(s=>{
