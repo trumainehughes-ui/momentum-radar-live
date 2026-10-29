@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {selectNflAdaptiveTier,fillNflSgpMarketMix} from '../lib/ai-mechanics/nfl-sgp-tiers.js';
+import {selectNflAdaptiveTier,fillNflSgpMarketMix,modelNflSgpStatThreshold} from '../lib/ai-mechanics/nfl-sgp-tiers.js';
 const leg=i=>({cat:['passing','rushing','receiving'][i%3],playerID:String(i),projection:100,analyticsThreshold:150});
 for(const [risk,minimum] of [['Small',3],['Medium',3],['Large',3],['Nuke',3]]){
  test(risk+' respects minimum complete SGP composition',()=>{
@@ -50,4 +50,22 @@ test('invalid market mix still returns a failed tier assessment',()=>{
  const mix=fillNflSgpMarketMix({risk:'Small',count:1,pool:[],legs:[],add:()=>false});
  assert.equal(mix.filled,false);
  assert.equal(mix.assessment.compositionOk,false);
+});
+
+test('Large generates a conservative evidence-based threshold rather than null',()=>{
+ const player={predictiveProjection:105,range:{ceiling:145}};
+ assert.equal(modelNflSgpStatThreshold(player,'receiving','Large',100),100);
+});
+test('TD cannot crowd out required yardage legs',()=>{
+ const pool=[
+  {cat:'passing',playerID:'1'}, {cat:'rushing',playerID:'2'},
+  {cat:'td',playerID:'3'}, {cat:'receiving',playerID:'4'}
+ ];
+ const legs=[];
+ const result=fillNflSgpMarketMix({risk:'Medium',count:3,pool,legs,add:x=>{
+  if(legs.some(v=>v.playerID===x.playerID&&v.cat===x.cat))return false;
+  legs.push(x);return true;
+ }});
+ assert.equal(result.filled,true);
+ assert.equal(legs.filter(x=>x.cat==='td').length,0);
 });
