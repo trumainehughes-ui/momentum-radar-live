@@ -104,3 +104,12 @@ test('public NFL tier research only uses validation-first publication',()=>{
  const market=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
  assert.match(market,/\.map\(publishedNflModelTier\)\.filter\(Boolean\)\.filter/);
 });
+
+
+test('adaptive NFL builder failure retains public fallback publication path',()=>{
+ const market=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
+ const publicView=readFileSync(new URL('../lib/public-nfl-view.js',import.meta.url),'utf8');
+ assert.match(market,/catch\(error\)\{[\s\S]*?nfl_analytics_sgp_build_failed/);
+ assert.match(market,/analyticsSgps=\[\];/);
+ assert.match(publicView,/PUBLIC_NFL_ADAPTIVE_FAILURE_RULE='FALLBACK_RESEARCH_ONLY'/);
+});
