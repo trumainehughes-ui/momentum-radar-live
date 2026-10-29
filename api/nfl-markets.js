@@ -224,7 +224,7 @@ function buildBookSgp(rows,book,ctx){
   let best=null,bestDistance=Infinity;
   // Leg count is a search dimension, not a tier definition. No candidate
   // can claim a payout until a bookmaker supplies its correlated SGP quote.
-  const maxCount=Math.min(12,basePool.length);
+  const maxCount=Math.min(10,basePool.length);
   for(let count=3;count<=maxCount;count++){
    for(let o=0;o<Math.min(basePool.length,5);o++){
     const candidate=make(risk,count,offset+o);
