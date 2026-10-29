@@ -488,6 +488,8 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
  if(small?.tierAssessment?.compositionOk)selectedTierKeys.set('Small',new Set(small.legs.map(v=>String(v.playerID||norm(v.name))+'|'+v.cat)));
  const medium=selectNflAdaptiveTier(make,'Medium');
  if(medium?.tierAssessment?.compositionOk)selectedTierKeys.set('Medium',new Set(medium.legs.map(v=>String(v.playerID||norm(v.name))+'|'+v.cat)));
+ const large=selectNflAdaptiveTier(make,'Large');
+ if(large?.tierAssessment?.compositionOk)selectedTierKeys.set('Large',new Set(large.legs.map(v=>String(v.playerID||norm(v.name))+'|'+v.cat)));
  const nuke=selectNflAdaptiveNuke(make);
  const nukeWithEvidence={...nuke,nukeEvidence,
   reason:nuke?.legs?.length?nuke.reason:
