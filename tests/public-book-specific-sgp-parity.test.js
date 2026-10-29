@@ -44,7 +44,7 @@ function makeCard(book,legs=metadata.map((row,i)=>makeLeg(row,target[book][i])))
  return{book,risk:'Small',requiredLegs:4,
   legs:legs.map(leg=>({...leg,bookOffer:{verified:true,book}})),
   tierVerified:true,combinedBookQuoteVerified:true,publishable:true,bookVerificationPending:false,
-  quotedAt:new Date(at-25_000).toISOString(),actualSgpOdds:2500};
+  quotedAt:new Date(at-25_000).toISOString(),actualSgpOdds:1000};
 }
 function sample({wrongFdLine=false,wrongFdCategory=false,oldFd=false}={}){
  const cats=Object.fromEntries(['td','passing','rushing','receiving','receptions']

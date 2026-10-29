@@ -43,10 +43,13 @@ test("observed combined quote trumps a different independent-leg estimate",()=>{
 });
 test("Small and Medium target NET profit bands; Nuke minimum +10000",()=>{
  assert.equal(classifyNflSgpOdds(1999),"OUTSIDE_TIER_BANDS");
- assert.equal(classifyNflSgpOdds(2000),"Small");
+ assert.equal(classifyNflSgpOdds(500),"Small");
+ assert.equal(classifyNflSgpOdds(1500),"Small");
+ assert.equal(classifyNflSgpOdds(2000),"Medium");
  assert.equal(classifyNflSgpOdds(3000),"Medium");
  assert.equal(classifyNflSgpOdds(3001),"Medium");
- assert.equal(classifyNflSgpOdds(8000),"Medium");
+ assert.equal(classifyNflSgpOdds(4000),"Large");
+ assert.equal(classifyNflSgpOdds(8000),"Large");
  assert.equal(classifyNflSgpOdds(8001),"OUTSIDE_TIER_BANDS");
  assert.equal(classifyNflSgpOdds(10000),"Nuke");
  assert.equal(classifyNflSgpOdds(10001),"Nuke");
@@ -88,8 +91,8 @@ test("positive American odds for a $10 stake are NET profit, not return",()=>{
 });
 test("NFL model text describes NET payout targets, never total return",()=>{
  const api=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
- assert.ok(api.includes("$200–under $300 NET profit"));
- assert.ok(api.includes("$300–$800 NET profit"));
+ assert.ok(api.includes("$50–$150 NET profit"));
+ assert.ok(api.includes("$200–under $400 NET profit"));
  assert.ok(api.includes("$1,000+ NET profit"));
  assert.ok(api.includes("Object.entries(NFL_SGP_TIERS).map("));
  assert.ok(api.includes("classifyNflSgpOdds(value)===risk"));

@@ -16,9 +16,9 @@ test('NFL SGP distinguishes individual official-site observations from bookmaker
  assert.ok(!src.includes("Every leg is currently verified on '+book+'"));
  assert.ok(!src.includes('hasVerifiedSgp||Boolean(manualTonight)'));
 });
-test('NFL SGP payout text uses the unified Small/Medium/Nuke net profit boundaries',()=>{
- assert.ok(src.includes('$200–under $300 NET profit'));
- assert.ok(src.includes('$300–$800 NET profit'));
+test('NFL SGP payout text uses the unified Small/Medium/Large/Nuke net profit boundaries',()=>{
+ assert.ok(src.includes('$50–$150 NET profit'));
+ assert.ok(src.includes('$200–under $400 NET profit'));
  assert.ok(src.includes('$1,000+ NET profit'));
  assert.ok(src.includes('Object.entries(NFL_SGP_TIERS).map('));
  assert.ok(src.includes('classifyNflSgpOdds(value)===risk'));

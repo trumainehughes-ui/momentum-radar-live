@@ -6,7 +6,7 @@ const leg=(id)=>({cat:'receiving',playerID:String(id),predictiveProjection:40,an
 test('Nuke prefers shortest evidence-supported composition over seven legs',()=>{
  const make=(risk,count)=>({risk,legs:Array.from({length:count},(_,i)=>leg(i)),tierAssessment:{compositionOk:count>=4},sgpScore:70});
  const chosen=selectNflAdaptiveNuke(make);
- assert.equal(chosen.adaptiveLegCount,5);
+ assert.equal(chosen.adaptiveLegCount,4);
  assert.equal(chosen.combinedBookQuoteVerified,false);
  assert.equal(chosen.publishable,false);
 });
@@ -14,7 +14,7 @@ test('Nuke rejects conservative thresholds even when composition passes',()=>{
  const make=(risk,count)=>({risk,legs:Array.from({length:count},(_,i)=>({...leg(i),analyticsThreshold:30})),tierAssessment:{compositionOk:true}});
  assert.equal(selectNflAdaptiveNuke(make).legs.length,0);
 });
-test('cache sanitizer accepts only supported five through seven Nuke legs',()=>{
+test('cache sanitizer accepts only shared flexible Nuke leg bounds',()=>{
  const src=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
  assert.match(src,/c\.legs\.length>=NFL_SGP_TIERS\[c\.risk\]\.minLegs/);
  assert.match(src,/c\.legs\.length<=NFL_SGP_TIERS\[c\.risk\]\.maxLegs/);

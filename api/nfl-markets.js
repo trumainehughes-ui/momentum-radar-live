@@ -58,7 +58,7 @@ const DIRECT_PUBLIC_ODDS_ONLY=true;
 // This contract is intentionally sport-portable so the future NBA module can use NBA.com / ESPN + public DK/FD the same way.
 const MARKET_SOURCE_POLICY={projection:['NFL.com','ESPN','team offense vs defense','DVP','injuries/roles','DraftKings public stats/trends','FanDuel public stats/trends'],marketResearch:['DraftKings public markets','FanDuel public markets'],apiAssist:[],apiRequired:false,publicBookResearchRequired:true,publicBookEvidence:['lines','alternate lines','American odds','recent-game results','hit-rate/trend context','player matchup notes','TD markets','passing/rushing/receiving/receptions markets'],rule:'combine_all_public_evidence_projection_first_api_optional'};
 function sgpOddsInBand(risk,odds){const value=Number(odds);return Number.isSafeInteger(value)&&classifyNflSgpOdds(value)===risk}
-function sgpPayoutLabel(risk){return risk==='Small'?'$10 stake → $200–under $300 NET profit (target +2000 to +2999)':risk==='Medium'?'$10 stake → $300–$800 NET profit (target +3000 to +8000)':'$10 stake → $1,000+ NET profit (target +10000 or higher)'}
+function sgpPayoutLabel(risk){const labels={Small:'$10 stake → $50–$150 NET profit (+500 to +1500)',Medium:'$10 stake → $200–under $400 NET profit (+2000 to +3999)',Large:'$10 stake → $400–$800 NET profit (+4000 to +8000)',Nuke:'$10 stake → $1,000+ NET profit (+10000 or higher)'};return labels[risk]||'Unverified payout'}
 function manualAtlNoTonightSgps(date,home,away){
  const teams=new Set([norm(home),norm(away)]);if(date!=='2026-10-05'||!teams.has('ATL')||!(teams.has('NO')||teams.has('NOS')))return null;
  const src='ESPN + NFL.com • 2026 Weeks 1–3 • matchup model';
@@ -124,7 +124,7 @@ function nflVerifiedOnlySgpResponse(body){
  sgps.Analytics=(Array.isArray(sgps.Analytics)?sgps.Analytics:[]).filter(c=>
   c?.mode==='MODEL_ONLY'&&c?.publishable===false&&
   c?.combinedBookQuoteVerified===false&&
-  ['Small','Medium','Nuke'].includes(c?.risk)&&
+  ['Small','Medium','Large','Nuke'].includes(c?.risk)&&
   Array.isArray(c.legs)&&c.legs.length>0&&
   c.tierAssessment?.compositionOk===true&&
   c.legs.length>=NFL_SGP_TIERS[c.risk].minLegs&&
@@ -219,40 +219,34 @@ function buildBookSgp(rows,book,ctx){
  basePool.sort((a,b)=>b.momentumScore-a.momentumScore);
  const nukePool=basePool.map(x=>{if(!['passing','receiving','rushing','receptions'].includes(x.cat)||!Number.isFinite(+x.bookOffer?.line))return x;const avg=Number(x.predictiveProjection??x.projection??x.perGame)||+x.bookOffer.line,modelTarget=analyticsLine(x,x.cat,'Nuke',ctx),step=x.cat==='receptions'?1:5,minimum=x.cat==='receptions'?Math.floor(avg)+1:Math.ceil((avg+0.0001)/step)*step,target=Number.isFinite(modelTarget)?Math.max(minimum,modelTarget):minimum,g=groups.get(x.playerID+'|'+x.cat)||[],higher=g.filter(v=>Number.isFinite(+v.bookOffer?.line)&&+v.bookOffer.line>+x.bookOffer.line&&+v.bookOffer.line>=minimum*.92).sort((a,b)=>Math.abs(+a.bookOffer.line-target)-Math.abs(+b.bookOffer.line-target));const ceiling=x.cat==='receptions'?Math.ceil(avg)+2:x.cat==='passing'?Math.ceil((avg+25)/5)*5:Math.ceil((avg+15)/5)*5;const available=higher.filter(v=>+v.bookOffer.line<=ceiling);const fallbackFloor=x.cat==='receptions'?Math.max(minimum,target-1):Math.max(minimum,target-10);const pick=available.find(v=>+v.bookOffer.line>=target)||available.filter(v=>+v.bookOffer.line>=fallbackFloor).sort((a,b)=>Math.abs(+a.bookOffer.line-target)-Math.abs(+b.bookOffer.line-target))[0];if(!pick)return{...x,nukeTarget:target,nukeCeiling:ceiling,nukeJuiced:false,nukeAboveProjection:false,nukeRejectedReason:'No '+book+' alternate within supported Momentum Nuke range '+target+' to '+ceiling+' above projection '+avg};return{...pick,nukeTarget:target,nukeJuiced:+pick.bookOffer?.line>+x.bookOffer.line,nukeAboveProjection:+pick.bookOffer?.line>avg,nukeMeetsModelTarget:+pick.bookOffer?.line>=target}}).sort((a,b)=>{const aj=a.nukeJuiced?1:0,bj=b.nukeJuiced?1:0;return bj-aj||(Number(b.momentumScore)||0)-(Number(a.momentumScore)||0)});
  const make=(risk,count,offset)=>{let source=risk==='Nuke'?nukePool:basePool;if(risk==='Nuke'){source=source.filter(x=>x.cat==='td'||x.nukeAboveProjection===true);const juiced=source.filter(x=>x.nukeJuiced||x.cat==='td'),standard=source.filter(x=>!x.nukeJuiced&&x.cat!=='td');source=juiced.concat(standard)}const legs=[],used=new Set(),usedCats=new Set(),rotated=source.slice(offset).concat(source.slice(0,offset));const add=x=>{if(!x||used.has(x.playerID+'|'+x.cat))return false;used.add(x.playerID+'|'+x.cat);usedCats.add(x.cat);legs.push(x);return true};const mix=fillNflSgpMarketMix({risk,count,pool:rotated,legs,add});const complete=mix.filled;if(!complete)return{book,risk,legs:[],estimatedOdds:null,momentumScore:null,sgpScore:null,correlation:sgpCorrelation([]),marketMix:[],verifiedAt:new Date().toISOString(),requiredLegs:count,verifiedLegs:legs.length,reason:'No fully qualified '+book+' '+risk+' model candidate is available right now ('+legs.length+'/'+count+' eligible legs).'};const juicedCount=legs.filter(x=>x.nukeJuiced).length;if(risk==='Nuke'&&juicedCount<2)return{book,risk,legs:[],estimatedOdds:null,juicedLegs:juicedCount,nukeCeilingVerified:false,momentumScore:null,sgpScore:null,correlation:sgpCorrelation([]),marketMix:[],verifiedAt:new Date().toISOString(),requiredLegs:count,verifiedLegs:0,reason:'No model-estimated Nuke candidate is shown because fewer than two data-supported juiced alternate lines are currently available at '+book+'. The Data Model Nuke remains available separately.'};const tierAssessment=assessNflSgpTier({risk,legs,requiredLegs:count});if(!tierAssessment.compositionOk)return{book,risk,legs:[],estimatedOdds:null,verifiedLegs:0,requiredLegs:count,reason:tierAssessment.reason,tierAssessment};const est=parlayPrice(legs,book);if(!Number.isFinite(est))return{book,risk,legs:[],estimatedOdds:null,nukeCeilingVerified:false,requiredLegs:count,verifiedLegs:0,reason:'Incomplete fresh individual bookmaker odds for this candidate.'};const avg=Math.round(legs.reduce((s,x)=>s+x.momentumScore,0)/legs.length),corr=sgpCorrelation(legs),combined=Math.max(1,Math.min(99,Math.round(avg*.8+corr.score*.2))),juicedLegs=legs.filter(x=>x.nukeJuiced).length,nukeCeilingVerified=risk!=='Nuke'||juicedLegs>=2;return{book,risk,legs,tierAssessment,estimatedOdds:est,estimateMethod:'INDEPENDENT_LEG_MULTIPLICATION',estimateConfidence:'UNCALIBRATED_SAME_GAME_CORRELATION',estimateToleranceGuaranteed:false,estimatedProfitForTenDollars:est>0?Math.round(est)/10:null,juicedLegs,nukeCeilingVerified,momentumScore:avg,sgpScore:combined,correlation:corr,marketMix:[...usedCats],verifiedAt:new Date().toISOString(),requiredLegs:count,verifiedLegs:legs.length,reason:risk==='Nuke'?'Nuke prioritizes the highest-confidence data-supported ceiling and uses a candidate juiced alternate line only when market evidence supports one near that ceiling; every leg remains sportsbook-listed. Correlation is scored separately and contributes 20% of the SGP score.':'Individual prop legs were observed for '+book+'; the correlated combined SGP price is unverified. Correlation is scored separately and contributes 20% of the SGP score.'}};
- const findTier=(risk,count,offset=0)=>{
-  const band=SGP_ODDS_BANDS[risk],target=(band.min+band.max)/2;
+ const findTier=(risk,offset=0)=>{
+  const band=SGP_ODDS_BANDS[risk],target=risk==='Nuke'?15000:(band.min+band.max)/2;
   let best=null,bestDistance=Infinity;
-  for(let o=0;o<Math.min(basePool.length,5);o++){
-   const candidate=make(risk,count,offset+o);
-   if(candidate?.legs?.length!==count||candidate.tierAssessment?.compositionOk!==true)continue;
-   const odds=Number(candidate.estimatedOdds);
-   if(!Number.isFinite(odds))continue;
-   // Prefer a valid estimate inside the requested tier, closest to its midpoint.
-   // An outside-tier candidate remains research-only, never a priced ticket.
-   const inBand=sgpOddsInBand(risk,odds);
-   const distance=(inBand?0:1e9)+Math.abs(odds-target);
-   if(distance<bestDistance){best=candidate;bestDistance=distance;}
+  // Leg count is a search dimension, not a tier definition. No candidate
+  // can claim a payout until a bookmaker supplies its correlated SGP quote.
+  const maxCount=Math.min(10,basePool.length);
+  for(let count=3;count<=maxCount;count++){
+   for(let o=0;o<Math.min(basePool.length,5);o++){
+    const candidate=make(risk,count,offset+o);
+    if(candidate?.legs?.length!==count||candidate.tierAssessment?.compositionOk!==true)continue;
+    if(risk==='Nuke'&&!candidate.nukeCeilingVerified)continue;
+    const odds=Number(candidate.estimatedOdds);
+    if(!Number.isFinite(odds))continue;
+    const inBand=sgpOddsInBand(risk,odds);
+    // Model-only estimate is a ranking heuristic, NEVER a verified book price.
+    const distance=(inBand?0:1e9)+count*1e5+Math.abs(odds-target);
+    if(distance<bestDistance){best=candidate;bestDistance=distance;}
+   }
+   // Fewer plausible legs are preferable when their independent estimate
+   // reaches the research target; the real book still controls publication.
+   if(best&&sgpOddsInBand(risk,best.estimatedOdds))break;
   }
   return best?{...best,payoutTarget:sgpPayoutLabel(risk),payoutBandVerified:false,
    estimatedPayoutTargetInBand:sgpOddsInBand(risk,best.estimatedOdds)}:null;
  };
- const dynamicNuke=()=>{
-  let best=null;
-  for(const n of [7,6,5]){
-   const s=make('Nuke',n,2);
-   if(s?.legs?.length!==n||s.tierAssessment?.compositionOk!==true||!s.nukeCeilingVerified)continue;
-   if(sgpOddsInBand('Nuke',s.estimatedOdds))
-    return {...s,payoutTarget:sgpPayoutLabel('Nuke'),payoutBandVerified:false,estimatedPayoutTargetInBand:true};
-   if(!best||Number(s.estimatedOdds)>Number(best.estimatedOdds))best=s;
-  }
-  return best?{...best,payoutTarget:sgpPayoutLabel('Nuke'),payoutBandVerified:false,
-   estimatedPayoutTargetInBand:false}:null;
- };
- // Candidate composition is independent of payout verification. Do not drop
- // exact, book-offered legs based on multiplied odds; a genuine correlated
- // combined sportsbook price must be quoted separately.
+ // Exact sportsbook legs are candidate evidence, not a correlated quote.
  return filterCompleteNflBookSgps([
-  findTier('Small',4,0),findTier('Medium',5,1),dynamicNuke()
+  findTier('Small',0),findTier('Medium',1),findTier('Large',2),findTier('Nuke',3)
  ]);
 }
 function analyticsMetric(cat,pos){
@@ -438,7 +432,7 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
  const make=(risk,count)=>{
   const priorKeys=risk==='Small'?[]:risk==='Medium'?[selectedTierKeys.get('Small')].filter(Boolean):
    [selectedTierKeys.get('Small'),selectedTierKeys.get('Medium')].filter(Boolean);
-  const maxShared=risk==='Medium'?2:risk==='Nuke'?3:Infinity;
+  const maxShared=risk==='Medium'?2:risk==='Large'?3:risk==='Nuke'?4:Infinity;
   const legs=[],used=new Set(),cats=new Set(),riskPool=[...pool].sort((a,b)=>{
    // Prioritize new athletes and markets in later tiers. Rejecting only
    // after filling can exhaust the count before alternatives are considered.
@@ -494,13 +488,15 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
  if(small?.tierAssessment?.compositionOk)selectedTierKeys.set('Small',new Set(small.legs.map(v=>String(v.playerID||norm(v.name))+'|'+v.cat)));
  const medium=selectNflAdaptiveTier(make,'Medium');
  if(medium?.tierAssessment?.compositionOk)selectedTierKeys.set('Medium',new Set(medium.legs.map(v=>String(v.playerID||norm(v.name))+'|'+v.cat)));
+ const large=selectNflAdaptiveTier(make,'Large');
+ if(large?.tierAssessment?.compositionOk)selectedTierKeys.set('Large',new Set(large.legs.map(v=>String(v.playerID||norm(v.name))+'|'+v.cat)));
  const nuke=selectNflAdaptiveNuke(make);
  const nukeWithEvidence={...nuke,nukeEvidence,
   reason:nuke?.legs?.length?nuke.reason:
    (nuke?.reason||'Nuke not ready')+' Blocker: '+nukeEvidence.blocker+'. '+nukeEvidence.uniqueEligibleAthletes+
     ' eligible athletes; '+nukeEvidence.supportedYardageRows+' ceiling-backed yardage rows across '+
     nukeEvidence.distinctYardageMarkets+' yardage markets.'};
- const nukeHasStat=Boolean(nukeWithEvidence?.legs?.some(x=>x.cat!=='td'));return[{...small,poolDiagnostics,payoutTarget:sgpPayoutLabel('Small'),targetOddsBand:SGP_ODDS_BANDS.Small},{...medium,payoutTarget:sgpPayoutLabel('Medium'),targetOddsBand:SGP_ODDS_BANDS.Medium,poolDiagnostics},{...(nukeHasStat?nukeWithEvidence:{...nukeWithEvidence,legs:[],marketMix:[],reason:nukeWithEvidence.reason}),payoutTarget:sgpPayoutLabel('Nuke'),targetOddsBand:SGP_ODDS_BANDS.Nuke,poolDiagnostics}];
+ const nukeHasStat=Boolean(nukeWithEvidence?.legs?.some(x=>x.cat!=='td'));return[{...small,poolDiagnostics,payoutTarget:sgpPayoutLabel('Small'),targetOddsBand:SGP_ODDS_BANDS.Small},{...medium,payoutTarget:sgpPayoutLabel('Medium'),targetOddsBand:SGP_ODDS_BANDS.Medium,poolDiagnostics},{...large,payoutTarget:sgpPayoutLabel('Large'),targetOddsBand:SGP_ODDS_BANDS.Large,poolDiagnostics},{...(nukeHasStat?nukeWithEvidence:{...nukeWithEvidence,legs:[],marketMix:[],reason:nukeWithEvidence.reason}),payoutTarget:sgpPayoutLabel('Nuke'),targetOddsBand:SGP_ODDS_BANDS.Nuke,poolDiagnostics}];
 }
 async function gameRoleGate(gameId,base){if(!gameId)return{checked:false,roles:new Map()};try{const r=await timedFetch(base+'/api/nfl-game?gameId='+encodeURIComponent(gameId)+'&ts='+Date.now(),{cache:'no-store'});if(!r.ok)return{checked:false,roles:new Map()};const d=await r.json(),m=new Map();for(const x of d.playerProjections||[]){if(x.playerId)m.set(String(x.playerId),x);if(x.name)m.set('name:'+norm(x.name),x)}return{checked:true,roles:m,players:d.playerProjections||[],source:d.source||null,gameScopedStarters:d.gameScopedStarters||null}}catch{return{checked:false,roles:new Map()}}}
 function roleFor(gate,x){const roles=gate?.roles||new Map();return roles.get(String(x.playerID||x.playerId||''))||roles.get('name:'+norm(x.name))||null}
@@ -1003,7 +999,7 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
  if(authorizedChange&&gameId&&!DIRECT_PUBLIC_ODDS_ONLY){
   const candidates=[];
   for(const [book,bookmaker] of [['DraftKings','draftkings'],['FanDuel','fanduel']]){
-   for(const risk of ['Small','Medium','Nuke']){
+   for(const risk of ['Small','Medium','Large','Nuke']){
     const candidate=(sgpResponse[book]||[]).find(s=>s.risk===risk&&
       s.quoteEligibility==='READY_FOR_AUTHORIZED_QUOTE'&&s.quoteRequest);
     if(candidate)candidates.push({book,bookmaker,risk,candidate});
@@ -1023,7 +1019,7 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
   const quoteCandidates=changeType==='scheduled_checkpoint'?
    chooseNflCheckpointQuotes(candidates,{gameId,
     stage:String(req.query.checkpointStage||''),max:3}):
-   candidates.slice(0,6);
+   candidates.slice(0,8);
   // Candidate eligibility is not actual provider spend: signed checkpoints
   // deliberately cap attempts at three across both sportsbooks.
   if(!origin){
@@ -1170,20 +1166,20 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
       [row.injuryStatus,row.availability,row.starterStatus].join(' '))&&
     Number(row.projection??row.perGame)>0;
   });
- for(const [risk,count] of [['Small',4],['Medium',5],['Nuke',7]]){
+ for(const [risk,count] of [['Small',4],['Medium',5],['Large',6],['Nuke',7]]){
   if(already.has(risk))continue;
   const selected=[],used=new Set(),athleteCounts=new Map();
   const add=cat=>{
    const rows=fallbackRows.filter(x=>x.cat===cat).sort((a,b)=>
     Number(b.projection??b.perGame)-Number(a.projection??a.perGame));
-   const offset=risk==='Small'?0:risk==='Medium'?2:4;
+   const offset=risk==='Small'?0:risk==='Medium'?2:risk==='Large'?3:4;
    const shift=rows.length?offset%rows.length:0;
    const rotated=rows.slice(shift).concat(rows.slice(0,shift));
    for(const x of rotated){
     const id=String(x.playerID||x.playerId),key=id+'|'+cat;
     if(used.has(key)||(athleteCounts.get(id)||0)>=2)continue;
     const projection=Number(x.projection??x.perGame);
-    const factor=risk==='Small'?.7:risk==='Medium'?.95:1.2;
+    const factor=risk==='Small'?.7:risk==='Medium'?.95:risk==='Large'?1.05:1.2;
     const target=cat==='receptions'?Math.max(1,Math.floor(projection*factor)):
      cat==='td'?1:Math.max(5,Math.floor(projection*factor/5)*5);
     selected.push({...x,name:String(x.name||x.player),playerID:id,eventID:String(gameId),

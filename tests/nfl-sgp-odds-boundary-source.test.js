@@ -12,14 +12,15 @@ const inBand=vm.runInNewContext('('+source.slice(start,end).trim()+')',
  {classifyNflSgpOdds});
 test('market collector and shared tier classifier agree at critical +3000 and +10000 edges',()=>{
  const scenarios=[
-  [1999,'UNKNOWN'],[2000,'Small'],[2999,'Small'],[3000,'Medium'],
-  [8000,'Medium'],[8001,'OUTSIDE_TIER_BANDS'],
+  [499,'UNKNOWN'],[500,'Small'],[1500,'Small'],[1501,'OUTSIDE_TIER_BANDS'],
+  [1999,'OUTSIDE_TIER_BANDS'],[2000,'Medium'],[2999,'Medium'],[3000,'Medium'],
+  [3999,'Medium'],[4000,'Large'],[8000,'Large'],[8001,'OUTSIDE_TIER_BANDS'],
   [9999,'OUTSIDE_TIER_BANDS'],[10000,'Nuke'],[10001,'Nuke']
  ];
  for(const [odds,classification] of scenarios){
   const expected=classification==='UNKNOWN'?'OUTSIDE_TIER_BANDS':classification;
   assert.equal(classifyNflSgpOdds(odds),expected,String(odds));
-  for(const risk of ['Small','Medium','Nuke'])
+  for(const risk of ['Small','Medium','Large','Nuke'])
    assert.equal(inBand(risk,odds),risk===expected,risk+' '+odds);
  }
  assert.equal(inBand('Nuke',10000.5),false);
@@ -28,7 +29,9 @@ test('market collector and shared tier classifier agree at critical +3000 and +1
 });
 test('exact Nuke threshold makes $1,000 NET profit, not $1,000 including stake',()=>{
  assert.equal(NFL_SGP_TIERS.Nuke.minOdds,10000);
- assert.equal(NFL_SGP_TIERS.Small.maxOdds,2999);
+ assert.equal(NFL_SGP_TIERS.Small.maxOdds,1500);
+ assert.equal(NFL_SGP_TIERS.Medium.maxOdds,3999);
+ assert.equal(NFL_SGP_TIERS.Large.minOdds,4000);
  assert.equal(tenDollarSgpPayout(10000).netProfit,1000);
  assert.equal(tenDollarSgpPayout(10000).totalReturn,1010);
 });

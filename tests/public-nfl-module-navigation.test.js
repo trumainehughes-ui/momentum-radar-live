@@ -90,7 +90,7 @@ test('Same Game Parlays remains game-specific but Live TD Tracker opens all-game
  assert.equal(f.state.detailTab,'sgps');
  assert.equal(f.elements['#game-day-board'].hidden,false);
  assert.equal(f.calls.game,1);
- assert.match(f.elements['#nfl-module-message'].textContent,/Small, Medium and Nuke/);
+ assert.match(f.elements['#nfl-module-message'].textContent,/Small, Medium, Large and Nuke/);
  f.state.selected='402222222';
  f.nav.activateNflModule('live');
  assert.equal(f.state.detailTab,'sgps','global tracker does not silently change selected game detail tab');

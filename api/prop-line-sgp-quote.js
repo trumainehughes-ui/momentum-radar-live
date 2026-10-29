@@ -6,7 +6,8 @@ import {validNflCheckpointToken,NFL_CHECKPOINT_MAX_QUOTES} from '../lib/nfl-sche
 const API='https://api.prop-line.com/v1';
 const SPORT={nfl:'football_nfl',nba:'basketball_nba'};
 const BOOKS=new Set(['draftkings','fanduel']);
-const NFL_TIER_LEGS={Small:[4,4],Medium:[5,5],Nuke:[5,7]};
+// Flexible 3–10 leg requests; source verification and the paid quote budget remain strict.
+const NFL_TIER_LEGS={Small:[3,10],Medium:[3,10],Large:[3,10],Nuke:[3,10]};
 const MARKETS=new Set(['player_pass_yds','player_rush_yds','player_reception_yds','player_receptions','player_anytime_td','player_points','player_rebounds','player_assists','player_threes']);
 export default async function handler(req,res){
  res.setHeader('Cache-Control','private, no-store');
@@ -16,7 +17,7 @@ export default async function handler(req,res){
  if(!/^[a-f0-9]{64}$/.test(token))return res.status(403).json({ok:false,error:'verified_change_token_required'});
  const {league='nfl',gameId='',eventId='',bookmaker='',risk='',legs=[]}=req.body||{};
  if(!SPORT[league]||!/^\d{6,12}$/.test(String(gameId))||!/^\d{1,14}$/.test(String(eventId))||!BOOKS.has(bookmaker)||!Array.isArray(legs)||legs.length<2||legs.length>10)return res.status(400).json({ok:false,error:'invalid_quote_request'});
- // NFL tier claims are independently bounded: one Small, Medium and Nuke quote
+ // NFL tier claims are independently bounded: one Small, Medium, Large or Nuke quote
  // per book for one verified change, never ordinary UI polling.
  if(league==='nfl'&&(!NFL_TIER_LEGS[risk]||legs.length<NFL_TIER_LEGS[risk][0]||legs.length>NFL_TIER_LEGS[risk][1]))return res.status(400).json({ok:false,error:'invalid_nfl_sgp_tier_or_leg_count'});
  // Require exact bookmaker selection IDs. Never guess a selection or fabricate a price.
@@ -33,7 +34,7 @@ export default async function handler(req,res){
     !(Number(record.changeCount)>=1||(league==='nfl'&&validNflCheckpointToken(record,gameId))))return res.status(403).json({ok:false,error:'change_token_invalid'});
  if(!process.env.PLAYER_PROPS_API_KEY)return res.status(503).json({ok:false,error:'provider_not_configured'});
  // Each NFL tier is single-use for this bookmaker and verified change, preventing
- // duplicate spend while allowing all three properly constructed tiers.
+ // duplicate spend while allowing all four properly constructed tiers.
  const claimPath='momentum-propline-sgp-claims/v1/'+token+'/'+bookmaker+(league==='nfl'?'/'+risk:'')+'.json';
  try{await put(claimPath,JSON.stringify({gameId,eventId,risk:league==='nfl'?risk:null,at:new Date().toISOString()}),{access:'public',addRandomSuffix:false,allowOverwrite:false})}catch{return res.status(409).json({ok:false,error:'quote_already_attempted'})}
  // Checkpoint pricing uses at most three provider quote requests across

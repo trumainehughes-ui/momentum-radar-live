@@ -38,7 +38,7 @@ test('incomplete or unqualified sportsbook legs remain unavailable',()=>{
 test('production game market builder uses guarded filter without triggering a paid quote',()=>{
  const source=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
  assert.ok(source.includes("return filterCompleteNflBookSgps(["));
- assert.ok(source.includes("findTier('Small',4,0),findTier('Medium',5,1),dynamicNuke()"));
+ assert.ok(source.includes("findTier('Small',0),findTier('Medium',1),findTier('Large',2),findTier('Nuke',3)"));
  assert.ok(!source.includes("s?.legs?.length===s.requiredLegs"));
  assert.ok(source.includes('if(authorizedChange&&gameId&&!DIRECT_PUBLIC_ODDS_ONLY)'));
  assert.ok(source.includes('quoteEligibility'));

@@ -80,6 +80,7 @@ test('same player receiving and TD survive serialization as separate markets',()
 });
 test('invalid partial tier, duplicate market or invented bookmaker payout rejected',()=>{
  const partial=card('Medium',4);
+ partial.requiredLegs=5; // inconsistent length must be rejected, even with flexible tiers
  assert.equal(publishedNflModelTier(partial),null);
  const repeated=card('Small',4);
  repeated.legs[3]={...repeated.legs[1]};

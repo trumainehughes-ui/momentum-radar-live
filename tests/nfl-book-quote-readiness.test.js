@@ -90,5 +90,5 @@ test('production strictly gates every book candidate before signed change quote 
  assert.ok(src.includes('quoteRequest:safeQuote'));
  assert.ok(src.includes("s.quoteEligibility==='READY_FOR_AUTHORIZED_QUOTE'&&s.quoteRequest"));
  assert.ok(src.includes('if(authorizedChange&&gameId&&!DIRECT_PUBLIC_ODDS_ONLY)'));
- assert.ok(src.includes('candidates.slice(0,6)'));
+ assert.ok(src.includes('candidates.slice(0,8)'));
 });
