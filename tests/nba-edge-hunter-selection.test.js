@@ -39,10 +39,11 @@ test('Edge Hunter does not silently substitute third-highest game when second-hi
  assert.equal(result.legs.length,0);
 });
 
-test('production Edge Hunter endpoint uses verified adapter and exposes no-offer ingestion status',async()=>{
+test('production Edge Hunter endpoint uses verified adapter and exposes official source status',async()=>{
  const {readFileSync}=await import('node:fs');
  const api=readFileSync(new URL('../api/nba-edge-hunter.js',import.meta.url),'utf8');
  assert.match(api,/researchVerifiedNbaEdgeHunter\(\{games,offers:verifiedOffers\}\)/);
- assert.match(api,/marketIngestionStatus:'NO_VERIFIED_OFFERS'/);
- assert.match(api,/const verifiedOffers=\[\]/);
+ assert.match(api,/marketIngestionStatus:sourceCheck.status/);
+ assert.match(api,/sportsbookSourceChecks:sourceCheck.attempts/);
+ assert.match(api,/const verifiedOffers=sourceCheck.offers/);
 });
