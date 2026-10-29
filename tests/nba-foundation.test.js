@@ -87,7 +87,7 @@ test('wrong-game ESPN summary is blocked before displaying player stats',()=>{
  assert.equal(d.error,'nba_game_id_mismatch');
 });
 test('Small/Medium/Nuke enforce tier mix, roster, team identity and book eligibility',()=>{
- const names=['Small','Medium','Nuke'];
+ const names=['Small','Medium','Large','Nuke'];
  assert.deepEqual(Object.keys(NBA_TIERS),names);
  assert.deepEqual(nbaNotReadyTiers('Waiting').map(x=>x.risk),names);
  const ids=Array.from({length:7},(_,i)=>String(i+101));
