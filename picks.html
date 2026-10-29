@@ -721,8 +721,12 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    const researchComplete=card.complete===true&&nflPublicTierMarketMixReady(risk,legs);
    // Never expose an incomplete or invalid mixed-market tier as a customer parlay.
    // Keep individual forecasts in the separate player matchup advantages panel.
+   if(!researchComplete)return '<section class="sgp-slip" aria-label="'+
+    esc(risk)+' incomplete research"><div class="sgp-slip-head"><strong>'+
+    esc(risk)+' · NOT READY</strong></div><p class="sgp-brief-status">'+
+    esc(legs.length)+' eligible research selections; a complete mixed-market lineup and verified combined sportsbook quote are still unavailable.</p></section>';
    return '<section class="sgp-slip"><div class="sgp-slip-head"><strong>'+
-    esc(risk)+(researchComplete?' · AI STAT FORECAST':' · PARTIAL RESEARCH · NOT BETTABLE')+'</strong><span>'+esc(legs.length)+' researched player projections'+(researchComplete?'':' · partial evidence')+'</span></div>'+
+    esc(risk)+' · AI STAT FORECAST</strong><span>'+esc(legs.length)+' researched player projections'+(researchComplete?'':' · partial evidence')+'</span></div>'+
     '<ol class="sgp-leg-list">'+legs.map(l=>{
      const category=String(l.category||'').toLowerCase();
      const name={td:'Anytime touchdown',receiving:'Receiving yards',
