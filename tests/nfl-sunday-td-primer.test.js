@@ -52,6 +52,6 @@ test('two Friday crons are registered separately from existing paid 30-hour wind
  const cron=Object.fromEntries(config.crons.map(x=>[x.path,x.schedule]));
  assert.equal(cron['/api/nfl-sunday-td-prime?shard=0'],'0 16 * * 5');
  assert.equal(cron['/api/nfl-sunday-td-prime?shard=1'],'15 16 * * 5');
- assert.equal(cron['/api/nfl-health?cron=1'],'*/15 * * * *');
+ assert.equal(cron['/api/nfl-health?cron=1'],'*/10 * * * *');
  assert.equal(config.functions['api/nfl-sunday-td-prime.js'].maxDuration,300);
 });
