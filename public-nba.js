@@ -131,6 +131,28 @@
   const request=++token;
   try{
    const d=await detail(id);if(request!==token||selected!==id)return;
+   // Explain game-specific model forecasts separately from completed box scores.
+   const forecastBox=document.createElement('div');
+   forecastBox.className='panel';
+   forecastBox.dataset.nbaForecast='true';
+   qs('#nbaDetail').querySelectorAll('[data-nba-forecast]').forEach(el=>el.remove());
+   matchupBox.after(forecastBox);
+   const projections=(Array.isArray(d.playerProjections)?d.playerProjections:[])
+    .filter(p=>['points','rebounds','assists','threes'].includes(p.category)&&Number.isFinite(Number(p.projection))&&Number(p.projection)>0)
+    .sort((a,b)=>Number(b.projection)-Number(a.projection));
+   const categories=[['points','Points'],['rebounds','Rebounds'],['assists','Assists'],['threes','3-Pointers']];
+   forecastBox.innerHTML='<h3>Matchup Player Projections • AI Research</h3>'+
+    '<div class="note">Player forecasts incorporate historical performance and available matchup adjustments. These are not verified sportsbook lines. Starter status must be checked before betting.</div>'+
+    (projections.length?categories.map(([key,label])=>{
+     const leaders=projections.filter(p=>p.category===key).slice(0,5);
+     return '<div class="nflSgpMini" style="margin:10px 0;padding:12px"><b>'+label+' — projected leaders</b>'+
+      (leaders.length?leaders.map(p=>
+       '<div class="nflMarketLine"><b>'+safe(p.name||p.playerName)+' • '+safe(p.team)+'</b>'+
+       '<div class="pick">Projected '+safe(Number(p.projection).toFixed(1))+'</div>'+
+       '<div class="meta">Base '+safe(p.baseProjection??'—')+' • matchup adjustment '+safe(p.matchupAdjustment??'not quantified')+
+       ' • '+safe(p.sampleGames??0)+' completed games • '+(p.starterVerified===true?'starter confirmed':'starter unconfirmed')+'</div></div>').join(''):
+       '<div class="note">No eligible player forecast available.</div>')+'</div>';
+    }).join(''):'<div class="note">Player projections have not been collected for this matchup.</div>');
    qs('#nbaSgps').innerHTML=sgps(d);
    renderInjuries(d);
    if(!d.players?.length){
