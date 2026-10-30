@@ -82,6 +82,19 @@ export default async function handler(req,res){
    }
    else data.pregameHistoricalSgps=snapshot.sgps;
   }else data.pregameReadiness=nbaPregameStatus(null);
+  // Provide the corresponding offense-versus-defense research feed for each matchup.
+  // These are historical averages, not sportsbook lines or confirmed projections.
+  data.teamOffenseVsDefense={
+   status:'RESEARCH_FEED_AVAILABLE',
+   source:'ESPN completed NBA box scores',
+   endpoint:'/api/nba-team-matchups?days=10',
+   homeTeam:data.matchup?.home?.abbr||null,
+   awayTeam:data.matchup?.away?.abbr||null,
+   categories:['points','rebounds','assists','threes'],
+   includesPositionAllowances:true,
+   nbaComCrossCheck:'NOT_VERIFIED',
+   researchOnly:true
+  };
   return res.status(200).json(data);
  }catch(e){
   console.warn('nba_game_summary_unavailable',{gameId,reason:String(e?.message||e).slice(0,100)});
