@@ -99,7 +99,33 @@
   const matchupBox=document.createElement('div');matchupBox.className='panel';matchupBox.dataset.automaticMatchup='NBA';
   qs('#nbaPlayers').before(matchupBox);
   qs('#nbaDetail').querySelectorAll('[data-automatic-matchup="NBA"]').forEach((el)=>{if(el!==matchupBox)el.remove()});
-  window.momentumAutomaticMatchupResearch?.render(matchupBox,[]);
+  matchupBox.innerHTML='<div class="refresh">Loading NBA offense vs. defense and DVP matchup…</div>';
+  (async()=>{
+   try{
+    const url='/api/nba-team-matchups?days=10&homeId='+encodeURIComponent(game.home.id)+'&awayId='+encodeURIComponent(game.away.id);
+    const report=await json(url);
+    if(selected!==id||!matchupBox.isConnected)return;
+    const matchups=report.matchups;
+    if(!matchups){matchupBox.innerHTML='<div class="note">NBA matchup data is not yet available for these two teams.</div>';return}
+    const metric=(value)=>Number.isFinite(Number(value))?Number(value).toFixed(1):'—';
+    const side=(entry,opponent)=>'<div class="nflSgpMini" style="margin:10px 0;padding:12px">'+
+     '<b>'+safe(entry.team)+' offense vs '+safe(opponent)+' defense</b>'+
+     '<div class="meta">Team points/game '+metric(entry.offense.points)+' • Opponent allows '+metric(entry.opponentDefense.points)+' points/game</div>'+
+     '<div class="refresh">Defense vs Position — opponent allowances per game</div>'+
+     '<div style="overflow-x:auto"><table style="width:100%;font-size:13px;text-align:left;border-collapse:collapse">'+
+     '<thead><tr><th>Position</th><th>PTS</th><th>REB</th><th>AST</th><th>3PM</th></tr></thead><tbody>'+
+     Object.entries(entry.opponentPositionAllowances||{}).map(([pos,v])=>
+      '<tr><td>'+safe(pos)+'</td><td>'+metric(v.points)+'</td><td>'+metric(v.rebounds)+'</td><td>'+metric(v.assists)+'</td><td>'+metric(v.threes)+'</td></tr>').join('')+
+     '</tbody></table></div></div>';
+    matchupBox.innerHTML='<h3>NBA Matchup Intelligence • Defense vs Position (DVP)</h3>'+
+     '<div class="note">Rolling '+safe(report.windowDays)+'-day ESPN completed-game sample • '+safe(matchups.sampleQuality)+
+     ' • positional totals represent all opposing players at each position, not an individual player projection.</div>'+
+     side(matchups.home,game.away.name||game.away.abbr)+side(matchups.away,game.home.name||game.home.abbr)+
+     '<div class="note">Research only. Early-season samples are limited; official starters and sportsbook offers are separate checks.</div>';
+   }catch{
+    if(selected===id&&matchupBox.isConnected)matchupBox.innerHTML='<div class="note">NBA matchup DVP feed temporarily unavailable.</div>';
+   }
+  })();
   qs('#nbaInjuries').textContent='Checking available ESPN injury evidence…';
   qs('#nbaSgps').textContent='Checking SGP readiness…';
   const request=++token;
