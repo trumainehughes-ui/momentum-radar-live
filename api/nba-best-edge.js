@@ -34,7 +34,8 @@ export default async function handler(req,res){
   }));
   const currentModelGames=games.filter(g=>g.snapshotModelVersion===NBA_PREGAME_MODEL_VERSION&&g.snapshotFreshness==='CURRENT');
   // Fail closed: stale snapshots must not enter verified selection either.
-  const result=nbaBestEdgeParlay(currentModelGames,{mode:'VERIFIED_MARKET'});
+  const mode=String(req.query?.mode||'MODEL_RESEARCH')==='VERIFIED_MARKET'?'VERIFIED_MARKET':'MODEL_RESEARCH';
+  const result=nbaBestEdgeParlay(currentModelGames,{mode});
   const snapshotVersions=[...new Set(games.map(g=>g.snapshotModelVersion).filter(Boolean))];
   const staleSnapshotGames=games.filter(g=>g.snapshotModelVersion!==NBA_PREGAME_MODEL_VERSION).map(g=>g.gameId);
   const snapshotHealth={scheduledGames:games.length,snapshotsAvailable:games.filter(g=>g.snapshotPresent).length,
@@ -100,7 +101,7 @@ export default async function handler(req,res){
     return current(b)-current(a)||lift(b)-lift(a)||b.sampleGames-a.sampleGames;
    }).slice(0,500);
   return res.status(200).json({ok:true,...result,date,checkedAt:new Date().toISOString(),
-   gamesInspected:games.length,snapshotHealth,readinessBlockers,aiMatchupReviews,research,disclaimer:'Only confirmed starters with two fresh, independently sourced active sportsbook lines qualify. No offers are invented; missing sportsbook data blocks selections.'});
+   gamesInspected:games.length,snapshotHealth,readinessBlockers,aiMatchupReviews,research,disclaimer:mode==='MODEL_RESEARCH'?'AI research predictions only. No sportsbook prices or offered markets verified; do not treat as a bookable ticket.':'Only confirmed starters with two fresh, independently sourced active sportsbook lines qualify.'});
  }catch(e){
   console.error('nba_edge_screening_failed',String(e?.message||e).slice(0,160));
   return res.status(200).json({ok:true,status:'NO_QUALIFYING_PARLAY',legs:[],
