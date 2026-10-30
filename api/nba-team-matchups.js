@@ -71,6 +71,18 @@ export default async function handler(req,res){
    sampleQuality:Math.min(home.games,away.games)>=5?'LIMITED_EARLY_SEASON':'INSUFFICIENT_FOR_STRONG_PREDICTION',
    sportsbookVerified:false
   }:null;
+  // Bounded opponent-context factors. Never convert to probability or a bookmaker offer.
+  const leagueMean=teams.length?teams.reduce((n,t)=>n+(t.offense.points||0),0)/teams.length:0;
+  const factor=(off,allowed)=>leagueMean>0&&off>0&&allowed>0?
+   Number(Math.max(0.94,Math.min(1.06,Math.pow(off/leagueMean,0.15)*Math.pow(allowed/leagueMean,0.30))).toFixed(3)):1;
+  if(matchups){
+   matchups.home.matchupFactor=factor(home.offense.points,away.defenseAllowed.points);
+   matchups.away.matchupFactor=factor(away.offense.points,home.defenseAllowed.points);
+   matchups.projectionAdjustmentStatus=Math.min(home.games,away.games)>=3?'LIMITED_HISTORICAL_CONTEXT':'NEUTRAL_UNTIL_MORE_GAMES';
+   if(matchups.projectionAdjustmentStatus!=='LIMITED_HISTORICAL_CONTEXT'){
+    matchups.home.matchupFactor=1;matchups.away.matchupFactor=1;
+   }
+  }
   return res.status(200).json({ok:true,source:'ESPN completed NBA game box scores',nbaComCrossCheck:'NOT_VERIFIED',researchOnly:true,windowDays:days,completedGames:events.length,teamsCovered:teams.length,completeLeagueCoverage:teams.length===30,teams:id?teams.filter(t=>t.teamId===id):teams,matchups,notes:['Per-game averages, not per-100-possession ratings','Position allowances are aggregate production of all opposing players at that position per game','Small early-season samples must not be treated as confident predictions','NBA.com advanced ratings require a separate verified data feed']});
  }catch(e){return res.status(503).json({ok:false,error:'NBA_TEAM_MATCHUP_UNAVAILABLE',detail:String(e.message).slice(0,120)});}
 }
