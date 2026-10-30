@@ -182,6 +182,27 @@
   const thisTab=tab,stamp=token;
   qs('#nbaTopTitle').textContent='Top 10 — '+(cats[tab]||'NBA')+' (game results)';
   qs('#nbaTopBoard').innerHTML='<div class="msg">Checking completed and live game box scores…</div>';
+  // Pregame ranking source: verified-current model snapshots, not future box scores.
+  if(!(data?.games||[]).some(g=>['LIVE','FINAL'].includes(g.status))){
+   try{
+    const pre=await json('/api/nba-best-edge?date='+encodeURIComponent(qs('#nbaDate').value));
+    if(thisTab!==tab||stamp!==token)return;
+    const rows=(Array.isArray(pre.research)?pre.research:[])
+     .filter(p=>p.category===thisTab&&Number.isFinite(Number(p.projection))&&Number(p.projection)>0)
+     .sort((a,b)=>Number(b.projection)-Number(a.projection)).slice(0,10);
+    qs('#nbaTopTitle').textContent='Top 10 — '+(cats[tab]||'NBA')+' (pregame projections)';
+    qs('#nbaTopBoard').innerHTML=rows.length?rows.map((p,i)=>
+     '<div class="nflMarketLine"><b>#'+(i+1)+' '+safe(p.name)+'</b> <span class="meta">'+safe(p.team)+'</span>'+
+     '<div class="pick">Projected '+safe(Number(p.projection).toFixed(1))+' '+safe(cats[thisTab])+'</div>'+
+     '<div class="meta">'+safe(p.sampleGames)+' historical games • '+(p.starterVerified?'starter verified':'starter not yet confirmed')+
+     ' • '+safe(p.sampleSource||'historical data')+'</div>'+
+     '<div class="refresh">AI research projection — not a sportsbook line</div></div>').join(''):
+     '<div class="msg">Pregame Top 10 unavailable: '+safe((pre.readinessBlockers||[]).join(', ')||pre.reason||'Current player projections have not been collected')+'. Game schedule is available, but player forecasts are not verified yet.</div>';
+   }catch{
+    if(thisTab===tab&&stamp===token)qs('#nbaTopBoard').innerHTML='<div class="msg">Pregame projection feed unavailable. Game results will appear after tipoff.</div>';
+   }
+   return;
+  }
   const games=(data?.games||[]).filter(g=>['LIVE','FINAL'].includes(g.status)).slice(0,16);
   if(!games.length){qs('#nbaTopBoard').innerHTML='<div class="msg">No completed or live NBA box scores on this date. Pregame projected Top 10 rankings are not yet published.</div>';return}
   const available=[];
