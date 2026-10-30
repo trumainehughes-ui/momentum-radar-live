@@ -59,8 +59,51 @@
    ).join('')+'<div class="refresh">ESPN-reported injuries; confirmed game-day inactives not verified.</div>':
    '<div class="note">No usable injury entries were returned for this matchup. This does NOT confirm a healthy or active roster.</div>';
  }
+ function researchSgps(d){
+  const all=(Array.isArray(d.playerProjections)?d.playerProjections:[])
+   .filter(p=>['points','rebounds','assists','threes'].includes(p.category)&&
+    Number.isFinite(Number(p.projection))&&Number(p.projection)>0&&
+    Number(p.sampleGames)>=3&&p.historicalSnapshotStale!==true&&
+    !/OUT|DOUBTFUL|INACTIVE|SUSPEND/i.test(String(p.availability||'')));
+  const configs=[['Small',4,0.72],['Medium',5,0.84],['Large',6,0.94],['Nuke',7,1.08]];
+  const usedTiers=new Set();
+  return configs.map(([risk,count,factor])=>{
+   const selected=[],players=new Set(),cats=new Set();
+   const candidates=all.map(p=>{
+    const target=Math.max(1,Math.floor(Number(p.projection)*factor*2)/2);
+    const categoryBias=p.category==='threes'?0.2:0;
+    return {...p,threshold:target,score:Number(p.sampleGames)*0.3+
+     (p.projectionReliability==='HIGH'?3:p.projectionReliability==='MEDIUM'?1:0)+categoryBias};
+   }).filter(p=>p.threshold>0)
+    .sort((a,b)=>b.score-a.score||b.projection-a.projection);
+   for(const p of candidates){
+    if(selected.length>=count)break;
+    if(players.has(p.playerId)||selected.some(x=>x.category===p.category&&cats.size<3))continue;
+    const key=p.playerId+'|'+p.category+'|'+p.threshold;
+    if(usedTiers.has(key))continue;
+    selected.push(p);players.add(p.playerId);cats.add(p.category);
+   }
+   for(const p of candidates){
+    if(selected.length>=count)break;
+    if(players.has(p.playerId))continue;
+    const key=p.playerId+'|'+p.category+'|'+p.threshold;
+    if(usedTiers.has(key))continue;
+    selected.push(p);players.add(p.playerId);cats.add(p.category);
+   }
+   if(selected.length<count||cats.size<3)return {risk,status:'NOT_READY',legs:[],
+    reason:'Not enough distinct historical players and statistical categories for this research tier.'};
+   selected.forEach(p=>usedTiers.add(p.playerId+'|'+p.category+'|'+p.threshold));
+   return {risk,status:'MODEL_CANDIDATE',researchOnly:true,publishable:false,
+    reason:'AI research thresholds only. No verified sportsbook offers, confirmed starters or combined SGP price.',
+    legs:selected.map(p=>({name:p.name,team:p.team,category:p.category,
+     threshold:p.threshold,projection:p.projection,sampleGames:p.sampleGames,
+     starterVerified:p.starterVerified===true}))};
+  });
+ }
  function sgps(d){
-  const rows=d?.sgps||[],readiness=d?.pregameReadiness;
+  const original=d?.sgps||[];
+  const rows=original.some(x=>x.status==='MODEL_CANDIDATE'&&x.legs?.length)?original:researchSgps(d);
+  const readiness=d?.pregameReadiness;
   const stage=readiness?.stage?String(readiness.stage).replaceAll('_',' '):'AWAITING FIRST PREGAME BUILD';
   const freshness=readiness?.checkedAt?new Date(readiness.checkedAt).toLocaleString():'Not collected';
   const injury=readiness?.injuryCheckedAt?new Date(readiness.injuryCheckedAt).toLocaleString():'Pending';
