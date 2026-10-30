@@ -149,8 +149,8 @@
       (leaders.length?leaders.map(p=>
        '<div class="nflMarketLine"><b>'+safe(p.name||p.playerName)+' • '+safe(p.team)+'</b>'+
        '<div class="pick">Projected '+safe(Number(p.projection).toFixed(1))+'</div>'+
-       '<div class="meta">Base '+safe(p.baseProjection??'—')+' • matchup adjustment '+safe(p.matchupAdjustment??'not quantified')+
-       ' • '+safe(p.sampleGames??0)+' completed games • '+(p.starterVerified===true?'starter confirmed':'starter unconfirmed')+'</div></div>').join(''):
+       '<div class="meta">Base '+safe(p.baseProjection??'—')+' • matchup factor '+safe(Number.isFinite(Number(p.matchupAdjustment?.factor))?Number(p.matchupAdjustment.factor).toFixed(3)+'x':'not quantified')+
+       ' • '+safe(p.sampleGames??0)+' completed games • '+safe(p.projectionReliability||'reliability unverified')+' • '+(p.starterVerified===true?'starter confirmed':'starter unconfirmed')+'</div></div>').join(''):
        '<div class="note">No eligible player forecast available.</div>')+'</div>';
     }).join(''):'<div class="note">Player projections have not been collected for this matchup.</div>');
    qs('#nbaSgps').innerHTML=sgps(d);
