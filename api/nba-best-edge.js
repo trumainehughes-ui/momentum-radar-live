@@ -1,4 +1,4 @@
-import {nbaBestEdgeParlays} from '../lib/nba-best-edge-parlay.js';
+import {nbaBestEdgeParlay} from '../lib/nba-best-edge-parlay.js';
 import {nbaReadPregame,nbaPregameFreshness,NBA_PREGAME_MODEL_VERSION} from './nba-health.js';
 import {nbaAiMatchupIdentityConflict} from '../lib/pregame-ai-review.js';
 // The public endpoint does not accept client-supplied odds or player forecasts.
