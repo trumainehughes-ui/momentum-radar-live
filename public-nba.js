@@ -37,7 +37,7 @@
      readiness.status):'';
    return '<button type="button" data-nba-game="'+safe(g.gameId)+'" class="card" style="width:100%;text-align:left;margin:7px 0;cursor:pointer">'+
     '<div class="rank">'+safe(g.stage)+' • '+safe(g.status)+'</div>'+
-    '<div class="name">'+safe(g.away.abbr)+' @ '+safe(g.home.abbr)+safe(result)+'</div>'+
+    '<div class="name" style="color:#f4f7fb!important;font-weight:800!important;text-shadow:none!important">'+safe(g.away.abbr)+' @ '+safe(g.home.abbr)+safe(result)+'</div>'+
     '<div class="meta">'+safe(time(g.kickoff))+'</div>'+
     (sgpState&&g.status==='SCHEDULED'?'<div class="refresh">'+safe(sgpState)+'</div>':'')+
     '<div class="refresh">View NBA game details →</div></button>';
@@ -93,7 +93,7 @@
   selected=id;qs('#nbaHome').style.display='none';qs('#nbaDetail').style.display='block';
   const head=qs('#nbaGameHead');
   head.innerHTML='<div class="card"><div class="rank">'+safe(game.stage)+' • '+safe(game.status)+'</div>'+
-   '<div class="name">'+safe(game.away.name||game.away.abbr)+' @ '+safe(game.home.name||game.home.abbr)+'</div>'+
+   '<div class="name" style="color:#f4f7fb!important;font-weight:800!important">'+safe(game.away.name||game.away.abbr)+' @ '+safe(game.home.name||game.home.abbr)+'</div>'+
    '<div class="meta">'+safe(time(game.kickoff))+'</div></div>';
   qs('#nbaPlayers').innerHTML='<div class="msg">Retrieving ESPN game box score…</div>';
   const matchupBox=document.createElement('div');matchupBox.className='panel';matchupBox.dataset.automaticMatchup='NBA';
