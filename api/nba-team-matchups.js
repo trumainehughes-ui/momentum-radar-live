@@ -61,6 +61,16 @@ export default async function handler(req,res){
   }
   const teams=[...profiles.values()].map(p=>({...p,offense:Object.fromEntries(Object.entries(p.offense).map(([k,v])=>[k,avg(v,p.games)])),defenseAllowed:Object.fromEntries(Object.entries(p.defenseAllowed).map(([k,v])=>[k,avg(v,p.games)])),allowedByPosition:Object.fromEntries(Object.entries(p.allowedByPosition).map(([pos,v])=>[pos,{games:v.games,...Object.fromEntries(['points','rebounds','assists','threes'].map(k=>[k,avg(v[k],v.games)]))}]))})).sort((a,b)=>a.team.localeCompare(b.team));
   const id=String(req.query?.teamId||'');
-  return res.status(200).json({ok:true,source:'ESPN completed NBA game box scores',nbaComCrossCheck:'NOT_VERIFIED',researchOnly:true,windowDays:days,completedGames:events.length,teamsCovered:teams.length,completeLeagueCoverage:teams.length===30,teams:id?teams.filter(t=>t.teamId===id):teams,notes:['Per-game averages, not per-100-possession ratings','Position allowances are aggregate production of all opposing players at that position per game','Small early-season samples must not be treated as confident predictions','NBA.com advanced ratings require a separate verified data feed']});
+  const homeId=String(req.query?.homeId||''),awayId=String(req.query?.awayId||'');
+  const home=teams.find(t=>t.teamId===homeId),away=teams.find(t=>t.teamId===awayId);
+  const matchups=home&&away&&homeId!==awayId?{
+   home:{team:home.team,offense:home.offense,opponentDefense:away.defenseAllowed,
+    opponentPositionAllowances:away.allowedByPosition,offenseGames:home.games,defenseGames:away.games},
+   away:{team:away.team,offense:away.offense,opponentDefense:home.defenseAllowed,
+    opponentPositionAllowances:home.allowedByPosition,offenseGames:away.games,defenseGames:home.games},
+   sampleQuality:Math.min(home.games,away.games)>=5?'LIMITED_EARLY_SEASON':'INSUFFICIENT_FOR_STRONG_PREDICTION',
+   sportsbookVerified:false
+  }:null;
+  return res.status(200).json({ok:true,source:'ESPN completed NBA game box scores',nbaComCrossCheck:'NOT_VERIFIED',researchOnly:true,windowDays:days,completedGames:events.length,teamsCovered:teams.length,completeLeagueCoverage:teams.length===30,teams:id?teams.filter(t=>t.teamId===id):teams,matchups,notes:['Per-game averages, not per-100-possession ratings','Position allowances are aggregate production of all opposing players at that position per game','Small early-season samples must not be treated as confident predictions','NBA.com advanced ratings require a separate verified data feed']});
  }catch(e){return res.status(503).json({ok:false,error:'NBA_TEAM_MATCHUP_UNAVAILABLE',detail:String(e.message).slice(0,120)});}
 }
