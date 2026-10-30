@@ -51,6 +51,14 @@
     {
       "path": "/api/nfl-sunday-td-prime?shard=1",
       "schedule": "15 16 * * 5"
+    },
+    {
+      "path": "/api/nfl-team-tendencies?weeks=5",
+      "schedule": "0 10,22 * * *"
+    },
+    {
+      "path": "/api/nba-team-matchups?days=10",
+      "schedule": "15 10,22 * * *"
     }
   ],
   "functions": {
@@ -88,6 +96,12 @@
       "maxDuration": 120
     },
     "api/nba-health.js": {
+      "maxDuration": 300
+    },
+    "api/nfl-team-tendencies.js": {
+      "maxDuration": 300
+    },
+    "api/nba-team-matchups.js": {
       "maxDuration": 300
     }
   },
