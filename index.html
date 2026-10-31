@@ -450,7 +450,7 @@ async function nflPollPublishedMatchup(){
   const parity=mod.ownerNflPublishedParity(null,report,{date,gameId:id});
   if(!nflSelected||String(nflSelected.gameId)!==id||nflData?.date!==date)return;
   const node=document.querySelector('[data-owner-nfl-parity]');
-  if(node)node.outerHTML=nflPublishedSgpParityHtml(parity);
+  if(node && parity.ok===true)node.outerHTML=nflPublishedSgpParityHtml(parity);
   const props=$('#nflProps'),outcome=$('#nflOutcome');
   if(props)props.innerHTML=nflSharedPropsHtml(parity);
   if(outcome)outcome.innerHTML=nflSharedOutcomeHtml(parity.ok?report:null);
