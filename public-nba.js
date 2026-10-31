@@ -66,7 +66,6 @@
     Number(p.sampleGames)>=3&&p.historicalSnapshotStale!==true&&
     !/OUT|DOUBTFUL|INACTIVE|SUSPEND/i.test(String(p.availability||'')));
   const configs=[['Small',4,0.72],['Medium',5,0.84],['Large',6,0.94],['Nuke',7,1.08]];
-  const usedTiers=new Set();
   return configs.map(([risk,count,factor])=>{
    const selected=[],players=new Set(),cats=new Set();
    const candidates=all.map(p=>{
@@ -79,20 +78,15 @@
    for(const p of candidates){
     if(selected.length>=count)break;
     if(players.has(p.playerId)||selected.some(x=>x.category===p.category&&cats.size<3))continue;
-    const key=p.playerId+'|'+p.category+'|'+p.threshold;
-    if(usedTiers.has(key))continue;
     selected.push(p);players.add(p.playerId);cats.add(p.category);
    }
    for(const p of candidates){
     if(selected.length>=count)break;
     if(players.has(p.playerId))continue;
-    const key=p.playerId+'|'+p.category+'|'+p.threshold;
-    if(usedTiers.has(key))continue;
     selected.push(p);players.add(p.playerId);cats.add(p.category);
    }
    if(selected.length<count||cats.size<3)return {risk,status:'NOT_READY',legs:[],
     reason:'Not enough distinct historical players and statistical categories for this research tier.'};
-   selected.forEach(p=>usedTiers.add(p.playerId+'|'+p.category+'|'+p.threshold));
    return {risk,status:'MODEL_CANDIDATE',researchOnly:true,publishable:false,
     reason:'AI research thresholds only. No verified sportsbook offers, confirmed starters or combined SGP price.',
     legs:selected.map(p=>({name:p.name,team:p.team,category:p.category,
