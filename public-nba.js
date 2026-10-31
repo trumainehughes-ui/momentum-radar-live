@@ -96,7 +96,11 @@
  }
  function sgps(d){
   const original=d?.sgps||[];
-  const rows=original.some(x=>x.status==='MODEL_CANDIDATE'&&x.legs?.length)?original:researchSgps(d);
+  const research=researchSgps(d);
+  const rows=['Small','Medium','Large','Nuke'].map(risk=>{
+   const published=original.find(x=>x.risk===risk&&x.status==='MODEL_CANDIDATE'&&x.legs?.length);
+   return published||research.find(x=>x.risk===risk)||{risk,status:'NOT_READY',legs:[]};
+  });
   const readiness=d?.pregameReadiness;
   const stage=readiness?.stage?String(readiness.stage).replaceAll('_',' '):'AWAITING FIRST PREGAME BUILD';
   const freshness=readiness?.checkedAt?new Date(readiness.checkedAt).toLocaleString():'Not collected';
