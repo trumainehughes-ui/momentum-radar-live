@@ -660,9 +660,10 @@ const observedBookRows=(()=>{
   '<div class="card" style="grid-column:1/-1"><b>AI player yardage projections</b><div class="note">No role-screened player forecasts qualify yet. Out, inactive and injured-reserve players are not inserted to fill gaps; confirmed starting lineup evidence may still be missing.</div></div>';
  const sgpYardageModel=window.momentumNflSgpModelYardage?.buildNflProjectedSgpTierDetails({
   market:d,gameId:g.gameId,date:nflData?.date,home:g.home?.abbr,away:g.away?.abbr});
- const sgpYardageHtml=d.publicParity?
+ const sgpYardageHtml=d.publicParity?.ok===true?
   nflPublishedSgpParityHtml(d.publicParity):sgpYardageModel?.tiers?.length?
-  window.momentumNflSgpModelYardage.renderNflProjectedSgpTierDetails(sgpYardageModel):'';
+  window.momentumNflSgpModelYardage.renderNflProjectedSgpTierDetails(sgpYardageModel):
+  (d.publicParity?nflPublishedSgpParityHtml(d.publicParity):'');
  const capturePath='/odds-capture.html?'+new URLSearchParams({date:nflData?.date||'',gameId:g.gameId});
 const bookCaptureHtml=observedBookRows.length?
  '<div class="card" style="grid-column:1/-1"><b>Public sportsbook odds captured in your browser</b>'+
