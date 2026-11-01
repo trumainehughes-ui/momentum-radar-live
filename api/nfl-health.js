@@ -253,10 +253,11 @@ async function autoLock(base,games){
    propCategoriesUpdated:changed?snap.propCategories:[],
    matchupReviewed:true,
    modelTierReadiness:snap.modelTierReadiness,
-   analyticsTierCounts:Object.fromEntries(['Small','Medium','Nuke'].map(risk=>[
+   analyticsTierCounts:Object.fromEntries(['Small','Medium','Large','Nuke'].map(risk=>[
     risk,(m.sgps?.Analytics||[]).filter(x=>x.risk===risk).length])),
-   publicModelTierCounts:Object.fromEntries(['Small','Medium','Nuke'].map(risk=>[
-    risk,snap.sgps.filter(x=>x.risk===risk&&x.source==='DATA_MODEL').length]))};
+   publicModelTierCounts:Object.fromEntries(['Small','Medium','Large','Nuke'].map(risk=>[
+    risk,snap.sgps.filter(x=>x.risk===risk&&
+      ['DATA_MODEL','PLUGIN_COMPATIBLE_MODEL_FALLBACK'].includes(x.source)).length]))};
  },{concurrency:MAX_NFL_COLLECTOR_CONCURRENCY});
 }
 export default async function handler(req,res){
@@ -334,7 +335,7 @@ export default async function handler(req,res){
    emptyModelTierRefreshes:historyLocks.filter(x=>
     ['locked','updated'].includes(x.status)&&Number(x.sgps||0)===0).length,
    publicTierCounts:historyLocks.reduce((acc,x)=>{
-    for(const risk of ['Small','Medium','Nuke']){
+    for(const risk of ['Small','Medium','Large','Nuke']){
      const key=risk;
      acc[key]=(acc[key]||0)+Number(x.publicModelTierCounts?.[risk]||0);
     }
@@ -345,7 +346,7 @@ export default async function handler(req,res){
      Object.values(x.modelTierReadiness||{});
     for(const tier of entries){
      const risk=String(tier?.risk||tier?.tier||'');
-     if(!['Small','Medium','Nuke'].includes(risk))continue;
+     if(!['Small','Medium','Large','Nuke'].includes(risk))continue;
      const key=risk+':'+String(tier?.status||'UNKNOWN').slice(0,40);
      acc[key]=(acc[key]||0)+1;
     }
