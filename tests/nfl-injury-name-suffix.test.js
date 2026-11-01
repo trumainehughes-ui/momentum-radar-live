@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {nflInjuryNameKey,nflGameInjuryEvidence} from '../lib/nfl-injury-evidence.js';
 import {nflOfficialHoldMatches} from '../lib/nfl-official-transaction-holds.js';
 import {guardFinalNflSgpCards} from '../lib/ai-mechanics/nfl-sgp-tiers.js';
@@ -47,4 +48,12 @@ test('public and final SGP injury guards reject suffix-variant out players',()=>
   published,report,{now});
  assert.ok(audit.blockers.includes('INJURED_PLAYER_PRESENT_IN_PUBLIC_PROJECTIONS'));
  assert.equal(audit.publishedHeldPlayers[0].name,'Brian Robinson');
+});
+
+test('NFL publication rejects imported legs missing from the injury-screened category pool',()=>{
+ const src=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
+ assert.match(src,/categories\[String\(l\.cat\|\|l\.category\|\|''\)\.toLowerCase\(\)\]/);
+ assert.match(src,/nflInjuryNameKey\(l\.name\)/);
+ assert.match(src,/row\.cat==='td'.*tdModelStatus==='ESPN_MATCHUP_MODEL'/);
+ assert.match(src,/const target=cat==='td'\?'Anytime TD'/);
 });
