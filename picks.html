@@ -763,7 +763,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
       '<div class="sgp-leg-selection"><span>'+esc(name)+'</span><strong>'+
       esc(category==='td'?
        (l.modelChancePct==null?'TD model not ready':l.modelChancePct+'% modeled TD chance'):
-       (Number.isFinite(Number(l.projection))?l.projection+' projected '+(category==='receptions'?'receptions':'yards'):'Projection not ready'))+'</strong></div>'+
+       (l.modelTarget!=null&&Number.isFinite(Number(l.modelTarget))?l.modelTarget+'+ '+(category==='receptions'?'receptions':'yards')+' AI target (projection '+l.projection+')':'AI target unavailable'))+'</strong></div>'+
       '<div class="sgp-leg-why">Why: '+esc(l.projectionNote||'Based on the latest published matchup data.')+'</div></li>';
     }).join('')+'</ol><p class="sgp-brief-status">'+(researchComplete?'Complete model research tier. ':'Partial model research; remaining selections require verified statistical evidence. ')+'These are AI statistical forecasts, not sportsbook-verified lines or combined odds.</p></section>';
   }).join('')+'</div>';
