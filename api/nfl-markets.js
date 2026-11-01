@@ -1022,7 +1022,7 @@ for(const cat of ['td','passing','rushing','receiving','receptions']){let qualif
 const publicDerivedRows=[];for(const r of publicRefs){if(!String(r.market||'').toLowerCase().includes('touchdown'))continue;for(const book of ['DraftKings','FanDuel']){if(r.book!==book)continue;const rr=roleFor(roles,{name:r.player}),odds=Number(String(r.odds??'').replace('+',''));publicDerivedRows.push({eventID:gameId,playerID:rr?.playerId||norm(r.player),name:r.player,team:rr?.team||'',position:rr?.position||'',marketName:'player_anytime_td',statID:'touchdowns',periodID:'game',betTypeID:'yn',sideID:'yes',line:null,books:[{book,line:null,odds:Number.isFinite(odds)?odds:null,available:true,source:'public sportsbook'}],provider:'Public sportsbook research'})}}// Historical October 5 public bookmaker reference lines stay in the historical context only.
 // Never insert manual or hardcoded prices into the live game-specific market pool.
 const mergedMarketRows=[...(rows||[])];
-requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarkets(mergedMarketRows,statBoards).map(x=>{const r=roleFor(roles,x),cat=category(x),a=(statBoards?.[cat]||[]).find(v=>norm(v.name)===norm(x.name));return r?{...a,...x,team:norm(r.team||x.team),position:x.position||r.position,playerID:r.playerId||x.playerID||x.playerId,projection:x.projection??a?.projection,predictiveProjection:x.predictiveProjection??a?.predictiveProjection??a?.projection,perGame:x.perGame??a?.perGame,gamesPlayed:x.gamesPlayed??a?.gamesPlayed,usagePerGame:x.usagePerGame??a?.usagePerGame}:x});const sgpGateDiagnostics={total:enrichedMarketRows.length,missingRole:0,missingCategory:0,missingBook:0,missingRoster:0,injuryBlocked:0,teamMismatch:0,insufficientUsage:0,insufficientOpportunity:0,eligible:0};requestStage='sgp_eligibility';const sgpRows=enrichedMarketRows.filter(x=>{const r=roleFor(roles,x),cat=category(x),hasBook=Boolean(bookFor(x,'DraftKings')||bookFor(x,'FanDuel')),roster=eligibility?.rosterById?.get(String(x.playerID||x.playerId||''))||eligibility?.rosterByName?.get(norm(x.name));if(!r){sgpGateDiagnostics.missingRole++;return false}if(!cat){sgpGateDiagnostics.missingCategory++;return false}if(!hasBook){sgpGateDiagnostics.missingBook++;return false}if(!roster){sgpGateDiagnostics.missingRoster++;return false}if(eligibility?.blockedIds?.has(String(x.playerID||x.playerId||''))||eligibility?.blockedNames?.has(norm(x.name))){sgpGateDiagnostics.injuryBlocked++;return false}if(x.team&&norm(roster.team)!==norm(x.team)){sgpGateDiagnostics.teamMismatch++;return false}const pairedTd=(categories.td||[]).find(td=>
+requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarkets(mergedMarketRows,statBoards).map(x=>{const r=roleFor(roles,x),cat=category(x),a=(statBoards?.[cat]||[]).find(v=>norm(v.name)===norm(x.name));return r?{...a,...x,team:norm(r.team||x.team),position:x.position||r.position,playerID:r.playerId||x.playerID||x.playerId,projection:x.projection??a?.projection,predictiveProjection:x.predictiveProjection??a?.predictiveProjection??a?.projection,perGame:x.perGame??a?.perGame,gamesPlayed:x.gamesPlayed??a?.gamesPlayed,usagePerGame:x.usagePerGame??a?.usagePerGame}:x});const sgpGateDiagnostics={total:enrichedMarketRows.length,missingRole:0,missingCategory:0,missingBook:0,missingRoster:0,injuryBlocked:0,teamMismatch:0,insufficientUsage:0,insufficientOpportunity:0,eligible:0};requestStage='sgp_eligibility';const sgpRows=enrichedMarketRows.filter(x=>{const r=roleFor(roles,x),cat=category(x),hasBook=Boolean(bookFor(x,'DraftKings')||bookFor(x,'FanDuel')),roster=eligibility?.rosterById?.get(String(x.playerID||x.playerId||''))||eligibility?.rosterByName?.get(norm(x.name));if(!r){sgpGateDiagnostics.missingRole++;return false}if(!cat){sgpGateDiagnostics.missingCategory++;return false}if(!hasBook){sgpGateDiagnostics.missingBook++;return false}if(!roster){sgpGateDiagnostics.missingRoster++;return false}if(eligibility?.blockedIds?.has(String(x.playerID||x.playerId||''))||(eligibility?.blockedNames?.has(norm(x.name))||eligibility?.blockedNames?.has(nflInjuryNameKey(x.name)))){sgpGateDiagnostics.injuryBlocked++;return false}if(x.team&&norm(roster.team)!==norm(x.team)){sgpGateDiagnostics.teamMismatch++;return false}const pairedTd=(categories.td||[]).find(td=>
   String(td.playerID||td.playerId||'')===String(x.playerID||x.playerId||'')&&
   nflCanonTeam(td.team)===nflCanonTeam(x.team))||null;
  if(!nflMeaningfulOpportunity(x,r,{pairedTd})){
@@ -1220,7 +1220,7 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
    const roster=eligibility.rosterById?.get(id);
    return roster&&nflCanonTeam(roster.team)===nflCanonTeam(l.team)&&
     !eligibility.blockedIds.has(id)&&
-    !eligibility.blockedNames.has(norm(l.player));
+    !eligibility.blockedNames.has(norm(l.player))&&!eligibility.blockedNames.has(nflInjuryNameKey(l.player));
   })).map(t=>({...t,tierAssessment:{compositionOk:true,status:'UNQUOTED_MODEL'},
    legs:t.legs.map(l=>({...l,name:l.player,cat:l.category,
     playerID:l.playerId,eventID:String(gameId),analyticsThreshold:l.modelTarget}))})):[];
@@ -1239,10 +1239,10 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
    const roster=eligibility.rosterById?.get(id)||eligibility.rosterByName?.get(norm(player));
    return id&&player&&roster&&safeTeams.has(String(row.team||'').toUpperCase())&&
     nflCanonTeam(roster.team)===nflCanonTeam(row.team)&&
-    !eligibility.blockedIds.has(id)&&!eligibility.blockedNames.has(norm(player))&&
+    !eligibility.blockedIds.has(id)&&!eligibility.blockedNames.has(norm(player))&&!eligibility.blockedNames.has(nflInjuryNameKey(player))&&
     !/\\b(OUT|INACTIVE|IR|DOUBTFUL|QUESTIONABLE|SUSPENDED)\\b/i.test(
       [row.injuryStatus,row.availability,row.starterStatus].join(' '))&&
-    Number(row.projection??row.perGame)>0;
+    (row.cat==='td'?(row.tdModelStatus==='ESPN_MATCHUP_MODEL'&&row.modelOnly===true&&Number(row.modelTdPercent)>=3&&Number(row.evidence?.games)>=2):Number(row.projection??row.perGame)>0);
   });
  for(const [risk,count] of [['Small',4],['Medium',5],['Large',6],['Nuke',7]]){
   if(already.has(risk))continue;
@@ -1258,8 +1258,8 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
     if(used.has(key)||(athleteCounts.get(id)||0)>=2)continue;
     const projection=Number(x.projection??x.perGame);
     const factor=risk==='Small'?.7:risk==='Medium'?.95:risk==='Large'?1.05:1.2;
-    const target=cat==='receptions'?Math.max(1,Math.floor(projection*factor)):
-     cat==='td'?1:Math.max(5,Math.floor(projection*factor/5)*5);
+    const target=cat==='td'?'Anytime TD':cat==='receptions'?Math.max(1,Math.floor(projection*factor)):
+     Math.max(5,Math.floor(projection*factor/5)*5);
     selected.push({...x,name:String(x.name||x.player),playerID:id,eventID:String(gameId),
      analyticsThreshold:target});
     used.add(key);athleteCounts.set(id,(athleteCounts.get(id)||0)+1);return true;
@@ -1283,10 +1283,16 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
   c.legs.length>0&&eligibility.checked===true&&c.legs.every(l=>
    String(l.eventID||l.gameId||'')===String(gameId)&&
    safeTeams.has(String(l.team||'').toUpperCase())&&
+   // A tier must reference a current, injury-screened player/category row.
+   // Otherwise an invalid imported tier can displace a valid fallback.
+   (categories[String(l.cat||l.category||'').toLowerCase()]||[]).some(row=>
+    String(row.playerID||row.playerId||'')===String(l.playerID||l.playerId||'')&&
+    nflCanonTeam(row.team)===nflCanonTeam(l.team))&&
    (()=>{const id=String(l.playerID||l.playerId||'');
     const roster=id&&eligibility.rosterById?.get(id)||eligibility.rosterByName?.get(norm(l.name));
     return roster&&nflCanonTeam(roster.team)===nflCanonTeam(l.team)&&
-     !eligibility.blockedIds.has(id)&&!eligibility.blockedNames.has(norm(l.name));})()&&
+     !eligibility.blockedIds.has(id)&&!eligibility.blockedNames.has(norm(l.name))&&
+      !eligibility.blockedNames.has(nflInjuryNameKey(l.name));})()&&
    !/\\b(OUT|INACTIVE|IR|DOUBTFUL|QUESTIONABLE|SUSPENDED)\\b/i.test(
     [l.injuryStatus,l.availability,l.starterStatus].join(' '))
   )).map(publishedNflModelTier).filter(Boolean).filter((tier,index,all)=>
