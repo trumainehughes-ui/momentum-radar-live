@@ -740,7 +740,7 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
    }
    const keys=new Set();
    const legs=card.legs.filter(l=>{
-    const key=[l.player,l.team,l.category,l.target].map(x=>String(x||'')).join('|');
+    const key=[l.player,l.team,l.category,l.modelTarget??l.target??'TD'].map(x=>String(x??'')).join('|');
     if(keys.has(key))return false;
     keys.add(key);
     return true;
