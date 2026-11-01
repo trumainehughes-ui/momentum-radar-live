@@ -617,7 +617,12 @@ const rosterById=new Map(),rosterByName=new Map();await Promise.all([...abbrs].m
   source:String(x.source||injury.source||'ESPN injury/roster evidence').slice(0,120),
   evidenceTier:String(x.evidenceTier||'UNVERIFIED').slice(0,40),
   section:String(x.section||'UNKNOWN').slice(0,30),
-  gameDesignationVerified:x.gameDesignationVerified===true
+  gameDesignationVerified:x.gameDesignationVerified===true,
+  // Preserve official full-practice/no-injury clearance; without these
+  // fields public UNKNOWN practice rows become false injury holds.
+  practiceStatus:String(x.practiceStatus||'').slice(0,90),
+  injury:x.injury==null?null:String(x.injury).slice(0,90),
+  rawStatus:x.rawStatus==null?null:String(x.rawStatus).slice(0,60)
  })),
  source:injury.source+' + current team rosters'}}catch(e){console.error('game_eligibility_failed',String(e?.message||e));return{blockedIds:new Set(),blockedNames:new Set(),rosterById:new Map(),rosterByName:new Map(),checked:false}}}
 function eligibilityFilter(rows,elig){if(!elig?.checked)return [];return(rows||[]).filter(x=>{const id=String(x.playerID||x.playerId||''),name=norm(x.name);if(elig.blockedIds.has(id)||elig.blockedNames.has(name)||elig.blockedNames.has(nflInjuryNameKey(x.name)))return false;const rr=elig.rosterById?.get(id)||elig.rosterByName?.get(name);if(!rr)return false;return !x.team||norm(nflCanonTeam(rr.team))===norm(nflCanonTeam(x.team))})}
