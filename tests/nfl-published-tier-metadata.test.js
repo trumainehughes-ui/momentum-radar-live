@@ -66,7 +66,11 @@ test('public snapshot preserves 4/5/5 tier counts but flags repeated markets acr
  assert.equal(view.status,'CURRENT');
  assert.deepEqual(view.modelResearchTiers.map(x=>x.legCount),[4,5,5]);
  assert.equal(view.modelResearchTiers[0].complete,true);
- assert.ok(view.modelResearchTiers.slice(1).some(x=>x.complete===false&&x.diversityStatus==='REBUILD_REQUIRED_DUPLICATE_MARKETS'));
+ // Repeated player markets are rebuilt to progressively harder MODEL_ONLY targets.
+ assert.ok(view.modelResearchTiers.every(x=>x.complete===true&&x.diversityStatus==='DISTINCT_TIER'));
+ const threshold=(tier,cat)=>tier.legs.find(x=>x.category===cat)?.modelTarget;
+ assert.ok(threshold(view.modelResearchTiers[1],'passing')>threshold(view.modelResearchTiers[0],'passing'));
+ assert.ok(threshold(view.modelResearchTiers[2],'passing')>threshold(view.modelResearchTiers[1],'passing'));
  assert.equal(view.verifiedQuotes.length,0);
  assert.equal(view.verifiedBookParlays.length,0);
 });
