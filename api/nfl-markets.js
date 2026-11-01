@@ -25,7 +25,7 @@ import {nflCurrentGameDepthChartQbs,nflProjectedDepthChartQbEligible} from '../l
 import {nflCurrentRosterAthletes} from '../lib/nfl-roster-evidence.js';
 import {nflOfficialTransactionHolds,nflRosterReserveHold}
  from '../lib/nfl-official-transaction-holds.js';
-import {nflGameInjuryEvidence,nflInjuryBlocks,nflInjuryRecommendationHold} from '../lib/nfl-injury-evidence.js';
+import {nflGameInjuryEvidence,nflInjuryBlocks,nflInjuryRecommendationHold,nflInjuryNameKey} from '../lib/nfl-injury-evidence.js';
 import {nflWeeklyForGame} from '../lib/nfl-injury-weekly-loader.js';
 import {nflCanonTeam} from '../lib/nfl-official-injury-feed.js';
 import {NFL_MARKET_HOLDS,oddsMonthlyQuotaExhausted,sgoRateLimitHoldMs,shouldUseSgoBackup} from '../lib/nfl-provider-rate-guard.js';
@@ -590,15 +590,15 @@ async function gameEligibility(gameId,{date,home,away}={}){if(!gameId)return{blo
  // and an unconfirmed high-usage role cannot override this hard rule.
  if(!nflInjuryRecommendationHold(x))continue;
  if(x.playerId)blockedIds.add(String(x.playerId));
- for(const name of [x.name,...(x.aliases||[])])if(name)blockedNames.add(norm(name))
+ for(const name of [x.name,...(x.aliases||[])])if(name){blockedNames.add(norm(name));blockedNames.add(nflInjuryNameKey(name))}
 }const officialHolds=nflOfficialTransactionHolds({gameId,date,home,away});
 for(const hold of officialHolds){
- blockedIds.add(hold.playerId);blockedNames.add(norm(hold.name));
+ blockedIds.add(hold.playerId);blockedNames.add(norm(hold.name));blockedNames.add(nflInjuryNameKey(hold.name));
 }
 const rosterHoldEvidence=[];
 const rosterById=new Map(),rosterByName=new Map();await Promise.all([...abbrs].map(async abbr=>{try{const rd=await json(ESPN+'/teams/'+encodeURIComponent(abbr)+'/roster',{},1),athletes=nflCurrentRosterAthletes(rd);for(const a of athletes){const id=a.id,name=a.name,pos=a.position||'';
  if(nflRosterReserveHold(a)){
-  blockedIds.add(id);blockedNames.add(norm(name));
+  blockedIds.add(id);blockedNames.add(norm(name));blockedNames.add(nflInjuryNameKey(name));
   rosterHoldEvidence.push({playerId:id,name,team:abbr,status:'IR',
    source:'ESPN_CURRENT_ROSTER_RESERVE_STATUS',
    evidenceTier:'ESPN_ROSTER_RESERVE',section:'RESERVE',
@@ -620,7 +620,7 @@ const rosterById=new Map(),rosterByName=new Map();await Promise.all([...abbrs].m
   gameDesignationVerified:x.gameDesignationVerified===true
  })),
  source:injury.source+' + current team rosters'}}catch(e){console.error('game_eligibility_failed',String(e?.message||e));return{blockedIds:new Set(),blockedNames:new Set(),rosterById:new Map(),rosterByName:new Map(),checked:false}}}
-function eligibilityFilter(rows,elig){if(!elig?.checked)return [];return(rows||[]).filter(x=>{const id=String(x.playerID||x.playerId||''),name=norm(x.name);if(elig.blockedIds.has(id)||elig.blockedNames.has(name))return false;const rr=elig.rosterById?.get(id)||elig.rosterByName?.get(name);if(!rr)return false;return !x.team||norm(nflCanonTeam(rr.team))===norm(nflCanonTeam(x.team))})}
+function eligibilityFilter(rows,elig){if(!elig?.checked)return [];return(rows||[]).filter(x=>{const id=String(x.playerID||x.playerId||''),name=norm(x.name);if(elig.blockedIds.has(id)||elig.blockedNames.has(name)||elig.blockedNames.has(nflInjuryNameKey(x.name)))return false;const rr=elig.rosterById?.get(id)||elig.rosterByName?.get(name);if(!rr)return false;return !x.team||norm(nflCanonTeam(rr.team))===norm(nflCanonTeam(x.team))})}
 function pruneSgpsForEligibility(sgps,elig,{gameId,home,away}={}){
  return guardFinalNflSgpCards(sgps,{
    blockedIds:elig?.blockedIds,blockedNames:elig?.blockedNames,
