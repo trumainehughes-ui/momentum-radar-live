@@ -17,23 +17,21 @@ const chi={offense:'CHI',defense:'ATL',offenseGames:5,defenseGames:5,positions:[
 ]};
 const data=[atl,chi];
 
-test('renders both offenses as mobile-readable position rows with four key stats each',()=>{
+test('renders both offenses as mobile-readable QB/RB/WR/TE explanation cards',()=>{
  const html=renderPublicMatchupIntelligence(data);
  assert.match(html,/ATL offense/);
  assert.match(html,/CHI defense/);
  assert.match(html,/CHI offense/);
  assert.match(html,/ATL defense/);
  assert.equal((html.match(/class="mr-matchup-card"/g)||[]).length,2);
- assert.equal((html.match(/class="mr-matchup-position"/g)||[]).length,8);
- assert.match(html,/Position \/ stat/);
- assert.match(html,/Offense avg/);
- assert.match(html,/Defense allows/);
- assert.match(html,/208<\/span>/);
- assert.match(html,/229<\/span>/);
- assert.match(html,/158<\/span>/);
- assert.match(html,/82<\/span>/);
+ assert.equal((html.match(/class="mr-matchup-role-simple"/g)||[]).length,8);
+ for(const pos of ['QB','RB','WR','TE'])assert.equal((html.match(new RegExp(pos+' Matchup','g'))||[]).length,2);
+ assert.match(html,/ATL offense:<\\/b> 208 yards per game/);
+ assert.match(html,/CHI defense:<\\/b> Allows 229 yards per game/);
+ assert.match(html,/ATL offense:<\\/b> 158 yards per game/);
+ assert.match(html,/CHI defense:<\\/b> Allows 82 yards per game/);
  assert.match(html,/Per game · Offense 5 games · Defense 5 games/);
- assert.match(html,/min\(100%,360px\)/);
+ assert.match(html,/min\\(100%,360px\\)/);
 });
 test('makes a short grounded matchup explanation without betting claims',()=>{
  const html=renderPublicMatchupIntelligence(data);
@@ -57,9 +55,10 @@ test('does not fabricate missing numbers or misuse no-data as zero',()=>{
    {position:'RB',metrics:[{metric:'rushYards',offensePerGame:0,defenseAllowedPerGame:null}]}
   ]}]);
  assert.match(out,/No[t] enough comparable offense and defense samples/);
- assert.match(out,/class="mr-matchup-empty">—<\/span>/);
+ assert.match(out,/not yet available per game/);
+ assert.match(out,/ATL offense:<\\/b> 0 yards per game/);
  assert.doesNotMatch(out,/0 vs 260/);
- assert.equal((out.match(/class="mr-matchup-position"/g)||[]).length,2);
+ assert.equal((out.match(/class="mr-matchup-role-simple"/g)||[]).length,2);
 });
 test('handles malicious incoming team names, metric strings and data safely',()=>{
  const raw={offense:'<img src=x onerror=alert(1)>',defense:'CHI',positions:[
