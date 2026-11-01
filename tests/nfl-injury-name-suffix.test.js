@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {nflInjuryNameKey,nflGameInjuryEvidence} from '../lib/nfl-injury-evidence.js';
+import {nflInjuryNameKey,nflGameInjuryEvidence,nflInjuryRecommendationHold} from '../lib/nfl-injury-evidence.js';
 import {nflOfficialHoldMatches} from '../lib/nfl-official-transaction-holds.js';
 import {guardFinalNflSgpCards} from '../lib/ai-mechanics/nfl-sgp-tiers.js';
 import {nflPublicInjuryReadiness} from '../lib/nfl-public-injury-release-guard.js';
@@ -56,4 +56,17 @@ test('NFL publication rejects imported legs missing from the injury-screened cat
  assert.match(src,/nflInjuryNameKey\(l\.name\)/);
  assert.match(src,/row\.cat==='td'.*tdModelStatus==='ESPN_MATCHUP_MODEL'/);
  assert.match(src,/const target=cat==='td'\?'Anytime TD'/);
+});
+
+test('public injury snapshot retains full-practice clearance rather than hiding a healthy model leg',()=>{
+ const practice={team:'MIN',name:'Aaron Jones',status:'UNKNOWN',
+  evidenceTier:'WEEKLY_PRACTICE',section:'PRACTICE',
+  practiceStatus:'Full Participation in Practice',injury:null,rawStatus:null,
+  gameDesignationVerified:false};
+ assert.equal(nflInjuryRecommendationHold(practice),false);
+ assert.equal(nflInjuryRecommendationHold({...practice,practiceStatus:'Did Not Participate in Practice'}),true);
+ const src=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
+ assert.match(src,/practiceStatus:String\(x\.practiceStatus\|\|''\)\.slice\(0,90\)/);
+ assert.match(src,/injury:x\.injury==null\?null:String\(x\.injury\)/);
+ assert.match(src,/rawStatus:x\.rawStatus==null\?null:String\(x\.rawStatus\)/);
 });
