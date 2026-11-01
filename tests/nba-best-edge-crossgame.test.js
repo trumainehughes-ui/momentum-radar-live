@@ -5,7 +5,7 @@ import {nbaBestEdgeParlay} from '../lib/nba-best-edge-parlay.js';
 test('NBA Edge Hunter rejects unsupported model-only mode',()=>{
  const result=nbaBestEdgeParlay([],{mode:'MODEL_ONLY'});
  assert.equal(result.status,'NO_QUALIFYING_PARLAY');
- assert.equal(result.reason,'VERIFIED_MARKET_REQUIRED');
+ assert.equal(result.reason,'UNSUPPORTED_MODE');
  assert.deepEqual(result.legs,[]);
 });
 
