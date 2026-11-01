@@ -70,3 +70,10 @@ test('public injury snapshot retains full-practice clearance rather than hiding 
  assert.match(src,/injury:x\.injury==null\?null:String\(x\.injury\)/);
  assert.match(src,/rawStatus:x\.rawStatus==null\?null:String\(x\.rawStatus\)/);
 });
+
+test('public injury cards deduplicate official IR holds and tracker rows by athlete identity',()=>{
+ const src=readFileSync(new URL('../lib/public-nfl-view.js',import.meta.url),'utf8');
+ assert.match(src,/const unique=new Map\(\)/);
+ assert.match(src,/team\+'\|'\+nflInjuryNameKey\(x\.name\)/);
+ assert.match(src,/IR:6,INACTIVE:5,OUT:4/);
+});
