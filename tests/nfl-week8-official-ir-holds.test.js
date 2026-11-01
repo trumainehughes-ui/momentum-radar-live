@@ -63,11 +63,13 @@ test('Nov 1 public snapshot suppresses stale Patriots IR receivers and keeps OUT
    receiving:[row('Mack Hollins','333','receiving',45),
     row('Romeo Doubs','444','receiving',55),row('A.J. Brown','555','receiving',80)],
    receptions:[]},sgps:{Analytics:[],DraftKings:[],FanDuel:[]},
-  validation:{injuryEligibilityChecked:true,injuryEvidence:[]}}};
+  validation:{injuryEligibilityChecked:true,injuryEvidence:[
+   {team:'NE',name:'Marcus Bryant',status:'IR'}]}}};
  const view=publicNflGameView(snap,{date,gameId,now});
  assert.deepEqual(view.categories.receiving,[]);
  assert.deepEqual(view.categories.rushing.map(x=>x.name),['Rhamondre Stevenson']);
  for(const [name,status] of [['Mack Hollins','IR'],['Romeo Doubs','IR'],
   ['A.J. Brown','OUT'],['TreVeyon Henderson','OUT']])
   assert.equal(view.injuries.find(x=>x.name===name)?.status,status);
+ assert.equal(view.injuries.find(x=>x.name==='Marcus Bryant')?.status,'OUT');
 });
