@@ -26,12 +26,12 @@ test('renders both offenses as mobile-readable QB/RB/WR/TE explanation cards',()
  assert.equal((html.match(/class="mr-matchup-card"/g)||[]).length,2);
  assert.equal((html.match(/class="mr-matchup-role-simple"/g)||[]).length,8);
  for(const pos of ['QB','RB','WR','TE'])assert.equal((html.match(new RegExp(pos+' Matchup','g'))||[]).length,2);
- assert.match(html,/ATL offense:<\\/b> 208 yards per game/);
- assert.match(html,/CHI defense:<\\/b> Allows 229 yards per game/);
- assert.match(html,/ATL offense:<\\/b> 158 yards per game/);
- assert.match(html,/CHI defense:<\\/b> Allows 82 yards per game/);
+ assert.match(html,/ATL offense:<\/b> 208 yards per game/);
+ assert.match(html,/CHI defense:<\/b> Allows 229 yards per game/);
+ assert.match(html,/ATL offense:<\/b> 158 yards per game/);
+ assert.match(html,/CHI defense:<\/b> Allows 82 yards per game/);
  assert.match(html,/Per game · Offense 5 games · Defense 5 games/);
- assert.match(html,/min\\(100%,360px\\)/);
+ assert.match(html,/min\(100%,360px\)/);
 });
 test('makes a short grounded matchup explanation without betting claims',()=>{
  const html=renderPublicMatchupIntelligence(data);
@@ -56,7 +56,7 @@ test('does not fabricate missing numbers or misuse no-data as zero',()=>{
   ]}]);
  assert.match(out,/No[t] enough comparable offense and defense samples/);
  assert.match(out,/not yet available per game/);
- assert.match(out,/ATL offense:<\\/b> 0 yards per game/);
+ assert.match(out,/ATL offense:<\/b> 0 yards per game/);
  assert.doesNotMatch(out,/0 vs 260/);
  assert.equal((out.match(/class="mr-matchup-role-simple"/g)||[]).length,2);
 });
