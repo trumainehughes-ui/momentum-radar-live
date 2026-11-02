@@ -736,7 +736,7 @@ if(analyticsMode&&Number(d.validation?.sgpEligibleMarketRows||0)===0){
 // Saved publication is the only customer-facing model source. Do not briefly
 // display unscreened /api/nfl-game roster projections while waiting for it.
 }
-const nflSgpObserver=new MutationObserver(()=>nflSgpQuickNav());const nflSgpHost=document.getElementById('nflSGP');if(nflSgpHost)nflSgpObserver.observe(nflSgpHost,{childList:true});
+const nflSgpHost=document.getElementById('nflSGP');if(nflSgpHost&&typeof MutationObserver!=='undefined'){const nflSgpObserver=new MutationObserver(()=>nflSgpQuickNav());nflSgpObserver.observe(nflSgpHost,{childList:true});}
 function nflClose(){$('#nflGame').style.display='none';$('#nflHome').style.display='block';nflSelected=null;if(typeof window.momentumAiGameChanged==='function')window.momentumAiGameChanged(null)}async function nflLoadInjuryBoard(date){
  try{
   const r=await fetch('/api/nfl-injury-board?'+new URLSearchParams({date,ts:Date.now()}),{cache:'no-store'});
