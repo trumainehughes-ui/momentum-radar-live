@@ -33,6 +33,7 @@ test('rendering SGP tiers does not auto-click and jump the viewport', () => {
 });
 
 test('SGP refresh observer and expandable matchup analysis remain wired', () => {
+  assert.match(html, /typeof MutationObserver!=='undefined'/);
   assert.match(html, /nflSgpObserver\.observe\(nflSgpHost,\{childList:true\}\)/);
   assert.match(html, /function bindAnalysis\(\)/);
   assert.match(html, /aria-expanded/);
