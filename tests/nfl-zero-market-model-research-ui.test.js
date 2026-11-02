@@ -7,12 +7,12 @@ const start=html.indexOf('if(analyticsMode&&Number(d.validation?.sgpEligibleMark
 const end=html.indexOf('}else if(analyticsMode){',start);
 const code=html.slice(start,end);
 
-test('zero sportsbook rows renders all available Small Medium Nuke AI yardage tiers',()=>{
+test('zero sportsbook rows renders all available Small Medium Large Nuke AI yardage tiers',()=>{
  assert.ok(start>=0&&end>start);
  assert.ok(code.includes('const tiersHtml=sgpYardageHtml'));
  assert.ok(code.includes('(tiersHtml||'));
  const model=readFileSync(new URL('../lib/nfl-sgp-model-yardage-cards.js',import.meta.url),'utf8');
- assert.ok(model.includes("['Small','Medium','Nuke']"));
+ assert.ok(model.includes("['Small','Medium','Large','Nuke']"));
  assert.ok(model.includes('tier.legs.length'));
  assert.ok(model.includes('AI yardage projection candidates'));
  assert.ok(model.includes('AI '));
