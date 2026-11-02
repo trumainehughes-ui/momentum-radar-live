@@ -63,6 +63,29 @@ a:focus-visible,select:focus-visible,input:focus-visible{
 @media(prefers-reduced-motion:reduce){
  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
+
+/* Mobile-first readability refinement: visual only; retain existing model and explanation content. */
+html{scroll-padding-top:92px}body{overflow-x:hidden}
+button,[role="button"],summary{touch-action:manipulation}
+button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px solid #76cffa;outline-offset:3px}
+.card,.panel,.sgp-slip,.nflSgpMini,.game-card{min-width:0;overflow-wrap:anywhere}
+.reason,.note,.sgp-leg,.sgpLeg{line-height:1.55}
+.name,.sgpLegName{line-height:1.35}
+@media(max-width:600px){
+ .wrap{padding:10px}.container{width:calc(100% - 24px)}
+ .panel{padding:12px;margin-top:10px}
+ .grid,.secondary,.nflPair,.nflSgpStrip{grid-template-columns:minmax(0,1fr)}
+ .card,.nflSgpMini,.sgp-slip{padding:12px;border-radius:13px}
+ .reason{font-size:13px;line-height:1.6;min-height:0}
+ .note,.meta,.rank{font-size:12px;line-height:1.5}
+ .tabs,.qtabs,.nflMatchTabs{gap:7px}
+ .tab,.qtab,.nflMatchTabs button{min-height:42px}
+ .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .sgp-slip-head{padding:12px}
+ .sgp-leg{padding:12px}
+ .brand{line-height:1.25}
+}
+
 </style><script type="module" src="/public-book-selector-bootstrap.js"></script><script type="module" src="/public-automatic-dk-book-bootstrap.js"></script><script type="module" src="/nfl-model-choice-bootstrap.js"></script><script type="module" src="/nfl-sgp-model-yardage-bootstrap.js"></script>
 </head><body><div class="wrap"><div class="top"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><div class="brand">Momentum Radar <span class="live">LIVE</span></div><span class="rockingChairMark" role="img" aria-label="Rocking chair" title="Sit back. Let the data work.">🪑</span><button id="nflHelp" class="helpBtn">❓ How to Use</button></div><div id="status" class="status">Connecting…</div></div><div id="nflGuide" class="guide" role="region" aria-label="Momentum Radar user guide"><h3>🪑 Momentum Radar — How to Use</h3><p class="note">New here? Start with a sport, choose a game, then explore the matchup and player categories. This guide explains the numbers, AI tools, and what is — and is not — a verified sportsbook selection.</p><div class="guideSteps">
 <div class="guideStep"><b>1. Choose a sport and date</b>⚾ MLB covers home-run opportunities. 🏈 NFL covers matchup analysis, player props and touchdown tracking. 🏀 NBA covers games, player stats and available SGP analysis. Select a game date to see that slate.</div>
