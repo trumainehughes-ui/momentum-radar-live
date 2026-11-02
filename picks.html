@@ -158,6 +158,29 @@ footer{margin-top:70px;border-top:1px solid #29414d;color:#90a5b2;padding:26px 0
 .live-slate-muted{color:#abc3cf;font-size:12px;margin-top:12px}
 .live-slate-alert{border:1px solid #826a44;color:#f0d3a6;background:#2a261e;border-radius:10px;padding:12px 14px;margin:10px 0}
 @media(max-width:570px){.live-slate-cards{grid-template-columns:1fr}.live-slate-count{font-size:26px}}
+
+/* Mobile-first readability refinement: visual only; retain existing model and explanation content. */
+html{scroll-padding-top:92px}body{overflow-x:hidden}
+button,[role="button"],summary{touch-action:manipulation}
+button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px solid #76cffa;outline-offset:3px}
+.card,.panel,.sgp-slip,.nflSgpMini,.game-card{min-width:0;overflow-wrap:anywhere}
+.reason,.note,.sgp-leg,.sgpLeg{line-height:1.55}
+.name,.sgpLegName{line-height:1.35}
+@media(max-width:600px){
+ .wrap{padding:10px}.container{width:calc(100% - 24px)}
+ .panel{padding:12px;margin-top:10px}
+ .grid,.secondary,.nflPair,.nflSgpStrip{grid-template-columns:minmax(0,1fr)}
+ .card,.nflSgpMini,.sgp-slip{padding:12px;border-radius:13px}
+ .reason{font-size:13px;line-height:1.6;min-height:0}
+ .note,.meta,.rank{font-size:12px;line-height:1.5}
+ .tabs,.qtabs,.nflMatchTabs{gap:7px}
+ .tab,.qtab,.nflMatchTabs button{min-height:42px}
+ .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .sgp-slip-head{padding:12px}
+ .sgp-leg{padding:12px}
+ .brand{line-height:1.25}
+}
+
 </style><script type="module" src="/public-sgp-browser-bootstrap.js"></script>
 <script type="module" src="/public-automatic-dk-book-bootstrap.js"></script>
 <script type="module" src="/nfl-model-choice-bootstrap.js"></script><script type="module" src="/nfl-sgp-model-yardage-bootstrap.js"></script><script type="module" src="/nfl-public-compact-sgp-bootstrap.js"></script><script type="module" src="/nfl-public-matchup-intelligence-bootstrap.js"></script>
