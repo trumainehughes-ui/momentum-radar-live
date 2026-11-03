@@ -732,7 +732,7 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
   }
   const statNames={passing:'Passing yards',rushing:'Rushing yards',receiving:'Receiving yards',receptions:'Receptions',td:'Touchdown'};
   const playerEdgeHtml='<section class="sgp-slip" aria-label="AI player matchup advantages"><div class="sgp-slip-head"><strong>AI Player Matchup Advantages</strong></div>'+
-   '<p class="sgp-brief-status">Statistical forecasts from screened matchup research. No sportsbook odds or prop lines required. Starting status must be verified before labeling a player a confirmed starter.</p>'+
+   '<p class="sgp-brief-status">Statistical forecasts from screened matchup research. No sportsbook odds or prop lines required. Only verified current-game starters qualify for NFL SGP slips; historical usage does not confirm a starter. Matchup forecasts are research, not verified sportsbook picks.</p>'+
    (playerForecasts.length?'<ol class="sgp-leg-list">'+playerForecasts.sort((a,b)=>{
     const aPct=Number(a.modelChancePct??a.hitChance??0),bPct=Number(b.modelChancePct??b.hitChance??0);
     return bPct-aPct||b.projection-a.projection;
