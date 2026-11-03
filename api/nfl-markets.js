@@ -446,11 +446,9 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
     // High usage alone does not establish a starting role. A confirmed or
     // expected starter designation is required for all skill positions.
     // Unconfirmed rotation players remain in analytics, not model SGP slips.
-    if(pos!=='QB')return role?.recommendationEligible===true&&(
-      (role?.verification?.role?.verified===true&&
-       ['CONFIRMED_STARTER','EXPECTED_STARTER'].includes(String(role?.starterStatus||'').toUpperCase()))||
-      (role?.gameModelOnly===true&&role?.starterStatus==='PROJECTED_HIGH_USAGE_ROLE'&&
-       role?.roleSource==='ESPN 2026 completed-game usage and same-game current roster'));
+    if(pos!=='QB')return role?.recommendationEligible===true&&
+      role?.verification?.role?.verified===true&&role?.starterVerified===true&&
+      String(role?.starterStatus||'').toUpperCase()==='CONFIRMED_STARTER';
     // Existing "HIGH_USAGE_ROLE" flags are not a confirmed QB starter.
     // Day-ahead model allows ESPN depth-chart QB1 ONLY after game roster,
     // injury eligibility and 2+ game passing samples have been verified.
@@ -513,8 +511,8 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
    if(pos==='QB')return (
     (['CONFIRMED_STARTER','EXPECTED_STARTER'].includes(String(role.starterStatus||''))&&isNflConfirmedGameQb({position:pos,role}))||
     nflProjectedDepthChartQbEligible(role));
-   return (role.verification?.role?.verified===true&&['CONFIRMED_STARTER','EXPECTED_STARTER'].includes(String(role.starterStatus||'')))||
-    (role.gameModelOnly===true&&role.starterStatus==='PROJECTED_HIGH_USAGE_ROLE'&&role.roleSource==='ESPN 2026 completed-game usage and same-game current roster');
+   return role.recommendationEligible===true&&role.verification?.role?.verified===true&&
+    role.starterVerified===true&&String(role.starterStatus||'').toUpperCase()==='CONFIRMED_STARTER';
   };
   const ranked=[...pool].filter(eligible).sort((a,b)=>strength(b,tier)-strength(a,tier));
   const add=x=>{
@@ -582,7 +580,7 @@ function roleFilter(rows,gate,cat){
  for(const [k,a] of groups){const pos=k.split('|')[1],n=limits[pos]||1;a.sort((p,q)=>{const pu=p.usagePerGame||{},qu=q.usagePerGame||{};const ps=Number(p.perGame)||0,qs=Number(q.perGame)||0;const catScore=(x,u)=>cat==='passing'?Number(x.perGame)||0:cat==='rushing'?Number(u.rushYards)||Number(x.perGame)||0:(cat==='receiving'||cat==='receptions')?((Number(u.targets)||0)*8+(Number(u.receptions)||0)*5+(Number(u.recYards)||0)):Number(x.perGame)||0;const pUsage=catScore(p,pu),qUsage=catScore(q,qu);return qUsage-pUsage||qs-ps});for(const x of a.slice(0,n))keep.add(String(x.playerID||x.playerId||norm(x.name)))}
  return eligible.filter(x=>keep.has(String(x.playerID||x.playerId||norm(x.name))));
 }
-function sgpRoleFilter(rows,gate){if(!gate?.checked)return[];return(rows||[]).map(x=>{const r=roleFor(gate,x);if(!r||r.recommendationEligible!==true)return null;const cat=category(x),pos=String(x.position||r.position||'').toUpperCase();if(cat==='passing'&&(pos!=='QB'||r.starterVerified!==true))return null;return{...x,playerID:r.playerId||x.playerID||x.playerId,team:norm(r.team||x.team),position:pos,starterVerified:r.starterVerified===true,starterStatus:r.starterStatus||'VERIFIED_ROLE',roleSource:r.verification?.role?.source||null}}).filter(Boolean)}
+function sgpRoleFilter(rows,gate){if(!gate?.checked)return[];return(rows||[]).map(x=>{const r=roleFor(gate,x);if(!r||r.recommendationEligible!==true||r.starterVerified!==true||r.verification?.role?.verified!==true||String(r.starterStatus||'').toUpperCase()!=='CONFIRMED_STARTER')return null;const cat=category(x),pos=String(x.position||r.position||'').toUpperCase();if(cat==='passing'&&(pos!=='QB'||r.starterVerified!==true))return null;return{...x,playerID:r.playerId||x.playerID||x.playerId,team:norm(r.team||x.team),position:pos,starterVerified:r.starterVerified===true,starterStatus:r.starterStatus||'VERIFIED_ROLE',roleSource:r.verification?.role?.source||null}}).filter(Boolean)}
 async function gameEligibility(gameId,{date,home,away}={}){if(!gameId)return{blockedIds:new Set(),blockedNames:new Set(),rosterById:new Map(),rosterByName:new Map(),checked:false};try{const d=await json(ESPN+'/summary?event='+encodeURIComponent(gameId),{},1),comp=d.header?.competitions?.[0]||{},teams=comp.competitors||[],ids=new Set(teams.map(x=>String(x.team?.id||'')).filter(Boolean)),abbrs=new Set(teams.map(x=>String(x.team?.abbreviation||'').toUpperCase()).filter(Boolean)),
  teamIdsByAbbr=new Map(teams.map(x=>[nflCanonTeam(x.team?.abbreviation),String(x.team?.id||'')]).filter(x=>x[0]&&/^\d{1,5}$/.test(x[1])));let league=null;try{league=await json(ESPN+'/injuries',{},1)}catch(e){console.warn('league_injury_unavailable',String(e?.message||e))}const weekly=await nflWeeklyForGame({gameId,summary:d,competitors:teams});const injury=nflGameInjuryEvidence({summary:d,league,weekly,competitors:teams,checkedAt:new Date().toISOString()});const blockedIds=new Set(),blockedNames=new Set();for(const x of injury.injuries||[]){
  // A player on a current team injury/reserve/practice list stays OFF ALL
