@@ -690,6 +690,7 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
   // Customer-facing projections are rendered exclusively from the public
   // read-only snapshot for this exact game. Do not rebuild from a separate
   // /api/nfl-markets request, compact model, or browser-local forecast.
+  // Canonical source shared with the owner SGP summary: /api/public-nfl-game.
   const savedTiers=snapshotFresh&&Array.isArray(d.modelResearchTiers)?d.modelResearchTiers:[];
   // Player-first forecast board: no sportsbook offer or parlay composition gate.
   // Use only saved game-scoped, server-screened model evidence shared with owner.
