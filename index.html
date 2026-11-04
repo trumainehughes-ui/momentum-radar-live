@@ -743,7 +743,7 @@ if(analyticsMode&&Number(d.validation?.sgpEligibleMarketRows||0)===0){
    const valid=published.ok===true&&published.status==='CURRENT'&&published.updatedDataCurrent===true&&
     String(published.date)===parityDate&&String(published.gameId)===parityGameId&&
     Number.isFinite(at)&&Date.now()-at<=15*60*1000&&at<=Date.now()+60000;
-   if(valid&&nflSelected?.gameId===id){
+   if(valid&&String(nflSelected?.gameId||'')===parityGameId){
     const tiers=Array.isArray(published.modelResearchTiers)?published.modelResearchTiers:[];
     const shared=['Small','Medium','Large','Nuke'].map(risk=>{
      const t=tiers.find(x=>x?.risk===risk&&x?.mode==='MODEL_RESEARCH');
