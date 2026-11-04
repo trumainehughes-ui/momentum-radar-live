@@ -730,6 +730,31 @@ if(analyticsMode&&Number(d.validation?.sgpEligibleMarketRows||0)===0){
 // Player forecast choices do not depend on sportsbook market availability.
  if(d.publicParity)$('#nflProps').innerHTML=nflSharedPropsHtml(d.publicParity);
  if(modelBoard?.rows?.length)$('#nflProps').innerHTML=modelChoiceHtml+$('#nflProps').innerHTML;
+ // Public and owner SGP cards must share one published game-scoped tier source.
+ // Preserve owner-only diagnostics under a collapsible panel; never silently
+ // substitute live market model legs for the visitor's published selections.
+ try{
+  const parityDate=String(nflData?.date||'');
+  const parityGameId=String(id);
+  const parityResponse=await fetch('/api/public-nfl-game?'+new URLSearchParams({date:parityDate,gameId:parityGameId}),{cache:'no-store'});
+  if(parityResponse.ok){
+   const published=await parityResponse.json();
+   const at=Date.parse(String(published.updatedAt||''));
+   const valid=published.ok===true&&published.status==='CURRENT'&&published.updatedDataCurrent===true&&
+    String(published.date)===parityDate&&String(published.gameId)===parityGameId&&
+    Number.isFinite(at)&&Date.now()-at<=15*60*1000&&at<=Date.now()+60000;
+   if(valid&&nflSelected?.gameId===id){
+    const tiers=Array.isArray(published.modelResearchTiers)?published.modelResearchTiers:[];
+    const shared=['Small','Medium','Large','Nuke'].map(risk=>{
+     const t=tiers.find(x=>x?.risk===risk&&x?.mode==='MODEL_RESEARCH');
+     if(!t?.complete||!Array.isArray(t.legs)||!t.legs.length)return '<div class="nflSgpMini"><b>'+risk+' · NOT READY</b><div class="note">No complete published game-scoped tier.</div></div>';
+     return '<div class="nflSgpMini" data-risk="'+risk+'"><b>'+risk+' · SHARED PUBLIC MODEL</b><div class="note">'+t.legs.map(l=>nflEscape(l.player||'')+' — '+nflEscape(l.category||'')+' — '+nflEscape(l.modelTarget??l.target??'Touchdown')).join('<br>')+'</div></div>';
+    }).join('');
+    const old=$('#nflSGP').innerHTML;
+    $('#nflSGP').innerHTML='<div class="card" style="grid-column:1/-1"><div class="rank">Same Game Parlay · Production / Public synchronized</div><div class="note">Both views use the same published, game-specific model research. These are not verified sportsbook combined odds.</div>'+shared+'</div><details class="card" style="grid-column:1/-1"><summary>Owner-only live market analysis and diagnostics</summary>'+old+'</details>';
+   }
+  }
+ }catch(e){console.warn('nfl_public_sgp_parity_unavailable',String(e?.message||e));}
  if(window.momentumParlayWatch)window.momentumParlayWatch.decorate(g,d);
 
 }).catch(err=>{const marketError=nflEscape(String(err?.message||'market request failed'));console.warn('nfl_game_market_request_failed',id,marketError);const teamLine=`${g.away.abbr} @ ${g.home.abbr}`;if(independentPropsHtml)$('#nflProps').innerHTML=independentPropsHtml;else $('#nflProps').innerHTML=`<div class="nflMarketLine"><b>${teamLine}</b><div class="meta">Momentum matchup analysis remains active.</div><div class="note">Momentum Radar matchup analytics remain active using current roster, production, matchup and public sportsbook evidence.</div></div>`;$('#nflSGP').innerHTML=`<div class="card" style="grid-column:1/-1"><div class="rank">SPORTSBOOK MARKET REQUEST FAILED</div><div id="nflSgpAnalytics"><div class="note">DraftKings/FanDuel markets are not verified. API error: ${marketError}</div><div class="refresh"><button onclick="nflOpen(nflSelected.gameId,true)">Retry market check</button> <a target="_blank" rel="noopener" href="/api/nfl-markets?date=${encodeURIComponent(nflData?.date||'')}&gameId=${encodeURIComponent(id)}&finalCheck=1">Inspect market API</a></div></div></div>`});
