@@ -60,14 +60,30 @@ export default async function handler(req,res){
    profiles.set(team.id,p);
   }
   const teams=[...profiles.values()].map(p=>({...p,offense:Object.fromEntries(Object.entries(p.offense).map(([k,v])=>[k,avg(v,p.games)])),defenseAllowed:Object.fromEntries(Object.entries(p.defenseAllowed).map(([k,v])=>[k,avg(v,p.games)])),allowedByPosition:Object.fromEntries(Object.entries(p.allowedByPosition).map(([pos,v])=>[pos,{games:v.games,...Object.fromEntries(['points','rebounds','assists','threes'].map(k=>[k,avg(v[k],v.games)]))}]))})).sort((a,b)=>a.team.localeCompare(b.team));
+  // League baseline and defensive ranks for each verified position and market.
+  // Rank 1 = fewest allowed; rank 30 = most allowed (when all teams covered).
+  const positions=['PG','SG','SF','PF','C'],markets=['points','rebounds','assists','threes'];
+  const leaguePositionAverages=Object.fromEntries(positions.map(pos=>[pos,Object.fromEntries(markets.map(market=>{
+   const available=teams.map(t=>t.allowedByPosition[pos]).filter(v=>v&&v.games>=1&&Number.isFinite(v[market]));
+   return [market,available.length?avg(available.reduce((sum,v)=>sum+v[market],0),available.length):null];
+  }))]));
+  for(const team of teams){
+   team.positionRanks=Object.fromEntries(positions.map(pos=>[pos,Object.fromEntries(markets.map(market=>{
+    const current=team.allowedByPosition[pos]?.[market];
+    const eligible=teams.filter(t=>Number.isFinite(t.allowedByPosition[pos]?.[market]));
+    if(!Number.isFinite(current)||eligible.length<2)return [market,null];
+    return [market,{rank:1+eligible.filter(t=>t.allowedByPosition[pos][market]<current).length,
+     teamsCompared:eligible.length,highestAllowedRank:eligible.length}];
+   }))]));
+  }
   const id=String(req.query?.teamId||'');
   const homeId=String(req.query?.homeId||''),awayId=String(req.query?.awayId||'');
   const home=teams.find(t=>t.teamId===homeId),away=teams.find(t=>t.teamId===awayId);
   const matchups=home&&away&&homeId!==awayId?{
    home:{team:home.team,offense:home.offense,opponentDefense:away.defenseAllowed,
-    opponentPositionAllowances:away.allowedByPosition,offenseGames:home.games,defenseGames:away.games},
+    opponentPositionAllowances:away.allowedByPosition,opponentPositionRanks:away.positionRanks,offenseGames:home.games,defenseGames:away.games},
    away:{team:away.team,offense:away.offense,opponentDefense:home.defenseAllowed,
-    opponentPositionAllowances:home.allowedByPosition,offenseGames:away.games,defenseGames:home.games},
+    opponentPositionAllowances:home.allowedByPosition,opponentPositionRanks:home.positionRanks,offenseGames:away.games,defenseGames:home.games},
    sampleQuality:Math.min(home.games,away.games)>=5?'LIMITED_EARLY_SEASON':'INSUFFICIENT_FOR_STRONG_PREDICTION',
    sportsbookVerified:false
   }:null;
@@ -83,6 +99,6 @@ export default async function handler(req,res){
     matchups.home.matchupFactor=1;matchups.away.matchupFactor=1;
    }
   }
-  return res.status(200).json({ok:true,source:'ESPN completed NBA game box scores',nbaComCrossCheck:'NOT_VERIFIED',researchOnly:true,windowDays:days,completedGames:events.length,teamsCovered:teams.length,completeLeagueCoverage:teams.length===30,teams:id?teams.filter(t=>t.teamId===id):teams,matchups,notes:['Per-game averages, not per-100-possession ratings','Position allowances are aggregate production of all opposing players at that position per game','Small early-season samples must not be treated as confident predictions','NBA.com advanced ratings require a separate verified data feed']});
+  return res.status(200).json({ok:true,source:'ESPN completed NBA game box scores',nbaComCrossCheck:'NOT_VERIFIED',researchOnly:true,leaguePositionAverages,windowDays:days,completedGames:events.length,teamsCovered:teams.length,completeLeagueCoverage:teams.length===30,teams:id?teams.filter(t=>t.teamId===id):teams,matchups,notes:['Per-game averages, not per-100-possession ratings','Position allowances are aggregate production of all opposing players at that position per game','Small early-season samples must not be treated as confident predictions','NBA.com advanced ratings require a separate verified data feed']});
  }catch(e){return res.status(503).json({ok:false,error:'NBA_TEAM_MATCHUP_UNAVAILABLE',detail:String(e.message).slice(0,120)});}
 }
