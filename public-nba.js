@@ -143,7 +143,7 @@
   matchupBox.innerHTML='<div class="refresh">Loading NBA offense vs. defense and DVP matchup…</div>';
   (async()=>{
    try{
-    const url='/api/nba-team-matchups?days=10&homeId='+encodeURIComponent(game.home.id)+'&awayId='+encodeURIComponent(game.away.id);
+    const url='/api/nba-team-matchups?days=30&homeId='+encodeURIComponent(game.home.id)+'&awayId='+encodeURIComponent(game.away.id);
     const report=await json(url);
     if(selected!==id||!matchupBox.isConnected)return;
     const matchups=report.matchups;
