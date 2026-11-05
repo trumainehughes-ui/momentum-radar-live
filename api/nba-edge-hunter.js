@@ -35,9 +35,9 @@ export default async function handler(req,res){
   // Always offer a clearly marked historical projection preview when available.
   // Do not label these as four verified picks: totals, spreads and prop lines are missing.
   const researchPreview=games.flatMap(g=>(g.researchCandidates||[])
-   .filter(p=>p.starterVerified&&Number(p.sampleGames)>=5)
+   .filter(p=>Number(p.sampleGames)>=3)
    .sort((a,b)=>b.projection-a.projection).slice(0,2)
-   .map(p=>({...p,gameId:g.gameId,game:g.away+' @ '+g.home,marketVerified:false}))).slice(0,8);
+   .map(p=>({...p,gameId:g.gameId,game:g.away+' @ '+g.home,marketVerified:false,starterStatus:p.starterVerified?'VERIFIED':'UNCONFIRMED'}))).slice(0,8);
   return res.status(200).json({ok:true,date,source:'ESPN NBA scoreboard and stored pregame research',
    status:selection.status,selection,researchPreview,slateGames:games.length,
    snapshotProjectionCount:games.reduce((n,g)=>n+g.historicalProjections,0),
