@@ -11,7 +11,7 @@ async function nbaOfficialOpponentStats(){
   const body=await response.json(),sets=body.resultSets||body.resultSet||[];
   const table=Array.isArray(sets)?sets.find(x=>x.name==='LeagueDashTeamStats')||sets[0]:sets;
   const headers=table?.headers||[],rows=table?.rowSet||[];
-  if(!headers.includes('TEAM_NAME')||!headers.includes('OPP_PTS'))throw Error('NBA_COM_SCHEMA_UNAVAILABLE');
+  if(!headers.includes('TEAM_NAME')||!(headers.includes('OPP_PTS')||headers.includes('PTS')))throw Error('NBA_COM_SCHEMA_UNAVAILABLE');
   return {status:'VERIFIED',teams:rows.map(row=>Object.fromEntries(headers.map((h,i)=>[h,row[i]])))};
  }catch(error){return {status:'UNAVAILABLE',reason:String(error?.message||error).slice(0,90),teams:[]};}
 }
@@ -78,7 +78,7 @@ export default async function handler(req,res){
   const officialByName=new Map(nbaCom.teams.map(t=>[normalizeName(t.TEAM_NAME),t]));
   for(const team of teams){
    const official=officialByName.get(normalizeName(team.team));
-   team.nbaComOpponentStats=official?{points:Number(official.OPP_PTS),rebounds:Number(official.OPP_REB),assists:Number(official.OPP_AST),threes:Number(official.OPP_FG3M),source:'NBA.com official opponent stats',verified:true}:null;
+   team.nbaComOpponentStats=official?{points:Number(official.OPP_PTS??official.PTS),rebounds:Number(official.OPP_REB??official.REB),assists:Number(official.OPP_AST??official.AST),threes:Number(official.OPP_FG3M??official.FG3M),source:'NBA.com official opponent stats',verified:true}:null;
   }
   // League baseline and defensive ranks for each verified position and market.
   // Rank 1 = fewest allowed; rank 30 = most allowed (when all teams covered).
