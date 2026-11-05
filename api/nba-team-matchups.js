@@ -2,6 +2,19 @@
 // Research data only: no sportsbook odds, probabilities, or fabricated NBA.com values.
 const BASE='https://site.api.espn.com/apis/site/v2/sports/basketball/nba/';
 const fetchJson=async path=>{const r=await fetch(BASE+path,{signal:AbortSignal.timeout(9000),cache:'no-store'});if(!r.ok)throw Error('ESPN_'+r.status);return r.json();};
+// Independent NBA.com official opponent-stat cross-check; ESPN remains available if blocked.
+async function nbaOfficialOpponentStats(){
+ const params=new URLSearchParams({Season:'2026-27',SeasonType:'Regular Season',MeasureType:'Opponent',PerMode:'PerGame',PlusMinus:'N',PaceAdjust:'N',Rank:'N',LeagueID:'00',LastNGames:'0',Month:'0',OpponentTeamID:'0',TeamID:'0'});
+ try{
+  const response=await fetch('https://stats.nba.com/stats/leaguedashteamstats?'+params,{cache:'no-store',signal:AbortSignal.timeout(5500),headers:{Accept:'application/json',Referer:'https://www.nba.com/',Origin:'https://www.nba.com','User-Agent':'Mozilla/5.0','x-nba-stats-origin':'stats','x-nba-stats-token':'true'}});
+  if(!response.ok)throw Error('NBA_COM_HTTP_'+response.status);
+  const body=await response.json(),sets=body.resultSets||body.resultSet||[];
+  const table=Array.isArray(sets)?sets.find(x=>x.name==='LeagueDashTeamStats')||sets[0]:sets;
+  const headers=table?.headers||[],rows=table?.rowSet||[];
+  if(!headers.includes('TEAM_NAME')||!headers.includes('OPP_PTS'))throw Error('NBA_COM_SCHEMA_UNAVAILABLE');
+  return {status:'VERIFIED',teams:rows.map(row=>Object.fromEntries(headers.map((h,i)=>[h,row[i]])))};
+ }catch(error){return {status:'UNAVAILABLE',reason:String(error?.message||error).slice(0,90),teams:[]};}
+}
 const dateKey=d=>d.toISOString().slice(0,10).replaceAll('-','');
 const safeNumber=v=>{const n=Number(v);return Number.isFinite(n)?n:0;};
 const avg=(sum,n)=>n?Number((sum/n).toFixed(2)):null;
@@ -60,6 +73,13 @@ export default async function handler(req,res){
    profiles.set(team.id,p);
   }
   const teams=[...profiles.values()].map(p=>({...p,offense:Object.fromEntries(Object.entries(p.offense).map(([k,v])=>[k,avg(v,p.games)])),defenseAllowed:Object.fromEntries(Object.entries(p.defenseAllowed).map(([k,v])=>[k,avg(v,p.games)])),allowedByPosition:Object.fromEntries(Object.entries(p.allowedByPosition).map(([pos,v])=>[pos,{games:v.games,...Object.fromEntries(['points','rebounds','assists','threes'].map(k=>[k,avg(v[k],v.games)]))}]))})).sort((a,b)=>a.team.localeCompare(b.team));
+  const nbaCom=await nbaOfficialOpponentStats();
+  const normalizeName=name=>String(name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const officialByName=new Map(nbaCom.teams.map(t=>[normalizeName(t.TEAM_NAME),t]));
+  for(const team of teams){
+   const official=officialByName.get(normalizeName(team.team));
+   team.nbaComOpponentStats=official?{points:Number(official.OPP_PTS),rebounds:Number(official.OPP_REB),assists:Number(official.OPP_AST),threes:Number(official.OPP_FG3M),source:'NBA.com official opponent stats',verified:true}:null;
+  }
   // League baseline and defensive ranks for each verified position and market.
   // Rank 1 = fewest allowed; rank 30 = most allowed (when all teams covered).
   const positions=['PG','SG','SF','PF','C'],markets=['points','rebounds','assists','threes'];
@@ -112,6 +132,6 @@ export default async function handler(req,res){
     matchups.home.matchupFactor=1;matchups.away.matchupFactor=1;
    }
   }
-  return res.status(200).json({ok:true,source:'ESPN completed NBA game box scores',nbaComCrossCheck:'NOT_VERIFIED',researchOnly:true,leaguePositionAverages,windowDays:days,completedGames:events.length,teamsCovered:teams.length,completeLeagueCoverage:teams.length===30,teams:id?teams.filter(t=>t.teamId===id):teams,matchups,notes:['Per-game averages, not per-100-possession ratings','Position allowances are aggregate production of all opposing players at that position per game','Small early-season samples must not be treated as confident predictions','NBA.com advanced ratings require a separate verified data feed']});
+  return res.status(200).json({ok:true,source:'ESPN completed NBA game box scores',nbaComCrossCheck:nbaCom.status,nbaComFailureReason:nbaCom.status==='UNAVAILABLE'?nbaCom.reason:null,researchOnly:true,leaguePositionAverages,windowDays:days,completedGames:events.length,teamsCovered:teams.length,completeLeagueCoverage:teams.length===30,teams:id?teams.filter(t=>t.teamId===id):teams,matchups,notes:['Per-game averages, not per-100-possession ratings','Position allowances are aggregate production of all opposing players at that position per game','Small early-season samples must not be treated as confident predictions','NBA.com advanced ratings require a separate verified data feed']});
  }catch(e){return res.status(503).json({ok:false,error:'NBA_TEAM_MATCHUP_UNAVAILABLE',detail:String(e.message).slice(0,120)});}
 }
