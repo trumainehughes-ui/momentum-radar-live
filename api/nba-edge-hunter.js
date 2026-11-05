@@ -23,7 +23,7 @@ export default async function handler(req,res){
    // ESPN does not supply verified DraftKings/FanDuel totals, spreads or prop offers.
    // Do not relabel ESPN schedule data or model-only projections as bookmaker quotes.
    return {gameId:game.gameId,home:game.home.abbr,away:game.away.abbr,
-    total:null,spread:null,players:[],historicalProjections:snapshot?.playerProjections?.length||0,
+    total:null,spread:null,players:(snapshot?.playerProjections||[]).filter(p=>p.starterVerified===true&&p.playerId&&['points','rebounds','assists','threes'].includes(p.category)).map(p=>({playerId:String(p.playerId),name:p.name,team:p.team,category:p.category,projection:p.projection,last10Values:p.historicalValues?.slice(0,10)||[],starterVerified:true})),historicalProjections:snapshot?.playerProjections?.length||0,
     researchCandidates:(snapshot?.playerProjections||[]).filter(p=>['points','rebounds','assists','threes'].includes(p.category)&&Number.isFinite(Number(p.projection))&&Number(p.projection)>0).map(p=>({name:p.name||p.playerName,team:p.team,category:p.category,projection:Number(p.projection),sampleGames:p.sampleGames,starterVerified:p.starterVerified===true})).slice(0,60),
     bookTotalsVerified:false,bookPlayerMarketsVerified:false};
   }));
