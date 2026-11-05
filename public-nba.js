@@ -163,7 +163,7 @@
       (!exact?'<div class="note">Individual PG / SG / SF / PF / C splits are not verified by this feed. Combined guard and forward totals cannot be used as individual-position exploits.</div>':'')+
       '<div style="overflow-x:auto"><table style="width:100%;font-size:13px;text-align:left;border-collapse:collapse">'+
       '<thead><tr><th>Position</th><th>PTS</th><th>REB</th><th>AST</th><th>3PM</th></tr></thead><tbody>'+
-      positions.map(pos=>row(pos,allowances[pos])).join('')+'</tbody></table></div>'+
+      positions.filter(pos=>allowances[pos]).map(pos=>row(pos,allowances[pos])).join('')+'</tbody></table></div>'+
       '<details style="margin-top:10px"><summary>Show available grouped defensive totals</summary>'+
       '<div style="overflow-x:auto"><table style="width:100%;font-size:12px"><tbody>'+
       Object.entries(allowances).filter(([pos])=>!positions.includes(pos)).map(([pos,v])=>row(pos==='G'?'Guards':pos==='F'?'Forwards':pos==='C'?'Centers':pos,v)).join('')+
