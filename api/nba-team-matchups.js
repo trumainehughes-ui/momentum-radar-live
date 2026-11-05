@@ -54,7 +54,7 @@ export default async function handler(req,res){
  try{
   const boards=await Promise.allSettled(dates.map(d=>fetchJson('scoreboard?dates='+d+'&limit=100')));
   const events=[...new Map(boards.filter(x=>x.status==='fulfilled').flatMap(x=>x.value.events||[])
-   .filter(e=>e.status?.type?.completed===true).map(e=>[e.id,e])).values()].slice(0,70);
+   .filter(e=>e.status?.type?.completed===true).map(e=>[e.id,e])).values()].slice(0,160);
   const results=[];
   for(let i=0;i<events.length;i+=12){
    const batch=await Promise.allSettled(events.slice(i,i+12).map(async e=>record(await fetchJson('summary?event='+e.id),e)));
