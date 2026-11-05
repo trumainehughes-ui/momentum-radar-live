@@ -167,7 +167,8 @@
       '<div style="overflow-x:auto"><table style="width:100%;font-size:12px"><tbody>'+
       Object.entries(allowances).filter(([pos])=>!positions.includes(pos)).map(([pos,v])=>row(pos==='G'?'Guards':pos==='F'?'Forwards':pos==='C'?'Centers':pos,v)).join('')+
       '</tbody></table></div></details>'+
-      '<div class="note">These are opposing-player group totals per game, not player forecasts. Exploit validation requires league baseline, player role and verified book line.</div></div>';
+      '<div class="note">These are opposing-player group totals per game, not player forecasts. Exploit validation requires league baseline, player role and verified book line.</div>'+
+      '<details><summary>Position defense rankings</summary>'+positions.map(pos=>'<div class="meta">'+safe(pos)+' • '+keys.map(k=>{const v=entry.opponentPositionRanks?.[pos]?.[k];return safe(k)+': '+(v?safe(v.rank)+'/'+safe(v.teamsCompared):'—');}).join(' • ')+'</div>').join('')+'</details></div>';
     };
     matchupBox.innerHTML='<h3>NBA Matchup Intelligence • Defense vs Position (DVP)</h3>'+
      '<div class="note">Rolling '+safe(report.windowDays)+'-day ESPN completed-game sample • '+safe(matchups.sampleQuality)+
