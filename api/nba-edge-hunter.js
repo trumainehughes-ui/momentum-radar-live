@@ -24,6 +24,7 @@ export default async function handler(req,res){
    // Do not relabel ESPN schedule data or model-only projections as bookmaker quotes.
    return {gameId:game.gameId,home:game.home.abbr,away:game.away.abbr,
     total:null,spread:null,players:[],historicalProjections:snapshot?.playerProjections?.length||0,
+    researchCandidates:(snapshot?.playerProjections||[]).filter(p=>['points','rebounds','assists','threes'].includes(p.category)&&Number.isFinite(Number(p.projection))&&Number(p.projection)>0).map(p=>({name:p.name||p.playerName,team:p.team,category:p.category,projection:Number(p.projection),sampleGames:p.sampleGames,starterVerified:p.starterVerified===true})).slice(0,60),
     bookTotalsVerified:false,bookPlayerMarketsVerified:false};
   }));
   // No structured official-book offers are collected yet. Keep this explicit;
@@ -31,8 +32,14 @@ export default async function handler(req,res){
   const sourceCheck=await collectDirectSportsbookEvidence({sport:'nba',gameId:'SLATE'});
   const verifiedOffers=sourceCheck.offers;
   const selection=researchVerifiedNbaEdgeHunter({games,offers:verifiedOffers});
+  // Always offer a clearly marked historical projection preview when available.
+  // Do not label these as four verified picks: totals, spreads and prop lines are missing.
+  const researchPreview=games.flatMap(g=>(g.researchCandidates||[])
+   .filter(p=>p.starterVerified&&Number(p.sampleGames)>=5)
+   .sort((a,b)=>b.projection-a.projection).slice(0,2)
+   .map(p=>({...p,gameId:g.gameId,game:g.away+' @ '+g.home,marketVerified:false}))).slice(0,8);
   return res.status(200).json({ok:true,date,source:'ESPN NBA scoreboard and stored pregame research',
-   status:selection.status,selection,slateGames:games.length,
+   status:selection.status,selection,researchPreview,slateGames:games.length,
    snapshotProjectionCount:games.reduce((n,g)=>n+g.historicalProjections,0),
    verifiedBookOfferCount:verifiedOffers.length,marketIngestionStatus:sourceCheck.status,
    sportsbookSourceChecks:sourceCheck.attempts,
