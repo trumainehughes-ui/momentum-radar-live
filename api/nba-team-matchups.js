@@ -76,14 +76,27 @@ export default async function handler(req,res){
      teamsCompared:eligible.length,highestAllowedRank:eligible.length}];
    }))]));
   }
+  // Position-only defensive research signals. These are not player picks or hit rates.
+  for(const team of teams){
+   team.positionExploits=positions.flatMap(position=>markets.map(market=>{
+    const sample=team.allowedByPosition[position],baseline=leaguePositionAverages[position]?.[market];
+    const allowed=sample?.[market],games=sample?.games||0;
+    if(games<5||!Number.isFinite(allowed)||!Number.isFinite(baseline)||baseline<=0)return null;
+    const relativeEdge=Number(((allowed-baseline)/baseline).toFixed(3));
+    const score=Math.round(Math.max(0,Math.min(100,50+relativeEdge*100)));
+    return {position,market,allowed,leagueAverage:baseline,games,relativeEdge,score,
+      rank:team.positionRanks[position]?.[market]||null,
+      evidence:'DEFENSE_ONLY_NOT_PLAYER_PROJECTION'};
+   }).filter(Boolean)).sort((a,b)=>b.relativeEdge-a.relativeEdge);
+  }
   const id=String(req.query?.teamId||'');
   const homeId=String(req.query?.homeId||''),awayId=String(req.query?.awayId||'');
   const home=teams.find(t=>t.teamId===homeId),away=teams.find(t=>t.teamId===awayId);
   const matchups=home&&away&&homeId!==awayId?{
    home:{team:home.team,offense:home.offense,opponentDefense:away.defenseAllowed,
-    opponentPositionAllowances:away.allowedByPosition,opponentPositionRanks:away.positionRanks,offenseGames:home.games,defenseGames:away.games},
+    opponentPositionAllowances:away.allowedByPosition,opponentPositionRanks:away.positionRanks,opponentPositionExploits:away.positionExploits,offenseGames:home.games,defenseGames:away.games},
    away:{team:away.team,offense:away.offense,opponentDefense:home.defenseAllowed,
-    opponentPositionAllowances:home.allowedByPosition,opponentPositionRanks:home.positionRanks,offenseGames:away.games,defenseGames:home.games},
+    opponentPositionAllowances:home.allowedByPosition,opponentPositionRanks:home.positionRanks,opponentPositionExploits:home.positionExploits,offenseGames:away.games,defenseGames:home.games},
    sampleQuality:Math.min(home.games,away.games)>=5?'LIMITED_EARLY_SEASON':'INSUFFICIENT_FOR_STRONG_PREDICTION',
    sportsbookVerified:false
   }:null;
