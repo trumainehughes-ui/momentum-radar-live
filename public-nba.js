@@ -148,7 +148,7 @@
     if(selected!==id||!matchupBox.isConnected)return;
     const matchups=report.matchups;
     if(!matchups){matchupBox.innerHTML='<div class="note">NBA matchup data is not yet available for these two teams.</div>';return}
-    const metric=(value)=>Number.isFinite(Number(value))?Number(value).toFixed(1):'—';
+    const metric=(value)=>value==null||value===''||!Number.isFinite(Number(value))?'—':Number(value).toFixed(1);
     const side=(entry,opponent)=>'<div class="nflSgpMini" style="margin:10px 0;padding:12px">'+
      '<b>'+safe(entry.team)+' offense vs '+safe(opponent)+' defense</b>'+
      '<div class="meta">Team points/game '+metric(entry.offense.points)+' • Opponent allows '+metric(entry.opponentDefense.points)+' points/game</div>'+
