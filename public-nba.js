@@ -149,15 +149,26 @@
     const matchups=report.matchups;
     if(!matchups){matchupBox.innerHTML='<div class="note">NBA matchup data is not yet available for these two teams.</div>';return}
     const metric=(value)=>value==null||value===''||!Number.isFinite(Number(value))?'—':Number(value).toFixed(1);
-    const side=(entry,opponent)=>'<div class="nflSgpMini" style="margin:10px 0;padding:12px">'+
-     '<b>'+safe(entry.team)+' offense vs '+safe(opponent)+' defense</b>'+
-     '<div class="meta">Team points/game '+metric(entry.offense.points)+' • Opponent allows '+metric(entry.opponentDefense.points)+' points/game</div>'+
-     '<div class="refresh">Opponent DVP • '+safe(entry.defenseGames)+' completed defensive games • team totals by position</div>'+
-     '<div style="overflow-x:auto"><table style="width:100%;font-size:13px;text-align:left;border-collapse:collapse">'+
-     '<thead><tr><th>Position</th><th>PTS</th><th>REB</th><th>AST</th><th>3PM</th></tr></thead><tbody>'+
-     Object.entries(entry.opponentPositionAllowances||{}).map(([pos,v])=>
-      '<tr><td>'+safe(pos==='G'?'Guards':pos==='F'?'Forwards':pos==='C'?'Centers':pos)+' ('+safe(v.games)+' games)</td><td>'+metric(v.points)+'</td><td>'+metric(v.rebounds)+'</td><td>'+metric(v.assists)+'</td><td>'+metric(v.threes)+'</td></tr>').join('')+
-     '</tbody></table></div></div>';
+    const positions=['PG','SG','SF','PF','C'];
+    const side=(entry,opponent)=>{
+     const allowances=entry.opponentPositionAllowances||{};
+     const exact=positions.every(pos=>allowances[pos]&&typeof allowances[pos]==='object');
+     const keys=['points','rebounds','assists','threes'];
+     const row=(pos,v)=>'<tr><td>'+safe(pos)+'</td>'+keys.map(k=>'<td>'+metric(v?.[k])+'</td>').join('')+'</tr>';
+     return '<div class="nflSgpMini" style="margin:10px 0;padding:12px">'+
+      '<b>'+safe(entry.team)+' offense vs '+safe(opponent)+' defense</b>'+
+      '<div class="meta">Team points/game '+metric(entry.offense?.points)+' • Opponent allows '+metric(entry.opponentDefense?.points)+' points/game</div>'+
+      '<div class="refresh">Opponent DVP • '+safe(entry.defenseGames)+' completed defensive games</div>'+
+      (!exact?'<div class="note">Individual PG / SG / SF / PF / C splits are not verified by this feed. Combined guard and forward totals cannot be used as individual-position exploits.</div>':'')+
+      '<div style="overflow-x:auto"><table style="width:100%;font-size:13px;text-align:left;border-collapse:collapse">'+
+      '<thead><tr><th>Position</th><th>PTS</th><th>REB</th><th>AST</th><th>3PM</th></tr></thead><tbody>'+
+      positions.map(pos=>row(pos,allowances[pos])).join('')+'</tbody></table></div>'+
+      '<details style="margin-top:10px"><summary>Show available grouped defensive totals</summary>'+
+      '<div style="overflow-x:auto"><table style="width:100%;font-size:12px"><tbody>'+
+      Object.entries(allowances).filter(([pos])=>!positions.includes(pos)).map(([pos,v])=>row(pos==='G'?'Guards':pos==='F'?'Forwards':pos==='C'?'Centers':pos,v)).join('')+
+      '</tbody></table></div></details>'+
+      '<div class="note">These are opposing-player group totals per game, not player forecasts. Exploit validation requires league baseline, player role and verified book line.</div></div>';
+    };
     matchupBox.innerHTML='<h3>NBA Matchup Intelligence • Defense vs Position (DVP)</h3>'+
      '<div class="note">Rolling '+safe(report.windowDays)+'-day ESPN completed-game sample • '+safe(matchups.sampleQuality)+
      ' • matchup adjustment '+safe(matchups.projectionAdjustmentStatus||'UNAVAILABLE')+' • positional totals represent all opposing players at each position, not an individual player projection.</div>'+
