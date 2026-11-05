@@ -275,7 +275,7 @@
       '<div class="note">Model research only — these are not verified four-leg selections or book offers.</div>'+
       d.researchPreview.map(p=>'<div class="nflMarketLine"><b>'+safe(p.name)+' • '+safe(p.game)+'</b>'+
        '<div class="pick">'+safe(p.category)+' projection: '+safe(p.projection)+'</div>'+
-       '<div class="meta">'+safe(p.sampleGames)+' historical games • no verified prop line</div></div>').join('')+
+       '<div class="meta">'+safe(p.sampleGames)+' historical games • '+safe(p.starterStatus||'UNCONFIRMED')+' starter • no verified prop line</div></div>').join('')+
       '</details>':'')+
      '<div class="note">Still needed: '+safe((d.missingInputs||[]).join(', ').replaceAll('_',' '))+'</div>';
    }catch{
