@@ -147,6 +147,7 @@
     const report=await json(url);
     if(selected!==id||!matchupBox.isConnected)return;
     const matchups=report.matchups;
+    window.momentumNbaMatchupResearch={gameId:id,report,updatedAt:new Date().toISOString()};
     if(!matchups){matchupBox.innerHTML='<div class="note">NBA matchup data is not yet available for these two teams.</div>';return}
     const metric=(value)=>value==null||value===''||!Number.isFinite(Number(value))?'—':Number(value).toFixed(1);
     const positions=['PG','SG','SF','PF','C'];
