@@ -113,9 +113,9 @@ export default async function handler(req,res){
   const homeId=String(req.query?.homeId||''),awayId=String(req.query?.awayId||'');
   const home=teams.find(t=>t.teamId===homeId),away=teams.find(t=>t.teamId===awayId);
   const matchups=home&&away&&homeId!==awayId?{
-   home:{team:home.team,offense:home.offense,opponentDefense:away.defenseAllowed,
+   home:{team:home.team,offense:home.offense,opponentDefense:away.defenseAllowed,opponentNbaComStats:away.nbaComOpponentStats,
     opponentPositionAllowances:away.allowedByPosition,opponentPositionRanks:away.positionRanks,opponentPositionExploits:away.positionExploits,offenseGames:home.games,defenseGames:away.games},
-   away:{team:away.team,offense:away.offense,opponentDefense:home.defenseAllowed,
+   away:{team:away.team,offense:away.offense,opponentDefense:home.defenseAllowed,opponentNbaComStats:home.nbaComOpponentStats,
     opponentPositionAllowances:home.allowedByPosition,opponentPositionRanks:home.positionRanks,opponentPositionExploits:home.positionExploits,offenseGames:away.games,defenseGames:home.games},
    sampleQuality:Math.min(home.games,away.games)>=5?'LIMITED_EARLY_SEASON':'INSUFFICIENT_FOR_STRONG_PREDICTION',
    sportsbookVerified:false
