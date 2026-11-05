@@ -47,7 +47,7 @@ function record(box,event){
 export default async function handler(req,res){
  res.setHeader('Cache-Control','public, s-maxage=1800, stale-while-revalidate=3600');
  if(req.method!=='GET')return res.status(405).json({ok:false,error:'METHOD_NOT_ALLOWED'});
- const days=Math.min(10,Math.max(2,Number(req.query?.days)||5));
+ const days=Math.min(45,Math.max(2,Number(req.query?.days)||30));
  const end=req.query?.date?new Date(String(req.query.date)+'T12:00:00Z'):new Date();
  if(!Number.isFinite(end.getTime()))return res.status(400).json({ok:false,error:'INVALID_DATE'});
  const dates=Array.from({length:days},(_,i)=>{const d=new Date(end);d.setUTCDate(d.getUTCDate()-i-1);return dateKey(d);});
