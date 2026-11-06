@@ -303,7 +303,8 @@
     qs('#nbaTopTitle').textContent='Top 10 — '+(cats[tab]||'NBA')+' (pregame projections)';
     qs('#nbaTopBoard').innerHTML=rows.length?rows.map((p,i)=>
      '<div class="nflMarketLine"><b>#'+(i+1)+' '+safe(p.name)+'</b> <span class="meta">'+safe(p.team)+'</span>'+
-     '<div class="pick">Projected '+safe(Number(p.projection).toFixed(1))+' '+safe(cats[thisTab])+'</div>'+
+     '<div class="pick">Projected '+safe(Math.max(0,Math.round(Number(p.projection))))+' '+safe(thisTab==='threes'?'made 3-pointers':cats[thisTab])+'</div>'+
+     '<div class="meta">Why: '+safe(p.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'?'Opponent position-defense matchup supports the adjusted forecast. ':'Historical scoring and opponent matchup inform the estimate. ')+'Historical avg '+safe(Number(p.baseProjection||0).toFixed(1))+'; model forecast '+safe(Number(p.projection).toFixed(1))+'.</div>' +
      '<div class="meta">'+safe(p.sampleGames)+' historical games • '+(p.starterVerified?'starter verified':'starter not yet confirmed')+
      ' • '+safe(p.sampleSource||'historical data')+'</div>'+
      '<div class="refresh">AI research projection — not a sportsbook line</div></div>').join(''):
