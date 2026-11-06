@@ -297,11 +297,17 @@
    try{
     const pre=await json('/api/nba-best-edge?date='+encodeURIComponent(qs('#nbaDate').value));
     if(thisTab!==tab||stamp!==token)return;
-    const rows=(Array.isArray(pre.research)?pre.research:[])
-     .filter(p=>p.category===thisTab&&Number.isFinite(Number(p.projection))&&Number(p.projection)>0&&p.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'&&Number(p.defenseVsPosition.factor)>1)
-     .sort((a,b)=>(b.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'?1:0)-(a.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'?1:0)||Number(b.defenseVsPosition?.factor||1)-Number(a.defenseVsPosition?.factor||1)||Number(b.projection)-Number(a.projection)).slice(0,10);
+    const candidates=(Array.isArray(pre.research)?pre.research:[])
+     .filter(p=>p.category===thisTab&&Number.isFinite(Number(p.projection))&&Number(p.projection)>0);
+    // Display measured defensive matchups across the full slate, prioritizing
+    // favorable matchups without silently hiding neutral or difficult ones.
+    const observed=candidates.filter(p=>p.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'&&Number.isFinite(Number(p.defenseVsPosition.factor)));
+    const rows=observed.sort((a,b)=>
+     Number(Number(b.defenseVsPosition.factor)>1)-Number(Number(a.defenseVsPosition.factor)>1)||
+     Number(b.projection)-Number(a.projection)).slice(0,10);
+    const missing=Math.max(0,10-rows.length);
     qs('#nbaTopTitle').textContent='Top 10 — '+(cats[tab]||'NBA')+' (pregame projections)';
-    qs('#nbaTopBoard').innerHTML=rows.length?rows.map((p,i)=>
+    qs('#nbaTopBoard').innerHTML=rows.length?'<div class="note">'+rows.length+' of 10 players have observed position-specific defensive data.'+(missing?' '+missing+' positions remain unfilled; '+(candidates.length-observed.length)+' other projections lack observed DVP evidence.':'')+'</div>'+rows.map((p,i)=>
      '<div class="nflMarketLine"><b>#'+(i+1)+' '+safe(p.name)+'</b> <span class="meta">'+safe(p.team)+'</span>'+
      '<div class="pick">Projected '+safe(Math.max(0,Math.round(Number(p.projection))))+' '+safe(thisTab==='threes'?'made 3-pointers':cats[thisTab])+'</div>'+
      '<div class="meta">Defense matchup: '+safe(p.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'?'Opponent allows '+p.defenseVsPosition.observedAllowed+' '+(cats[thisTab]||thisTab)+' per game to '+p.defenseVsPosition.position+' versus league '+p.defenseVsPosition.leagueAverage+' ('+p.defenseVsPosition.sampleGames+' games), favorable adjustment '+p.defenseVsPosition.factor+'×.':'Position-specific defensive evidence unavailable; defensive advantage not verified.')+'</div>' +
