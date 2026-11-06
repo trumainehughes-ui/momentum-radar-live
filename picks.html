@@ -1404,7 +1404,7 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
      .sort((a,b)=>(b.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'?1:0)-(a.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'?1:0)||Number(b.defenseVsPosition?.factor||1)-Number(a.defenseVsPosition?.factor||1)||Number(b.projection)-Number(a.projection)).slice(0,10);
     target.innerHTML='<div style="display:grid;gap:12px;min-width:0;max-width:100%">'+
      '<h3>🏀 Top 10 '+esc(nbaNames[cat]||cat)+' · Matchup Advantages</h3>'+
-     '<p class="sub" style="margin:0">Only favorable, observed defense-versus-position matchups qualify. Rankings use the opponent's positional allowance relative to the league and each player's adjusted forecast. Model research—not sportsbook lines.</p>'+
+     '<p class="sub" style="margin:0">Only favorable, observed defense-versus-position matchups qualify. Rankings use the opponent positional allowance relative to the league and each player adjusted forecast. Model research—not sportsbook lines.</p>'+
      (projections.length?'<div style="display:grid;gap:10px;min-width:0">'+projections.map((p,i)=>
       '<div class="nba-pick" style="min-width:0;overflow-wrap:anywhere">'+
       '<div class="nba-pick-player">#'+(i+1)+' '+esc(p.name)+' · '+esc(p.team||'')+'</div>'+
