@@ -359,8 +359,13 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
    (['edge-hunter','points','rebounds','assists','threes','pra'].includes(module)?'edge-hunter-panel':'game-day-board');
   const target=document.getElementById(targetId);
   if(target&&target!==panel){panel.insertAdjacentElement('afterend',target);}
-  // The selected content is now directly beneath the tabs; no long-page jump.
-  panel.scrollIntoView?.({behavior:'smooth',block:'start'});
+  // Bring the actual result into the viewport, rather than only the navigation header.
+  // When a matchup is already open, reveal its inline analysis immediately.
+  const selectedSlot=(module==='sgps'||module==='games'||module==='overview')?document.getElementById('game-inline-slot'):null;
+  const reveal=(selectedSlot&&!selectedSlot.hidden)?selectedSlot:target;
+  if(reveal&&!reveal.hidden){
+   requestAnimationFrame(()=>reveal.scrollIntoView?.({behavior:'smooth',block:'start'}));
+  }
  }
  function activateNflModule(module){
   if(state.league!=='nfl'||!allowedModules.has(module))return;
