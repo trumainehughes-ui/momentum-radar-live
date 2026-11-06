@@ -1397,16 +1397,16 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
       Number.isFinite(Number(p.projection))&&Number(p.projection)>0)
      .map(p=>({...p,delta:Number(p.projection)-Number(p.baseProjection),
       lift:100*(Number(p.projection)/Number(p.baseProjection)-1)}))
-     .sort((a,b)=>Number(b.projection)-Number(a.projection)||b.lift-a.lift).slice(0,10);
+     .sort((a,b)=>(b.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'?1:0)-(a.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'?1:0)||Number(b.defenseVsPosition?.factor||1)-Number(a.defenseVsPosition?.factor||1)||Number(b.projection)-Number(a.projection)).slice(0,10);
     target.innerHTML='<div style="display:grid;gap:12px;min-width:0;max-width:100%">'+
      '<h3>🏀 Top 10 '+esc(nbaNames[cat]||cat)+' · Matchup Advantages</h3>'+
-     '<p class="sub" style="margin:0">Ranked by highest projected stat total across the selected NBA slate, with matchup adjustments and available position-defense evidence. Model research—not sportsbook lines.</p>'+
+     '<p class="sub" style="margin:0">Prioritizes observed opponent defense-versus-position evidence and favorable matchup adjustments, then projected totals. Players without position-defense evidence are marked unverified. Model research—not sportsbook lines.</p>'+
      (projections.length?'<div style="display:grid;gap:10px;min-width:0">'+projections.map((p,i)=>
       '<div class="nba-pick" style="min-width:0;overflow-wrap:anywhere">'+
       '<div class="nba-pick-player">#'+(i+1)+' '+esc(p.name)+' · '+esc(p.team||'')+'</div>'+
       '<div class="nba-pick-line" style="flex-wrap:wrap"><strong>Projected '+esc(Math.max(0,Math.round(Number(p.projection))))+' '+esc(cat==='threes'?'made 3-pointers':nbaNames[cat]||cat)+'</strong><span>Model estimate '+esc(Number(p.projection).toFixed(1))+' · Historical avg '+esc(Number(p.baseProjection).toFixed(1))+'</span></div>'+
-      '<div class="sub" style="margin-top:8px">Why: '+esc(p.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'?'Opponent position-defense matchup is factored into the projection. ':'Historical production and overall opponent matchup inform this projection. ')+'Model forecasts '+esc(p.lift.toFixed(1))+'% above the '+esc(p.sampleGames)+'-game historical baseline.</div>'+
-      '<div class="sub" style="margin-top:4px">'+esc(p.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'?'Opponent position-defense adjustment included':'Opponent position-defense evidence limited')+' · '+esc(p.starterVerified?'Starter confirmed':'Starter not confirmed')+'</div></div>').join('')+'</div>':
+      '<div class="sub" style="margin-top:8px">Defense matchup: '+esc(p.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'?'Opponent allows '+p.defenseVsPosition.observedAllowed+' '+(nbaNames[cat]||cat)+' per game to '+p.defenseVsPosition.position+' ('+p.defenseVsPosition.sampleGames+' observed games); matchup factor '+p.defenseVsPosition.factor+'×.':'Position-specific defensive allowances unavailable; no verified defensive advantage claimed.')+'</div>'+
+      '<div class="sub" style="margin-top:4px">'+esc(p.starterVerified?'Starter confirmed':'Starter not confirmed')+' · Model projection, not sportsbook odds</div></div>').join('')+'</div>':
       noData('No supported top-ten forecasts yet','The pregame collector must provide historical player samples and matchup-adjusted projections. Rankings will not be fabricated.'))+'</div>';
     return;
    }
