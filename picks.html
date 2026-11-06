@@ -1404,8 +1404,8 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
      (projections.length?'<div style="display:grid;gap:10px;min-width:0">'+projections.map((p,i)=>
       '<div class="nba-pick" style="min-width:0;overflow-wrap:anywhere">'+
       '<div class="nba-pick-player">#'+(i+1)+' '+esc(p.name)+' · '+esc(p.team||'')+'</div>'+
-      '<div class="nba-pick-line" style="flex-wrap:wrap"><span>Average '+esc(Number(p.baseProjection).toFixed(1))+'</span><strong>Forecast '+esc(Number(p.projection).toFixed(1))+'</strong></div>'+
-      '<div class="sub" style="margin-top:8px">Model lift +'+esc(p.lift.toFixed(1))+'% · '+esc(p.sampleGames)+' games · '+esc(p.sampleSource==='PRIOR_SEASON'?'Prior-season baseline':'Current-season sample')+'</div>'+
+      '<div class="nba-pick-line" style="flex-wrap:wrap"><strong>Projected '+esc(Math.max(0,Math.round(Number(p.projection))))+' '+esc(cat==='threes'?'made 3-pointers':nbaNames[cat]||cat)+'</strong><span>Model estimate '+esc(Number(p.projection).toFixed(1))+' · Historical avg '+esc(Number(p.baseProjection).toFixed(1))+'</span></div>'+
+      '<div class="sub" style="margin-top:8px">Why: '+esc(p.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'?'Opponent position-defense matchup is factored into the projection. ':'Historical production and overall opponent matchup inform this projection. ')+'Model forecasts '+esc(p.lift.toFixed(1))+'% above the '+esc(p.sampleGames)+'-game historical baseline.</div>'+
       '<div class="sub" style="margin-top:4px">'+esc(p.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'?'Opponent position-defense adjustment included':'Opponent position-defense evidence limited')+' · '+esc(p.starterVerified?'Starter confirmed':'Starter not confirmed')+'</div></div>').join('')+'</div>':
       noData('No supported top-ten forecasts yet','The pregame collector must provide historical player samples and matchup-adjusted projections. Rankings will not be fabricated.'))+'</div>';
     return;
