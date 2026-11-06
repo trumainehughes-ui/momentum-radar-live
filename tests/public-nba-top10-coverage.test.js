@@ -13,5 +13,6 @@ test('NBA Top 10 does not require strictly favorable DVP factors',()=>{
 
 test('NBA Top 10 explains short defensive-data coverage',()=>{
  assert.match(source,/positions remain unfilled/);
- assert.match(source,/lack observed DVP evidence/);
+ assert.match(source,/UNVERIFIED DVP/);
+ assert.match(source,/NOT confirmed matchup advantages/);
 });
