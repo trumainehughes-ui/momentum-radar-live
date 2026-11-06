@@ -271,8 +271,8 @@
       '<div class="meta">Last 10 hit rate '+safe(Math.round(p.hitRate*100))+'% • projection edge '+safe(Math.round(p.edge*100))+'%</div></div>').join(''):
       '<div class="msg">No verified four-leg Edge Hunter selection is ready. '+safe(s.reason||'Required evidence unavailable.')+'</div>')+
      (Array.isArray(d.researchPreview)&&d.researchPreview.length?
-      '<details open><summary>Starter-confirmed historical projection preview ('+safe(d.researchPreview.length)+')</summary>'+
-      '<div class="note">Model research only — these are not verified four-leg selections or book offers.</div>'+
+      '<details><summary>Unverified historical projection preview ('+safe(d.researchPreview.length)+')</summary>'+
+      '<div class="note">Historical model estimates only. Starter status and sportsbook lines are unverified; these are not playable selections.</div>'+
       d.researchPreview.map(p=>'<div class="nflMarketLine"><b>'+safe(p.name)+' • '+safe(p.game)+'</b>'+
        '<div class="pick">'+safe(p.category)+' projection: '+safe(p.projection)+'</div>'+
        '<div class="meta">'+safe(p.sampleGames)+' historical games • '+safe(p.starterStatus||'UNCONFIRMED')+' starter • no verified prop line</div></div>').join('')+
