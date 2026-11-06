@@ -304,7 +304,7 @@
     const observed=candidates.filter(p=>p.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'&&Number.isFinite(Number(p.defenseVsPosition.factor)));
     const unverified=candidates.filter(p=>!observed.includes(p));
     const rankedObserved=observed.sort((a,b)=>
-     Number(Number(b.defenseVsPosition.factor)>1)-Number(Number(a.defenseVsPosition.factor)>1)||
+     Number(b.defenseVsPosition.factor)-Number(a.defenseVsPosition.factor)||
      Number(b.projection)-Number(a.projection));
     // Fill the visible Top 10 with clearly flagged research candidates, never
     // representing missing defensive evidence as a verified advantage.
