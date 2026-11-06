@@ -358,7 +358,11 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
   const targetId=nfl?(['td','passing','rushing','receiving','receptions'].includes(module)?'rankings-section':module==='best'?'extra-section':module==='live'?'nfl-live-slate':'game-day-board'):
    (['edge-hunter','points','rebounds','assists','threes','pra'].includes(module)?'edge-hunter-panel':'game-day-board');
   const target=document.getElementById(targetId);
-  if(target&&target!==panel){panel.insertAdjacentElement('afterend',target);}\n  if(!nfl&&['points','rebounds','assists','threes','pra'].includes(module)){\n   const board=document.getElementById('edge-hunter-board');\n   if(board)board.innerHTML='<h3>🏀 Top 10 '+(nbaNames[module]||module)+'</h3><p class="sub">Loading player forecasts for this category…</p>';\n  }
+  if(target&&target!==panel){panel.insertAdjacentElement('afterend',target);}
+  if(!nfl&&['points','rebounds','assists','threes','pra'].includes(module)){
+   const board=document.getElementById('edge-hunter-board');
+   if(board)board.innerHTML='<h3>🏀 Top 10 '+(nbaNames[module]||module)+'</h3><p class="sub">Loading player forecasts for this category…</p>';
+  }
   // Bring the actual result into the viewport, rather than only the navigation header.
   // When a matchup is already open, reveal its inline analysis immediately.
   const selectedSlot=(module==='sgps'||module==='games'||module==='overview')?document.getElementById('game-inline-slot'):null;
