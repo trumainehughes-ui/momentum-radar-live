@@ -298,13 +298,13 @@
     const pre=await json('/api/nba-best-edge?date='+encodeURIComponent(qs('#nbaDate').value));
     if(thisTab!==tab||stamp!==token)return;
     const rows=(Array.isArray(pre.research)?pre.research:[])
-     .filter(p=>p.category===thisTab&&Number.isFinite(Number(p.projection))&&Number(p.projection)>0)
+     .filter(p=>p.category===thisTab&&Number.isFinite(Number(p.projection))&&Number(p.projection)>0&&p.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'&&Number(p.defenseVsPosition.factor)>1)
      .sort((a,b)=>(b.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'?1:0)-(a.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'?1:0)||Number(b.defenseVsPosition?.factor||1)-Number(a.defenseVsPosition?.factor||1)||Number(b.projection)-Number(a.projection)).slice(0,10);
     qs('#nbaTopTitle').textContent='Top 10 — '+(cats[tab]||'NBA')+' (pregame projections)';
     qs('#nbaTopBoard').innerHTML=rows.length?rows.map((p,i)=>
      '<div class="nflMarketLine"><b>#'+(i+1)+' '+safe(p.name)+'</b> <span class="meta">'+safe(p.team)+'</span>'+
      '<div class="pick">Projected '+safe(Math.max(0,Math.round(Number(p.projection))))+' '+safe(thisTab==='threes'?'made 3-pointers':cats[thisTab])+'</div>'+
-     '<div class="meta">Defense matchup: '+safe(p.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'?'Opponent allows '+p.defenseVsPosition.observedAllowed+' '+(cats[thisTab]||thisTab)+' per game to '+p.defenseVsPosition.position+' ('+p.defenseVsPosition.sampleGames+' games), adjustment '+p.defenseVsPosition.factor+'×.':'Position-specific defensive evidence unavailable; defensive advantage not verified.')+'</div>' +
+     '<div class="meta">Defense matchup: '+safe(p.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'?'Opponent allows '+p.defenseVsPosition.observedAllowed+' '+(cats[thisTab]||thisTab)+' per game to '+p.defenseVsPosition.position+' versus league '+p.defenseVsPosition.leagueAverage+' ('+p.defenseVsPosition.sampleGames+' games), favorable adjustment '+p.defenseVsPosition.factor+'×.':'Position-specific defensive evidence unavailable; defensive advantage not verified.')+'</div>' +
      '<div class="meta">'+safe(p.sampleGames)+' historical games • '+(p.starterVerified?'starter verified':'starter not yet confirmed')+
      ' • '+safe(p.sampleSource||'historical data')+'</div>'+
      '<div class="refresh">AI research projection — not a sportsbook line</div></div>').join(''):
