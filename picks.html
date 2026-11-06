@@ -1393,7 +1393,7 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
     const cat=state.nbaTab;
     const projections=(Array.isArray(report.research)?report.research:[])
      .filter(p=>p.category===cat&&Number(p.sampleGames)>=5&&
-      Number.isFinite(Number(p.baseProjection))&&Number(p.baseProjection)>=2&&
+      Number.isFinite(Number(p.baseProjection))&&Number(p.baseProjection)>=(cat==='threes'?0.5:2)&&
       Number.isFinite(Number(p.projection))&&Number(p.projection)>0&&p.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'&&Number(p.defenseVsPosition.factor)>1)
      .map(p=>({...p,delta:Number(p.projection)-Number(p.baseProjection),
       lift:100*(Number(p.projection)/Number(p.baseProjection)-1)}))
