@@ -358,7 +358,7 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
   const targetId=nfl?(['td','passing','rushing','receiving','receptions'].includes(module)?'rankings-section':module==='best'?'extra-section':module==='live'?'nfl-live-slate':'game-day-board'):
    (['edge-hunter','points','rebounds','assists','threes','pra'].includes(module)?'edge-hunter-panel':'game-day-board');
   const target=document.getElementById(targetId);
-  if(target&&target!==panel){panel.insertAdjacentElement('afterend',target);}
+  if(target&&target!==panel){panel.insertAdjacentElement('afterend',target);}\n  if(!nfl&&['points','rebounds','assists','threes','pra'].includes(module)){\n   const board=document.getElementById('edge-hunter-board');\n   if(board)board.innerHTML='<h3>🏀 Top 10 '+(nbaNames[module]||module)+'</h3><p class="sub">Loading player forecasts for this category…</p>';\n  }
   // Bring the actual result into the viewport, rather than only the navigation header.
   // When a matchup is already open, reveal its inline analysis immediately.
   const selectedSlot=(module==='sgps'||module==='games'||module==='overview')?document.getElementById('game-inline-slot'):null;
@@ -1394,13 +1394,13 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
     const projections=(Array.isArray(report.research)?report.research:[])
      .filter(p=>p.category===cat&&Number(p.sampleGames)>=5&&
       Number.isFinite(Number(p.baseProjection))&&Number(p.baseProjection)>=2&&
-      Number.isFinite(Number(p.projection))&&Number(p.projection)>Number(p.baseProjection))
+      Number.isFinite(Number(p.projection))&&Number(p.projection)>0)
      .map(p=>({...p,delta:Number(p.projection)-Number(p.baseProjection),
       lift:100*(Number(p.projection)/Number(p.baseProjection)-1)}))
-     .sort((a,b)=>b.lift-a.lift||b.sampleGames-a.sampleGames).slice(0,10);
+     .sort((a,b)=>Number(b.projection)-Number(a.projection)||b.lift-a.lift).slice(0,10);
     target.innerHTML='<div style="display:grid;gap:12px;min-width:0;max-width:100%">'+
      '<h3>🏀 Top 10 '+esc(nbaNames[cat]||cat)+' · Matchup Advantages</h3>'+
-     '<p class="sub" style="margin:0">Ranked across today’s NBA games by projected increase over historical average, adjusted for team offense, opponent defense and available position matchup evidence. Model research—not sportsbook lines.</p>'+
+     '<p class="sub" style="margin:0">Ranked by highest projected stat total across the selected NBA slate, with matchup adjustments and available position-defense evidence. Model research—not sportsbook lines.</p>'+
      (projections.length?'<div style="display:grid;gap:10px;min-width:0">'+projections.map((p,i)=>
       '<div class="nba-pick" style="min-width:0;overflow-wrap:anywhere">'+
       '<div class="nba-pick-player">#'+(i+1)+' '+esc(p.name)+' · '+esc(p.team||'')+'</div>'+
