@@ -369,6 +369,9 @@
   document.querySelectorAll('[data-nbatab]').forEach(b=>b.classList.toggle('active',b.dataset.nbatab===tab));
   selected=null;qs('#nbaDetail').style.display='none';qs('#nbaHome').style.display='block';
   renderLeaders().catch(()=>{qs('#nbaTopBoard').textContent='Statistics are temporarily unavailable.'});
+  // Surface the selected Top 10 immediately rather than leaving it below the slate.
+  const board=qs('#nbaTopBoard');
+  if(board&&tab!=='gameday')requestAnimationFrame(()=>board.scrollIntoView({behavior:'smooth',block:'start'}));
  }
  function init(){
   if(!qs('#nbaDate'))return;
