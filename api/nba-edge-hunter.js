@@ -34,17 +34,26 @@ export default async function handler(req,res){
   const selection=researchVerifiedNbaEdgeHunter({games,offers:verifiedOffers});
   // Always offer a clearly marked historical projection preview when available.
   // Do not label these as four verified picks: totals, spreads and prop lines are missing.
-  const researchPreview=games.flatMap(g=>(g.researchCandidates||[])
-   .filter(p=>Number(p.sampleGames)>=1)
-   .sort((a,b)=>b.projection-a.projection).slice(0,2)
-   .map(p=>({...p,gameId:g.gameId,game:g.away+' @ '+g.home,marketVerified:false,starterStatus:p.starterVerified?'VERIFIED':'UNCONFIRMED'}))).slice(0,8);
+  // Keep a useful, clearly unverified four-player research preview visible:
+  // two players per game, never represented as a qualifying Edge Hunter slip.
+  const previewGames=games.map(g=>({...g,candidates:(g.researchCandidates||[])
+   .filter(p=>Number(p.sampleGames)>=1&&p.starterVerified===true)
+   .sort((a,b)=>b.projection-a.projection).slice(0,2)}))
+   .filter(g=>g.candidates.length===2).slice(0,2);
+  const researchPreview=previewGames.flatMap(g=>g.candidates.map(p=>({...p,
+   gameId:g.gameId,game:g.away+' @ '+g.home,marketVerified:false,
+   starterStatus:'VERIFIED',researchOnly:true})));
+  const missingInputs=[
+   ...(games.some(g=>!g.totalEvidence)?['verified_game_totals']:[]),
+   ...(games.some(g=>!g.spreadEvidence)?['verified_point_spreads']:[]),
+   ...(!verifiedOffers.length?['verified_player_prop_lines']:[]),
+   'last_ten_market_results','confirmed_starters','book_native_combined_sgp_quote'];
   return res.status(200).json({ok:true,date,source:'ESPN NBA scoreboard and stored pregame research',
    status:selection.status,selection,researchPreview,slateGames:games.length,
    snapshotProjectionCount:games.reduce((n,g)=>n+g.historicalProjections,0),
    verifiedBookOfferCount:verifiedOffers.length,marketIngestionStatus:sourceCheck.status,
    sportsbookSourceChecks:sourceCheck.attempts,
-   missingInputs:['verified_game_totals','verified_point_spreads','verified_player_prop_lines',
-    'last_ten_market_results','confirmed_starters','book_native_combined_sgp_quote'],
+   missingInputs,
    note:'Edge Hunter is not publishable until current book-sourced markets and game-specific player evidence are verified.'});
  }catch(e){
   console.warn('nba_edge_hunter_unavailable',{reason:String(e?.message||e).slice(0,100)});
