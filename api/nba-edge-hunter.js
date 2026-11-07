@@ -4,6 +4,7 @@ import {researchVerifiedNbaEdgeHunter} from '../lib/nba-edge-hunter-verified-ada
 import {collectDirectSportsbookEvidence} from '../lib/direct-sportsbook-collector.js';
 const ESPN='https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard';
 const iso=x=>/^\d{4}-\d{2}-\d{2}$/.test(String(x))?String(x):null;
+const blockedPlayer=p=>/\b(OUT|INACTIVE|DOUBTFUL|SUSPENDED)\b/i.test(String(p.injuryStatus||p.availability||''));
 const etToday=()=>{const p=Object.fromEntries(new Intl.DateTimeFormat('en-US',
  {timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'})
  .formatToParts(new Date()).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));
@@ -23,8 +24,8 @@ export default async function handler(req,res){
    // ESPN does not supply verified DraftKings/FanDuel totals, spreads or prop offers.
    // Do not relabel ESPN schedule data or model-only projections as bookmaker quotes.
    return {gameId:game.gameId,home:game.home.abbr,away:game.away.abbr,
-    total:null,spread:null,players:(snapshot?.playerProjections||[]).filter(p=>p.starterVerified===true&&p.playerId&&['points','rebounds','assists','threes'].includes(p.category)).map(p=>({playerId:String(p.playerId),name:p.name,team:p.team,category:p.category,prediction:Number(p.projection),last10:Array.isArray(p.historicalValues)?p.historicalValues.slice(0,10):[],starterVerified:true,injuryBlocked:/\b(OUT|INACTIVE|DOUBTFUL|SUSPENDED)\b/i.test(String(p.injuryStatus||p.availability||''))})),historicalProjections:snapshot?.playerProjections?.length||0,
-    researchCandidates:(snapshot?.playerProjections||[]).filter(p=>['points','rebounds','assists','threes'].includes(p.category)&&Number.isFinite(Number(p.projection))&&Number(p.projection)>0).map(p=>({name:p.name||p.playerName,team:p.team,category:p.category,projection:Number(p.projection),sampleGames:p.sampleGames,starterVerified:p.starterVerified===true})).slice(0,60),
+    total:null,spread:null,players:(snapshot?.playerProjections||[]).filter(p=>p.starterVerified===true&&p.playerId&&['points','rebounds','assists','threes'].includes(p.category)).map(p=>({playerId:String(p.playerId),name:p.name,team:p.team,category:p.category,prediction:Number(p.projection),last10:Array.isArray(p.historicalValues)?p.historicalValues.slice(0,10):[],starterVerified:true,injuryBlocked:blockedPlayer(p)})),historicalProjections:snapshot?.playerProjections?.length||0,
+    researchCandidates:(snapshot?.playerProjections||[]).filter(p=>['points','rebounds','assists','threes'].includes(p.category)&&Number.isFinite(Number(p.projection))&&Number(p.projection)>0&&!blockedPlayer(p)).map(p=>({name:p.name||p.playerName,team:p.team,category:p.category,projection:Number(p.projection),sampleGames:p.sampleGames,starterVerified:p.starterVerified===true})).slice(0,60),
     bookTotalsVerified:false,bookPlayerMarketsVerified:false};
   }));
   // No structured official-book offers are collected yet. Keep this explicit;
