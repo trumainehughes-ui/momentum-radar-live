@@ -271,12 +271,12 @@
       '<div class="meta">Last 10 hit rate '+safe(Math.round(p.hitRate*100))+'% • projection edge '+safe(Math.round(p.edge*100))+'%</div></div>').join(''):
       '<div class="msg">No verified four-leg Edge Hunter selection is ready. '+safe(s.reason||'Required evidence unavailable.')+'</div>')+
      (Array.isArray(d.researchPreview)&&d.researchPreview.length?
-      '<details><summary>Unverified historical projection preview ('+safe(d.researchPreview.length)+')</summary>'+
-      '<div class="note">Historical model estimates only. Starter status and sportsbook lines are unverified; these are not playable selections.</div>'+
-      d.researchPreview.map(p=>'<div class="nflMarketLine"><b>'+safe(p.name)+' • '+safe(p.game)+'</b>'+
+      '<div class="nflSgpMini" style="margin:12px 0"><b>Four-player historical research • NOT VERIFIED</b>'+
+      '<div class="note">Two players per game when available. These are projections, not playable selections; starter and sportsbook verification remain separate.</div>'+
+      d.researchPreview.map((p,i)=>'<div class="nflMarketLine"><b>'+safe((i+1)+'. '+p.name)+' • '+safe(p.game)+'</b>'+
        '<div class="pick">'+safe(p.category)+' projection: '+safe(p.projection)+'</div>'+
        '<div class="meta">'+safe(p.sampleGames)+' historical games • '+safe(p.starterStatus||'UNCONFIRMED')+' starter • no verified prop line</div></div>').join('')+
-      '</details>':'')+
+      '</div>':'')+
      '<div class="note">Still needed: '+safe((d.missingInputs||[]).join(', ').replaceAll('_',' '))+'</div>';
    }catch{
     if(tab==='edgehunter')qs('#nbaTopBoard').innerHTML='<div class="msg">Edge Hunter source unavailable. No unverified picks displayed.</div>';
