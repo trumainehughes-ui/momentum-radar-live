@@ -37,12 +37,14 @@ export default async function handler(req,res){
   // Keep a useful, clearly unverified four-player research preview visible:
   // two players per game, never represented as a qualifying Edge Hunter slip.
   const previewGames=games.map(g=>({...g,candidates:(g.researchCandidates||[])
-   .filter(p=>Number(p.sampleGames)>=1&&p.starterVerified===true)
-   .sort((a,b)=>b.projection-a.projection).slice(0,2)}))
+   .filter(p=>Number(p.sampleGames)>=1&&p.name&&p.team)
+   .sort((a,b)=>Number(b.starterVerified===true)-Number(a.starterVerified===true)||
+    Number(b.sampleGames)-Number(a.sampleGames)||b.projection-a.projection)
+   .filter((p,i,arr)=>arr.findIndex(x=>x.name===p.name)===i).slice(0,2)}))
    .filter(g=>g.candidates.length===2).slice(0,2);
   const researchPreview=previewGames.flatMap(g=>g.candidates.map(p=>({...p,
    gameId:g.gameId,game:g.away+' @ '+g.home,marketVerified:false,
-   starterStatus:'VERIFIED',researchOnly:true})));
+   starterStatus:p.starterVerified?'VERIFIED':'UNCONFIRMED',researchOnly:true})));
   const missingInputs=[
    ...(games.some(g=>!g.totalEvidence)?['verified_game_totals']:[]),
    ...(games.some(g=>!g.spreadEvidence)?['verified_point_spreads']:[]),
