@@ -732,8 +732,7 @@ button:focus-visible,a:focus-visible{outline:2px solid #4bf29a;outline-offset:3p
      '</span></div>'+
     '<ol class="sgp-leg-list">'+c.legs.map(l=>{
      const pick=sgpSelectionDisplay(l);
-     return '<li class="sgp-leg">
-      '<div class="sgp-leg-selection"><strong>'+esc(l.player)+' — '+esc(pick.label)+': '+
+     return '<li class="sgp-leg"><div class="sgp-leg-selection"><strong>'+esc(l.player)+' — '+esc(pick.label)+': '+
        esc(pick.target)+'</strong></div></li>';
     }).join('')+'</ol></section>').join('')+'</div>':
    '<div class="sgp-auto-check" role="status">'+
@@ -804,8 +803,7 @@ button:focus-visible,a:focus-visible{outline:2px solid #4bf29a;outline-offset:3p
     const goal=Number.isFinite(target)&&target>0?target:null;
     const value=leg.category==='td'?'Touchdown opportunity':
      (Number.isFinite(leg.projection)?leg.projection.toFixed(1)+' projected':'Projection pending');
-    return '<li class="sgp-leg">
-     '<div class="sgp-leg-selection"><strong>'+esc(leg.player)+' — '+esc(statNames[leg.category])+': '+esc(value)+'</strong></div>'+
+    return '<li class="sgp-leg"><div class="sgp-leg-selection"><strong>'+esc(leg.player)+' — '+esc(statNames[leg.category])+': '+esc(value)+'</strong></div>'+
      (goal!==null?'<div class="sgp-leg-why">AI goal: '+esc(goal)+(leg.category==='receptions'?' receptions':' yards')+'</div>':'')+
      '<div class="sgp-leg-why">Matchup: '+esc(leg.projectionNote||'Roster-screened offense versus defense projection; individual matchup detail not yet available.')+'</div></li>';
    }).join('')+'</ol>':'<p class="sgp-brief-status">No eligible game-scoped player projections have been published yet.</p>')+'</section>';
@@ -847,11 +845,10 @@ button:focus-visible,a:focus-visible{outline:2px solid #4bf29a;outline-offset:3p
      const name={td:'Anytime touchdown',receiving:'Receiving yards',
       rushing:'Rushing yards',passing:'Passing yards',receptions:'Receptions'}[category]||
       'Player prop';
-     return '<li class="sgp-leg">
-      '<div class="sgp-leg-selection"><strong>'+esc(l.player)+' — '+esc(name)+': '+
+     return '<li class="sgp-leg"><div class="sgp-leg-selection"><strong>'+esc(l.player)+' — '+esc(name)+': '+
       esc(category==='td'?
        (l.modelChancePct==null?'TD model not ready':l.modelChancePct+'% modeled TD chance'):
-       (l.modelTarget!=null&&Number.isFinite(Number(l.modelTarget))?l.modelTarget+'+ (AI projection '+l.projection+')'':'AI target unavailable'))+'</strong></div>'+
+       (l.modelTarget!=null&&Number.isFinite(Number(l.modelTarget))?l.modelTarget+'+ (AI projection '+l.projection+')':'AI target unavailable'))+'</strong></div>'+
       '<div class="sgp-leg-why">Why: '+esc(l.projectionNote||'Based on the latest published matchup data.')+'</div></li>';
     }).join('')+'</ol><p class="sgp-brief-status">'+(researchComplete?'Complete model research tier. ':'Partial model research; remaining selections require verified statistical evidence. ')+'These are AI statistical forecasts, not sportsbook-verified lines or combined odds.</p></section>';
   }).join('')+'</div>';
@@ -908,8 +905,7 @@ button:focus-visible,a:focus-visible{outline:2px solid #4bf29a;outline-offset:3p
        receptions:'Receptions'}[l.category]||'Player prop';
       const target=l.category==='td'?'Anytime TD':
        String(l.target)+'+';
-      return '<li class="sgp-leg">
-       '<div class="sgp-leg-selection"><strong>'+esc(l.player)+' — '+esc(label)+': '+
+      return '<li class="sgp-leg"><div class="sgp-leg-selection"><strong>'+esc(l.player)+' — '+esc(label)+': '+
        esc(target)+'</strong></div>'+
        '<div class="sgp-leg-why">Why: '+
        esc(l.projectionNote||'Current validated player and matchup research.')+'</div></li>';
