@@ -1734,7 +1734,8 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
   state.date='';$('#day').value='';loadSlate(true);
  });
  $('#nfl-module-tabs').addEventListener('click',e=>{
-  const b=e.target.closest('[data-nfl-module]');if(b)activateNflModule(b.dataset.nflModule);
+  const b=e.target.closest('[data-nfl-module]');if(!b)return;
+  activateNflModule(b.dataset.nflModule);
  });
  $('#nba-module-tabs').addEventListener('click',e=>{
   const b=e.target.closest('[data-nba-module]');
