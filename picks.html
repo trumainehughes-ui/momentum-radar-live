@@ -97,8 +97,8 @@ h2{font-size:26px;letter-spacing:-.035em;margin:0 0 5px}h3{font-size:18px;letter
 .sgp-leg{padding:13px 17px;border-top:1px solid #2a4551}
 .sgp-leg:first-child{border-top:0}
 .sgp-leg-name{color:#f2f8fc;font-size:16px;line-height:1.35;font-weight:850;overflow-wrap:anywhere;margin-bottom:6px}
-.sgp-leg-selection{display:flex;gap:8px;justify-content:space-between;align-items:baseline;color:#bfd5df;font-size:13px;line-height:1.4}
-.sgp-leg-selection strong{color:#85efc1;font-size:16px;font-weight:850;text-align:right;white-space:nowrap}
+.sgp-leg-selection{display:block;min-width:0;color:#bfd5df;font-size:14px;line-height:1.5;overflow-wrap:normal;word-break:normal}
+.sgp-leg-selection strong{color:#85efc1;font-size:16px;font-weight:850;text-align:left;white-space:normal}
 .market-observed{font-size:13px;font-weight:700;color:#8cebc7;margin-top:9px;line-height:1.5}
 .market-observed small{display:block;color:#9db8c6;font-size:11px;font-weight:500;margin-top:3px}
 .weather-values{display:flex;flex-wrap:wrap;gap:12px;margin:9px 0 8px;font-weight:850;font-size:17px;color:#9aefc9}
@@ -693,7 +693,7 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
     '<ol class="sgp-leg-list">'+c.legs.map(l=>{
      const pick=sgpSelectionDisplay(l);
      return '<li class="sgp-leg"><div class="sgp-leg-name">'+esc(l.player)+'</div>'+
-      '<div class="sgp-leg-selection"><span>'+esc(pick.label)+'</span><strong>'+
+      '<div class="sgp-leg-selection"><strong>'+esc(l.player)+' — '+esc(pick.label)+': '+
        esc(pick.target)+'</strong></div></li>';
     }).join('')+'</ol></section>').join('')+'</div>':
    '<div class="sgp-auto-check" role="status">'+
@@ -765,7 +765,7 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
     const value=leg.category==='td'?'Touchdown opportunity':
      (Number.isFinite(leg.projection)?leg.projection.toFixed(1)+' projected':'Projection pending');
     return '<li class="sgp-leg"><div class="sgp-leg-name">'+esc(leg.player)+' · '+esc(leg.team||'')+'</div>'+
-     '<div class="sgp-leg-selection"><span>'+esc(statNames[leg.category])+'</span><strong>'+esc(value)+'</strong></div>'+
+     '<div class="sgp-leg-selection"><strong>'+esc(leg.player)+' — '+esc(statNames[leg.category])+': '+esc(value)+'</strong></div>'+
      (goal!==null?'<div class="sgp-leg-why">AI goal: '+esc(goal)+(leg.category==='receptions'?' receptions':' yards')+'</div>':'')+
      '<div class="sgp-leg-why">Matchup: '+esc(leg.projectionNote||'Roster-screened offense versus defense projection; individual matchup detail not yet available.')+'</div></li>';
    }).join('')+'</ol>':'<p class="sgp-brief-status">No eligible game-scoped player projections have been published yet.</p>')+'</section>';
@@ -808,7 +808,7 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
       rushing:'Rushing yards',passing:'Passing yards',receptions:'Receptions'}[category]||
       'Player prop';
      return '<li class="sgp-leg"><div class="sgp-leg-name">'+esc(l.player)+'</div>'+
-      '<div class="sgp-leg-selection"><span>'+esc(name)+'</span><strong>'+
+      '<div class="sgp-leg-selection"><strong>'+esc(l.player)+' — '+esc(name)+': '+
       esc(category==='td'?
        (l.modelChancePct==null?'TD model not ready':l.modelChancePct+'% modeled TD chance'):
        (l.modelTarget!=null&&Number.isFinite(Number(l.modelTarget))?l.modelTarget+'+ '+(category==='receptions'?'receptions':'yards')+' AI target (projection '+l.projection+')':'AI target unavailable'))+'</strong></div>'+
@@ -869,7 +869,7 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
       const target=l.category==='td'?'Anytime TD':
        String(l.target)+(l.category==='receptions'?'+ receptions':'+ yards');
       return '<li class="sgp-leg"><div class="sgp-leg-name">'+esc(l.player)+'</div>'+
-       '<div class="sgp-leg-selection"><span>'+esc(label)+'</span><strong>'+
+       '<div class="sgp-leg-selection"><strong>'+esc(l.player)+' — '+esc(label)+': '+
        esc(target)+'</strong></div>'+
        '<div class="sgp-leg-why">Why: '+
        esc(l.projectionNote||'Current validated player and matchup research.')+'</div></li>';
