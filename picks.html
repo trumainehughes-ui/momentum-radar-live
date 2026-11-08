@@ -405,6 +405,15 @@ button:focus-visible,a:focus-visible{outline:2px solid #4bf29a;outline-offset:3p
  function activateNflModule(module){
   if(state.league!=='nfl'||!allowedModules.has(module))return;
   state.module=module;renderNflModule();revealModuleAtTabs();
+  // SGP navigation must always produce a visible response, even before a game is selected.
+  if(module==='sgps'){
+   const note=document.getElementById('nfl-module-message');
+   if(note){note.hidden=false;note.textContent=state.selectedData?
+    'Same Game Parlay selected — showing this matchup’s available SGP research below.':
+    'Same Game Parlay selected — tap a matchup card below to open Small, Medium, Large and Nuke predictions.';note.setAttribute('role','status');}
+   const board=document.getElementById('game-day-board');
+   if(board){board.hidden=false;board.scrollIntoView?.({behavior:'smooth',block:'start'});}
+  }
  }
  const views=[['overview','Overview'],['td','Anytime TD'],['props','Player Props'],['matchup','Matchup Edge'],['injuries','Injuries'],['sgps','SGPs'],['ai','✨ AI Game Analyzer'],['sharp','📈 Sharp +EV Audit']];
  const rankMetricNames={passYards:'Passing yards',rushYards:'Rushing yards',recYards:'Receiving yards',passTD:'Passing TDs',rushTD:'Rushing TDs',recTD:'Receiving TDs',receptions:'Receptions',targets:'Targets'};
