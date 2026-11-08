@@ -206,6 +206,14 @@ button:focus-visible,a:focus-visible{outline:2px solid #4bf29a;outline-offset:3p
 
 .hero{padding-top:clamp(20px,3vw,42px);padding-bottom:22px}.section{scroll-margin-top:100px}.sgp-slip{overflow:hidden}.sgp-leg-name{display:none}.sgp-leg-selection strong{color:#53f2a5}
 @media(max-width:760px){.hero{grid-template-columns:minmax(0,1fr)}.game-grid,.players-grid{grid-template-columns:minmax(0,1fr)}.sgp-slip-head{flex-wrap:wrap;gap:7px}.sgp-leg-selection{width:100%}}
+
+/* Consistent tap targets and clear game-day card hierarchy. */
+.game-card,.sgp-slip,.panel{scroll-margin-top:96px}
+.game-card:focus-within,.sgp-slip:focus-within{border-color:#4bf29a}
+.sgp-slip-head strong{font-size:clamp(17px,2vw,21px)}
+.sgp-leg-why{color:#bfd3df;font-size:13px;max-width:90ch}
+.sgp-leg-selection strong{font-variant-numeric:tabular-nums}
+@media(max-width:600px){.game-card{padding:12px}.sgp-slip-head{padding:12px}.sgp-leg-why{font-size:13px}.nfl-module-tabs{display:flex;flex-wrap:wrap;gap:7px}.nfl-module-tab{flex:1 1 auto;min-height:44px}}
 </style><script type="module" src="/public-sgp-browser-bootstrap.js"></script>
 <script type="module" src="/public-automatic-dk-book-bootstrap.js"></script>
 <script type="module" src="/nfl-model-choice-bootstrap.js"></script><script type="module" src="/nfl-sgp-model-yardage-bootstrap.js"></script><script type="module" src="/nfl-public-compact-sgp-bootstrap.js"></script><script type="module" src="/nfl-public-matchup-intelligence-bootstrap.js"></script>
