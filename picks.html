@@ -183,6 +183,19 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
 
 /* Public read-only parity: keyboard-visible focus on SGP navigation and controls. */
 button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px solid #76cffa;outline-offset:3px}
+
+/* Unified Momentum Radar dashboard visual refresh; no changes to forecast or book data. */
+:root{--bg:#030d14;--panel:#0b202d;--panel2:#102a39;--border:#365c6d;--green:#4bf29a}
+body{background:radial-gradient(ellipse at 50% -15%,#123344 0%,transparent 55%),#030d14}
+header{background:#05121bea;border-bottom:1px solid #315363}
+.brand{font-size:clamp(19px,2.4vw,30px);letter-spacing:-.035em}.logo{background:linear-gradient(140deg,#07553a,#092b25);border-color:#2edc80;box-shadow:0 0 20px #0be96b2a}
+.panel,.game-card,.sgp-slip,.nfl-module-panel{background:linear-gradient(155deg,#102a39,#091c29);border-color:#355b6b;border-radius:17px;box-shadow:0 10px 32px #0002}
+.chip,.nfl-module-tab,button.soft{border-radius:12px;min-height:42px}
+.chip.active,.nfl-module-tab.active{background:linear-gradient(130deg,#075a38,#073320);border-color:#43f38e;color:#a9ffd0;box-shadow:inset 0 0 0 1px #20c86b,0 0 18px #0ae66b1c}
+.sgp-slip-head{background:linear-gradient(110deg,#153b49,#102a39)}
+.sgp-leg{padding:15px 18px}.sgp-leg-selection{display:block;overflow-wrap:normal;word-break:normal}.sgp-leg-selection strong{display:block;text-align:left;white-space:normal;font-size:clamp(15px,1.7vw,19px);line-height:1.45;color:#53f2a5}
+.sgp-leg-why{line-height:1.6}
+@media(max-width:600px){.container{width:calc(100% - 22px)}.nav{gap:8px}.brand{font-size:19px}.sgp-leg{padding:12px}.sgp-leg-selection strong{font-size:16px}}
 </style><script type="module" src="/public-sgp-browser-bootstrap.js"></script>
 <script type="module" src="/public-automatic-dk-book-bootstrap.js"></script>
 <script type="module" src="/nfl-model-choice-bootstrap.js"></script><script type="module" src="/nfl-sgp-model-yardage-bootstrap.js"></script><script type="module" src="/nfl-public-compact-sgp-bootstrap.js"></script><script type="module" src="/nfl-public-matchup-intelligence-bootstrap.js"></script>
