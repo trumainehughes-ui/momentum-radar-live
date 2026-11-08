@@ -412,7 +412,7 @@ button:focus-visible,a:focus-visible{outline:2px solid #4bf29a;outline-offset:3p
     'Same Game Parlay selected — showing this matchup’s available SGP research below.':
     'Same Game Parlay selected — tap a matchup card below to open Small, Medium, Large and Nuke predictions.';note.setAttribute('role','status');}
    const board=document.getElementById('game-day-board');
-   if(board){board.hidden=false;board.scrollIntoView?.({behavior:'smooth',block:'start'});}
+   if(board){board.hidden=false;const slot=document.getElementById('game-inline-slot');const destination=state.selectedData&&slot&&!slot.hidden?slot:board;destination.scrollIntoView?.({behavior:'smooth',block:'start'});}
   }
  }
  const views=[['overview','Overview'],['td','Anytime TD'],['props','Player Props'],['matchup','Matchup Edge'],['injuries','Injuries'],['sgps','SGPs'],['ai','✨ AI Game Analyzer'],['sharp','📈 Sharp +EV Audit']];
