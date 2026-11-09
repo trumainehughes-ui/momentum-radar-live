@@ -15,21 +15,22 @@ const players=[
  {playerID:'wr2',name:'Other WR',cat:'receiving',projection:45,analyticsThreshold:65},
  {playerID:'rb2',name:'Other RB',cat:'rushing',projection:43,analyticsThreshold:65}
 ];
-test('four tiers allow flexible leg counts while retaining market diversity',()=>{
- for(const risk of ['Small','Medium','Large','Nuke']){
-  assert.ok(NFL_SGP_TIERS[risk].minLegs<=3);
-  assert.ok(NFL_SGP_TIERS[risk].maxLegs>=7);
-  assert.equal(assessNflSgpTier({risk,legs:players.slice(0,3),requiredLegs:3}).compositionOk,true);
-  assert.equal(assessNflSgpTier({risk,legs:players.slice(0,2),requiredLegs:2}).compositionOk,false);
-  assert.equal(assessNflSgpTier({risk,legs:players.slice(0,5),requiredLegs:5}).compositionOk,true);
+test('tier leg counts and diversity follow requested risk levels',()=>{
+ const ranges={Small:[2,3],Medium:[3,4],Large:[3,5],Nuke:[5,8]};
+ for(const [risk,[min,max]] of Object.entries(ranges)){
+  assert.equal(NFL_SGP_TIERS[risk].minLegs,min);
+  assert.equal(NFL_SGP_TIERS[risk].maxLegs,max);
+  assert.equal(assessNflSgpTier({risk,legs:players.slice(0,min),requiredLegs:min}).compositionOk,true);
+  assert.equal(assessNflSgpTier({risk,legs:players.slice(0,min-1),requiredLegs:min-1}).compositionOk,false);
+  assert.equal(assessNflSgpTier({risk,legs:players.slice(0,max),requiredLegs:max}).compositionOk,true);
  }
 });
 test('same athlete different markets are two independent selections',()=>{
- const valid=players.slice(0,4);
- assert.equal(valid[1].playerID,valid[3].playerID);
- assert.equal(assessNflSgpTier({risk:'Small',legs:valid,requiredLegs:4}).compositionOk,true);
- const bad=[...valid.slice(0,3),{...valid[1],analyticsThreshold:75}];
- assert.equal(assessNflSgpTier({risk:'Small',legs:bad,requiredLegs:4}).compositionOk,false);
+ const valid=players.slice(0,3);
+ assert.equal(players[1].playerID,players[3].playerID);
+ assert.equal(assessNflSgpTier({risk:'Small',legs:valid,requiredLegs:3}).compositionOk,true);
+ const bad=[valid[0],valid[1],{...valid[1],analyticsThreshold:75}];
+ assert.equal(assessNflSgpTier({risk:'Small',legs:bad,requiredLegs:3}).compositionOk,false);
 });
 test('small, medium and nuke adaptive generator never chooses shorter than the public tier',()=>{
  for(const risk of ['Small','Medium','Large','Nuke']){
@@ -41,7 +42,7 @@ test('small, medium and nuke adaptive generator never chooses shorter than the p
     requiredLegs:count,combinedBookQuoteVerified:false,
     publishable:false,sgpScore:80};
   },risk);
-  assert.equal(card.legs.length,3);
+  assert.equal(card.legs.length,NFL_SGP_TIERS[risk].minLegs);
   assert.ok(calls.every(n=>n>=NFL_SGP_TIERS[risk].minLegs&&n<=NFL_SGP_TIERS[risk].maxLegs));
   assert.equal(card.combinedBookQuoteVerified,false);
   assert.equal(card.selectionObjective,'MODEL_RESEARCH_ONLY_PRICE_NOT_VERIFIED');
