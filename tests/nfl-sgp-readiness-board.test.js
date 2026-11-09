@@ -125,3 +125,9 @@ test('quote missing a date cannot certify an otherwise matching NFL game',()=>{
   bookQuotes:[{gameId:game.gameId,book:'DraftKings',risk:'Small',americanOdds:200}]}),{now,date:day});
  assert.equal(row.pricedTierCount,0);
 });
+
+test('saved NFL quote serialization preserves event date through readiness response',()=>{
+ const snapshotSource=readFileSync(new URL('../lib/nfl-sgp-snapshot-status.js',import.meta.url),'utf8');
+ assert.match(snapshotSource,/date:String\(raw\.date\|\|''\)/);
+ assert.match(snapshotSource,/bookQuotes:\(result\.bookQuotes\|\|\[\]\)\.map\(q=>\(\{\.\.\.q,gameId:String\(gameId\),date\}\)\)/);
+});
