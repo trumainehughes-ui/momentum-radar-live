@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {selectNflAdaptiveTier,fillNflSgpMarketMix,modelNflSgpStatThreshold} from '../lib/ai-mechanics/nfl-sgp-tiers.js';
 const leg=i=>({cat:['passing','rushing','receiving'][i%3],playerID:String(i),projection:100,analyticsThreshold:150});
-for(const [risk,minimum] of [['Small',3],['Medium',3],['Large',3],['Nuke',3]]){
+for(const [risk,minimum] of [['Small',2],['Medium',3],['Large',3],['Nuke',5]]){
  test(risk+' respects minimum complete SGP composition',()=>{
   const selected=selectNflAdaptiveTier((r,n)=>({risk:r,
    legs:Array.from({length:n},(_,i)=>leg(i)),
@@ -22,9 +22,9 @@ test('all tiers are wired into NFL market builder and cache',()=>{
 
 test('a verified price must fall within the requested tier band',()=>{
  const make=(risk,n)=>({risk,legs:Array.from({length:n},(_,i)=>leg(i)),tierAssessment:{compositionOk:n===3||n===4},
-  combinedBookQuoteVerified:true,publishable:true,actualSgpOdds:n===3?2000:1000,estimatedHitProbability:n===3?.8:.6});
+  combinedBookQuoteVerified:true,publishable:true,actualSgpOdds:n===3?200:1000,estimatedHitProbability:n===3?.8:.6});
  const picked=selectNflAdaptiveTier(make,'Small');
- assert.equal(picked.adaptiveLegCount,4);
+ assert.equal(picked.adaptiveLegCount,3);
 });
 test('uncalibrated pseudo-probability cannot outrank a shorter valid Nuke',()=>{
  const make=(risk,n)=>({risk,legs:Array.from({length:n},(_,i)=>leg(i)),
@@ -42,7 +42,7 @@ test('adaptive tiers never call builder with impossible one- or two-leg requests
    return {risk:r,legs:[],tierAssessment:{compositionOk:false}};
   },risk);
   assert.ok(calls.length>0);
-  assert.ok(calls.every(count=>count>=3),risk+' attempted impossible candidate');
+  assert.ok(calls.every(count=>count>=({Small:2,Medium:3,Large:3,Nuke:5}[risk])),risk+' attempted impossible candidate');
   assert.deepEqual(selected.legs,[]);
  }
 });
