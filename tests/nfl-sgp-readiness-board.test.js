@@ -91,3 +91,9 @@ test('a quote for another game cannot price this matchup',()=>{
  assert.equal(row.pricedTierCount,0);
  assert.equal(row.tiers.find(t=>t.risk==='Nuke').bookmakerPriced,false);
 });
+
+test('quote from a conflicting game date cannot verify the tier',()=>{
+ const row=nflReadinessRow(game,sample({sportsbookCombinedOddsVerified:true,
+  bookQuotes:[{gameId:game.gameId,date:'2026-10-19',book:'DraftKings',risk:'Nuke',americanOdds:10000}]}),{now,date:day});
+ assert.equal(row.pricedTierCount,0);
+});
