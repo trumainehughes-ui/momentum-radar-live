@@ -8,9 +8,9 @@ const game={gameId:'401872999',home:{abbr:'ATL'},away:{abbr:'CHI'},
 const sample=(updates={})=>({ok:true,date:day,gameId:game.gameId,
  checkedAt:new Date(now-30000).toISOString(),status:'MODEL_ONLY',
  sportsbookCombinedOddsVerified:false,
- tiers:[{risk:'Small',status:'MODEL_CANDIDATE',legCount:4},
- {risk:'Medium',status:'MODEL_CANDIDATE',legCount:5},
- {risk:'Large',status:'MODEL_CANDIDATE',legCount:6},
+ tiers:[{risk:'Small',status:'MODEL_CANDIDATE',legCount:3},
+ {risk:'Medium',status:'MODEL_CANDIDATE',legCount:4},
+ {risk:'Large',status:'MODEL_CANDIDATE',legCount:5},
  {risk:'Nuke',status:'MODEL_CANDIDATE',legCount:5}],
  bookPricing:{status:'FIRST_PARTY_PUBLIC_RESEARCH_NO_AUTHENTICATED_SGP_QUOTE'},
  bookQuotes:[],...updates});
@@ -20,7 +20,7 @@ test('all four mixed model research tiers are visible without pretending correla
  assert.equal(row.pricedTierCount,0);
  assert.equal(row.matchup,'CHI @ ATL');
  assert.equal(row.sourceStatus,'FIRST_PARTY_PUBLIC_RESEARCH_NO_AUTHENTICATED_SGP_QUOTE');
- assert.deepEqual(row.tiers.map(x=>x.modelLegs),[4,5,6,5]);
+ assert.deepEqual(row.tiers.map(x=>x.modelLegs),[3,4,5,5]);
 });
 test('a claimed quote without readiness attestation cannot become bookmaker-priced',()=>{
  const quote=[{gameId:game.gameId,date:day,book:'DraftKings',risk:'Nuke',americanOdds:2000}];
@@ -76,7 +76,7 @@ test('operator readiness calculations are retained but the unprotected static pa
 test('a quoted tier with failed model validation is not advertised as priced',()=>{
  const report=sample({
   sportsbookCombinedOddsVerified:true,
-  tiers:[{risk:'Small',status:'REVIEW',legCount:4}],
+  tiers:[{risk:'Small',status:'REVIEW',legCount:3}],
   bookQuotes:[{gameId:game.gameId,date:day,book:'DraftKings',risk:'Small',americanOdds:200}]
  });
  const row=nflReadinessRow(game,report,{now,date:day});
