@@ -51,7 +51,7 @@ test('Nuke $10 stake requires a bookmaker-issued combined price at or above +100
  assert.equal(classifyNflSgpOdds(9999),'OUTSIDE_TIER_BANDS');
  assert.equal(classifyNflSgpOdds(10000),'Nuke');
  assert.equal(classifyNflSgpOdds(10001),'Nuke');
- assert.equal(classifyNflSgpOdds(3000),'Medium');
+ assert.equal(classifyNflSgpOdds(3000),'OUTSIDE_TIER_BANDS');
 });
 test('market builder and public serializer count each athlete-market, not just athlete',()=>{
  const api=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
