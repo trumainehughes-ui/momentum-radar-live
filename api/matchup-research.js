@@ -45,7 +45,15 @@ export default async function handler(req,res){
  try{
   const scoreboards=await Promise.all(dates.map(date=>json('https://site.api.espn.com/apis/site/v2/sports/'+routes[league]+'/scoreboard?dates='+date)));
   const events=scoreboards.flatMap(s=>s.events||[]).filter(e=>e.status?.type?.completed===true);
-  const unique=[...new Map(events.map(e=>[e.id,e])).values()].slice(0,16);
+  const allUnique=[...new Map(events.map(e=>[e.id,e])).values()];
+  // Prioritize games involving the requested defense before sampling other games.
+  // The API's 16-summary budget must not omit the opponent's own completed games.
+  const prioritized=allUnique.sort((a,b)=>{
+   const hasOpponent=e=>(e.competitions?.[0]?.competitors||[]).some(x=>String(x.team?.id)===opponentId);
+   return Number(hasOpponent(b))-Number(hasOpponent(a));
+  });
+  const unique=prioritized.slice(0,16);
+  const eventsOmitted=Math.max(0,allUnique.length-unique.length);
   const results=await Promise.allSettled(unique.map(async e=>{
    const box=await json('https://site.api.espn.com/apis/site/v2/sports/'+routes[league]+'/summary?event='+e.id);
    const competitors=e.competitions?.[0]?.competitors||[];
@@ -101,7 +109,7 @@ export default async function handler(req,res){
   const sampleQuality=!comparison.ok?'insufficient':Math.min(player.games,defense.games)<3?'limited':'historical_sample';
   return res.status(200).json({ok:true,league,playerId,opponentId,stat,
    player:player||null,defense:defense||null,comparison,sampleQuality,teamRankingsEvidence,teamDefensiveContext,teamDefenseLeagueBaseline,teamDefenseResearchSignal,
-   gamesExamined:fulfilled.length,upstreamFailures:failures,positionMatched:playerPosition,source:'espn',
+   gamesExamined:fulfilled.length,upstreamFailures:failures,eventsOmitted,sampleTruncated:eventsOmitted>0,positionMatched:playerPosition,source:'espn',
    sportsbookVerified:false,warning:sampleQuality==='limited'?'Small historical sample: not a reliable predictive advantage or sportsbook offer':'Position-matched historical opponent allowance, not a projected stat, probability or sportsbook market'});
  }catch(e){return res.status(503).json({ok:false,error:'MATCHUP_RESEARCH_UNAVAILABLE',detail:String(e.message).slice(0,90)});}
 }
