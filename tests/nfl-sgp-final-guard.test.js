@@ -27,7 +27,7 @@ test("legacy Small four-TD and Medium five-TD cards never survive the final disp
  }
 });
 test("compliant yardage-first Small stays intact but never gains verified price claims",()=>{
- const entry={...card("Small",yards),publishable:false,
+ const entry={...card("Large",yards),publishable:false,
   combinedBookQuoteVerified:false,estimatedOdds:null};
  const out=guardFinalNflSgpCards({Analytics:[entry]});
  assert.equal(out.Analytics[0].legs.length,4);
@@ -36,7 +36,7 @@ test("compliant yardage-first Small stays intact but never gains verified price 
  assert.equal(out.Analytics[0].publishable,false);
 });
 test("removing an out or questionable player invalidates the WHOLE parlay, not only one leg",()=>{
- const entry=card("Small",yards);
+ const entry=card("Large",yards);
  const out=guardFinalNflSgpCards({Analytics:[entry],
   other:{checked:true}},{blockedIds:new Set(["rb"])});
  assert.equal(out.Analytics[0].eligibilityPruned,true);
