@@ -27,8 +27,9 @@ test('tier leg counts and diversity follow requested risk levels',()=>{
  }
 });
 test('same athlete different markets are two independent selections',()=>{
- const valid=players.slice(0,3);
- assert.equal(players[1].playerID,players[3].playerID);
+ const valid=[players[0],players[1],players[3]];
+ assert.equal(valid[1].playerID,valid[2].playerID);
+ assert.notEqual(valid[1].cat,valid[2].cat);
  assert.equal(assessNflSgpTier({risk:'Small',legs:valid,requiredLegs:3}).compositionOk,true);
  const bad=[valid[0],valid[1],{...valid[1],analyticsThreshold:75}];
  assert.equal(assessNflSgpTier({risk:'Small',legs:bad,requiredLegs:3}).compositionOk,false);
