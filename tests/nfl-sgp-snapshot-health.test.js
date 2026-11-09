@@ -183,3 +183,11 @@ test('saved NFL snapshot readiness includes Large alongside all other tiers',()=
  const result=nflSgpSnapshotReadiness(sample(),{now,gameId});
  assert.deepEqual(result.tiers.map(x=>x.risk),['Small','Medium','Large','Nuke']);
 });
+
+test('malformed null research tier does not crash snapshot readiness',()=>{
+ const saved=sample();
+ saved.body.sgps.Analytics.unshift(null);
+ const status=nflSgpSnapshotReadiness(saved,{now,gameId});
+ assert.equal(status.status,'NOT_READY');
+ assert.ok(status.tiers.every(t=>t.status==='NOT_READY'));
+});
