@@ -1,3 +1,4 @@
+import {nflSeasonForDate,nflCanonicalTeamAbbr} from '../lib/nfl-season-team-normalization.js';
 import { nflTeamDefenseResearchSignal } from '../lib/nfl-team-defense-research-signal.js';
 import { nflLicensedDefensiveContext } from '../lib/nfl-licensed-defensive-context.js';
 import { licensedTeamRankings } from '../lib/teamrankings-licensed-feed.js';
@@ -75,9 +76,9 @@ export default async function handler(req,res){
   const defense=opponentDefensiveAllowances(allowanceRows)[0];
   const comparison=comparePlayerToDefense(player,defense,stat);
   const opponentTeam=fulfilled.flatMap(g=>g.competitors).find(x=>String(x.team?.id||'')===opponentId)?.team||null;
-  const matchupSeason=dates.length?Number(dates[0].slice(0,4)):new Date().getUTCFullYear();
+  const matchupSeason=league==='NFL'?(nflSeasonForDate(dates[0])??new Date().getUTCFullYear()):Number(dates[0].slice(0,4));
   const licensed=league==='NFL'?await licensedTeamRankings(matchupSeason):null;
-  const teamKey=String(opponentTeam?.abbreviation||'').toUpperCase();
+  const teamKey=nflCanonicalTeamAbbr(opponentTeam?.abbreviation);
   const teamRankingsEvidence=league==='NFL'?{
    status:licensed.status,source:licensed.source,
    opponentTeam:teamKey||null,updatedAt:licensed.updatedAt||null,
