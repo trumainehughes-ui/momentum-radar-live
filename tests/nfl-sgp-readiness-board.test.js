@@ -30,7 +30,7 @@ test('a claimed quote without readiness attestation cannot become bookmaker-pric
  assert.equal(good.pricedTierCount,1);
  assert.deepEqual(good.tiers.find(x=>x.risk==='Nuke').quotedBooks,['DraftKings']);
  const wrongBand=nflReadinessRow(game,sample({bookQuotes:[{
-  book:'DraftKings',risk:'Nuke',americanOdds:9999
+  gameId:game.gameId,book:'DraftKings',risk:'Nuke',americanOdds:9999
  }],sportsbookCombinedOddsVerified:true}),{now,date:day});
  assert.equal(wrongBand.pricedTierCount,0);
 });
