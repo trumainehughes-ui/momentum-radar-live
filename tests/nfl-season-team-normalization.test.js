@@ -10,6 +10,8 @@ test('NFL January and February games retain previous fall season',()=>{
 test('rejects impossible date inputs',()=>{
  assert.equal(nflSeasonForDate('20270230'),null);
  assert.equal(nflSeasonForDate('bad'),null);
+ assert.equal(nflSeasonForDate('20270117-extra'),null);
+ assert.equal(nflSeasonForDate('2027-01-17T12:00:00Z'),null);
 });
 test('canonicalizes ESPN NFL team abbreviations',()=>{
  assert.equal(nflCanonicalTeamAbbr('LA'),'LAR');
