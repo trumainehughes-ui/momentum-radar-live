@@ -5,7 +5,7 @@ import {nflLicensedDefensiveContext} from '../lib/nfl-licensed-defensive-context
 export default async function handler(req,res){
  if(req.method!=='GET')return res.status(405).json({ok:false,error:'METHOD_NOT_ALLOWED'});
  res.setHeader('Cache-Control','no-store');
- const season=Number(req.query?.season)||new Date().getUTCFullYear();
+ const season=req.query?.season===undefined?new Date().getUTCFullYear():Number(req.query.season);
  if(!Number.isInteger(season)||season<2020||season>2100)return res.status(400).json({ok:false,error:'INVALID_SEASON'});
  const data=await licensedTeamRankings(season);
  const ready=data.status==='READY';
