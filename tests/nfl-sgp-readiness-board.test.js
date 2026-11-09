@@ -23,7 +23,7 @@ test('all four mixed model research tiers are visible without pretending correla
  assert.deepEqual(row.tiers.map(x=>x.modelLegs),[4,5,6,5]);
 });
 test('a claimed quote without readiness attestation cannot become bookmaker-priced',()=>{
- const quote=[{gameId:game.gameId,book:'DraftKings',risk:'Nuke',americanOdds:2000}];
+ const quote=[{gameId:game.gameId,date:day,book:'DraftKings',risk:'Nuke',americanOdds:2000}];
  const bad=nflReadinessRow(game,sample({bookQuotes:quote}),{now,date:day});
  assert.equal(bad.pricedTierCount,0);
  const good=nflReadinessRow(game,sample({bookQuotes:quote,
@@ -31,12 +31,12 @@ test('a claimed quote without readiness attestation cannot become bookmaker-pric
  assert.equal(good.pricedTierCount,1);
  assert.deepEqual(good.tiers.find(x=>x.risk==='Nuke').quotedBooks,['DraftKings']);
  const wrongBand=nflReadinessRow(game,sample({bookQuotes:[{
-  gameId:game.gameId,book:'DraftKings',risk:'Nuke',americanOdds:9999
+  gameId:game.gameId,date:day,book:'DraftKings',risk:'Nuke',americanOdds:9999
  }],sportsbookCombinedOddsVerified:true}),{now,date:day});
  assert.equal(wrongBand.pricedTierCount,0);
 });
 test('duplicate book quote metadata never counts twice and no model-only odds are guessed',()=>{
- const q={gameId:game.gameId,book:'DraftKings',risk:'Small',americanOdds:200};
+ const q={gameId:game.gameId,date:day,book:'DraftKings',risk:'Small',americanOdds:200};
  const row=nflReadinessRow(game,sample({sportsbookCombinedOddsVerified:true,
   bookQuotes:[q,q,{...q,book:'FanDuel'}]}),{now,date:day});
  assert.equal(row.pricedTierCount,1);
@@ -52,7 +52,7 @@ test('wrong game, wrong date, expired or unverified snapshot never appears curre
  ]){
   const row=nflReadinessRow(game,sample({...payload,
    sportsbookCombinedOddsVerified:true,
-   bookQuotes:[{gameId:game.gameId,book:'DraftKings',risk:'Small',americanOdds:200}]}),{now,date:day});
+   bookQuotes:[{gameId:game.gameId,date:day,book:'DraftKings',risk:'Small',americanOdds:200}]}),{now,date:day});
   assert.equal(row.modelReadyCount,0,JSON.stringify(payload));
   assert.equal(row.pricedTierCount,0,JSON.stringify(payload));
   assert.notEqual(row.snapshotStatus,'CURRENT');
@@ -77,7 +77,7 @@ test('a quoted tier with failed model validation is not advertised as priced',()
  const report=sample({
   sportsbookCombinedOddsVerified:true,
   tiers:[{risk:'Small',status:'REVIEW',legCount:4}],
-  bookQuotes:[{gameId:game.gameId,book:'DraftKings',risk:'Small',americanOdds:200}]
+  bookQuotes:[{gameId:game.gameId,date:day,book:'DraftKings',risk:'Small',americanOdds:200}]
  });
  const row=nflReadinessRow(game,report,{now,date:day});
  assert.equal(row.tiers[0].modelReady,false);
@@ -88,7 +88,7 @@ test('a quoted tier with failed model validation is not advertised as priced',()
 
 test('a quote for another game cannot price this matchup',()=>{
  const row=nflReadinessRow(game,sample({sportsbookCombinedOddsVerified:true,
-  bookQuotes:[{gameId:'OTHER_GAME',book:'DraftKings',risk:'Nuke',americanOdds:2000}]}),{now,date:day});
+  bookQuotes:[{gameId:'OTHER_GAME',date:day,book:'DraftKings',risk:'Nuke',americanOdds:2000}]}),{now,date:day});
  assert.equal(row.pricedTierCount,0);
  assert.equal(row.tiers.find(t=>t.risk==='Nuke').bookmakerPriced,false);
 });
@@ -118,4 +118,10 @@ test('readiness pricing follows the canonical tier boundaries',()=>{
   assert.equal(priced.tiers.find(x=>x.risk===risk).bookmakerPriced,true,risk);
   assert.equal(rejected.tiers.find(x=>x.risk===risk).bookmakerPriced,false,risk);
  }
+});
+
+test('quote missing a date cannot certify an otherwise matching NFL game',()=>{
+ const row=nflReadinessRow(game,sample({sportsbookCombinedOddsVerified:true,
+  bookQuotes:[{gameId:game.gameId,book:'DraftKings',risk:'Small',americanOdds:200}]}),{now,date:day});
+ assert.equal(row.pricedTierCount,0);
 });
