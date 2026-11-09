@@ -28,3 +28,9 @@ test('missing and invalid team metrics do not become zero-yard evidence',()=>{
  const y=nflLicensedDefensiveContext('passingYards',{status:'READY',defensiveMetrics:{'opponent-passing-yards-per-game':-3}});
  assert.equal(y.available,false);
 });
+
+test('text values never qualify as licensed numeric defensive evidence',()=>{
+ const evidence={status:'READY',defensiveMetrics:{'opponent-rushing-yards-per-game':'105.5'}};
+ const x=nflLicensedDefensiveContext('rushingYards',evidence);
+ assert.equal(x.available,false);
+});
