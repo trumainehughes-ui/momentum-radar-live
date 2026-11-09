@@ -1,3 +1,4 @@
+import { licensedTeamRankings } from '../lib/teamrankings-licensed-feed.js';
 import {normalizePlayerBoxscoreRecord} from '../lib/player-stat-normalizer.js';
 import {rollingPlayerAverages} from '../lib/player-rolling-averages.js';
 import {opponentDefensiveAllowances} from '../lib/opponent-defensive-allowances.js';
@@ -71,9 +72,19 @@ export default async function handler(req,res){
   const player=rollingPlayerAverages(playerRows)[0];
   const defense=opponentDefensiveAllowances(allowanceRows)[0];
   const comparison=comparePlayerToDefense(player,defense,stat);
+  const opponentTeam=fulfilled.flatMap(g=>g.competitors).find(x=>String(x.team?.id||'')===opponentId)?.team||null;
+  const matchupSeason=dates.length?Number(dates[0].slice(0,4)):new Date().getUTCFullYear();
+  const licensed=league==='NFL'?await licensedTeamRankings(matchupSeason):null;
+  const teamKey=String(opponentTeam?.abbreviation||'').toUpperCase();
+  const teamRankingsEvidence=league==='NFL'?{
+   status:licensed.status,source:licensed.source,
+   opponentTeam:teamKey||null,updatedAt:licensed.updatedAt||null,
+   defensiveMetrics:licensed.status==='READY'?(licensed.teams[teamKey]||null):null,
+   note:'Licensed team-level context only; not a position-specific allowance, player projection, or verified sportsbook line.'
+  }:null;
   const sampleQuality=!comparison.ok?'insufficient':Math.min(player.games,defense.games)<3?'limited':'historical_sample';
   return res.status(200).json({ok:true,league,playerId,opponentId,stat,
-   player:player||null,defense:defense||null,comparison,sampleQuality,
+   player:player||null,defense:defense||null,comparison,sampleQuality,teamRankingsEvidence,
    gamesExamined:fulfilled.length,upstreamFailures:failures,positionMatched:playerPosition,source:'espn',
    sportsbookVerified:false,warning:sampleQuality==='limited'?'Small historical sample: not a reliable predictive advantage or sportsbook offer':'Position-matched historical opponent allowance, not a projected stat, probability or sportsbook market'});
  }catch(e){return res.status(503).json({ok:false,error:'MATCHUP_RESEARCH_UNAVAILABLE',detail:String(e.message).slice(0,90)});}
