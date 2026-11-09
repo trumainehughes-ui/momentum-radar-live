@@ -427,7 +427,17 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
   const targetHit=(x.cat!=='td'&&Number.isFinite(Number(target))&&vals.length)?vals.filter(v=>v>=Number(target)).length/vals.length:null;
   const sampleAdj=targetHit==null?0:Math.max(-12,Math.min(12,(targetHit-.5)*24));
   return (Number(x.momentumScore)||0)+Math.min(18,Math.log1p(Math.max(0,opp))*4)+Math.min(10,(adj/pg)*6)+sampleAdj+(risk==='Nuke'?Math.max(-8,Math.min(18,ceilingLift*30+matchupLift*25)):0)
- };pool.sort((a,b)=>strength(b)-strength(a)||(Number(b.confidence)||0)-(Number(a.confidence)||0));
+ };
+ // Verified matchup-adjusted projections lead the ranking; momentum is
+ // a tiebreaker, not a substitute for an opponent-specific advantage.
+ const defensiveEdge=x=>{
+  const factor=Number(x.matchupFactor);
+  return Number.isFinite(factor)&&factor>0?factor:1;
+ };
+ const rankByEdge=(a,b,risk='Medium')=>
+  defensiveEdge(b)-defensiveEdge(a)||strength(b,risk)-strength(a,risk)||
+  (Number(b.confidence)||0)-(Number(a.confidence)||0);
+ pool.sort((a,b)=>rankByEdge(a,b));
  const selectedTierKeys=new Map();
  const make=(risk,count)=>{
   const priorKeys=risk==='Small'?[]:risk==='Medium'?[selectedTierKeys.get('Small')].filter(Boolean):
@@ -437,8 +447,7 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
    // Prioritize new athletes and markets in later tiers. Rejecting only
    // after filling can exhaust the count before alternatives are considered.
    const priorCount=x=>priorKeys.filter(keys=>keys.has(String(x.playerID||norm(x.name))+'|'+x.cat)).length;
-   return priorCount(a)-priorCount(b)||strength(b,risk)-strength(a,risk)||
-    (Number(b.confidence)||0)-(Number(a.confidence)||0);
+   return priorCount(a)-priorCount(b)||rankByEdge(a,b,risk);
   });
   const eligible=x=>{
     const pos=String(x?.position||'').toUpperCase(),role=roleFor(roles,x);
