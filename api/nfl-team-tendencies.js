@@ -1,3 +1,4 @@
+import { licensedTeamRankings } from '../lib/teamrankings-licensed-feed.js';
 // Rolling NFL offense/defense tendencies from completed ESPN games. Research only.
 const BASE='https://site.api.espn.com/apis/site/v2/sports/football/nfl/';
 const get=async path=>{const r=await fetch(BASE+path,{signal:AbortSignal.timeout(9000)});if(!r.ok)throw Error('ESPN_'+r.status);return r.json()};
@@ -40,10 +41,11 @@ export default async function handler(req,res){
     }
    }
   }
+  const teamRankings=await licensedTeamRankings(end.getUTCFullYear());
   const teams=[...profiles.values()].map(p=>({...p,
    offense:Object.fromEntries(categories.map(k=>[k,avg(p.offense[k],p.samples['offense_'+k])])),
    defenseAllowed:Object.fromEntries(categories.map(k=>[k,avg(p.defenseAllowed[k],p.samples['defense_'+k])]))
-  })).sort((a,b)=>a.team.localeCompare(b.team));
-  return res.status(200).json({ok:true,league:'NFL',source:'ESPN completed game box scores',researchOnly:true,generatedAt:new Date().toISOString(),windowDays:weeks*7,gamesAnalyzed:analyzed,teamsCount:teams.length,teams,limitations:'Team-level tendencies only. Injuries, starters, positional defensive allowances and NFL.com cross-check must be verified separately.'});
+  })).map(p=>({...p,teamRankings:teamRankings.status==='READY'?teamRankings.teams[String(p.abbreviation||'').toUpperCase()]||null:null})).sort((a,b)=>a.team.localeCompare(b.team));
+  return res.status(200).json({ok:true,league:'NFL',source:'ESPN completed game box scores',researchOnly:true,generatedAt:new Date().toISOString(),windowDays:weeks*7,gamesAnalyzed:analyzed,teamsCount:teams.length,teams,teamRankingsStatus:{status:teamRankings.status,updatedAt:teamRankings.updatedAt||null,metrics:teamRankings.metrics},limitations:'Team-level tendencies only. Injuries, starters, positional defensive allowances and NFL.com cross-check must be verified separately.'});
  }catch(e){return res.status(503).json({ok:false,error:'NFL_TENDENCY_SOURCE_UNAVAILABLE',detail:String(e.message).slice(0,120)})}
 }
