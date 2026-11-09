@@ -106,3 +106,16 @@ test('Large is independently represented and requires its canonical payout band'
  assert.equal(row.tiers.find(t=>t.risk==='Large').bookmakerPriced,true);
  assert.equal(row.pricedTierCount,1);
 });
+
+test('readiness pricing follows the canonical tier boundaries',()=>{
+ for(const [risk,valid,invalid] of [
+  ['Small',500,499],['Medium',2000,1500],
+  ['Large',4000,3999],['Nuke',10000,9999]
+ ]){
+  const quote=odds=>({gameId:game.gameId,date:day,book:'DraftKings',risk,americanOdds:odds});
+  const priced=nflReadinessRow(game,sample({sportsbookCombinedOddsVerified:true,bookQuotes:[quote(valid)]}),{now,date:day});
+  const rejected=nflReadinessRow(game,sample({sportsbookCombinedOddsVerified:true,bookQuotes:[quote(invalid)]}),{now,date:day});
+  assert.equal(priced.tiers.find(x=>x.risk===risk).bookmakerPriced,true,risk);
+  assert.equal(rejected.tiers.find(x=>x.risk===risk).bookmakerPriced,false,risk);
+ }
+});
