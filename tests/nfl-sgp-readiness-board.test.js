@@ -23,7 +23,7 @@ test('all four mixed model research tiers are visible without pretending correla
  assert.deepEqual(row.tiers.map(x=>x.modelLegs),[3,4,5,5]);
 });
 test('a claimed quote without readiness attestation cannot become bookmaker-priced',()=>{
- const quote=[{gameId:game.gameId,date:day,book:'DraftKings',risk:'Nuke',americanOdds:2000}];
+ const quote=[{gameId:game.gameId,date:day,book:'DraftKings',risk:'Nuke',americanOdds:10000}];
  const bad=nflReadinessRow(game,sample({bookQuotes:quote}),{now,date:day});
  assert.equal(bad.pricedTierCount,0);
  const good=nflReadinessRow(game,sample({bookQuotes:quote,
