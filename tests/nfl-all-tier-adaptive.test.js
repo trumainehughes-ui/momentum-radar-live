@@ -69,3 +69,12 @@ test('TD cannot crowd out required yardage legs',()=>{
  assert.equal(result.filled,true);
  assert.equal(legs.filter(x=>x.cat==='td').length,0);
 });
+
+// Keep opponent matchup evidence ahead of generic momentum when the
+// production NFL SGP candidate pool is ranked for every tier.
+test('production SGP candidate ordering prioritizes defensive matchup factor',()=>{
+ const source=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
+ assert.match(source,/const defensiveEdge=x=>/);
+ assert.match(source,/defensiveEdge\(b\)-defensiveEdge\(a\)\|\|strength\(b,risk\)-strength\(a,risk\)/);
+ assert.match(source,/priorCount\(a\)-priorCount\(b\)\|\|rankByEdge\(a,b,risk\)/);
+});
