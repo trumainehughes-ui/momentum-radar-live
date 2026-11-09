@@ -13,7 +13,7 @@ function fixture(gameId,home,away){
  const rosterById=new Map(legs.map(x=>[x.playerID,{team:x.team,name:x.name}]));
  const rosterByName=new Map(legs.map(x=>[x.name.toUpperCase().replace(/[^A-Z0-9]/g,""),{team:x.team,id:x.playerID}]));
  const game={gameId,home,away,rosterChecked:true,rosterById,rosterByName};
- return {legs,game,card:{risk:"Small",requiredLegs:4,legs,
+ return {legs,game,card:{risk:"Large",requiredLegs:4,legs,
    estimatedOdds:null,publishable:false,candidateComplete:true}};
 }
 test("same identity policy accepts three unrelated NFL matchups",()=>{
