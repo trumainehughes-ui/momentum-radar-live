@@ -7,7 +7,7 @@ const advisory=readFileSync(new URL('../lib/ai-mechanics/ai-advisors.js',import.
 const publicView=readFileSync(new URL('../lib/public-nfl-view.js',import.meta.url),'utf8');
 
 test('AI Nuke advisory uses shared flexible leg limits and market identity',()=>{
- assert.equal(NFL_SGP_TIERS.Nuke.maxLegs,20);
+ assert.equal(NFL_SGP_TIERS.Nuke.maxLegs,8);
  assert.match(advisory,/legs\.length<NFL_SGP_TIERS\.Nuke\.minLegs/);
  assert.match(advisory,/legs\.length>NFL_SGP_TIERS\.Nuke\.maxLegs/);
  assert.match(advisory,/duplicate player market/);
