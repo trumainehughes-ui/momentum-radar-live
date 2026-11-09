@@ -1,3 +1,4 @@
+import {nflSeasonForDate} from '../lib/nfl-season-team-normalization.js';
 import { licensedTeamRankings } from '../lib/teamrankings-licensed-feed.js';
 import { put, list } from '@vercel/blob';
 
@@ -162,7 +163,7 @@ async function build(season,week){
 export default async function handler(req,res){
   if(req.method!=='GET')return res.status(405).json({ok:false,error:'method_not_allowed'});
   try{
-    const season=Math.max(2020,Math.min(2100,Number(req.query.season)||new Date().getUTCFullYear()));
+    const season=Math.max(2020,Math.min(2100,Number(req.query.season)||nflSeasonForDate(new Date().toISOString().slice(0,10))));
 
     let requestedWeek=Number(req.query.week);
     if(!Number.isFinite(requestedWeek)||requestedWeek<1){
