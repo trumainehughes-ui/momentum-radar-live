@@ -76,7 +76,14 @@ export default async function handler(req,res){
   const player=rollingPlayerAverages(playerRows)[0];
   const defense=opponentDefensiveAllowances(allowanceRows)[0];
   const comparison=comparePlayerToDefense(player,defense,stat);
-  const opponentTeam=fulfilled.flatMap(g=>g.competitors).find(x=>String(x.team?.id||'')===opponentId)?.team||null;
+  let opponentTeam=fulfilled.flatMap(g=>g.competitors).find(x=>String(x.team?.id||'')===opponentId)?.team||null;
+  if(league==='NFL'&&!opponentTeam){
+   // Resolve the requested opponent independently of the historical game sample.
+   // A sparse date window must not silently erase otherwise available team evidence.
+   const lookup=await json('https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/'+opponentId).catch(()=>null);
+   const candidate=lookup?.team||null;
+   if(String(candidate?.id||'')===opponentId)opponentTeam=candidate;
+  }
   const matchupSeason=league==='NFL'?(nflSeasonForDate(dates[0])??new Date().getUTCFullYear()):Number(dates[0].slice(0,4));
   const licensed=league==='NFL'?await licensedTeamRankings(matchupSeason):null;
   const teamKey=nflCanonicalTeamAbbr(opponentTeam?.abbreviation);
