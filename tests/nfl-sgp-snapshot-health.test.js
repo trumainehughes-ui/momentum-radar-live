@@ -51,12 +51,12 @@ test('no completed Small, Medium, Nuke reports concrete missing-yardage vs ident
 });
 test('complete composition reports model-only, never verified sportsbook quote',()=>{
  const good=sample();
- const legs=Array.from({length:4},(_,i)=>({playerID:String(1234+i),cat:i===0?'rushing':i===1?'receiving':i===2?'receptions':'passing'}));
- good.body.sgps.Analytics[0]={risk:'Small',requiredLegs:4,
+ const legs=Array.from({length:3},(_,i)=>({playerID:String(1234+i),cat:i===0?'rushing':i===1?'receiving':'passing'}));
+ good.body.sgps.Analytics[0]={risk:'Small',requiredLegs:3,
   tierAssessment:{compositionOk:true},legs};
  const status=nflSgpSnapshotReadiness(good,{now,gameId});
  assert.equal(status.status,'MODEL_ONLY');
- assert.equal(status.tiers[0].legCount,4);
+ assert.equal(status.tiers[0].legCount,3);
  assert.equal(status.tiers[0].status,'MODEL_CANDIDATE');
  assert.equal(status.tiers[1].status,'NOT_READY');
  assert.equal(status.sportsbookCombinedOddsVerified,false);
