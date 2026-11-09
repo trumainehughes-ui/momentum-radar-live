@@ -21,6 +21,10 @@ test('matches rushing to rushing allowance and receiving to team passing allowan
 test('missing and invalid team metrics do not become zero-yard evidence',()=>{
  const x=nflLicensedDefensiveContext('passingYards',{status:'READY',defensiveMetrics:{}});
  assert.equal(x.available,false);
+ for(const missing of [null,undefined,'']){
+  const z=nflLicensedDefensiveContext('passingYards',{status:'READY',defensiveMetrics:{'opponent-passing-yards-per-game':missing}});
+  assert.equal(z.available,false);
+ }
  const y=nflLicensedDefensiveContext('passingYards',{status:'READY',defensiveMetrics:{'opponent-passing-yards-per-game':-3}});
  assert.equal(y.available,false);
 });
