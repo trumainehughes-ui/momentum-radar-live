@@ -22,7 +22,7 @@ test('all three mixed model research tiers are visible without pretending correl
  assert.deepEqual(row.tiers.map(x=>x.modelLegs),[4,5,5]);
 });
 test('a claimed quote without readiness attestation cannot become bookmaker-priced',()=>{
- const quote=[{book:'DraftKings',risk:'Nuke',americanOdds:10000}];
+ const quote=[{gameId:game.gameId,book:'DraftKings',risk:'Nuke',americanOdds:10000}];
  const bad=nflReadinessRow(game,sample({bookQuotes:quote}),{now,date:day});
  assert.equal(bad.pricedTierCount,0);
  const good=nflReadinessRow(game,sample({bookQuotes:quote,
@@ -35,7 +35,7 @@ test('a claimed quote without readiness attestation cannot become bookmaker-pric
  assert.equal(wrongBand.pricedTierCount,0);
 });
 test('duplicate book quote metadata never counts twice and no model-only odds are guessed',()=>{
- const q={book:'DraftKings',risk:'Small',americanOdds:2000};
+ const q={gameId:game.gameId,book:'DraftKings',risk:'Small',americanOdds:2000};
  const row=nflReadinessRow(game,sample({sportsbookCombinedOddsVerified:true,
   bookQuotes:[q,q,{...q,book:'FanDuel'}]}),{now,date:day});
  assert.equal(row.pricedTierCount,1);
@@ -51,7 +51,7 @@ test('wrong game, wrong date, expired or unverified snapshot never appears curre
  ]){
   const row=nflReadinessRow(game,sample({...payload,
    sportsbookCombinedOddsVerified:true,
-   bookQuotes:[{book:'DraftKings',risk:'Small',americanOdds:2500}]}),{now,date:day});
+   bookQuotes:[{gameId:game.gameId,book:'DraftKings',risk:'Small',americanOdds:2500}]}),{now,date:day});
   assert.equal(row.modelReadyCount,0,JSON.stringify(payload));
   assert.equal(row.pricedTierCount,0,JSON.stringify(payload));
   assert.notEqual(row.snapshotStatus,'CURRENT');
@@ -76,11 +76,18 @@ test('a quoted tier with failed model validation is not advertised as priced',()
  const report=sample({
   sportsbookCombinedOddsVerified:true,
   tiers:[{risk:'Small',status:'REVIEW',legCount:4}],
-  bookQuotes:[{book:'DraftKings',risk:'Small',americanOdds:2500}]
+  bookQuotes:[{gameId:game.gameId,book:'DraftKings',risk:'Small',americanOdds:2500}]
  });
  const row=nflReadinessRow(game,report,{now,date:day});
  assert.equal(row.tiers[0].modelReady,false);
  assert.equal(row.tiers[0].bookmakerPriced,false);
  assert.deepEqual(row.tiers[0].quotedBooks,[]);
  assert.equal(row.pricedTierCount,0);
+});
+
+test('a quote for another game cannot price this matchup',()=>{
+ const row=nflReadinessRow(game,sample({sportsbookCombinedOddsVerified:true,
+  bookQuotes:[{gameId:'OTHER_GAME',book:'DraftKings',risk:'Nuke',americanOdds:10000}]}),{now,date:day});
+ assert.equal(row.pricedTierCount,0);
+ assert.equal(row.tiers.find(t=>t.risk==='Nuke').bookmakerPriced,false);
 });
