@@ -40,6 +40,8 @@ export default async function handler(req,res){
   return res.status(400).json({ok:false,error:'INVALID_PLAYER_OR_OPPONENT'});
  if(!dates.length||dates.length>4||dates.some(d=>!/^\d{8}$/.test(d)))
   return res.status(400).json({ok:false,error:'REQUIRE_1_TO_4_DATES_YYYYMMDD'});
+ if(league==='NFL'&&(dates.some(d=>nflSeasonForDate(d)===null)||new Set(dates.map(nflSeasonForDate)).size!==1))
+  return res.status(400).json({ok:false,error:'NFL_DATES_MUST_SHARE_VALID_SEASON'});
  try{
   const scoreboards=await Promise.all(dates.map(date=>json('https://site.api.espn.com/apis/site/v2/sports/'+routes[league]+'/scoreboard?dates='+date)));
   const events=scoreboards.flatMap(s=>s.events||[]).filter(e=>e.status?.type?.completed===true);
