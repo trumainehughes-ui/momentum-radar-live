@@ -71,3 +71,16 @@ test('operator readiness calculations are retained but the unprotected static pa
  assert.equal(home.includes('href="/nfl-sgp-readiness.html"'),false);
  assert.equal(publicHtml.includes('href="/nfl-sgp-readiness.html"'),false);
 });
+
+test('a quoted tier with failed model validation is not advertised as priced',()=>{
+ const report=sample({
+  sportsbookCombinedOddsVerified:true,
+  tiers:[{risk:'Small',status:'REVIEW',legCount:4}],
+  bookQuotes:[{book:'DraftKings',risk:'Small',americanOdds:2500}]
+ });
+ const row=nflReadinessRow(game,report,{now,date:day});
+ assert.equal(row.tiers[0].modelReady,false);
+ assert.equal(row.tiers[0].bookmakerPriced,false);
+ assert.deepEqual(row.tiers[0].quotedBooks,[]);
+ assert.equal(row.pricedTierCount,0);
+});
