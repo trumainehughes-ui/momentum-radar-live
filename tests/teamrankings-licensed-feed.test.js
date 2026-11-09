@@ -66,3 +66,19 @@ test('licensed feed rejects null, empty, and entirely invalid rows',async()=>{
   assert.deepEqual(data.teams,{});
  }finally{restore()}
 });
+
+test('licensed feed rejects numeric strings even when otherwise plausible',async()=>{
+ try{
+  process.env.TEAMRANKINGS_LICENSE_CONFIRMED='true';
+  process.env.TEAMRANKINGS_LICENSED_FEED_URL='https://example.com/authorized-feed';
+  const data=await licensedTeamRankings(2026,{fetcher:async()=>({ok:true,json:async()=>({
+   season:2026,updatedAt:new Date().toISOString(),
+   rows:[
+    {team:'BUF',metric:'opponent-passing-yards-per-game',value:'225.5'},
+    {team:'BUF',metric:'opponent-rushing-yards-per-game',value:110}
+   ]
+  })})});
+  assert.equal(data.status,'READY');
+  assert.deepEqual(data.teams,{BUF:{'opponent-rushing-yards-per-game':110}});
+ }finally{restore()}
+});
