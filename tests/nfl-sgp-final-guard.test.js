@@ -48,7 +48,7 @@ test("removing an out or questionable player invalidates the WHOLE parlay, not o
  assert.equal(out.other.checked,true);
 });
 test("legacy sportsbook TD-only card also fails; valid market mix not deleted",()=>{
- const book={DraftKings:[card("Medium",allTD),card("Small",yards)]};
+ const book={DraftKings:[card("Medium",allTD),card("Large",yards)]};
  const o=guardFinalNflSgpCards(book);
  assert.deepEqual(o.DraftKings[0].legs,[]);
  assert.equal(o.DraftKings[0].combinedBookQuoteVerified,false);
