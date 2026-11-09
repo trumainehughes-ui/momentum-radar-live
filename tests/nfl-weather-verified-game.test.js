@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {resolveVerifiedNflWeatherGame} from '../lib/nfl-weather-verified-game.js';
 const id='401234567',kickoff='2026-11-15T20:00:00Z';
-const venue={gameId:id,stadiumId:'stadium-verified',espnVenueId:'1234',scheduleSource:'https://www.nfl.com/schedules/',kickoffAt:kickoff,roofStatus:'closed',stadiumEvidence:{url:'https://www.nfl.com/stadiums/',stadiumId:'stadium-verified',espnVenueId:'1234',checkedAt:'2026-11-12T16:00:00Z',verificationMethod:'fetched_source',verificationStatus:'verified',sourceGameId:'401234567'},awayTeam:'DEN',homeTeam:'KC'};
+const venue={gameId:id,stadiumId:'stadium-verified',espnVenueId:'1234',scheduleSource:'https://www.nfl.com/schedules/',kickoffAt:kickoff,roofStatus:'closed',stadiumEvidence:{url:'https://www.nfl.com/stadiums/',stadiumId:'stadium-verified',espnVenueId:'1234',checkedAt:'2026-11-07T16:00:00Z',verificationMethod:'fetched_source',verificationStatus:'verified',sourceGameId:'401234567'},awayTeam:'DEN',homeTeam:'KC'};
 const summary={header:{id,competitions:[{id,venue:{id:'1234'},status:{type:{state:'pre',name:'STATUS_SCHEDULED'}},date:kickoff,competitors:[{team:{abbreviation:'DEN'}},{team:{abbreviation:'KC'}}]}]}};
 const fetcher=async()=>({ok:true,json:async()=>summary});
 const resolve=(record=venue,fetch=fetcher)=>resolveVerifiedNflWeatherGame({gameId:id,registryJson:JSON.stringify({[id]:record}),fetcher:fetch});
@@ -29,7 +29,7 @@ test('placeholder stadium cannot be treated as verified',async()=>{
 });
 
 test('source URL alone is not sufficient stadium verification',async()=>{
- await assert.rejects(()=>resolve({...venue,stadiumEvidence:{url:'https://www.nfl.com/stadiums/',stadiumId:'stadium-verified',espnVenueId:'1234',checkedAt:'2026-11-12T16:00:00Z'}}),/stadium_evidence_not_verified/);
+ await assert.rejects(()=>resolve({...venue,stadiumEvidence:{url:'https://www.nfl.com/stadiums/',stadiumId:'stadium-verified',espnVenueId:'1234',checkedAt:'2026-11-07T16:00:00Z'}}),/stadium_evidence_not_verified/);
 });
 
 test('ESPN stadium mismatch blocks weather report',async()=>{
