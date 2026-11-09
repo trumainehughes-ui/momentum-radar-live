@@ -20,10 +20,9 @@ test("only a market-diverse Small is a model candidate, never a verified price",
  const mixed=[
   {name:"QB",playerID:"qb",cat:"passing"},
   {name:"RB",playerID:"rb",cat:"rushing"},
-  {name:"WR",playerID:"wr",cat:"receiving"},
-  screenshot[0]
+  {name:"WR",playerID:"wr",cat:"receiving"}
  ];
- const m=assessNflSgpTier({risk:"Small",legs:mixed,requiredLegs:4});
+ const m=assessNflSgpTier({risk:"Small",legs:mixed,requiredLegs:3});
  assert.equal(m.compositionOk,true);
  assert.equal(m.status,"COMBINED_PRICE_UNVERIFIED");
  assert.equal(m.tierVerified,false);
@@ -33,26 +32,16 @@ test("observed combined quote trumps a different independent-leg estimate",()=>{
  const mixed=[
   {name:"QB",playerID:"qb",cat:"passing"},
   {name:"RB",playerID:"rb",cat:"rushing"},
-  {name:"WR",playerID:"wr",cat:"receiving"},
-  screenshot[0]
+  {name:"WR",playerID:"wr",cat:"receiving"}
  ];
- const m=assessNflSgpTier({risk:"Small",legs:mixed,requiredLegs:4,
+ const m=assessNflSgpTier({risk:"Small",legs:mixed,requiredLegs:3,
   estimatedOdds:2100,combinedBookOdds:25362});
  assert.equal(m.status,"ACTUAL_BOOK_PRICE_OUTSIDE_TIER");
  assert.equal(m.observedOddsCategory,"Nuke");
 });
-test("Small and Medium target NET profit bands; Nuke minimum +10000",()=>{
- assert.equal(classifyNflSgpOdds(1999),"OUTSIDE_TIER_BANDS");
- assert.equal(classifyNflSgpOdds(500),"Small");
- assert.equal(classifyNflSgpOdds(1500),"Small");
- assert.equal(classifyNflSgpOdds(2000),"Medium");
- assert.equal(classifyNflSgpOdds(3000),"Medium");
- assert.equal(classifyNflSgpOdds(3001),"Medium");
- assert.equal(classifyNflSgpOdds(4000),"Large");
- assert.equal(classifyNflSgpOdds(8000),"Large");
- assert.equal(classifyNflSgpOdds(8001),"OUTSIDE_TIER_BANDS");
- assert.equal(classifyNflSgpOdds(10000),"Nuke");
- assert.equal(classifyNflSgpOdds(10001),"Nuke");
+test("canonical tier odds boundaries classify correctly; Nuke starts at +10000",()=>{
+ for(const [odds,tier] of [[99,"OUTSIDE_TIER_BANDS"],[100,"Small"],[300,"Small"],[301,"Medium"],[800,"Medium"],[801,"Large"],[2000,"Large"],[2001,"OUTSIDE_TIER_BANDS"],[9999,"OUTSIDE_TIER_BANDS"],[10000,"Nuke"],[10001,"Nuke"]])
+  assert.equal(classifyNflSgpOdds(odds),tier);
 });
 test("production hotfix rejects all-TD Small model and marks it unpublishable",()=>{
  const api=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
