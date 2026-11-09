@@ -1,3 +1,4 @@
+import { licensedTeamRankings } from '../lib/teamrankings-licensed-feed.js';
 import { put, list } from '@vercel/blob';
 
 const ESPN='https://site.api.espn.com/apis/site/v2/sports/football/nfl';
@@ -178,6 +179,7 @@ export default async function handler(req,res){
     const key=season+'-w'+week;
     let snap=await readSnapshot(key),fresh=snap&&Date.now()-Date.parse(snap.generatedAt||0)<TTL;
     if(!fresh){snap=await build(season,week);await writeSnapshot(key,snap)}
+    const teamRankings=await licensedTeamRankings(season);
     const requested=String(req.query.teams||'').split(',').map(norm).filter(Boolean);
     const select=obj=>requested.length?Object.fromEntries(Object.entries(obj||{}).filter(([k])=>requested.includes(norm(k)))):obj;
     const filterRanks=r=>{
@@ -185,6 +187,6 @@ export default async function handler(req,res){
       const out={};for(const p of POSITIONS){out[p]={};for(const [k,v] of Object.entries(r?.[p]||{}))if(requested.includes(norm(k)))out[p][k]=v}return out;
     };
     res.setHeader('Cache-Control',EDGE);res.setHeader('CDN-Cache-Control',EDGE);res.setHeader('Vercel-CDN-Cache-Control',EDGE);
-    return res.status(200).json({ok:true,...snap,defense:select(snap.defense),offense:select(snap.offense),defenseRanks:filterRanks(snap.defenseRanks),offenseRanks:filterRanks(snap.offenseRanks),cache:{fresh:Boolean(fresh),ttlMinutes:60}});
+    return res.status(200).json({ok:true,...snap,defense:select(snap.defense),offense:select(snap.offense),defenseRanks:filterRanks(snap.defenseRanks),offenseRanks:filterRanks(snap.offenseRanks),teamRankings:{...teamRankings,teams:select(teamRankings.teams)},cache:{fresh:Boolean(fresh),ttlMinutes:60}});
   }catch(e){return res.status(502).json({ok:false,error:String(e.message||e),fetchedAt:new Date().toISOString()})}
 }
