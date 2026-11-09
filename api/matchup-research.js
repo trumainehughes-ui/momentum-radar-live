@@ -82,7 +82,7 @@ export default async function handler(req,res){
   const teamRankingsEvidence=league==='NFL'?{
    status:licensed.status,source:licensed.source,
    opponentTeam:teamKey||null,updatedAt:licensed.updatedAt||null,
-   defensiveMetrics:licensed.status==='READY'?(licensed.teams[teamKey]||null):null,
+   defensiveMetrics:licensed.status==='READY'&&licensed.teams[teamKey]?Object.fromEntries(Object.entries(licensed.teams[teamKey]).filter(([metric])=>metric.startsWith('opponent-'))):null,
    note:'Licensed team-level context only; not a position-specific allowance, player projection, or verified sportsbook line.'
   }:null;
   const teamDefensiveContext=league==='NFL'?nflLicensedDefensiveContext(stat,teamRankingsEvidence):null;
