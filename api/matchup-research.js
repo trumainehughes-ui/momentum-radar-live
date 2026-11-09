@@ -1,3 +1,4 @@
+import {nflLicensedLeagueBaseline} from '../lib/nfl-licensed-league-baseline.js';
 import {nflSeasonForDate,nflCanonicalTeamAbbr} from '../lib/nfl-season-team-normalization.js';
 import { nflTeamDefenseResearchSignal } from '../lib/nfl-team-defense-research-signal.js';
 import { nflLicensedDefensiveContext } from '../lib/nfl-licensed-defensive-context.js';
@@ -86,10 +87,11 @@ export default async function handler(req,res){
    note:'Licensed team-level context only; not a position-specific allowance, player projection, or verified sportsbook line.'
   }:null;
   const teamDefensiveContext=league==='NFL'?nflLicensedDefensiveContext(stat,teamRankingsEvidence):null;
-  const teamDefenseResearchSignal=league==='NFL'?nflTeamDefenseResearchSignal(stat,teamDefensiveContext):null;
+  const teamDefenseLeagueBaseline=league==='NFL'&&teamDefensiveContext?.available?nflLicensedLeagueBaseline(licensed.teams,teamDefensiveContext.metric):null;
+  const teamDefenseResearchSignal=league==='NFL'?nflTeamDefenseResearchSignal(stat,teamDefensiveContext,{leagueBaseline:teamDefenseLeagueBaseline?.available?teamDefenseLeagueBaseline.value:null}):null;
   const sampleQuality=!comparison.ok?'insufficient':Math.min(player.games,defense.games)<3?'limited':'historical_sample';
   return res.status(200).json({ok:true,league,playerId,opponentId,stat,
-   player:player||null,defense:defense||null,comparison,sampleQuality,teamRankingsEvidence,teamDefensiveContext,teamDefenseResearchSignal,
+   player:player||null,defense:defense||null,comparison,sampleQuality,teamRankingsEvidence,teamDefensiveContext,teamDefenseLeagueBaseline,teamDefenseResearchSignal,
    gamesExamined:fulfilled.length,upstreamFailures:failures,positionMatched:playerPosition,source:'espn',
    sportsbookVerified:false,warning:sampleQuality==='limited'?'Small historical sample: not a reliable predictive advantage or sportsbook offer':'Position-matched historical opponent allowance, not a projected stat, probability or sportsbook market'});
  }catch(e){return res.status(503).json({ok:false,error:'MATCHUP_RESEARCH_UNAVAILABLE',detail:String(e.message).slice(0,90)});}
