@@ -13,7 +13,8 @@ const players=[
  {playerID:'wr1',name:'Starting WR',cat:'td',projection:null,analyticsThreshold:'Anytime TD'},
  {playerID:'te1',name:'Starting TE',cat:'receptions',projection:4,analyticsThreshold:6},
  {playerID:'wr2',name:'Other WR',cat:'receiving',projection:45,analyticsThreshold:65},
- {playerID:'rb2',name:'Other RB',cat:'rushing',projection:43,analyticsThreshold:65}
+ {playerID:'rb2',name:'Other RB',cat:'rushing',projection:43,analyticsThreshold:65},
+ {playerID:'te2',name:'Other TE',cat:'receptions',projection:3,analyticsThreshold:5}
 ];
 test('tier leg counts and diversity follow requested risk levels',()=>{
  const ranges={Small:[2,3],Medium:[3,4],Large:[3,5],Nuke:[5,8]};
