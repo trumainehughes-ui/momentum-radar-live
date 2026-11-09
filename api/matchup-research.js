@@ -99,10 +99,10 @@ export default async function handler(req,res){
   const teamDefensiveContext=league==='NFL'?nflLicensedDefensiveContext(stat,teamRankingsEvidence):null;
   const teamDefenseLeagueBaseline=league==='NFL'&&teamDefensiveContext?.available?nflLicensedLeagueBaseline(licensed.teams,teamDefensiveContext.metric):null;
   const teamDefenseResearchSignal=league==='NFL'?nflTeamDefenseResearchSignal(stat,teamDefensiveContext,{leagueBaseline:teamDefenseLeagueBaseline?.available?teamDefenseLeagueBaseline.value:null}):null;
-  const sampleQuality=!comparison.ok?'insufficient':Math.min(player.games,defense.games)<3?'limited':'historical_sample';
+  const sampleQuality=!comparison.ok?'insufficient':Math.min(player.games,defense.games)<3||failures>0||eventsOmitted>0?'limited':'historical_sample';
   return res.status(200).json({ok:true,league,playerId,opponentId,stat,
    player:player||null,defense:defense||null,comparison,sampleQuality,teamRankingsEvidence,teamDefensiveContext,teamDefenseLeagueBaseline,teamDefenseResearchSignal,
    gamesExamined:fulfilled.length,upstreamFailures:failures,eventsOmitted,opponentGamesSelected,sampleTruncated:eventsOmitted>0,positionMatched:playerPosition,source:'espn',
-   sportsbookVerified:false,warning:sampleQuality==='limited'?'Small historical sample: not a reliable predictive advantage or sportsbook offer':'Position-matched historical opponent allowance, not a projected stat, probability or sportsbook market'});
+   sportsbookVerified:false,warning:sampleQuality==='limited'?'Limited, truncated, or incomplete historical sample: not a reliable predictive advantage or sportsbook offer':'Position-matched historical opponent allowance, not a projected stat, probability or sportsbook market'});
  }catch(e){return res.status(503).json({ok:false,error:'MATCHUP_RESEARCH_UNAVAILABLE',detail:String(e.message).slice(0,90)});}
 }
