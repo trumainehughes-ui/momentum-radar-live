@@ -51,3 +51,18 @@ test('licensed feed rejects wrong season and stale snapshots',async()=>{
   }
  }finally{restore()}
 });
+
+test('licensed feed rejects null, empty, and entirely invalid rows',async()=>{
+ try{
+  process.env.TEAMRANKINGS_LICENSE_CONFIRMED='true';
+  process.env.TEAMRANKINGS_LICENSED_FEED_URL='https://example.com/authorized-feed';
+  const payload={season:2026,updatedAt:new Date().toISOString(),rows:[
+   {team:'BUF',metric:'opponent-passing-yards-per-game',value:null},
+   {team:'BUF',metric:'opponent-rushing-yards-per-game',value:''},
+   {team:'MIN',metric:'opponent-points-per-game',value:undefined}
+  ]};
+  const data=await licensedTeamRankings(2026,{fetcher:async()=>({ok:true,json:async()=>payload})});
+  assert.equal(data.status,'UNAVAILABLE');
+  assert.deepEqual(data.teams,{});
+ }finally{restore()}
+});
