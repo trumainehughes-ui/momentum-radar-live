@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {buildVerifiedNflWeatherReport} from '../lib/nfl-weather-verified-report.js';
-const gameId='401234567',kickoffAt='2026-10-18T20:00:00Z';
-const venue={gameId,stadiumId:'stadium-verified',espnVenueId:'1234',scheduleSource:'https://www.nfl.com/schedules/',roofStatus:'closed',kickoffAt,awayTeam:'DEN',homeTeam:'KC',stadiumEvidence:{url:'https://www.nfl.com/stadiums/',stadiumId:'stadium-verified',checkedAt:'2026-10-15T16:00:00Z',verificationMethod:'fetched_source',verificationStatus:'verified',sourceGameId:gameId}};
+const gameId='401234567',kickoffAt='2026-11-15T20:00:00Z';
+const venue={gameId,stadiumId:'stadium-verified',espnVenueId:'1234',scheduleSource:'https://www.nfl.com/schedules/',roofStatus:'closed',kickoffAt,awayTeam:'DEN',homeTeam:'KC',stadiumEvidence:{url:'https://www.nfl.com/stadiums/',stadiumId:'stadium-verified',checkedAt:'2026-11-12T16:00:00Z',verificationMethod:'fetched_source',verificationStatus:'verified',sourceGameId:gameId}};
 const summary={header:{id:gameId,competitions:[{id:gameId,venue:{id:'1234'},status:{type:{state:'pre',name:'STATUS_SCHEDULED'}},date:kickoffAt,competitors:[{team:{abbreviation:'DEN'}},{team:{abbreviation:'KC'}}]}]}};
 test('verified indoor game produces advisory without NWS or paid API calls',async()=>{
  let nwsCalls=0;
@@ -17,7 +17,7 @@ test('unverified ESPN stadium prevents any NWS calls',async()=>{
 
 test('weather report rejects a kickoff moved beyond allowed schedule drift',async()=>{
  let weatherCalls=0;
- const moved=structuredClone(summary);moved.header.competitions[0].date='2026-10-18T21:00:00Z';
+ const moved=structuredClone(summary);moved.header.competitions[0].date='2026-11-15T21:00:00Z';
  await assert.rejects(()=>buildVerifiedNflWeatherReport({gameId,registryJson:JSON.stringify({[gameId]:venue}),scheduleFetcher:async()=>({ok:true,json:async()=>moved}),weatherFetcher:async()=>{weatherCalls++;throw Error('unexpected')}}),/schedule_venue_kickoff_mismatch/);
  assert.equal(weatherCalls,0);
 });
