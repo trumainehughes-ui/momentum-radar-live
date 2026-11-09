@@ -36,12 +36,12 @@ test("MIN-NO screenshot's four and five anytime TD builds fail Small and Medium"
  assert.equal(small.yardageLegs,0);
  assert.equal(medium.yardageLegs,0);
  assert.equal(medium.tdLegs,5);
- assert.match(medium.reason,/3\+ passing\/rushing\/receiving yardage legs/);
+ assert.match(medium.reason,/2\+ passing\/rushing\/receiving yardage legs/);
 });
 test("Small starts with two distinct yardage markets and max one touchdown",()=>{
- const s=select("Small",4);
+ const s=select("Small",3);
  assert.equal(s.filled,true);
- assert.equal(s.legs.length,4);
+ assert.equal(s.legs.length,3);
  assert.ok(["passing","rushing","receiving"].includes(s.legs[0].cat));
  assert.ok(["passing","rushing","receiving"].includes(s.legs[1].cat));
  assert.notEqual(s.legs[0].cat,s.legs[1].cat);
@@ -50,7 +50,7 @@ test("Small starts with two distinct yardage markets and max one touchdown",()=>
  assert.ok(s.assessment.tdLegs<=1);
 });
 test("Medium starts with 3 yardage legs and allows no more than one TD",()=>{
- const s=select("Medium",5);
+ const s=select("Medium",4);
  assert.equal(s.filled,true);
  assert.equal(s.legs.length,5);
  assert.ok(s.legs.slice(0,3).every(x=>["passing","rushing","receiving"].includes(x.cat)));
@@ -74,7 +74,7 @@ test("TD-only input cannot be padded into a complete SGP for any tier",()=>{
  }
 });
 test("if passing is unavailable, rushing and receiving can form the yardage base",()=>{
- const s=select("Small",4,yards,new Set(["qb-min","qb-no"]));
+ const s=select("Small",3,yards,new Set(["qb-min","qb-no"]));
  assert.equal(s.filled,true);
  assert.ok(s.legs.some(x=>x.cat==="rushing"));
  assert.ok(s.legs.some(x=>x.cat==="receiving"));
