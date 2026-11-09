@@ -3,7 +3,7 @@ import { licensedTeamRankings } from '../lib/teamrankings-licensed-feed.js';
 // Rolling NFL offense/defense tendencies from completed ESPN games. Research only.
 const BASE='https://site.api.espn.com/apis/site/v2/sports/football/nfl/';
 const get=async path=>{const r=await fetch(BASE+path,{signal:AbortSignal.timeout(9000)});if(!r.ok)throw Error('ESPN_'+r.status);return r.json()};
-const num=x=>{const v=Number(x);return Number.isFinite(v)?v:null};
+const num=x=>{if(x===null||x===undefined||x==='')return null;const v=Number(x);return Number.isFinite(v)?v:null};
 const avg=(sum,count)=>count?Math.round(sum/count*100)/100:null;
 export default async function handler(req,res){
  res.setHeader('Cache-Control','public, s-maxage=1800, stale-while-revalidate=3600');
