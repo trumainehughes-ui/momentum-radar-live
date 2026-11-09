@@ -1,3 +1,4 @@
+import {nflSeasonForDate,nflCanonicalTeamAbbr} from '../lib/nfl-season-team-normalization.js';
 import { licensedTeamRankings } from '../lib/teamrankings-licensed-feed.js';
 // Rolling NFL offense/defense tendencies from completed ESPN games. Research only.
 const BASE='https://site.api.espn.com/apis/site/v2/sports/football/nfl/';
@@ -41,11 +42,11 @@ export default async function handler(req,res){
     }
    }
   }
-  const teamRankings=await licensedTeamRankings(end.getUTCFullYear());
+  const teamRankings=await licensedTeamRankings(nflSeasonForDate(end.toISOString().slice(0,10)));
   const teams=[...profiles.values()].map(p=>({...p,
    offense:Object.fromEntries(categories.map(k=>[k,avg(p.offense[k],p.samples['offense_'+k])])),
    defenseAllowed:Object.fromEntries(categories.map(k=>[k,avg(p.defenseAllowed[k],p.samples['defense_'+k])]))
-  })).map(p=>({...p,teamRankings:teamRankings.status==='READY'?teamRankings.teams[String(p.abbreviation||'').toUpperCase()]||null:null})).sort((a,b)=>a.team.localeCompare(b.team));
+  })).map(p=>({...p,teamRankings:teamRankings.status==='READY'?teamRankings.teams[nflCanonicalTeamAbbr(p.abbreviation)]||null:null})).sort((a,b)=>a.team.localeCompare(b.team));
   return res.status(200).json({ok:true,league:'NFL',source:'ESPN completed game box scores',researchOnly:true,generatedAt:new Date().toISOString(),windowDays:weeks*7,gamesAnalyzed:analyzed,teamsCount:teams.length,teams,teamRankingsStatus:{status:teamRankings.status,updatedAt:teamRankings.updatedAt||null,metrics:teamRankings.metrics},limitations:'Team-level tendencies only. Injuries, starters, positional defensive allowances and NFL.com cross-check must be verified separately.'});
  }catch(e){return res.status(503).json({ok:false,error:'NFL_TENDENCY_SOURCE_UNAVAILABLE',detail:String(e.message).slice(0,120)})}
 }
