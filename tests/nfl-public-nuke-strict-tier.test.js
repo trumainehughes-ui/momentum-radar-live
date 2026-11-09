@@ -47,7 +47,7 @@ test('Nuke: only five to seven mixed markets qualify; two picks never count as N
  assert.equal(priceOk('Small',10000),false);
 });
 test('Nuke classification starts at actual +10000, $1000 net profit on $10',()=>{
- assert.ok(NFL_SGP_TIERS.Nuke.minLegs<=3);
+ assert.equal(NFL_SGP_TIERS.Nuke.minLegs,5);
  assert.ok(NFL_SGP_TIERS.Nuke.maxLegs>=8);
  assert.equal(NFL_SGP_TIERS.Nuke.minOdds,10000);
  assert.equal(classifyNflSgpOdds(9999),'OUTSIDE_TIER_BANDS');
