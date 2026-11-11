@@ -290,8 +290,8 @@
    return;
   }
   const thisTab=tab,stamp=token;
-  qs('#nbaTopTitle').textContent='Top 10 — '+(cats[tab]||'NBA')+' (game results)';
-  qs('#nbaTopBoard').innerHTML='<div class="msg">Checking completed and live game box scores…</div>';
+  qs('#nbaTopTitle').textContent='Top 10 — '+(cats[tab]||'NBA')+' (opponent matchup projections)';
+  qs('#nbaTopBoard').innerHTML='<div class="msg">Checking opponent defensive matchups and player projections…</div>';
   // Pregame ranking source: verified-current model snapshots, not future box scores.
   if(['points','rebounds','assists','threes'].includes(thisTab)){
    try{
@@ -303,7 +303,10 @@
     // favorable matchups without silently hiding neutral or difficult ones.
     const observed=candidates.filter(p=>p.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'&&Number.isFinite(Number(p.defenseVsPosition.factor)));
     const unverified=candidates.filter(p=>!observed.includes(p));
-    const rankedObserved=observed.sort((a,b)=>Number(b.projection)*Math.max(.65,Math.min(1.35,Number(b.defenseVsPosition.factor)))-Number(a.projection)*Math.max(.65,Math.min(1.35,Number(a.defenseVsPosition.factor))));
+    const rankedObserved=observed.sort((a,b)=>{
+     const advantage=p=>Number(p.projection)*Math.max(.65,Math.min(1.35,Number(p.defenseVsPosition.factor)));
+     return advantage(b)-advantage(a);
+    });
     // Fill the visible Top 10 with clearly flagged research candidates, never
     // representing missing defensive evidence as a verified advantage.
     const seen=new Set();
@@ -313,14 +316,14 @@
     qs('#nbaTopTitle').textContent='Top 10 — '+(cats[tab]||'NBA')+' (pregame projections)';
     qs('#nbaTopBoard').innerHTML=rows.length?'<div class="note">'+verifiedCount+' of '+rows.length+' listed players have observed position-specific defensive data.'+(rows.length>verifiedCount?' '+(rows.length-verifiedCount)+' entries are unverified research candidates, NOT confirmed matchup advantages.':'')+(missing?' '+missing+' positions remain unfilled due to insufficient projections.':'')+'</div>'+rows.map((p,i)=>
      '<div class="nflMarketLine"><b>#'+(i+1)+' '+safe(p.name)+'</b>'+(p.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'?'':' <span class="meta">UNVERIFIED DVP</span>')+' <span class="meta">'+safe(p.team)+'</span>'+
-     '<div class="pick">Projected '+safe(Number(p.projection).toFixed(1))+' '+safe(thisTab==='threes'?'made 3-pointers':cats[thisTab])+'</div>'+
+     '<div class="pick">Projected '+safe(Number(p.projection).toFixed(1))+' '+safe(thisTab==='threes'?'made 3-pointers':cats[thisTab])+' • estimated target '+safe(Math.max(1,Math.floor(Number(p.projection))))+'+</div>'+
      '<div class="meta">Defense matchup: '+safe(p.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'?'Opponent allows '+p.defenseVsPosition.observedAllowed+' '+(cats[thisTab]||thisTab)+' per game to '+p.defenseVsPosition.position+' versus league '+p.defenseVsPosition.leagueAverage+' ('+p.defenseVsPosition.sampleGames+' games), '+(Number(p.defenseVsPosition.factor)>1?'favorable':Number(p.defenseVsPosition.factor)<1?'difficult':'neutral')+' matchup factor '+p.defenseVsPosition.factor+'×.':'Position-specific defensive evidence unavailable; defensive advantage not verified.')+'</div>' +
      '<div class="meta">'+safe(p.sampleGames)+' historical games • '+(p.starterVerified?'starter verified':'starter not yet confirmed')+
      ' • '+safe(p.sampleSource||'historical data')+'</div>'+
      '<div class="refresh">AI research projection — not a sportsbook line</div></div>').join(''):
      '<div class="msg">Pregame Top 10 unavailable: '+safe((pre.readinessBlockers||[]).join(', ')||pre.reason||'Current player projections have not been collected')+'. Game schedule is available, but player forecasts are not verified yet.</div>';
    }catch{
-    if(thisTab===tab&&stamp===token)qs('#nbaTopBoard').innerHTML='<div class="msg">Pregame projection feed unavailable. Game results will appear after tipoff.</div>';
+    if(thisTab===tab&&stamp===token)qs('#nbaTopBoard').innerHTML='<div class="msg">Pregame matchup projection feed unavailable. No unverified rankings shown.</div>';
    }
    return;
   }
