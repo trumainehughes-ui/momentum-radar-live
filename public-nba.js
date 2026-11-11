@@ -293,7 +293,7 @@
   qs('#nbaTopTitle').textContent='Top 10 — '+(cats[tab]||'NBA')+' (game results)';
   qs('#nbaTopBoard').innerHTML='<div class="msg">Checking completed and live game box scores…</div>';
   // Pregame ranking source: verified-current model snapshots, not future box scores.
-  if(!(data?.games||[]).some(g=>['LIVE','FINAL'].includes(g.status))){
+  if(['points','rebounds','assists','threes'].includes(thisTab)){
    try{
     const pre=await json('/api/nba-best-edge?date='+encodeURIComponent(qs('#nbaDate').value));
     if(thisTab!==tab||stamp!==token)return;
@@ -303,18 +303,17 @@
     // favorable matchups without silently hiding neutral or difficult ones.
     const observed=candidates.filter(p=>p.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'&&Number.isFinite(Number(p.defenseVsPosition.factor)));
     const unverified=candidates.filter(p=>!observed.includes(p));
-    const rankedObserved=observed.sort((a,b)=>
-     Number(b.defenseVsPosition.factor)-Number(a.defenseVsPosition.factor)||
-     Number(b.projection)-Number(a.projection));
+    const rankedObserved=observed.sort((a,b)=>Number(b.projection)*Math.max(.65,Math.min(1.35,Number(b.defenseVsPosition.factor)))-Number(a.projection)*Math.max(.65,Math.min(1.35,Number(a.defenseVsPosition.factor))));
     // Fill the visible Top 10 with clearly flagged research candidates, never
     // representing missing defensive evidence as a verified advantage.
-    const rows=[...rankedObserved,...unverified.sort((a,b)=>Number(b.projection)-Number(a.projection))].slice(0,10);
+    const seen=new Set();
+     const rows=[...rankedObserved,...unverified.sort((a,b)=>Number(b.projection)-Number(a.projection))].filter(p=>{const id=String(p.playerId||p.name).toLowerCase();if(!id||seen.has(id))return false;seen.add(id);return true;}).slice(0,10);
     const verifiedCount=rows.filter(p=>p.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT').length;
     const missing=Math.max(0,10-rows.length);
     qs('#nbaTopTitle').textContent='Top 10 — '+(cats[tab]||'NBA')+' (pregame projections)';
     qs('#nbaTopBoard').innerHTML=rows.length?'<div class="note">'+verifiedCount+' of '+rows.length+' listed players have observed position-specific defensive data.'+(rows.length>verifiedCount?' '+(rows.length-verifiedCount)+' entries are unverified research candidates, NOT confirmed matchup advantages.':'')+(missing?' '+missing+' positions remain unfilled due to insufficient projections.':'')+'</div>'+rows.map((p,i)=>
      '<div class="nflMarketLine"><b>#'+(i+1)+' '+safe(p.name)+'</b>'+(p.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'?'':' <span class="meta">UNVERIFIED DVP</span>')+' <span class="meta">'+safe(p.team)+'</span>'+
-     '<div class="pick">Projected '+safe(Math.max(0,Math.round(Number(p.projection))))+' '+safe(thisTab==='threes'?'made 3-pointers':cats[thisTab])+'</div>'+
+     '<div class="pick">Projected '+safe(Number(p.projection).toFixed(1))+' '+safe(thisTab==='threes'?'made 3-pointers':cats[thisTab])+'</div>'+
      '<div class="meta">Defense matchup: '+safe(p.defenseVsPosition?.status==='OBSERVED_DVP_ADJUSTMENT'?'Opponent allows '+p.defenseVsPosition.observedAllowed+' '+(cats[thisTab]||thisTab)+' per game to '+p.defenseVsPosition.position+' versus league '+p.defenseVsPosition.leagueAverage+' ('+p.defenseVsPosition.sampleGames+' games), '+(Number(p.defenseVsPosition.factor)>1?'favorable':Number(p.defenseVsPosition.factor)<1?'difficult':'neutral')+' matchup factor '+p.defenseVsPosition.factor+'×.':'Position-specific defensive evidence unavailable; defensive advantage not verified.')+'</div>' +
      '<div class="meta">'+safe(p.sampleGames)+' historical games • '+(p.starterVerified?'starter verified':'starter not yet confirmed')+
      ' • '+safe(p.sampleSource||'historical data')+'</div>'+
