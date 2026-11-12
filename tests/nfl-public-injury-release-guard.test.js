@@ -94,3 +94,25 @@ test('separately reported team IR transaction blocks saved player even if ESPN i
  assert.ok(result.blockers.includes('INJURED_PLAYER_PRESENT_IN_PUBLIC_PROJECTIONS'));
  assert.ok(result.publishedHeldPlayers.some(x=>x.name==='Reserve Receiver'));
 });
+
+test('official injury hold blocks SGP leg even when player is absent from Top-10 cards',()=>{
+ const saved={...published,verifiedBookParlays:[{legs:[
+  {player:'Held Running Back',team:'WAS',category:'rushing',target:35}]}]};
+ const current={...report,verifiedGameStarterFlags:[
+  ...report.verifiedGameStarterFlags,
+  {name:'Held Running Back',team:'WAS',starterVerified:true}]};
+ const result=inspect(game,saved,current);
+ assert.equal(result.ok,false);
+ assert.ok(result.blockers.includes('INJURED_PLAYER_PRESENT_IN_PUBLISHED_SGP'));
+ assert.deepEqual(result.heldParlayLegs,[{name:'Held Running Back',team:'WAS'}]);
+});
+test('official IR transaction holds also block SGP legs',()=>{
+ const saved={...published,verifiedBookParlays:[{legs:[
+  {player:'Reserve Receiver',team:'SF',category:'receiving',target:40}]}]};
+ const current={...report,injuries:[],officialTransactionHolds:[
+  {name:'Reserve Receiver',team:'SF',status:'IR',section:'RESERVE',
+   source:'TEAM_OFFICIAL_TRANSACTION'}],
+  verifiedGameStarterFlags:[...report.verifiedGameStarterFlags,
+   {name:'Reserve Receiver',team:'SF',starterVerified:true}]};
+ assert.ok(inspect(game,saved,current).blockers.includes('INJURED_PLAYER_PRESENT_IN_PUBLISHED_SGP'));
+});
