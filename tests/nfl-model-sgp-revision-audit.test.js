@@ -12,7 +12,7 @@ const leg=(id,cat,threshold,team='BUF')=>({
 });
 const make=(tier,legs)=>({source:'DATA_MODEL',risk:tier,legs});
 const snapshot=(small,medium,nuke,extra={})=>({
- sgps:[make('Small',small),make('Medium',medium),make('Large',medium),make('Nuke',nuke)],
+ sgps:[make('Small',small),make('Medium',medium),make('Large',medium.map(x=>({...x}))),make('Nuke',nuke)],
  ...extra
 });
 const first=snapshot(
