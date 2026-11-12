@@ -1,0 +1,24 @@
+# ChatGPT plugin research handoff (staged)
+This endpoint is a **research inbox only**. It does not generate or verify sportsbook offers, affect production SGPs, or synchronize public projections.
+
+## Setup
+1. Generate a fresh, high-entropy `MOMENTUM_RESEARCH_INGEST_KEY` in Vercel server-side production and preview environments. Do not reuse sportsbook publishing or cron keys.
+2. Confirm Vercel Blob storage is configured with a valid server-only `BLOB_READ_WRITE_TOKEN` for the preview branch. A `BLOB_STORE_ID` or `BLOB_WEBHOOK_PUBLIC_KEY` alone is insufficient. Prefer a dedicated test store rather than the production store. Research payloads are encrypted using AES-256-GCM before writing to publicly addressable Blob storage. The encryption key is derived from the dedicated ingest secret. Blob object paths and sizes are still visible to anyone possessing the Blob URL. Never send private data, secrets, or provider-restricted content.
+3. POST `/api/plugin-research-ingest` with `Authorization: Bearer <key>` and JSON:
+```json
+{"provider":"Optimal Sports Projections","league":"NFL","gameId":"401873006","observedAt":"2026-10-19T13:00:00Z","observations":[{"type":"player_projection","subject":"Example Player","description":"Projection as returned by provider","sourceReference":"Provider endpoint / lookup reference"}]}
+```
+4. Requests are manually initiated. ChatGPT plugin access does **not** imply autonomous scheduled publishing or provide the bearer token to ChatGPT.
+5. A separate, reviewed consumer must decrypt with the same secret, validate stored observations, enforce game/player identities and freshness, and incorporate them into projections before the data can affect Momentum Radar. Never promote research to actual DraftKings/FanDuel offers or correlated SGP quotes.
+6. Do not activate this endpoint until access-control, storage privacy, request limits, and provider redistribution permissions are reviewed.
+
+## Research retrieval
+An authorized GET to `/api/plugin-research-read?league=nfl&gameId=<id>` using the same bearer token decrypts stored research for that game. This is a **read-only research view**, not an automated model or SGP update. Provider rights and a reviewed projection-consumer contract remain prerequisites for any automated promotion into matchup analytics.
+
+The reader also returns `projectionContext`, a bounded game-specific research adapter output. It explicitly contains empty `bookOffers` and `combinedSgpQuotes` and sets `readyForAutomaticPublishing:false`. This is **not** wired into the live AI generation process. Research should only be incorporated after independent official game/player identity verification and an explicit reviewed model integration.
+
+## Verification gate
+Run `npm test` on the development branch, including `tests/plugin-research-roundtrip.test.js` and the two API handler test files. These tests validate the production encryption/decryption functions and guarded matchup adapter without network access or Blob writes. A separate authenticated preview deployment test must still verify a real POST/GET Blob round trip, then confirm the public site and sportsbook offer verification are unchanged. Do not use production credentials or provider-restricted data in tests.
+
+## Private matchup enrichment bridge
+An authenticated POST to `/api/plugin-research-matchup` accepts `{"league":"NFL","gameId":"401873006","matchup":{"picks":[]}}` with the same dedicated bearer token. It reads encrypted research for the requested game and returns the original matchup with a bounded `pluginResearch` section. This is a manually invoked, nonpublishing adapter: it cannot authorize offers, update SGP prices, or run automatically from the ChatGPT plugin. Requires the preview Blob token before any storage-backed test. Review provider data rights and add a separately authenticated AI consumer before connecting this to scheduled analysis.
