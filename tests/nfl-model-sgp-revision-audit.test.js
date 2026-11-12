@@ -124,7 +124,7 @@ test('missing or removed tier shows that a candidate disappeared',()=>{
 test('collector audit reports only bounded numeric revision counts with source-safe evidence names',()=>{
  const raw=nflSafeSgpRevisionAudit(nflModelSgpRevisionAudit(
   first,snapshot(first.sgps[0].legs.map(l=>({...l})),first.sgps[1].legs,
-   first.sgps[2].legs),{changedFields:['MATCHUP','INJURIES']}));
+   first.sgps[3].legs),{changedFields:['MATCHUP','INJURIES']}));
  const c=collectorAuditReport('nfl',0,[{gameId,status:'updated',
   modelTierReadiness:{Small:{status:'MODEL_CANDIDATE'},
    Medium:{status:'MODEL_CANDIDATE'},Nuke:{status:'MODEL_CANDIDATE'}},
