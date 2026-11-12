@@ -12,7 +12,7 @@ const leg=(id,cat,threshold,team='BUF')=>({
 });
 const make=(tier,legs)=>({source:'DATA_MODEL',risk:tier,legs});
 const snapshot=(small,medium,nuke,extra={})=>({
- sgps:[make('Small',small),make('Medium',medium),make('Nuke',nuke)],
+ sgps:[make('Small',small),make('Medium',medium),make('Large',medium),make('Nuke',nuke)],
  ...extra
 });
 const first=snapshot(
@@ -23,8 +23,8 @@ const first=snapshot(
 test('a fresh game snapshot is marked as an initial build, not an automatic correction',()=>{
  const d=nflModelSgpRevisionAudit(null,first,{changedFields:['FIRST_SNAPSHOT']});
  assert.equal(d.status,'INITIAL_BUILD');
- assert.deepEqual(d.tiers.map(x=>x.added),[4,5,5]);
- assert.deepEqual(d.tiers.map(x=>x.retargeted),[0,0,0]);
+ assert.deepEqual(d.tiers.map(x=>x.added),[4,5,5,5]);
+ assert.deepEqual(d.tiers.map(x=>x.retargeted),[0,0,0,0]);
  assert.deepEqual(d.changedEvidence,['FIRST_SNAPSHOT']);
  assert.equal(d.sportsbookQuoted,false);
 });
@@ -42,7 +42,7 @@ test('recalculate counts independently by tier, identity and numeric threshold',
  now.sgps[0].legs[1].threshold=70;
  now.sgps[0].legs[2]=leg('8','receiving',65,'LAR');
  now.sgps[1].legs[4].threshold=70;
- now.sgps[2].legs.splice(3,1);
+ now.sgps[3].legs.splice(3,1);
  const d=nflModelSgpRevisionAudit(first,now,{changedFields:[
   'MATCHUP','INJURIES','SGP_TIERS','PRIVATE_RAW_TOKEN']});
  assert.equal(d.status,'SGP_MODEL_REVISED');
@@ -50,6 +50,7 @@ test('recalculate counts independently by tier, identity and numeric threshold',
   retargeted:x.retargeted,legs:x.currentLegs})),[
   {added:1,removed:1,retargeted:1,legs:4},
   {added:0,removed:0,retargeted:1,legs:5},
+  {added:0,removed:0,retargeted:0,legs:5},
   {added:0,removed:1,retargeted:0,legs:4}
  ]);
  assert.deepEqual(d.changedEvidence,['MATCHUP','INJURIES','SGP_TIERS']);
@@ -116,9 +117,9 @@ test('missing or removed tier shows that a candidate disappeared',()=>{
  next.sgps=next.sgps.filter(x=>x.risk!=='Nuke');
  const d=nflModelSgpRevisionAudit(first,next);
  assert.equal(d.status,'SGP_MODEL_REVISED');
- assert.equal(d.tiers[2].currentLegs,0);
- assert.equal(d.tiers[2].removed,5);
- assert.equal(d.tiers[2].added,0);
+ assert.equal(d.tiers[3].currentLegs,0);
+ assert.equal(d.tiers[3].removed,5);
+ assert.equal(d.tiers[3].added,0);
 });
 test('collector audit reports only bounded numeric revision counts with source-safe evidence names',()=>{
  const raw=nflSafeSgpRevisionAudit(nflModelSgpRevisionAudit(
@@ -133,7 +134,7 @@ test('collector audit reports only bounded numeric revision counts with source-s
  assert.equal(c.successful,1);
  assert.equal(c.results[0].sgpRevisionAudit.status,'NO_MODEL_LEG_CHANGE');
  assert.deepEqual(c.results[0].sgpRevisionAudit.changedEvidence,['MATCHUP','INJURIES']);
- assert.equal(c.results[0].sgpRevisionAudit.tiers.length,3);
+ assert.equal(c.results[0].sgpRevisionAudit.tiers.length,4);
  assert.equal(c.results[0].sgpRevisionAudit.sportsbookQuoted,false);
  assert.ok(!JSON.stringify(c).includes('never_visible'));
  assert.ok(!JSON.stringify(c).includes('RAW_AUTHORIZATION_SECRET'));
@@ -145,7 +146,7 @@ test('final AI audit gets read-only revision evidence but cannot alter the tiers
  const input=pregameAiEvidence('nfl',game,{sgpRevisionAudit:review,
   sgps:[make('Small',[leg('1','passing',220)])]});
  assert.equal(input.sgpRevisionAudit.status,'SGP_MODEL_REVISED');
- assert.equal(input.sgpRevisionAudit.tiers[2].removed,5);
+ assert.equal(input.sgpRevisionAudit.tiers[3].removed,5);
  assert.equal(input.model.validation.sportsbookVerificationAvailable,false);
  assert.equal(input.sgps[0].combinedBookQuoteVerified,false);
  const code=readFileSync(new URL('../api/nfl-health.js',import.meta.url),'utf8');
