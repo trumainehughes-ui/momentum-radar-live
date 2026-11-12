@@ -136,3 +136,11 @@ test('NBA public odds can display for roster-checked players before AI pregame m
  assert.deepEqual(onlyRosterListedNbaOffers(observations,{...game,rosters,
   injuries:gameReport.injuries}).map(x=>x.player),['Jayson Tatum']);
 });
+
+test('owner and public NBA views distinguish historical pregame evidence from box scores',()=>{
+ const owner=readFileSync(new URL('../public-nba.js',import.meta.url),'utf8');
+ const publicPage=readFileSync(new URL('../picks.html',import.meta.url),'utf8');
+ assert.match(owner,/PREGAME HISTORICAL RESEARCH/);
+ assert.match(owner,/historicalSnapshotStale/);
+ assert.match(publicPage,/Pregame historical research, not live box scores/);
+});
