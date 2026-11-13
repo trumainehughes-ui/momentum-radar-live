@@ -1,5 +1,6 @@
 import {put,list} from '@vercel/blob';
 import {timingSafeEqual} from 'node:crypto';
+import {assessNflSgpTier} from '../lib/ai-mechanics/nfl-sgp-tiers.js';
 
 const PREFIX='momentum-model-ingest/v1/';
 const risks=['Small','Medium','Large','Nuke'];
@@ -52,6 +53,9 @@ export default async function handler(req,res){
      source:clean(leg.source),explanation:clean(leg.explanation),
      target:null,sportsbookVerified:false,marketSelectionStatus:'MODEL_ONLY_NOT_BOOK_VERIFIED'});
    }
+   if(league==='nfl'&&!assessNflSgpTier({risk,requiredLegs:legs.length,
+    legs:legs.map(l=>({playerID:l.playerId,cat:l.category,analyticsThreshold:l.modelTarget}))}).compositionOk)
+    return res.status(400).json({error:'invalid_nfl_market_mix_'+risk});
    const signature=JSON.stringify(legs.map(l=>[l.playerId,l.category,l.modelTarget]).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))));
    if(signatures.has(signature))return res.status(400).json({error:'duplicate_tier_'+risk});
    signatures.add(signature);
