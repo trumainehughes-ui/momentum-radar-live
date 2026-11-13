@@ -16,7 +16,7 @@ import {refreshFullSlate} from '../lib/manual-ai-refresh.js';
 
 test('full slate refresh rechecks each game and rebuilds four tiers',async()=>{
  const seen=[],published=[];
- const result=await refreshFullSlate({sport:'NFL',actorId:'test',
+ const result=await refreshFullSlate({sport:'NFL',actorId:'test',now:Date.parse('2026-11-12T20:05:00Z'),
   listGames:async()=>[{gameId:'1234567'},{gameId:'7654321'}],
   fetchOfficialEvidence:async({game,force,cache})=>{
    seen.push(['evidence',game.gameId,force,cache]);
@@ -32,7 +32,7 @@ test('full slate refresh rechecks each game and rebuilds four tiers',async()=>{
 });
 test('full slate refresh refuses stale or unverified injury and starter evidence',async()=>{
  let rebuilds=0,publishes=0;
- const result=await refreshFullSlate({sport:'NFL',actorId:'test',
+ const result=await refreshFullSlate({sport:'NFL',actorId:'test',now:Date.parse('2026-11-12T20:05:00Z'),
   listGames:async()=>[{gameId:'1234567'}],
   fetchOfficialEvidence:async()=>({gameId:'1234567',verified:false}),
   rebuildGame:async()=>{rebuilds++;return{};},
@@ -44,7 +44,7 @@ test('full slate refresh refuses stale or unverified injury and starter evidence
 });
 test('full slate refresh never publishes a partially validated four-tier rebuild',async()=>{
  let publishes=0;
- const result=await refreshFullSlate({sport:'NBA',actorId:'test',
+ const result=await refreshFullSlate({sport:'NBA',actorId:'test',now:Date.parse('2026-11-12T20:05:00Z'),
   listGames:async()=>[{gameId:'1234567'}],
   fetchOfficialEvidence:async()=>({gameId:'1234567',verified:true,
    injuriesCheckedAt:'2026-11-12T20:00:00Z',startersCheckedAt:'2026-11-12T20:00:00Z'}),
