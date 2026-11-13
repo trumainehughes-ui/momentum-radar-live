@@ -68,8 +68,8 @@ test('market builder and public serializer count each athlete-market, not just a
 });
 
 test('unsupported NFL prop categories cannot make an otherwise valid tier publishable',()=>{
- const valid=[players[0],players[1],players[2]];
- assert.equal(assessNflSgpTier({risk:'Large',legs:valid,requiredLegs:3}).compositionOk,true);
- const injected=[...valid.slice(0,2),{...valid[2],cat:'unverified_special'}];
- assert.equal(assessNflSgpTier({risk:'Large',legs:injected,requiredLegs:3}).compositionOk,false);
+ const valid=[players[0],players[1],players[2],players[4]];
+ assert.equal(assessNflSgpTier({risk:'Large',legs:valid,requiredLegs:4}).compositionOk,true);
+ const injected=[...valid.slice(0,3),{...valid[3],cat:'unverified_special'}];
+ assert.equal(assessNflSgpTier({risk:'Large',legs:injected,requiredLegs:4}).compositionOk,false);
 });
