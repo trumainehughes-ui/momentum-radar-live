@@ -32,8 +32,9 @@ export default async function handler(req,res){
   const signatures=new Set();
   for(const risk of risks){
    const t=body.tiers.find(x=>x.risk===risk);
-   const min=risk==='Small'?3:risk==='Medium'?4:risk==='Large'?5:5,
-    max=risk==='Small'?5:risk==='Medium'?6:risk==='Large'?7:10;
+   const bounds=league==='nfl'?{Small:[2,3],Medium:[3,4],Large:[3,5],Nuke:[5,8]}:
+    {Small:[3,5],Medium:[4,6],Large:[5,7],Nuke:[5,10]};
+   const [min,max]=bounds[risk];
    if(!t||!Array.isArray(t.legs)||t.legs.length<min||t.legs.length>max)
     return res.status(400).json({error:'invalid_tier_'+risk});
    const seen=new Set(),legs=[];
