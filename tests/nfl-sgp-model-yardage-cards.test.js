@@ -131,7 +131,7 @@ test('screenshot case: two receiving projections never render as a completed Nuk
  const html=renderNflProjectedSgpTierDetails(details);
  assert.match(html,/Nuke • NOT READY/);
  assert.match(html,/2 eligible model selections/);
- assert.match(html,/Nuke requires 5–7/);
+ assert.match(html,/Nuke requires 5–8/);
  assert.doesNotMatch(html,/Nuke • AI yardage projection candidates/);
  assert.doesNotMatch(html,/Parker Washington/);
  assert.doesNotMatch(html,/Brenton Strange/);
