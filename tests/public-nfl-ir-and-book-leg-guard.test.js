@@ -36,9 +36,7 @@ function snapshot(){
        {playerID:'12',name:'Other RB',team:'BUF',eventID:gameId,
         position:'RB',cat:'rushing',analyticsThreshold:70},
        {playerID:'13',name:'Other WR',team:'LAR',eventID:gameId,
-        position:'WR',cat:'receiving',analyticsThreshold:55},
-       {playerID:'15',name:'Other TE',team:'BUF',eventID:gameId,
-        position:'TE',cat:'td',analyticsThreshold:'Anytime TD'}])
+        position:'WR',cat:'receiving',analyticsThreshold:55}])
    ],DraftKings:[],FanDuel:[]}};
  return{at:now-60_000,body:r};
 }
