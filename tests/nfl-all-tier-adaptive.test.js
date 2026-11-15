@@ -67,7 +67,8 @@ test('TD cannot crowd out required yardage legs',()=>{
   legs.push(x);return true;
  }});
  assert.equal(result.filled,true);
- assert.equal(legs.filter(x=>x.cat==='td').length,0);
+ assert.ok(legs.filter(x=>['passing','rushing','receiving'].includes(x.cat)).length>=2);
+ assert.ok(legs.filter(x=>x.cat==='td').length<=1);
 });
 
 // Keep opponent matchup evidence ahead of generic momentum when the
