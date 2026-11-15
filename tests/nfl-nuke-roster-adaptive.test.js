@@ -82,18 +82,19 @@ test('Nuke prefers five elevated evidence-supported legs to seven without a book
  assert.equal(r.legs.length,5);
  assert.notEqual(r.combinedBookQuoteVerified,true);
 });
-test('insufficient yardage or a Nuke target below projection returns NOT READY rather than fake odds',()=>{
- for(const p of [
-  [{...good[0],analyticsThreshold:255},...good.slice(1,5)],
-  good.slice(0,2).concat([good[5]])
- ]){
-  const r=selectNflAdaptiveNuke(maker(p));
-  assert.deepEqual(r.legs,[]);
-  assert.equal(r.candidateComplete,false);
-  assert.equal(r.combinedBookQuoteVerified,false);
-  assert.equal(r.estimatedOdds,null);
-  assert.match(r.reason,/adaptive-leg candidate|roster|market diversity|tier-specific projection/i);
- }
+test('insufficient yardage fails closed; conservative Nuke remains unpriced research',()=>{
+ const conservative=selectNflAdaptiveNuke(maker([
+  {...good[0],analyticsThreshold:255},...good.slice(1,5)]));
+ assert.equal(conservative.legs.length,5);
+ assert.equal(conservative.publishable,false);
+ assert.equal(conservative.combinedBookQuoteVerified,false);
+ assert.equal(conservative.actualSgpOdds,null);
+ const insufficient=selectNflAdaptiveNuke(maker(good.slice(0,2).concat([good[5]])));
+ assert.deepEqual(insufficient.legs,[]);
+ assert.equal(insufficient.candidateComplete,false);
+ assert.equal(insufficient.combinedBookQuoteVerified,false);
+ assert.equal(insufficient.estimatedOdds,null);
+ assert.match(insufficient.reason,/adaptive-leg candidate|roster|market diversity|tier-specific projection/i);
 });
 test('final gate rejects cross-game Nuke even when it has six valid categories',()=>{
  const corrupt=[...good.slice(0,5),{...good[5],eventID:'401872987'}];
