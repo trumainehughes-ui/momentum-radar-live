@@ -1310,7 +1310,7 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
    (categories[String(l.cat||l.category||'').toLowerCase()]||[]).some(row=>
     String(row.playerID||row.playerId||'')===String(l.playerID||l.playerId||'')&&
     nflCanonTeam(row.team)===nflCanonTeam(l.team)&&
-    !/\\b(OUT|INACTIVE|IR|DOUBTFUL|QUESTIONABLE|SUSPENDED)\\b/i.test(
+    !/\b(OUT|INACTIVE|IR|DOUBTFUL|QUESTIONABLE|SUSPENDED)\b/i.test(
      [row.injuryStatus,row.availability,row.starterStatus].join(' ')))&&
    (()=>{const id=String(l.playerID||l.playerId||'');
     const roster=id&&eligibility.rosterById?.get(id)||eligibility.rosterByName?.get(norm(l.name));
