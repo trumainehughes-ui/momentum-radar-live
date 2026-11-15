@@ -6,8 +6,8 @@ const make=(risk,players)=>{
  const legs=players.map(([playerID,cat])=>({playerID,cat}));
  return {risk,requiredLegs:legs.length,legs,tierAssessment:{compositionOk:true}};
 };
-const small=make('Small',[['QB1','passing'],['RB1','rushing'],['WR1','receiving'],['TE1','td']]);
-const medium=make('Medium',[['QB1','passing'],['RB2','rushing'],['WR2','receiving'],['TE2','receptions'],['RB2','td']]);
+const small=make('Small',[['QB1','passing'],['RB1','rushing'],['TE1','td']]);
+const medium=make('Medium',[['QB1','passing'],['RB2','rushing'],['WR2','receiving'],['TE2','receptions']]);
 const nuke=make('Nuke',[['QB1','passing'],['RB2','rushing'],['WR2','receiving'],['TE2','receptions'],['RB2','td']]);
 test('collector refuses a Nuke that recycles four or more Medium player markets',()=>{
  const tiers=nflTierReadiness({sgps:{Analytics:[small,medium,nuke]}});
@@ -26,10 +26,10 @@ test('collector rejects duplicate athlete and market',()=>{
 });
 
 test('collector evaluates Large independently as the fourth named tier',()=>{
- const large=make('Large',[['QB3','passing'],['RB3','rushing'],['WR3','receiving'],['TE3','receptions'],['RB4','td'],['WR4','receiving']]);
+ const large=make('Large',[['QB3','passing'],['RB3','rushing'],['WR3','receiving'],['TE3','receptions'],['RB4','td']]);
  const tiers=nflTierReadiness({sgps:{Analytics:[small,medium,large]}});
  assert.equal(tiers.Large.status,'MODEL_CANDIDATE');
- assert.equal(tiers.Large.legs,6);
+ assert.equal(tiers.Large.legs,5);
 });
 test('collector accepts an eight-leg diversified Nuke without treating it as invalid solely for leg count',()=>{
  const eight=make('Nuke',[['QB3','passing'],['RB3','rushing'],['WR3','receiving'],['TE3','receptions'],['RB4','td'],['WR4','receiving'],['RB5','rushing'],['WR5','td']]);
