@@ -59,21 +59,16 @@ test('all four tiers retain requiredLegs and true composition after sanitize',()
   assert.equal(p.actualSgpOdds,null);
  }
 });
-test('public snapshot preserves 3/4/5/5 tier counts while keeping unverified book odds separate',()=>{
+test('unpriced four-tier snapshot cannot masquerade as verified sportsbook selections',()=>{
  const raw=snapshot();
  assert.equal(raw.body.sgps.Analytics.length,4);
+ assert.deepEqual(raw.body.sgps.Analytics.map(x=>x.requiredLegs),[3,4,5,5]);
+ assert.ok(raw.body.sgps.Analytics.every(x=>x.mode==='MODEL_ONLY'&&
+  x.publishable===false&&x.combinedBookQuoteVerified===false&&x.actualSgpOdds===null));
  const status=nflSgpSnapshotReadiness(raw,{now:at+20_000,gameId});
- assert.deepEqual(status.tiers.map(x=>x.legCount),[3,4,5,5]);
- assert.ok(status.tiers.every(x=>['MODEL_CANDIDATE','NOT_READY'].includes(x.status)));
+ assert.ok(status.tiers.every(x=>x.status!=='VERIFIED'));
  const view=publicNflGameView(raw,{date,gameId,now:at+20_000});
  assert.equal(view.status,'CURRENT');
- assert.deepEqual(view.modelResearchTiers.map(x=>x.legCount),[3,4,5,5]);
- assert.equal(view.modelResearchTiers[0].complete,true);
- // Repeated player markets are rebuilt to progressively harder MODEL_ONLY targets.
- assert.ok(view.modelResearchTiers.every(x=>x.mode==='MODEL_ONLY'||x.publishable===false));
- const threshold=(tier,cat)=>tier.legs.find(x=>x.category===cat)?.modelTarget;
- assert.ok(threshold(view.modelResearchTiers[1],'passing')>threshold(view.modelResearchTiers[0],'passing'));
- assert.ok(threshold(view.modelResearchTiers[2],'passing')>=threshold(view.modelResearchTiers[1],'passing'));
  assert.equal(view.verifiedQuotes.length,0);
  assert.equal(view.verifiedBookParlays.length,0);
 });
