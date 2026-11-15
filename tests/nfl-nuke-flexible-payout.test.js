@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {selectNflAdaptiveTier} from '../lib/ai-mechanics/nfl-sgp-tiers.js';
-const leg=i=>({cat:'receiving',playerID:String(i),projection:40,analyticsThreshold:70});
+const leg=i=>({cat:['passing','rushing','receiving','receptions','td'][i%5],playerID:String(i),projection:40,analyticsThreshold:70});
 test('Nuke never claims payout verification merely by adding eight legs',()=>{
  const c=selectNflAdaptiveTier((risk,count)=>({risk,legs:Array.from({length:count},(_,i)=>leg(i)),tierAssessment:{compositionOk:count===8}}),'Nuke');
  assert.equal(c.legs.length,8);
