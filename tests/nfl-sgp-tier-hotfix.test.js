@@ -56,6 +56,11 @@ test("production hotfix rejects all-TD Small model and marks it unpublishable",(
  assert.ok(!api.includes("sgps.Analytics=buildAnalyticsSgp(categories,ctx).map(s=>({...s,publishable:true"));
  assert.ok(api.includes("CACHE_SCHEMA='v92-strict-nuke-profit-20261011'"));
 });
+test("published NFL model tiers are ordered Small Medium Large Nuke",()=>{
+ const api=readFileSync(new URL("../api/nfl-markets.js",import.meta.url),"utf8");
+ assert.ok(api.includes("all.findIndex(other=>other.risk===tier.risk)===index).sort((a,b)=>"));
+ assert.ok(api.includes("['Small','Medium','Large','Nuke'].indexOf(a.risk)-['Small','Medium','Large','Nuke'].indexOf(b.risk)"));
+});
 test("production view clearly disclaims unverified $10 payouts",()=>{
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  assert.ok(html.includes("MODEL CANDIDATE • Combined sportsbook odds not verified"));
