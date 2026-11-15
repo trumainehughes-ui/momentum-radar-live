@@ -315,20 +315,20 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
    });
    const startersReady=selectedStarters.startersConfirmed===true&&
     legs.length>0&&legs.every(p=>p.starterVerified===true);
-   // Never retain a ready-like upstream status when game-scoped starters
-   // are missing. Preserve unrelated diagnostic/error states.
+   // Missing pre-tipoff starting-five flags do not erase a research candidate.
+   // Keep actual diagnostic/error statuses, but never imply verified starters,
+   // book quotes, or a playable parlay.
    const readyLike=new Set(['MODEL_CANDIDATE','READY','VERIFIED','PUBLISHABLE']);
-   const held=!startersReady&&readyLike.has(String(card.status||'').toUpperCase());
+   const researchCandidate=readyLike.has(String(card.status||'').toUpperCase());
    return {...card,legs,
-    // Starter confirmation establishes a model candidate, never a priced SGP.
-    status:held?'NOT_READY':startersReady&&readyLike.has(String(card.status||'').toUpperCase())?
-     'MODEL_CANDIDATE':card.status,
-    publishable:false,
+    status:researchCandidate?'MODEL_CANDIDATE':card.status,
+    publishable:false,combinedBookQuoteVerified:false,tierVerified:false,
+    actualSgpOdds:null,modelOnly:true,
     starterVerificationStatus:startersReady?'GAME_SCOPED_STARTERS_CONFIRMED':
      'PROJECTED_ROTATION_STARTER_UNCONFIRMED',
-    reason:held?
-     [card.reason,'Held: current-game starting five not confirmed for every leg; sportsbook prices unverified.'].filter(Boolean).join(' '):
-     card.reason||'Model research only; sportsbook prices unverified.'};
+    reason:startersReady?
+     'Pregame model candidate with game-scoped starter flags confirmed; sportsbook prices unverified.':
+     'Pregame model research using rotation and injury screening; current-game starters and sportsbook prices unverified.'};
   }),
   starterEvidence:{checked:selectedStarters.checked,
    startersConfirmed:selectedStarters.startersConfirmed,
