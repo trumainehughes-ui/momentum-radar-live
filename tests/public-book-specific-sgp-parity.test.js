@@ -107,18 +107,18 @@ test('visitor sees separate book sections and no cross-book substituted legs',()
  const h=render(v);
  assert.ok(h.includes('FanDuel Same Game Parlays'));
  assert.ok(h.includes('DraftKings Same Game Parlays'));
- assert.ok(h.includes('55+ yards'));
- assert.ok(h.includes('60+ yards'));
+ assert.ok(h.includes('Receiving yards: 55+'));
+ assert.ok(h.includes('Receiving yards: 60+'));
  // The independent player forecast panel may add matchup explanations;
  // count only the sportsbook sections for cross-book isolation.
  const bookHtml=h.split('FanDuel Same Game Parlays')[1]?.split('NFL model research')[0]||'';
  assert.equal((bookHtml.match(/class="sgp-leg-why"/g)||[]).length,8);
  const fd=h.split('FanDuel Same Game Parlays')[1].split('DraftKings Same Game Parlays')[0];
  const dk=h.split('DraftKings Same Game Parlays')[1].split('NFL model research')[0];
- assert.ok(fd.includes('<strong>60+ yards</strong>'));
- assert.ok(!fd.includes('<strong>55+ yards</strong>'));
- assert.ok(dk.includes('<strong>55+ yards</strong>'));
- assert.ok(!dk.includes('<strong>60+ yards</strong>'));
+ assert.ok(fd.includes('<strong>Parker Washington — Receiving yards: 60+</strong>'));
+ assert.ok(!fd.includes('<strong>Parker Washington — Receiving yards: 55+</strong>'));
+ assert.ok(dk.includes('<strong>Parker Washington — Receiving yards: 55+</strong>'));
+ assert.ok(!dk.includes('<strong>Parker Washington — Receiving yards: 60+</strong>'));
 });
 test('unverified models render as research, never book-price cards',()=>{
  const noQuote=sample();
