@@ -641,9 +641,9 @@ button:focus-visible,a:focus-visible{outline:2px solid #4bf29a;outline-offset:3p
  function nflPublicTierPriceReady(risk,odds){
   const n=Number(odds);
   if(!Number.isSafeInteger(n))return false;
-  return risk==='Small'?n>=500&&n<=1500:
-   risk==='Medium'?n>=2000&&n<4000:
-   risk==='Large'?n>=4000&&n<=8000:
+  return risk==='Small'?n>=100&&n<=300:
+   risk==='Medium'?n>=301&&n<=800:
+   risk==='Large'?n>=801&&n<=2000:
    risk==='Nuke'?n>=10000:false;
  }
  function renderParlays(d){
