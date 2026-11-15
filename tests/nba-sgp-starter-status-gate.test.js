@@ -10,6 +10,7 @@ test('NBA SGP ready-like statuses are held without game-scoped confirmed starter
  assert.match(section,/const confirmed=selectedStarters\.startersConfirmed===true&&starterMatch\(p\)/);
  assert.match(section,/const readyLike=new Set\(\['MODEL_CANDIDATE','READY','VERIFIED','PUBLISHABLE'\]\)/);
  assert.match(section,/const held=!startersReady&&readyLike\.has\(String\(card\.status\|\|''\)\.toUpperCase\(\)\)/);
- assert.match(section,/status:held\?'NOT_READY':card\.status/);
+ assert.match(section,/status:held\?'NOT_READY':startersReady&&readyLike\.has/);
+ assert.match(section,/'MODEL_CANDIDATE':card\.status/);
  assert.match(section,/publishable:false/);
 });
