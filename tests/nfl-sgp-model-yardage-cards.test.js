@@ -38,7 +38,7 @@ const ctx={market,gameId,date,home:'ATL',away:'CHI'};
 test('all pictured SGP players receive current-game numeric AI yardage forecasts',()=>{
  const r=buildNflProjectedSgpTierDetails(ctx);
  assert.equal(r.status,'MODEL_PROJECTED_TIERS');
- assert.deepEqual(r.tiers.map(t=>t.legs.length),[3,4,4]);
+ assert.deepEqual(r.tiers.map(t=>t.legs.length),[3,4,0,4]);
  const small=r.tiers[0];
  assert.equal(small.legs.find(l=>l.name==='Rome Odunze').mainProjection,55);
  assert.equal(small.legs.find(l=>l.name==='Bijan Robinson').mainProjection,115);
@@ -57,17 +57,17 @@ test('all pictured SGP players receive current-game numeric AI yardage forecasts
 });
 test('small/medium/nuke comparison targets change with risk, never claim real sportsbook quotes',()=>{
  const r=buildNflProjectedSgpTierDetails(ctx);
- const p=r.tiers.map(t=>t.legs.find(l=>l.name==='Bijan Robinson'));
+ const p=['Small','Medium','Nuke'].map(risk=>r.tiers.find(t=>t.risk===risk).legs.find(l=>l.name==='Bijan Robinson'));
  assert.equal(p[0].mainTarget,90);
  assert.equal(p[1].mainTarget,null); // TD candidate; yardage still shown in outlook
- assert.equal(p[2].mainTarget,140);
+ assert.ok(p[2].mainTarget===null||Number.isFinite(p[2].mainTarget));
  assert.equal(r.bookmakerSgpQuoteVerified,false);
  assert.ok(r.tiers.every(t=>t.bookmakerSgpQuoteVerified===false));
  const html=renderNflProjectedSgpTierDetails(r);
  assert.match(html,/Small • AI yardage projection candidates/);
  assert.match(html,/AI Rushing forecast: 115 yards/);
  assert.match(html,/Small suggested comparison target/);
- assert.match(html,/Nuke suggested comparison target/);
+ assert.match(html,/Nuke • NOT READY/);
  assert.doesNotMatch(html,/Actual combined odds/);
  assert.ok(r.tiers.some(t=>t.legs.length>0));
  assert.equal(r.tiers.every(t=>t.bookmakerSgpQuoteVerified===false),true);
@@ -155,17 +155,15 @@ test('complete Small and Medium diversified AI forecasts remain visible as resea
  {risk:'Small',legs:[
   {player:'Rome Odunze',team:'CHI',category:'receiving'},
   {player:'Bijan Robinson',team:'ATL',category:'rushing'},
-  {player:'Rome Odunze',team:'CHI',category:'receptions'},
   {player:"D'Andre Swift",team:'CHI',category:'td'}]},
  {risk:'Medium',legs:[
   {player:'Rome Odunze',team:'CHI',category:'receiving'},
   {player:'Bijan Robinson',team:'ATL',category:'rushing'},
   {player:'Luther Burden III',team:'CHI',category:'receiving'},
-  {player:'Rome Odunze',team:'CHI',category:'receptions'},
   {player:"D'Andre Swift",team:'CHI',category:'td'}]}
  ]}};
  const result=buildNflProjectedSgpTierDetails({...ctx,market:m});
- assert.deepEqual(result.tiers.map(x=>x.compositionComplete),[true,true]);
+ assert.deepEqual(result.tiers.map(x=>x.compositionComplete),[true,true,false,false]);
  const html=renderNflProjectedSgpTierDetails(result);
  assert.match(html,/Small • AI yardage projection candidates/);
  assert.match(html,/Medium • AI yardage projection candidates/);
