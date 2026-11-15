@@ -38,8 +38,8 @@ test('older saved snapshot without kickoff fails closed on same NFL date',()=>{
 });
 test('model insights ahead of T-90 do not claim game-day inactive verification',()=>{
  const early=view({kickoff:new Date(now+3*3600000).toISOString()});
- assert.equal(early.finalRosterCheck.required,false);
- assert.equal(early.finalRosterCheck.ready,true);
+ assert.equal(early.finalRosterCheck.required,true);
+ assert.equal(early.finalRosterCheck.ready,false);
  assert.equal(early.inactivesVerified,false);
 });
 test('live gate applies to verified combined slips while preserving model-only research',()=>{
