@@ -10,9 +10,13 @@ test('Nuke prefers shortest evidence-supported composition over seven legs',()=>
  assert.equal(chosen.combinedBookQuoteVerified,false);
  assert.equal(chosen.publishable,false);
 });
-test('Nuke rejects conservative thresholds even when composition passes',()=>{
+test('Nuke with conservative model thresholds remains unpriced research',()=>{
  const make=(risk,count)=>({risk,legs:Array.from({length:count},(_,i)=>({...leg(i),analyticsThreshold:30})),tierAssessment:{compositionOk:true}});
- assert.equal(selectNflAdaptiveNuke(make).legs.length,0);
+ const candidate=selectNflAdaptiveNuke(make);
+ assert.equal(candidate.legs.length,5);
+ assert.equal(candidate.publishable,false);
+ assert.equal(candidate.combinedBookQuoteVerified,false);
+ assert.equal(candidate.actualSgpOdds,null);
 });
 test('cache sanitizer accepts only shared flexible Nuke leg bounds',()=>{
  const src=readFileSync(new URL('../api/nfl-markets.js',import.meta.url),'utf8');
