@@ -227,7 +227,7 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   const unique=[...new Set(candidates.map(p=>p.name||p.player).filter(Boolean))].slice(0,8);
   const results=await Promise.all(unique.slice(0,4).map(async name=>{
    try{
-    const projection=evidence.playerProjections.find(p=>(p.name||p.player)===name);
+    const projection=candidates.find(p=>(p.name||p.player)===name);
     const team=String(projection?.team||'').toUpperCase();
     if(!/^[A-Z]{3}$/.test(team))return null;
     const origin='https://'+process.env.VERCEL_URL+'/api/nba-open-data?';
