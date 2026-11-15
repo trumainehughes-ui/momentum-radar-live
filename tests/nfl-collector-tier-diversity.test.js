@@ -10,8 +10,9 @@ const small=make('Small',[['QB1','passing'],['RB1','rushing'],['TE1','td']]);
 const medium=make('Medium',[['QB1','passing'],['RB2','rushing'],['WR2','receiving'],['TE2','receptions']]);
 const nuke=make('Nuke',[['QB1','passing'],['RB2','rushing'],['WR2','receiving'],['TE2','receptions'],['RB2','td']]);
 test('collector refuses a Nuke that recycles five player markets from Large',()=>{
- const large=make('Large',[['QB1','passing'],['RB2','rushing'],['WR2','receiving'],['TE2','receptions'],['RB2','td']]);
- const tiers=nflTierReadiness({sgps:{Analytics:[small,medium,large,nuke]}});
+ const large=make('Large',[['QB3','passing'],['RB3','rushing'],['WR3','receiving'],['TE3','receptions'],['RB4','td']]);
+ const overlappingNuke=make('Nuke',[['QB3','passing'],['RB3','rushing'],['WR3','receiving'],['TE3','receptions'],['RB4','td']]);
+ const tiers=nflTierReadiness({sgps:{Analytics:[small,medium,large,overlappingNuke]}});
  assert.equal(tiers.Small.status,'MODEL_CANDIDATE');
  assert.equal(tiers.Medium.status,'MODEL_CANDIDATE');
  assert.equal(tiers.Nuke.status,'NOT_READY');
