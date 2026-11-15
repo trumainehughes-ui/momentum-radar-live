@@ -1332,6 +1332,8 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
    reason:String(t.reason||t.tierAssessment?.reason||'').slice(0,160),
    pool:t.poolDiagnostics||null})),
   importedTiers:completeImported.map(t=>t.risk),
+  fallbackTiers:fallbackModelTiers.map(t=>({risk:t.risk,legs:t.legs.length})),
+  fallbackEligibleRows:fallbackRows.length,
   publishedTiers:response.sgps.Analytics.map(t=>({risk:t.risk,legs:t.legs?.length||0,
    source:completeImported.some(x=>x.risk===t.risk)?'IMPORTED_OR_MODEL':'MODEL',
    modelOnly:t.modelOnly!==false,combinedBookQuoteVerified:t.combinedBookQuoteVerified===true}))
