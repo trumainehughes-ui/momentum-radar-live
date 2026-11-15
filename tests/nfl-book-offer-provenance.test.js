@@ -40,6 +40,14 @@ test('canonical TD market accepts a verified anytime-touchdown selection without
  assert.equal(nflBookOfferEligible(tdRow,{...tdOffer,category:'receiving'},'DraftKings',now),false);
  assert.equal(nflBookOfferEligible(row,{...book,line:undefined},'DraftKings',now),false);
 });
+test('negative and ambiguous touchdown selection sides never qualify as anytime TD',()=>{
+ const tdRow={...row,marketName:'td'};
+ const td={...book,category:'td',line:undefined,offerId:'selection-td-1001'};
+ for(const side of ['No','under','false','0','unknown'])
+  assert.equal(nflBookOfferEligible(tdRow,{...td,selectionSide:side},'DraftKings',now),false,side);
+ for(const side of ['Yes','anytime touchdown'])
+  assert.equal(nflBookOfferEligible(tdRow,{...td,selectionSide:side},'DraftKings',now),true,side);
+});
 test('source link alone never verifies an undated or stale offer',()=>{
  for(const checkedAt of [null,'2026-10-17T11:44:59Z','not-a-date','2026-10-17T12:01:01Z'])
   assert.equal(nflBookOfferEligible(row,{...book,checkedAt},'DraftKings',now),false);
