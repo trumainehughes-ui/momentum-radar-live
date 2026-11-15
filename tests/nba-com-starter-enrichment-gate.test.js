@@ -6,6 +6,6 @@ test('NBA.com history requests require confirmed current-game ESPN starter and t
  const source=readFileSync(new URL('../api/nba-health.js',import.meta.url),'utf8');
  assert.match(source,/const candidates=selectedStarters\.startersConfirmed===true\?/);
  assert.match(source,/evidence\.playerProjections\.filter\(p=>starterMatch\(p\)&&p\.rotationEvidence\?\.eligible!==false\):\[\]/);
- assert.match(source,/const projection=candidates\\.find\\(p=>\\(p\\.name\\|\\|p\\.player\\)===name\\)/);
+ assert.match(source,/const projection=candidates\.find\(p=>\(p\.name\|\|p\.player\)===name\)/);
  assert.match(source,/const team=String\(projection\?\.team\|\|''\)\.toUpperCase\(\)/);
 });
