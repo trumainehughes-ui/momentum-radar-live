@@ -1325,7 +1325,9 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
    reason:String(t.reason||t.tierAssessment?.reason||'').slice(0,160),
    pool:t.poolDiagnostics||null})),
   importedTiers:completeImported.map(t=>t.risk),
-  publishedTiers:response.sgps.Analytics.map(t=>({risk:t.risk,legs:t.legs?.length||0,\n   source:completeImported.some(x=>x.risk===t.risk)?'IMPORTED_OR_MODEL':'MODEL',\n   modelOnly:t.modelOnly!==false,combinedBookQuoteVerified:t.combinedBookQuoteVerified===true}))
+  publishedTiers:response.sgps.Analytics.map(t=>({risk:t.risk,legs:t.legs?.length||0,
+   source:completeImported.some(x=>x.risk===t.risk)?'IMPORTED_OR_MODEL':'MODEL',
+   modelOnly:t.modelOnly!==false,combinedBookQuoteVerified:t.combinedBookQuoteVerified===true}))
  }));
  response.sgps.mode=response.sgps.DraftKings.length||response.sgps.FanDuel.length?
   'VERIFIED_BOOK_SGPS_WITH_MODEL_RESEARCH':response.sgps.Analytics.length?'MODEL_ONLY_RESEARCH':'NO_VERIFIED_BOOK_SGPS';
