@@ -31,7 +31,7 @@ test('a cached Nuke model card with Bijan 135 never exposes the invented 135-yar
 test('no live NFL model-only response can expose any line threshold in SGP legs',()=>{
  assert.ok(api.includes("target:null,"));
  assert.ok(api.includes("marketSelectionStatus:'NO_EXACT_DRAFTKINGS_OR_FANDUEL_OFFER'"));
- assert.ok(api.includes("'-strict-no-unlisted-sgp-props-20261017'"));
+ assert.ok(api.includes('strict-no-unlisted-sgp-props-20261017-source-injury-gate-20261115'));
 });
 test('game dashboard no longer displays unobserved 135+ or any invented yardage as an SGP selection',()=>{
  const start=main.indexOf('if(analyticsMode&&Number(d.validation?.sgpEligibleMarketRows||0)===0){');
