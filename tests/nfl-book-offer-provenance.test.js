@@ -48,6 +48,17 @@ test('negative and ambiguous touchdown selection sides never qualify as anytime 
  for(const side of ['Yes','anytime touchdown'])
   assert.equal(nflBookOfferEligible(tdRow,{...td,selectionSide:side},'DraftKings',now),true,side);
 });
+test('conflicting TD outcome fields cannot bypass the no-touchdown guard',()=>{
+ const tdRow={...row,marketName:'td'};
+ const td={...book,category:'td',line:undefined,offerId:'selection-td-1001'};
+ for(const changes of [
+  {selectionSide:'yes',side:'no'},
+  {selectionSide:'yes',outcome:'under'},
+  {side:'yes',outcome:'no'},
+  {selectionSide:'',side:'false'}
+ ])assert.equal(nflBookOfferEligible(tdRow,{...td,...changes},'DraftKings',now),false);
+ assert.equal(nflBookOfferEligible(tdRow,{...td,selectionSide:'yes',side:'yes'},'DraftKings',now),true);
+});
 test('source link alone never verifies an undated or stale offer',()=>{
  for(const checkedAt of [null,'2026-10-17T11:44:59Z','not-a-date','2026-10-17T12:01:01Z'])
   assert.equal(nflBookOfferEligible(row,{...book,checkedAt},'DraftKings',now),false);
