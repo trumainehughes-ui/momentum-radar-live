@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {publicNflGameView} from '../lib/public-nfl-view.js';
 
-const date='2026-10-18',gameId='401872996';
+const date=new Date().toISOString().slice(0,10),gameId='401872996';
 // Use a current fixture so the public 15-minute quote-age check is exercised.
 const at=Date.now()-60_000;
 const now=at+20_000;
