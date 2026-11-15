@@ -1266,7 +1266,7 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
       [row.injuryStatus,row.availability,row.starterStatus].join(' '))&&
     (row.cat==='td'?(row.tdModelStatus==='ESPN_MATCHUP_MODEL'&&row.modelOnly===true&&Number(row.modelTdPercent)>=3&&Number(row.evidence?.games)>=2):Number(row.projection??row.perGame)>0);
   });
- for(const [risk,count] of [['Small',4],['Medium',5],['Large',6],['Nuke',7]]){
+ for(const [risk,count] of [['Small',3],['Medium',4],['Large',5],['Nuke',7]]){
   if(already.has(risk))continue;
   const selected=[],used=new Set(),athleteCounts=new Map();
   const add=cat=>{
