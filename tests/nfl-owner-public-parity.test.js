@@ -42,7 +42,9 @@ test('owner shows exactly published screened players, not raw unscreened practic
  assert.equal(v.categories.td[0].modelTdPercent,42);
  assert.equal(v.categories.passing[0].bestBook,null);
  assert.equal(v.categories.passing[0].edgeAnalytics.sportsbookLine,null);
- assert.equal(v.tiers.length,1);
+ assert.equal(v.tiers.length,4);
+ assert.deepEqual(v.tiers.map(x=>x.risk),['Small','Medium','Large','Nuke']);
+ assert.equal(v.tiers[1].tierAssessment.compositionOk,false);
  assert.deepEqual(v.tiers[0].legs.map(x=>x.player),rawLegs.map(x=>x.name));
  assert.equal(v.tiers[0].publishable,false);
  assert.equal(v.tiers[0].combinedBookQuoteVerified,false);
@@ -80,11 +82,15 @@ test('owner and public show no completed SGP if any leg is withheld or incomplet
  const p=published();
  p.modelResearchTiers[0].complete=false;
  let v=ownerNflPublishedParity(original(),p,{date,gameId,now});
- assert.equal(v.ok,true);assert.equal(v.tiers.length,0);
+ assert.equal(v.ok,true);assert.equal(v.tiers.length,4);
+ assert.equal(v.tiers[0].tierAssessment.compositionOk,false);
+ assert.equal(v.tiers[0].publishable,false);
  const p2=published();p2.modelResearchTiers[0].legs[0].name='Blocked athlete';
  p2.modelResearchTiers[0].legs[0].player='Blocked athlete';
  v=ownerNflPublishedParity(original(),p2,{date,gameId,now});
- assert.equal(v.tiers.length,0);
+ assert.equal(v.tiers.length,4);
+ assert.equal(v.tiers[0].tierAssessment.compositionOk,false);
+ assert.equal(v.tiers[0].publishable,false);
 });
 test('owner matchup consumes same /api/public-nfl-game as customer while keeping raw market diagnostics separate',()=>{
  const ownerHtml=readFileSync(new URL('../index.html',import.meta.url),'utf8');
@@ -117,7 +123,7 @@ test('owner preserves independently screened Large research tier alongside Small
   legs:rawLegs.map(x=>({...safeRow(x),player:x.name}))}];
  const v=ownerNflPublishedParity(original(),p,{date,gameId,now});
  assert.equal(v.ok,true);
- assert.deepEqual(v.publicResearchTiers.map(x=>x.risk),['Small','Large']);
- assert.equal(v.publicResearchTiers[1].legs.length,4);
- assert.equal(v.tiers[1].publishable,false);
+ assert.deepEqual(v.publicResearchTiers.map(x=>x.risk),['Small','Medium','Large','Nuke']);
+ assert.equal(v.publicResearchTiers[2].legs.length,4);
+ assert.equal(v.tiers[2].publishable,false);
 });
