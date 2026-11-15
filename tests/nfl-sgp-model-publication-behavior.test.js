@@ -4,7 +4,7 @@ import {assessNflSgpTier} from '../lib/ai-mechanics/nfl-sgp-tiers.js';
 import {publishedNflModelTier} from '../lib/nfl-public-model-sgp-serializer.js';
 
 const leg=(id,cat)=>({name:'Player '+id,playerID:String(id),team:'DEN',cat,
- eventID:'401873061',analyticsThreshold:cat==='td'?'Anytime TD':55});
+ eventID:'401873061',analyticsThreshold:cat==='td'?1:55});
 const fixtures={
  Small:[leg(1,'passing'),leg(2,'rushing'),leg(3,'receptions')],
  Medium:[leg(1,'passing'),leg(2,'rushing'),leg(3,'receiving'),leg(4,'receptions')],
