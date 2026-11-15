@@ -33,7 +33,7 @@ const injuries=[
 const market={
  ok:true,date:'2026-10-12',gameId,home:'LAR',away:'BUF',
  categories:{passing:[],rushing:[],receiving:[],receptions:[],td:[]},
- sgps:{Analytics:[risk('Small',4),risk('Medium',5),risk('Nuke',7)],
+ sgps:{Analytics:[risk('Small',3),risk('Medium',4),risk('Large',5),risk('Nuke',7)],
   DraftKings:[],FanDuel:[],combinedBookQuoteVerified:false},
  matchupEvidence:matchup,analyticsAvailable:true,
  validation:{injuryEligibilityChecked:true,blockedPlayerCount:2,
@@ -83,7 +83,8 @@ test('real injury change invalidates the stored AI reviewer and SGP revisions',(
 });
 test('read-only public SGP status shows two-direction risk and injury counts, no invented market prices',()=>{
  const actual=nflSgpSnapshotReadiness({at:now-60000,body:market},{now,gameId});
- assert.equal(actual.status,'MODEL_ONLY');
+ assert.equal(actual.status,'NOT_READY');
+ assert.equal(actual.sportsbookCombinedOddsVerified,false);
  assert.equal(actual.matchupAudit.status,'BILATERAL_EVIDENCE');
  assert.deepEqual(actual.matchupAudit.sides.map(x=>[x.offense,x.opponentDefense]),
   [['LAR','BUF'],['BUF','LAR']]);
