@@ -83,7 +83,7 @@ test('real injury change invalidates the stored AI reviewer and SGP revisions',(
 });
 test('read-only public SGP status shows two-direction risk and injury counts, no invented market prices',()=>{
  const actual=nflSgpSnapshotReadiness({at:now-60000,body:market},{now,gameId});
- assert.equal(actual.status,'NOT_READY');
+ assert.equal(actual.status,'MODEL_ONLY');
  assert.equal(actual.sportsbookCombinedOddsVerified,false);
  assert.equal(actual.matchupAudit.status,'BILATERAL_EVIDENCE');
  assert.deepEqual(actual.matchupAudit.sides.map(x=>[x.offense,x.opponentDefense]),
