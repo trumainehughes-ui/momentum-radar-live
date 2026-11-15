@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {selectNflAdaptiveNuke} from '../lib/ai-mechanics/nfl-sgp-tiers.js';
-const leg=(id)=>({cat:'receiving',playerID:String(id),predictiveProjection:40,analyticsThreshold:65});
+const leg=(id)=>({cat:['passing','rushing','receiving','receptions','td'][id%5],playerID:String(id),predictiveProjection:40,analyticsThreshold:65});
 test('Nuke prefers shortest evidence-supported composition over seven legs',()=>{
  const make=(risk,count)=>({risk,legs:Array.from({length:count},(_,i)=>leg(i)),tierAssessment:{compositionOk:count>=5},sgpScore:70});
  const chosen=selectNflAdaptiveNuke(make);
