@@ -33,6 +33,13 @@ test('SportsGameOdds conversion without observed quote time and source is never 
  assert.equal(nflBookOfferEligible(row,{...book,sourceUrl:undefined},'DraftKings',now),false);
  assert.equal(nflBookOfferEligible(row,{...book,checkedAt:undefined},'DraftKings',now),false);
 });
+test('canonical TD market accepts a verified anytime-touchdown selection without yardage',()=>{
+ const tdRow={...row,marketName:'td'};
+ const tdOffer={...book,category:'td',line:undefined,offerId:'selection-td-1001'};
+ assert.equal(nflBookOfferEligible(tdRow,tdOffer,'DraftKings',now),true);
+ assert.equal(nflBookOfferEligible(tdRow,{...tdOffer,category:'receiving'},'DraftKings',now),false);
+ assert.equal(nflBookOfferEligible(row,{...book,line:undefined},'DraftKings',now),false);
+});
 test('source link alone never verifies an undated or stale offer',()=>{
  for(const checkedAt of [null,'2026-10-17T11:44:59Z','not-a-date','2026-10-17T12:01:01Z'])
   assert.equal(nflBookOfferEligible(row,{...book,checkedAt},'DraftKings',now),false);
