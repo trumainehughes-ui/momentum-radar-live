@@ -49,9 +49,9 @@ test("production hotfix rejects all-TD Small model and marks it unpublishable",(
  assert.ok(api.includes("const mix=fillNflSgpMarketMix({risk,count,pool:riskPool,legs,add})"));
  assert.ok(api.includes("const mix=fillNflSgpMarketMix({risk,count,pool:rotated,legs,add})"));
  assert.ok(api.includes("modelOnly:true,candidateComplete:tierAssessment.compositionOk,publishable:false"));
- assert.ok(api.includes("response.sgps.Analytics=modelCandidates.filter(c=>"));
+ assert.ok(api.includes("response.sgps.Analytics=eligibleModelCandidates.map(publishedNflModelTier).filter(Boolean)"));
  assert.ok(api.includes("c.tierAssessment?.compositionOk===true"));
- assert.ok(api.includes(")).map(publishedNflModelTier).filter(Boolean)"));
+ assert.ok(api.includes("all.findIndex(other=>other.risk===tier.risk)===index"));
  assert.ok(api.includes("sgps.Analytics=(Array.isArray(sgps.Analytics)?sgps.Analytics:[]).filter(c=>"));
  assert.ok(!api.includes("sgps.Analytics=buildAnalyticsSgp(categories,ctx).map(s=>({...s,publishable:true"));
  assert.ok(api.includes("CACHE_SCHEMA='v92-strict-nuke-profit-20261011'"));
