@@ -18,10 +18,9 @@ const market={
   receptions:[{name:'Kyle Pitts',team:'ATL',position:'TE',projection:5}],
  },
  sgps:{Analytics:[
-  {risk:'Small',legs:[leg('Rome Odunze','CHI','receiving'),
-   leg('Bijan Robinson','ATL','rushing')]},
+  {risk:'Small',legs:[leg('Rome Odunze','CHI','receiving')]},
   {risk:'Medium',legs:[leg('Rome Odunze','CHI','receiving'),
-   leg('Bijan Robinson','ATL','rushing'),leg('Drake London','ATL','receiving')]},
+   leg('Bijan Robinson','ATL','rushing')]},
   {risk:'Nuke',legs:[leg('Rome Odunze','CHI','receiving'),
    leg('Bijan Robinson','ATL','rushing'),leg('Kyle Pitts','ATL','receptions')]}
  ]}
