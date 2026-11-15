@@ -450,18 +450,28 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
    return priorCount(a)-priorCount(b)||rankByEdge(a,b,risk);
   });
   const eligible=x=>{
-    const pos=String(x?.position||'').toUpperCase(),role=roleFor(roles,x);
-    if(!x||!['QB','RB','WR','TE'].includes(pos))return false;
-    // High usage alone does not establish a starting role. A confirmed or
-    // expected starter designation is required for all skill positions.
-    // Unconfirmed rotation players remain in analytics, not model SGP slips.
-    if(pos!=='QB')return role?.recommendationEligible===true&&
-      role?.verification?.role?.verified===true&&role?.starterVerified===true&&
-      String(role?.starterStatus||'').toUpperCase()==='CONFIRMED_STARTER';
-    // Existing "HIGH_USAGE_ROLE" flags are not a confirmed QB starter.
-    // Day-ahead model allows ESPN depth-chart QB1 ONLY after game roster,
-    // injury eligibility and 2+ game passing samples have been verified.
-    const confirmed=['CONFIRMED_STARTER','EXPECTED_STARTER'].includes(String(role?.starterStatus||''))&&
+    if(!x)return false;
+    const pos=String(x.position||'').toUpperCase(),role=roleFor(roles,x);
+    if(!['QB','RB','WR','TE'].includes(pos)||!role||
+       role.recommendationEligible!==true)return false;
+    // A roster listing or projected workload is not proof of availability.
+    // Block known inactives/injury holds even when a depth-chart role exists.
+    const held=new Set(['OUT','INACTIVE','IR','INJURED RESERVE',
+      'SUSPENDED','DOUBTFUL','PUP','NFI']);
+    const statuses=[x.injuryStatus,x.availability,x.status,
+      role.injuryStatus,role.availability,role.status]
+      .map(v=>String(v||'').trim().toUpperCase());
+    if(statuses.some(v=>held.has(v)))return false;
+    if(x.activeVerified===false||role.activeVerified===false||
+       x.roleVerified===false||role.roleVerified===false)return false;
+    const starterStatus=String(role.starterStatus||'').toUpperCase();
+    if(pos!=='QB'){
+      return role.verification?.role?.verified===true&&
+        role.starterVerified===true&&starterStatus==='CONFIRMED_STARTER';
+    }
+    // QB1 projection remains a research candidate only when its dedicated
+    // depth-chart and sample-evidence checks pass.
+    const confirmed=['CONFIRMED_STARTER','EXPECTED_STARTER'].includes(starterStatus)&&
       isNflConfirmedGameQb({position:pos,role});
     return confirmed||nflProjectedDepthChartQbEligible(role);
    };
