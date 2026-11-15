@@ -466,8 +466,14 @@ function buildAnalyticsSgp(categories,ctx,roles,identity){
        x.roleVerified===false||role.roleVerified===false)return false;
     const starterStatus=String(role.starterStatus||'').toUpperCase();
     if(pos!=='QB'){
-      return role.verification?.role?.verified===true&&
-        role.starterVerified===true&&starterStatus==='CONFIRMED_STARTER';
+      // Model-only research may include evidenced expected starters and
+      // high-usage roles. This is NOT official starter confirmation.
+      const researchRole=['CONFIRMED_STARTER','EXPECTED_STARTER',
+        'PROJECTED_HIGH_USAGE_ROLE','HIGH_USAGE_ROLE'].includes(starterStatus);
+      return researchRole&&(
+        role.verification?.role?.verified===true||
+        role.starterVerified===true||
+        (role.roleVerified===true&&role.recommendationEligible===true));
     }
     // QB1 projection remains a research candidate only when its dedicated
     // depth-chart and sample-evidence checks pass.
