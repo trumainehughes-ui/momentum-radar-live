@@ -75,7 +75,7 @@ test('small/medium/nuke comparison targets change with risk, never claim real sp
 test('wrong game, wrong team, injury-held, unconfirmed QB excluded without invented numbers',()=>{
  for(const v of [{gameId:'401872998'},{date:'2026-10-20'},{home:'NYG'}])
   assert.equal(buildNflProjectedSgpTierDetails({...ctx,...v}).tiers.length,
-   v.home?3:0);
+   v.home?4:0);
  const bad={...market,sgps:{Analytics:[{risk:'Small',legs:[
   {player:'Held Player',team:'ATL',category:'rushing'},
   {player:'IR Player',team:'CHI',category:'receiving'},
