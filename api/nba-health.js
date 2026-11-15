@@ -299,23 +299,30 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
  }));
  const result={...evidence,nbaComEvidence,nbaComBoxScore,boxScoreObservations,nbaComIntegrationAudit,nbaComPlayerLogs,
   nbaComCrossCheckedAt:new Date(now).toISOString(),
-  playerProjections:crossCheckedProjections.map(p=>({
-   ...p,starterVerified:starterMatch(p),
-   starterStatus:starterMatch(p)?'CONFIRMED_STARTER':'UNCONFIRMED',
-   starterSource:starterMatch(p)?selectedStarters.source:null})),
+  playerProjections:crossCheckedProjections.map(p=>{
+   const confirmed=selectedStarters.startersConfirmed===true&&starterMatch(p);
+   return {...p,starterVerified:confirmed,
+    starterStatus:confirmed?'CONFIRMED_STARTER':'UNCONFIRMED',
+    starterSource:confirmed?selectedStarters.source:null};
+  }),
   sgps:(evidence.sgps||[]).map(card=>{
-   const legs=nbaCrossCheckProjections(card.legs||[],nbaComPlayerLogs).map(p=>({
-    ...p,starterVerified:starterMatch(p),
-    starterStatus:starterMatch(p)?'CONFIRMED_STARTER':'UNCONFIRMED',
-    starterSource:starterMatch(p)?selectedStarters.source:null}));
+   const legs=nbaCrossCheckProjections(card.legs||[],nbaComPlayerLogs).map(p=>{
+    const confirmed=selectedStarters.startersConfirmed===true&&starterMatch(p);
+    return {...p,starterVerified:confirmed,
+     starterStatus:confirmed?'CONFIRMED_STARTER':'PROJECTED_ROTATION_UNCONFIRMED',
+     starterSource:confirmed?selectedStarters.source:null};
+   });
    const startersReady=selectedStarters.startersConfirmed===true&&
     legs.length>0&&legs.every(p=>p.starterVerified===true);
+   const held=card.status==='MODEL_CANDIDATE'&&!startersReady;
    return {...card,legs,
-    status:card.status==='MODEL_CANDIDATE'&&selectedStarters.checked===true&&!startersReady?'NOT_READY':card.status,
+    status:held?'NOT_READY':card.status,
     publishable:false,
-    starterVerificationStatus:startersReady?'GAME_SCOPED_STARTERS_CONFIRMED':'UNCONFIRMED',
-    reason:card.status==='MODEL_CANDIDATE'&&selectedStarters.checked===true&&!startersReady?
-     'Held: not every player is verified as a starter for this specific NBA game.':card.reason};
+    starterVerificationStatus:startersReady?'GAME_SCOPED_STARTERS_CONFIRMED':
+     'PROJECTED_ROTATION_STARTER_UNCONFIRMED',
+    reason:held?
+     [card.reason,'Held: current-game starting five not confirmed for every leg; sportsbook prices unverified.'].filter(Boolean).join(' '):
+     card.reason||'Model research only; sportsbook prices unverified.'};
   }),
   starterEvidence:{checked:selectedStarters.checked,
    startersConfirmed:selectedStarters.startersConfirmed,
