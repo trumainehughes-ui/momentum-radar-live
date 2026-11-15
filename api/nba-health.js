@@ -220,9 +220,10 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
   const tipoffDate=new Date(game.kickoff);
   const seasonStart=tipoffDate.getUTCFullYear()-(tipoffDate.getUTCMonth()<9?1:0);
   const season=seasonStart+'-'+String(seasonStart+1).slice(-2);
-  const eligible=evidence.playerProjections.filter(p=>p.rotationEvidence?.eligible===true);
-  // An absent rotation flag must not silently disable NBA.com enrichment.
-  const candidates=eligible.length?eligible:evidence.playerProjections;
+  // Only enrich players whose current-game ESPN starter identity and team agree.
+  // Historical production projections are not sufficient roster evidence.
+  const candidates=selectedStarters.startersConfirmed===true?
+   evidence.playerProjections.filter(p=>starterMatch(p)&&p.rotationEvidence?.eligible!==false):[];
   const unique=[...new Set(candidates.map(p=>p.name||p.player).filter(Boolean))].slice(0,8);
   const results=await Promise.all(unique.slice(0,4).map(async name=>{
    try{
