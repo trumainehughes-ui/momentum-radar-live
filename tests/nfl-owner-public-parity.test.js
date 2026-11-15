@@ -150,3 +150,15 @@ test('incomplete research preserves approved legs without treating them as a ver
  assert.equal(v.tiers[0].publishable,false);
  assert.equal(v.tiers[0].actualSgpOdds,null);
 });
+
+test('a complete flag cannot certify a tier with fewer than its required approved legs',()=>{
+ const p=published();
+ p.modelResearchTiers[0].complete=true;
+ p.modelResearchTiers[0].requiredLegs=5;
+ const v=ownerNflPublishedParity(original(),p,{date,gameId,now});
+ assert.equal(v.ok,true);
+ assert.equal(v.publicResearchTiers[0].complete,false);
+ assert.equal(v.publicResearchTiers[0].legs.length,4);
+ assert.equal(v.tiers[0].tierAssessment.compositionOk,false);
+ assert.equal(v.tiers[0].publishable,false);
+});
