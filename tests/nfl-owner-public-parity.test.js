@@ -127,3 +127,26 @@ test('owner preserves independently screened Large research tier alongside Small
  assert.equal(v.publicResearchTiers[2].legs.length,4);
  assert.equal(v.tiers[2].publishable,false);
 });
+
+test('missing saved tiers remain visible as non-playable research slots',()=>{
+ const p=published();
+ p.modelResearchTiers=[];
+ const v=ownerNflPublishedParity(original(),p,{date,gameId,now});
+ assert.equal(v.ok,true);
+ assert.deepEqual(v.publicResearchTiers.map(t=>t.risk),['Small','Medium','Large','Nuke']);
+ assert.ok(v.publicResearchTiers.every(t=>t.complete===false&&t.legs.length===0));
+ assert.ok(v.tiers.every(t=>t.publishable===false&&t.tierAssessment.compositionOk===false));
+ assert.equal(v.bookParlays.length,0);
+});
+
+test('incomplete research preserves approved legs without treating them as a verified SGP',()=>{
+ const p=published();
+ p.modelResearchTiers[0].complete=false;
+ const v=ownerNflPublishedParity(original(),p,{date,gameId,now});
+ assert.equal(v.ok,true);
+ assert.equal(v.publicResearchTiers[0].legs.length,rawLegs.length);
+ assert.equal(v.publicResearchTiers[0].complete,false);
+ assert.equal(v.tiers[0].tierAssessment.compositionOk,false);
+ assert.equal(v.tiers[0].publishable,false);
+ assert.equal(v.tiers[0].actualSgpOdds,null);
+});
