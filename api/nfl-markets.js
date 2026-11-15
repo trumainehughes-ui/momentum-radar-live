@@ -1262,7 +1262,7 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
    return id&&player&&roster&&safeTeams.has(String(row.team||'').toUpperCase())&&
     nflCanonTeam(roster.team)===nflCanonTeam(row.team)&&
     !eligibility.blockedIds.has(id)&&!eligibility.blockedNames.has(norm(player))&&!eligibility.blockedNames.has(nflInjuryNameKey(player))&&
-    !/\\b(OUT|INACTIVE|IR|DOUBTFUL|QUESTIONABLE|SUSPENDED)\\b/i.test(
+    !/\b(OUT|INACTIVE|IR|DOUBTFUL|QUESTIONABLE|SUSPENDED)\b/i.test(
       [row.injuryStatus,row.availability,row.starterStatus].join(' '))&&
     (row.cat==='td'?(row.tdModelStatus==='ESPN_MATCHUP_MODEL'&&row.modelOnly===true&&Number(row.modelTdPercent)>=3&&Number(row.evidence?.games)>=2):Number(row.projection??row.perGame)>0);
   });
@@ -1315,7 +1315,7 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
     return roster&&nflCanonTeam(roster.team)===nflCanonTeam(l.team)&&
      !eligibility.blockedIds.has(id)&&!eligibility.blockedNames.has(norm(l.name))&&
       !eligibility.blockedNames.has(nflInjuryNameKey(l.name));})()&&
-   !/\\b(OUT|INACTIVE|IR|DOUBTFUL|QUESTIONABLE|SUSPENDED)\\b/i.test(
+   !/\b(OUT|INACTIVE|IR|DOUBTFUL|QUESTIONABLE|SUSPENDED)\b/i.test(
     [l.injuryStatus,l.availability,l.starterStatus].join(' '))
   )).map(publishedNflModelTier).filter(Boolean).filter((tier,index,all)=>
    all.findIndex(other=>other.risk===tier.risk)===index);
