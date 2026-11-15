@@ -1330,7 +1330,11 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
   rosterChecked:eligibility.checked===true,
   fallbackEligibleRows:fallbackRows.length,
   fallbackGenerated:fallbackModelTiers.map(t=>({risk:t.risk,legs:t.legs.length})),
-  published:response.sgps.Analytics.map(t=>({risk:t.risk,legs:t.legs?.length||0}))
+  published:response.sgps.Analytics.map(t=>({
+   risk:t.risk,legs:t.legs?.length||0,
+   differsFromFallback:(fallbackModelTiers.find(f=>f.risk===t.risk)?.legs.length??null)!==(t.legs?.length||0),
+   candidateSources:{imported:completeImported.some(f=>f.risk===t.risk),adaptive:(analyticsSgps||[]).some(f=>f.risk===t.risk),fallback:fallbackModelTiers.some(f=>f.risk===t.risk)}
+  }))
  };
  console.info('[nfl-sgp-publication]',JSON.stringify({
   gameId,rosterChecked:eligibility.checked===true,
