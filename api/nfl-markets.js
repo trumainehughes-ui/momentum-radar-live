@@ -781,6 +781,10 @@ export default async function handler(req,res){res.removeHeader('Pragma');res.re
     Number.isFinite(Number(o.odds))&&Number(o.odds)!==0&&
     Number.isFinite(Date.parse(o.observedAt||''))&&
     (o.category==='td'||o.line!==null&&o.line!==undefined&&Number.isFinite(Number(o.line))));
+   oddsDebug.publicResearchOfferCount=Array.isArray(research.offers)?research.offers.length:0;
+   oddsDebug.publicResearchRejectedCount=oddsDebug.publicResearchOfferCount-exactSiteOffers.length;
+   oddsDebug.publicResearchRejectionNote=oddsDebug.publicResearchRejectedCount>0?
+    'Published listings are not eligible direct sportsbook offers without a verified player ID and official sportsbook source URL.':'No public research listings rejected by the direct-offer gate.';
    directRows=exactSiteOffers.map(o=>({
     eventID:gameId,playerID:o.playerID,name:o.player,team:o.team||'',
     position:o.position||'',marketName:names[o.category],
