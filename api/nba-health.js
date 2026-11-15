@@ -320,7 +320,9 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
    const readyLike=new Set(['MODEL_CANDIDATE','READY','VERIFIED','PUBLISHABLE']);
    const held=!startersReady&&readyLike.has(String(card.status||'').toUpperCase());
    return {...card,legs,
-    status:held?'NOT_READY':card.status,
+    // Starter confirmation establishes a model candidate, never a priced SGP.
+    status:held?'NOT_READY':startersReady&&readyLike.has(String(card.status||'').toUpperCase())?
+     'MODEL_CANDIDATE':card.status,
     publishable:false,
     starterVerificationStatus:startersReady?'GAME_SCOPED_STARTERS_CONFIRMED':
      'PROJECTED_ROTATION_STARTER_UNCONFIRMED',
