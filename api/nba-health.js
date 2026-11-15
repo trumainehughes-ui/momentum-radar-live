@@ -241,7 +241,7 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
     const d=await fetchJson(origin+query,9000);
     if(!d.ok||!Array.isArray(d.recentGames)||!d.recentGames.length)return null;
     const rows=d.recentGames.filter(x=>Date.parse(x.GAME_DATE)<Date.parse(game.kickoff));
-    return {name,season,source:'nba_api_live',samples:rows.length,
+    return {name,team,season,source:'nba_api_live',samples:rows.length,
      recent:rows.slice(0,10).map(x=>({
       date:x.GAME_DATE,points:x.PTS==null?null:Number(x.PTS),
       rebounds:x.REB==null?null:Number(x.REB),assists:x.AST==null?null:Number(x.AST),
