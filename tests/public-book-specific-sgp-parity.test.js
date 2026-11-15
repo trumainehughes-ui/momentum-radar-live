@@ -38,10 +38,10 @@ function playerRow([name,playerID,team,category,position,projection]){
 }
 const makeLeg=([name,playerID,team,category],line)=>({
  name,playerID,eventID:gameId,team,cat:category,
- ...(category==='td'?{analyticsThreshold:'Anytime TD'}:{analyticsThreshold:line})
+ ...(category==='td'?{analyticsThreshold:1}:{analyticsThreshold:line})
 });
 function makeCard(book,legs=metadata.map((row,i)=>makeLeg(row,target[book][i]))){
- return{book,risk:'Large',requiredLegs:4,
+ return{book,gameId,risk:'Large',requiredLegs:4,
   legs:legs.map(leg=>({...leg,bookOffer:{verified:true,book}})),
   tierVerified:true,combinedBookQuoteVerified:true,publishable:true,bookVerificationPending:false,
   quotedAt:new Date(at-25_000).toISOString(),actualSgpOdds:1000};
