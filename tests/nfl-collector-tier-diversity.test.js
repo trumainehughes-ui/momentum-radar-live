@@ -9,8 +9,9 @@ const make=(risk,players)=>{
 const small=make('Small',[['QB1','passing'],['RB1','rushing'],['TE1','td']]);
 const medium=make('Medium',[['QB1','passing'],['RB2','rushing'],['WR2','receiving'],['TE2','receptions']]);
 const nuke=make('Nuke',[['QB1','passing'],['RB2','rushing'],['WR2','receiving'],['TE2','receptions'],['RB2','td']]);
-test('collector refuses a Nuke that recycles four or more Medium player markets',()=>{
- const tiers=nflTierReadiness({sgps:{Analytics:[small,medium,nuke]}});
+test('collector refuses a Nuke that recycles five player markets from Large',()=>{
+ const large=make('Large',[['QB1','passing'],['RB2','rushing'],['WR2','receiving'],['TE2','receptions'],['RB2','td']]);
+ const tiers=nflTierReadiness({sgps:{Analytics:[small,medium,large,nuke]}});
  assert.equal(tiers.Small.status,'MODEL_CANDIDATE');
  assert.equal(tiers.Medium.status,'MODEL_CANDIDATE');
  assert.equal(tiers.Nuke.status,'NOT_READY');
