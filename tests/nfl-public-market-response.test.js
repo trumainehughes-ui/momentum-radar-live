@@ -70,5 +70,5 @@ test('NFL active response is scrubbed after quote calls and before public JSON a
  assert.ok(code.includes('candidate.quoteRequest.legs.length'));
  assert.ok(code.includes("'-public-quote-scrub-v1'"));
  assert.ok(NFL_SGP_SNAPSHOT_SCHEMA.includes('-public-quote-scrub-v1'));
- assert.ok(NFL_SGP_SNAPSHOT_SCHEMA.endsWith('-strict-no-unlisted-sgp-props-20261017'));
+ assert.ok(NFL_SGP_SNAPSHOT_SCHEMA.endsWith('-strict-no-unlisted-sgp-props-20261017-source-injury-gate-20261115'));
 });
