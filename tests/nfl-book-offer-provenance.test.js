@@ -59,6 +59,12 @@ test('conflicting TD outcome fields cannot bypass the no-touchdown guard',()=>{
  ])assert.equal(nflBookOfferEligible(tdRow,{...td,...changes},'DraftKings',now),false);
  assert.equal(nflBookOfferEligible(tdRow,{...td,selectionSide:'yes',side:'yes'},'DraftKings',now),true);
 });
+test('conflicting sportsbook category and market fields never verify a wrong stat',()=>{
+ assert.equal(nflBookOfferEligible(row,{...book,category:'rushing',market:'player_receiving_yds'},'DraftKings',now),false);
+ assert.equal(nflBookOfferEligible(row,{...book,category:'receiving',market:'player_rush_yds'},'DraftKings',now),false);
+ assert.equal(nflBookOfferEligible(row,{...book,category:'rushing',market:'player_rush_yds'},'DraftKings',now),true);
+ assert.equal(nflBookOfferEligible(row,{...book,category:null,market:'player_rush_yds'},'DraftKings',now),true);
+});
 test('source link alone never verifies an undated or stale offer',()=>{
  for(const checkedAt of [null,'2026-10-17T11:44:59Z','not-a-date','2026-10-17T12:01:01Z'])
   assert.equal(nflBookOfferEligible(row,{...book,checkedAt},'DraftKings',now),false);
