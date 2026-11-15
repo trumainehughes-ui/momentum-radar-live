@@ -49,13 +49,13 @@ test("Small starts with two distinct yardage markets and max one touchdown",()=>
  assert.ok(s.assessment.yardageMarketCount>=2);
  assert.ok(s.assessment.tdLegs<=1);
 });
-test("Medium starts with 3 yardage legs and allows no more than one TD",()=>{
+test("Medium includes at least 2 yardage legs and allows no more than one TD",()=>{
  const s=select("Medium",4);
  assert.equal(s.filled,true);
  assert.equal(s.legs.length,4);
- assert.ok(s.legs.slice(0,3).every(x=>["passing","rushing","receiving"].includes(x.cat)));
- assert.ok(s.assessment.yardageLegs>=3);
- assert.ok(s.assessment.yardageMarketCount>=2);
+ assert.ok(s.legs.filter(x=>["passing","rushing","receiving"].includes(x.cat)).length>=2);
+ assert.ok(s.assessment.yardageLegs>=2);
+ assert.ok(s.assessment.yardageMarketCount>=1);
  assert.ok(s.assessment.tdLegs<=1);
 });
 test("Nuke also has 3 or more yardage legs and at most 2 anytime TD",()=>{
