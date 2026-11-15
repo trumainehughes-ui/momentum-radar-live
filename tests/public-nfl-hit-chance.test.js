@@ -88,12 +88,12 @@ test('public game exposes matching hit percentages on player and SGP cards witho
  });
  const legs=[pLeg('passing',265),pLeg('rushing',70,'Other RB','2'),
   pLeg('receiving',55,'Other WR','3'),
-  {...td,cat:'td',analyticsThreshold:'Anytime TD'}];
+  {...td,cat:'td',analyticsThreshold:1}];
  const saved={at:now-60000,body:{
   ok:true,date,gameId,home:'LAR',away:'BUF',
   validation:{injuryEligibilityChecked:true,injuryEvidence:[]},
   categories:{passing:[passing],rushing:[],receiving:[],receptions:[],td:[td]},
-  sgps:{Analytics:[{risk:'Small',tierAssessment:{compositionOk:true},
+  sgps:{Analytics:[{risk:'Medium',requiredLegs:4,tierAssessment:{compositionOk:true},
    legs}],DraftKings:[],FanDuel:[]}
  }};
  const v=publicNflGameView(saved,{date,gameId,now});
