@@ -29,9 +29,9 @@ const market={
 const context={market,gameId,date,home:'ATL',away:'CHI'};
 test('incomplete Small Medium Nuke research shows NOT READY with no partial athlete forecasts or invented prices',()=>{
  const out=buildNflProjectedSgpTierDetails(context),page=renderNflProjectedSgpTierDetails(out);
- assert.equal(out.tiers.length,3);
+ assert.equal(out.tiers.length,4);
  assert.ok(out.tiers.every(t=>t.compositionComplete===false));
- for(const risk of ['Small','Medium','Nuke'])assert.ok(page.includes(risk+' • NOT READY'));
+ for(const risk of ['Small','Medium','Large','Nuke'])assert.ok(page.includes(risk+' • NOT READY'));
  for(const name of ['Rome Odunze','Bijan Robinson','Drake London','Kyle Pitts'])
   assert.ok(!page.includes(name),name);
  assert.doesNotMatch(page,/AI Receiving forecast: 55 yards|AI Rushing forecast: 115 yards/);
