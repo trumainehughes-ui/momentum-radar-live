@@ -1332,7 +1332,8 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
     [l.injuryStatus,l.availability,l.starterStatus].join(' '))
   ));
  response.sgps.Analytics=eligibleModelCandidates.map(publishedNflModelTier).filter(Boolean).filter((tier,index,all)=>
-   all.findIndex(other=>other.risk===tier.risk)===index);
+   all.findIndex(other=>other.risk===tier.risk)===index).sort((a,b)=>
+   ['Small','Medium','Large','Nuke'].indexOf(a.risk)-['Small','Medium','Large','Nuke'].indexOf(b.risk));
  oddsDebug.modelTierDiagnostics={
   rosterChecked:eligibility.checked===true,
   fallbackEligibleRows:fallbackRows.length,
