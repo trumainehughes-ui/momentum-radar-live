@@ -1305,7 +1305,7 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
    explanation:{summary:'Roster-vetted matchup projection research; not verified sportsbook lines or odds.'}});
  }
  const modelCandidates=[...completeImported,...(analyticsSgps||[]),...fallbackModelTiers];
- response.sgps.Analytics=modelCandidates.filter(c=>
+ const eligibleModelCandidates=modelCandidates.filter(c=>
   c.tierAssessment?.compositionOk===true&&Array.isArray(c.legs)&&
   c.legs.length>0&&eligibility.checked===true&&c.legs.every(l=>
    String(l.eventID||l.gameId||'')===String(gameId)&&
@@ -1324,7 +1324,8 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
       !eligibility.blockedNames.has(nflInjuryNameKey(l.name));})()&&
    !/\b(OUT|INACTIVE|IR|DOUBTFUL|QUESTIONABLE|SUSPENDED)\b/i.test(
     [l.injuryStatus,l.availability,l.starterStatus].join(' '))
-  )).map(publishedNflModelTier).filter(Boolean).filter((tier,index,all)=>
+  ));
+ response.sgps.Analytics=eligibleModelCandidates.map(publishedNflModelTier).filter(Boolean).filter((tier,index,all)=>
    all.findIndex(other=>other.risk===tier.risk)===index);
  oddsDebug.modelTierDiagnostics={
   rosterChecked:eligibility.checked===true,
@@ -1332,6 +1333,7 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
   fallbackGenerated:fallbackModelTiers.map(t=>({risk:t.risk,legs:t.legs.length})),
   published:response.sgps.Analytics.map(t=>({
    risk:t.risk,legs:t.legs?.length||0,
+   selectedSource:(()=>{const selected=eligibleModelCandidates.find(c=>c.risk===t.risk);return !selected?'UNKNOWN':completeImported.includes(selected)?'IMPORTED':(analyticsSgps||[]).includes(selected)?'ADAPTIVE':fallbackModelTiers.includes(selected)?'FALLBACK':'UNKNOWN';})(),
    differsFromFallback:(fallbackModelTiers.find(f=>f.risk===t.risk)?.legs.length??null)!==(t.legs?.length||0),
    candidateSources:{imported:completeImported.some(f=>f.risk===t.risk),adaptive:(analyticsSgps||[]).some(f=>f.risk===t.risk),fallback:fallbackModelTiers.some(f=>f.risk===t.risk)}
   }))
