@@ -17,6 +17,15 @@ test('timestamped official-book individual market remains eligible',()=>{
   sourceUrl:'https://co.sportsbook.fanduel.com/football/nfl'},'FanDuel',now),true);
  assert.equal(nflBookOfferEligible(row,book,'FanDuel',now),false);
 });
+test('official source-provider attribution must match the actual sportsbook',()=>{
+ const dk={...book,sourceProvider:'DraftKings Sportsbook'};
+ assert.equal(nflBookOfferEligible(row,dk,'DraftKings',now),true);
+ assert.equal(nflBookOfferEligible(row,{...dk,sourceProvider:'FanDuel Sportsbook'},'DraftKings',now),false);
+ const fd={...book,book:'FanDuel',sourceProvider:'FanDuel Sportsbook',
+  sourceUrl:'https://sportsbook.fanduel.com/football/nfl'};
+ assert.equal(nflBookOfferEligible(row,fd,'FanDuel',now),true);
+ assert.equal(nflBookOfferEligible(row,{...fd,sourceProvider:'DraftKings Sportsbook'},'FanDuel',now),false);
+});
 test('SportsGameOdds conversion without observed quote time and source is never verified',()=>{
  const sgo={eventID:'401872999',playerID:'athlete-12',
   marketName:'player_rush_yds',books:[{book:'DraftKings',available:true,odds:135,line:65.5}]};
