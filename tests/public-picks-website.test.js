@@ -17,8 +17,9 @@ const leg=(cat,id,target,team='BUF')=>({
  name:'Player '+id,playerID:id,eventID:gameId,team,cat,analyticsThreshold:target
 });
 const small=[leg('passing','1',225),leg('rushing','2',65),
- leg('receiving','3',75,'LAR'),leg('td','11','Anytime TD')];
-const medium=[...small.map(x=>({...x})),leg('receptions','4',5)];
+ leg('td','11','Anytime TD')];
+const medium=[leg('passing','1',225),leg('rushing','2',65),
+ leg('receiving','3',75,'LAR'),leg('receptions','4',5)];
 const nuke=[leg('passing','1',300),leg('rushing','2',100),
  leg('receiving','3',110,'LAR'),leg('receptions','4',8),
  leg('td','11','Anytime TD')];
@@ -33,11 +34,11 @@ function sample(){
    receiving:[yards('receiving','3',82)],
    receptions:[yards('receptions','4',6)]},
   sgps:{Analytics:[
-   {risk:'Small',legs:small,requiredLegs:4,tierAssessment:{compositionOk:true},
+   {risk:'Small',legs:small,requiredLegs:3,tierAssessment:{compositionOk:true},
     quoteRequest:{providerEventId:'SECRET_PROVIDER_EVENT'}},
-   {risk:'Medium',legs:medium,requiredLegs:5,tierAssessment:{compositionOk:true}},
+   {risk:'Medium',legs:medium,requiredLegs:4,tierAssessment:{compositionOk:true}},
    {risk:'Nuke',legs:nuke,requiredLegs:5,tierAssessment:{compositionOk:true}}
-  ],DraftKings:[{book:'DraftKings',risk:'Small',legs:small,requiredLegs:4,
+  ],DraftKings:[{book:'DraftKings',risk:'Small',legs:small,requiredLegs:3,
    actualSgpOdds:2500,combinedBookQuoteVerified:true,
    publishable:true,bookVerificationPending:false,
    quotedAt:new Date(now-80_000).toISOString()}],FanDuel:[]}
@@ -51,7 +52,7 @@ test('public game view returns only consumer player forecasts and qualified tier
  assert.equal(v.categories.passing[0].projection,275);
  assert.equal(v.categories.receiving[0].projection,80);
  assert.deepEqual(v.parlays.map(x=>x.risk),['Small','Medium','Nuke']);
- assert.deepEqual(v.parlays.map(x=>x.legCount),[4,5,5]);
+ assert.deepEqual(v.parlays.map(x=>x.legCount),[3,4,5]);
  assert.equal(v.parlays[0].legs.at(-1).target,'Anytime TD');
  assert.equal(v.parlays[0].combinedOddsVerified,false);
  assert.equal(v.bookmakerTicketPlaced,false);
