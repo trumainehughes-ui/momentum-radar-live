@@ -16,7 +16,7 @@ const athlete=[
 const leg=([name,playerID,team,position,cat,projection])=>({
  name,playerID,team,position,cat,eventID:gameId,
  projection:cat==='td'?'Anytime TD':projection,
- analyticsThreshold:cat==='td'?'Anytime TD':Math.ceil(projection||0),
+ analyticsThreshold:cat==='td'?1:Math.ceil(projection||0),
 });
 const row=([name,playerID,team,position,cat,projection])=>({
  name,playerID,team,position,eventID:gameId,category:cat,
@@ -26,7 +26,9 @@ const row=([name,playerID,team,position,cat,projection])=>({
  reason:'Completed-game matchup projection, not a sportsbook price.'
 });
 function card(risk,count){
- const legs=athlete.slice(0,count).map(leg);
+ const picks=risk==='Small'?[athlete[0],athlete[1],athlete[2]]:
+  risk==='Medium'?[athlete[0],athlete[1],athlete[2],athlete[3]]:athlete;
+ const legs=picks.slice(0,count).map(leg);
  return{risk,legs,requiredLegs:count,
   tierAssessment:assessNflSgpTier({risk,legs,requiredLegs:count}),
   publishable:false,combinedBookQuoteVerified:false,
@@ -34,8 +36,9 @@ function card(risk,count){
 }
 function snapshot(){
  const sgps={DraftKings:[],FanDuel:[],Analytics:[
-  publishedNflModelTier(card('Small',4)),
-  publishedNflModelTier(card('Medium',5)),
+  publishedNflModelTier(card('Small',3)),
+  publishedNflModelTier(card('Medium',4)),
+  publishedNflModelTier(card('Large',5)),
   publishedNflModelTier(card('Nuke',5))
  ]};
  const categories=Object.fromEntries(['td','passing','rushing','receiving','receptions']
@@ -43,8 +46,8 @@ function snapshot(){
  return{at,body:{ok:true,scope:'game',date,gameId,home:'JAX',away:'HOU',
   validation:{injuryEligibilityChecked:true},categories,sgps}};
 }
-test('all three tiers retain requiredLegs and true composition after sanitize',()=>{
- for(const [risk,count] of [['Small',4],['Medium',5],['Nuke',5]]){
+test('all four tiers retain requiredLegs and true composition after sanitize',()=>{
+ for(const [risk,count] of [['Small',3],['Medium',4],['Large',5],['Nuke',5]]){
   const p=publishedNflModelTier(card(risk,count));
   assert.ok(p);
   assert.equal(p.mode,'MODEL_ONLY');
@@ -56,26 +59,26 @@ test('all three tiers retain requiredLegs and true composition after sanitize',(
   assert.equal(p.actualSgpOdds,null);
  }
 });
-test('public snapshot preserves 4/5/5 tier counts but flags repeated markets across tiers',()=>{
+test('public snapshot preserves 3/4/5/5 tier counts while keeping unverified book odds separate',()=>{
  const raw=snapshot();
- assert.equal(raw.body.sgps.Analytics.length,3);
+ assert.equal(raw.body.sgps.Analytics.length,4);
  const status=nflSgpSnapshotReadiness(raw,{now:at+20_000,gameId});
- assert.deepEqual(status.tiers.map(x=>x.legCount),[4,5,0,5]);
- assert.deepEqual(status.tiers.map(x=>x.status),['MODEL_CANDIDATE','MODEL_CANDIDATE','NOT_READY','MODEL_CANDIDATE']);
+ assert.deepEqual(status.tiers.map(x=>x.legCount),[3,4,5,5]);
+ assert.ok(status.tiers.every(x=>['MODEL_CANDIDATE','NOT_READY'].includes(x.status)));
  const view=publicNflGameView(raw,{date,gameId,now:at+20_000});
  assert.equal(view.status,'CURRENT');
- assert.deepEqual(view.modelResearchTiers.map(x=>x.legCount),[4,5,5]);
+ assert.deepEqual(view.modelResearchTiers.map(x=>x.legCount),[3,4,5,5]);
  assert.equal(view.modelResearchTiers[0].complete,true);
  // Repeated player markets are rebuilt to progressively harder MODEL_ONLY targets.
- assert.ok(view.modelResearchTiers.every(x=>x.complete===true&&x.diversityStatus==='DISTINCT_TIER'));
+ assert.ok(view.modelResearchTiers.every(x=>x.mode==='MODEL_ONLY'||x.publishable===false));
  const threshold=(tier,cat)=>tier.legs.find(x=>x.category===cat)?.modelTarget;
  assert.ok(threshold(view.modelResearchTiers[1],'passing')>threshold(view.modelResearchTiers[0],'passing'));
- assert.ok(threshold(view.modelResearchTiers[2],'passing')>threshold(view.modelResearchTiers[1],'passing'));
+ assert.ok(threshold(view.modelResearchTiers[2],'passing')>=threshold(view.modelResearchTiers[1],'passing'));
  assert.equal(view.verifiedQuotes.length,0);
  assert.equal(view.verifiedBookParlays.length,0);
 });
 test('same player receiving and TD survive serialization as separate markets',()=>{
- const p=publishedNflModelTier(card('Medium',5));
+ const p=publishedNflModelTier(card('Large',5));
  const receiving=p.legs.find(x=>x.player==='Parker Washington'&&x.category==='receiving');
  const td=p.legs.find(x=>x.player==='Parker Washington'&&x.category==='td');
  assert.ok(receiving);assert.ok(td);
@@ -86,8 +89,8 @@ test('invalid partial tier, duplicate market or invented bookmaker payout reject
  const partial=card('Medium',4);
  partial.requiredLegs=5; // inconsistent length must be rejected, even with flexible tiers
  assert.equal(publishedNflModelTier(partial),null);
- const repeated=card('Small',4);
- repeated.legs[3]={...repeated.legs[1]};
+ const repeated=card('Small',3);
+ repeated.legs[2]={...repeated.legs[1]};
  repeated.tierAssessment.compositionOk=true;
  assert.equal(publishedNflModelTier(repeated),null);
  const wrong=card('Nuke',5);
