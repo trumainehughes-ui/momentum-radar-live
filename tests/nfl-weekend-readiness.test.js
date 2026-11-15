@@ -81,7 +81,7 @@ test('history snapshots exclude invalid SGP builds and yardage rows without thre
  assert.equal(s.modelTierReadiness.Small.status,'NOT_READY');
  assert.equal(s.modelTierReadiness.Medium.status,'NOT_READY');
  assert.equal(s.modelTierReadiness.Nuke.status,'MODEL_CANDIDATE');
- assert.equal(nflCollectorSnapshotReady(s),true);
+ assert.equal(nflCollectorSnapshotReady(s),false, 'partial tier coverage cannot count as a complete collector snapshot');
  assert.equal(nflCollectorSnapshotReady({picks:[],sgps:[]}),false);
 });
 test('real market event IDs are mapped back to ESPN game identity',()=>{
