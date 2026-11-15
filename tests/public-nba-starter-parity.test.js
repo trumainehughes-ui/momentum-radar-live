@@ -8,10 +8,11 @@ test('public NBA research card labels each game starter evidence honestly',()=>{
 });
 test('NBA collector marks a candidate tier not ready when observed starter evidence excludes a leg',()=>{
  const js=readFileSync(new URL('../api/nba-health.js',import.meta.url),'utf8');
- assert.match(js,/const held=card\.status==='MODEL_CANDIDATE'&&!startersReady/);
- assert.match(js,/status:held\?'NOT_READY':card\.status/);
- assert.match(js,/selectedStarters\.startersConfirmed===true&&starterMatch\(p\)/);
- assert.match(js,/\[card\.reason,'Held: current-game starting five not confirmed/);
+ assert.match(js,/const researchCandidate=readyLike\.has\(String\(card\.status\|\|''\)\.toUpperCase\(\)\)/);
+ assert.match(js,/status:researchCandidate\?'MODEL_CANDIDATE':card\.status/);
+ assert.match(js,/selectedStarters\.startersConfirmed===true&&/);
+ assert.match(js,/starterVerificationStatus:startersReady\?'GAME_SCOPED_STARTERS_CONFIRMED':\s*'PROJECTED_ROTATION_STARTER_UNCONFIRMED'/);
+ assert.match(js,/publishable:false,combinedBookQuoteVerified:false/);
 });
 
 test('shared public guard never promotes roster membership to verified starter or a playable SGP',async()=>{
