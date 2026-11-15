@@ -1309,7 +1309,9 @@ requestStage='market_enrichment';const enrichedMarketRows=attachAnalyticsToMarke
    // Otherwise an invalid imported tier can displace a valid fallback.
    (categories[String(l.cat||l.category||'').toLowerCase()]||[]).some(row=>
     String(row.playerID||row.playerId||'')===String(l.playerID||l.playerId||'')&&
-    nflCanonTeam(row.team)===nflCanonTeam(l.team))&&
+    nflCanonTeam(row.team)===nflCanonTeam(l.team)&&
+    !/\\b(OUT|INACTIVE|IR|DOUBTFUL|QUESTIONABLE|SUSPENDED)\\b/i.test(
+     [row.injuryStatus,row.availability,row.starterStatus].join(' ')))&&
    (()=>{const id=String(l.playerID||l.playerId||'');
     const roster=id&&eligibility.rosterById?.get(id)||eligibility.rosterByName?.get(norm(l.name));
     return roster&&nflCanonTeam(roster.team)===nflCanonTeam(l.team)&&
