@@ -315,7 +315,10 @@ export async function nbaCollectPregame(game,{now=Date.now(),prior=null,prepare=
    });
    const startersReady=selectedStarters.startersConfirmed===true&&
     legs.length>0&&legs.every(p=>p.starterVerified===true);
-   const held=card.status==='MODEL_CANDIDATE'&&!startersReady;
+   // Never retain a ready-like upstream status when game-scoped starters
+   // are missing. Preserve unrelated diagnostic/error states.
+   const readyLike=new Set(['MODEL_CANDIDATE','READY','VERIFIED','PUBLISHABLE']);
+   const held=!startersReady&&readyLike.has(String(card.status||'').toUpperCase());
    return {...card,legs,
     status:held?'NOT_READY':card.status,
     publishable:false,
