@@ -18,3 +18,12 @@ test('does not infer verified final statistics from HIT labels alone',()=>{
  assert.equal(result.audit.exclusions.incomplete_settlement,1);
  assert.deepEqual(result.audit.tiers,{});
 });
+
+test('does not substitute historical HIT labels for numeric market outcomes',()=>{
+ const mislabeled={...response,sgps:[{...response.sgps[0],legs:[{
+  ...response.sgps[0].legs[0],grade:{status:'HIT',actual:20,sourceVerified:true}
+ }]}]};
+ const result=auditVerifiedNflSgpGrade(mislabeled,options);
+ assert.equal(result.audit.tiers.Small.losses,1);
+ assert.equal(result.audit.tiers.Small.wins,0);
+});
