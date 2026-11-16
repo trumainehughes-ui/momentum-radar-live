@@ -45,3 +45,13 @@ test('invalid settlement status never becomes a loss',()=>{
  const out=auditSgpHistory([ticket('a',[{...leg('yards',30),settlement:'pending'}])]);
  assert.equal(out.exclusions.incomplete_settlement,1);
 });
+
+test('settlement-only losses do not distort measured miss distance',()=>{
+ const out=auditSgpHistory([
+  ticket('a',[{...leg('yards',null,50),settlement:'loss'}]),
+  ticket('b',[{...leg('yards',40,50),settlement:'loss'}])
+ ]);
+ assert.equal(out.stats.yards.losses,2);
+ assert.equal(out.stats.yards.measuredMisses,1);
+ assert.equal(out.stats.yards.meanMissDistance,10);
+});
