@@ -55,3 +55,12 @@ test('settlement-only losses do not distort measured miss distance',()=>{
  assert.equal(out.stats.yards.measuredMisses,1);
  assert.equal(out.stats.yards.meanMissDistance,10);
 });
+
+test('unmeasured losses report null rather than zero miss distance',()=>{
+ const out=auditSgpHistory([ticket('unmeasured',[
+  {...leg('yards',null,50),settlement:'loss'}
+ ])]);
+ assert.equal(out.stats.yards.losses,1);
+ assert.equal(out.stats.yards.measuredMisses,0);
+ assert.equal(out.stats.yards.meanMissDistance,null);
+});
