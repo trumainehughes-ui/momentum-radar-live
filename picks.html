@@ -226,6 +226,20 @@ button:focus-visible,a:focus-visible{outline:2px solid #4bf29a;outline-offset:3p
 .mr-model-sgp-numeric{font-size:14px!important;color:#4df0a2!important;margin:3px 0!important}
 #nflSGP,#nflSGP [id]{scroll-margin-top:calc(var(--mr-header-height,0px) + 70px)}
 }
+
+/* Public /picks only: compact navigation and SGP layout. Keep all safety notices visible. */
+.picks-topbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;background:#0c1d29;border:1px solid #284656;border-radius:12px;margin-bottom:12px}
+.picks-status-pill{font-size:11px;font-weight:800;letter-spacing:.4px;color:#9ee7ff;background:#132b3b;border:1px solid #31586d;padding:4px 10px;border-radius:999px}
+.nfl-module-tabs,.picks-segment-nav{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;padding:6px 0 10px;scrollbar-width:thin}
+.nfl-module-tab,.picks-segment-btn{flex:1 0 auto;min-height:44px;padding:8px 14px;border-radius:10px;border:1px solid #2c4a5a;background:#0b1c29;color:#b8cdd8;font-size:13px;font-weight:800;cursor:pointer}
+.nfl-module-tab.active,.picks-segment-btn.active{background:#123e2e;border-color:#45ef99;color:#a5ffca}
+.mr-model-sgp-sets,.mr-public-sgp-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.mr-model-sgp-leg,.mr-public-sgp-pick{display:flex;flex-direction:column;gap:3px;padding:9px 11px;margin:6px 0;background:#08151e;border:1px solid #1f3947;border-radius:9px}
+.mr-leg-header{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.mr-leg-player{font-size:14px;font-weight:800;color:#f4faff}
+.mr-leg-target{font-size:12px;font-weight:800;color:#45ef99;background:rgba(69,239,153,.12);border:1px solid rgba(69,239,153,.35);padding:2px 8px;border-radius:6px;white-space:nowrap}
+.mr-leg-sub{font-size:11.5px;color:#9bb4c2;line-height:1.35}
+@media(max-width:720px){.mr-model-sgp-sets,.mr-public-sgp-grid{grid-template-columns:minmax(0,1fr)}.nflSgpStrip{grid-template-columns:minmax(0,1fr)}}
 </style><script type="module" src="/public-sgp-browser-bootstrap.js"></script>
 <script type="module" src="/public-automatic-dk-book-bootstrap.js"></script>
 <script type="module" src="/nfl-model-choice-bootstrap.js"></script><script type="module" src="/nfl-sgp-model-yardage-bootstrap.js"></script><script type="module" src="/nfl-public-compact-sgp-bootstrap.js"></script><script type="module" src="/nfl-public-matchup-intelligence-bootstrap.js"></script>
