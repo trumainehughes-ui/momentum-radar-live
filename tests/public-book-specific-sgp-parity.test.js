@@ -19,7 +19,7 @@ const target={DraftKings:[250,55,65,'Anytime TD'],
 const books=['DraftKings','FanDuel'];
 function playerRow([name,playerID,team,category,position,projection]){
  const isTd=category==='td';
- const base={name,playerID,eventID:gameId,team,category,position,
+ const base={name,playerID,eventID:gameId,team,category,position,starterVerified:true,
   ...(isTd?{modelOnly:true,tdModelStatus:'ESPN_MATCHUP_MODEL',
    modelTdPercent:43,evidence:{games:5,opportunitiesPerGame:8.5,touchdowns:3},
    gamesPlayed:5}:{projection,gamesPlayed:5}),
