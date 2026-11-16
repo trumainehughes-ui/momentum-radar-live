@@ -214,6 +214,18 @@ button:focus-visible,a:focus-visible{outline:2px solid #4bf29a;outline-offset:3p
 .sgp-leg-why{color:#bfd3df;font-size:13px;max-width:90ch}
 .sgp-leg-selection strong{font-variant-numeric:tabular-nums}
 @media(max-width:600px){.game-card{padding:12px}.sgp-slip-head{padding:12px}.sgp-leg-why{font-size:13px}.nfl-module-tabs{display:flex;flex-wrap:wrap;gap:7px}.nfl-module-tab{flex:1 1 auto;min-height:44px}}
+
+/* Public read-only NFL SGP mobile presentation parity with owner view. */
+.nflSgpMini[data-risk="Large"],.mr-model-sgp-tier[data-risk="Large"]{border-color:#f0b44c!important;box-shadow:inset 3px 0 0 #f0b44c}
+.nflSgpMini[data-risk="Large"] > b,.mr-model-sgp-tier[data-risk="Large"] h4{color:#ffd07a!important}
+#nflSGP details.card{margin-top:10px;padding:10px 12px;background:#0a1721}
+#nflSGP details.card > summary{font-size:13px;color:#9ee7ff;font-weight:800}
+@media(max-width:760px){
+.nflMatchTabs{position:sticky;top:var(--mr-header-height,0px);z-index:20;background:rgba(9,19,27,.96);backdrop-filter:blur(8px);padding:8px 0;border-bottom:1px solid #203746}
+.mr-model-sgp-leg,.nflSgpMini .sgpLeg{padding:8px 10px!important;margin:5px 0!important;border-radius:10px!important;background:#08151e!important}
+.mr-model-sgp-numeric{font-size:14px!important;color:#4df0a2!important;margin:3px 0!important}
+#nflSGP,#nflSGP [id]{scroll-margin-top:calc(var(--mr-header-height,0px) + 70px)}
+}
 </style><script type="module" src="/public-sgp-browser-bootstrap.js"></script>
 <script type="module" src="/public-automatic-dk-book-bootstrap.js"></script>
 <script type="module" src="/nfl-model-choice-bootstrap.js"></script><script type="module" src="/nfl-sgp-model-yardage-bootstrap.js"></script><script type="module" src="/nfl-public-compact-sgp-bootstrap.js"></script><script type="module" src="/nfl-public-matchup-intelligence-bootstrap.js"></script>
