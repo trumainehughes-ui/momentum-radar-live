@@ -64,3 +64,16 @@ test('unmeasured losses report null rather than zero miss distance',()=>{
  assert.equal(out.stats.yards.measuredMisses,0);
  assert.equal(out.stats.yards.meanMissDistance,null);
 });
+
+test('verified sportsbook ticket settlement overrides push or void ambiguity',()=>{
+ const out=auditSgpHistory([
+  {...ticket('settled-win',[leg('yards',60),{...leg('td',0,1),settlement:'void'}]),settlement:'win'},
+  {...ticket('settled-loss',[leg('yards',30),{...leg('td',0,1),settlement:'push'}]),settlement:'loss'},
+  {...ticket('unsettled',[leg('yards',60),{...leg('td',0,1),settlement:'void'}]),settlement:'pending'}
+ ]);
+ assert.equal(out.tiers.Nuke.wins,1);
+ assert.equal(out.tiers.Nuke.losses,1);
+ assert.equal(out.tiers.Nuke.unresolved,1);
+ assert.equal(out.tiers.Nuke.oneLegAway,0);
+ assert.equal(out.tiers.Nuke.ticketHitRate,0.5);
+});
