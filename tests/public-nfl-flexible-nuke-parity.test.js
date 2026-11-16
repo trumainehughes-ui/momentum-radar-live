@@ -16,6 +16,6 @@ test('AI Nuke advisory uses shared flexible leg limits and market identity',()=>
 });
 
 test('public NFL research does not silently truncate valid flexible Nuke cards to ten legs',()=>{
- assert.match(publicView,/Array\\.isArray\\(card\\?\\.legs\\)\\?card\\.legs:\\[\\]\\)\\.slice\\(0,PUBLIC_NFL_RESEARCH_MAX_LEGS\\[risk\\]\\)/);
+ assert.match(publicView,/Array\.isArray\(card\?\.legs\)\?card\.legs:\[\]\)\.slice\(0,PUBLIC_NFL_RESEARCH_MAX_LEGS\[risk\]\)/);
  assert.doesNotMatch(publicView,/card\.legs\.slice\(0,10\)/);
 });
