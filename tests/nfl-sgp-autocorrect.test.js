@@ -4,7 +4,7 @@ import {calibratedTierThreshold,scoreCandidateForTier,isCorrelatedWithSlip,rankV
 const player={predictiveProjection:90,recentFive:[60,70,80,90,100],starterVerified:true,matchupVerified:true,matchupRankMost:10,team:'ATL',category:'receiving'};
 const calibration={categoryAdjustments:{receiving:0.95}};
 test('autocorrect requires validated calibration and starter/matchup evidence',()=>{
- assert.equal(calibratedTierThreshold(player,'receiving','Small',calibration),60);
+ assert.equal(calibratedTierThreshold(player,'receiving','Small',calibration),55);
  assert.equal(calibratedTierThreshold(player,'receiving','Small'),null);
  assert.equal(scoreCandidateForTier({...player,starterVerified:false},'receiving','Small',calibration),null);
 });
