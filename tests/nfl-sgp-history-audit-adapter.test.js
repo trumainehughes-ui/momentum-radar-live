@@ -27,3 +27,13 @@ test('does not substitute historical HIT labels for numeric market outcomes',()=
  assert.equal(result.audit.tiers.Small.losses,1);
  assert.equal(result.audit.tiers.Small.wins,0);
 });
+
+test('reads stored NFL threshold fields without inventing market direction',()=>{
+ const base=response.sgps[0].legs[0];
+ const withLine={...response,sgps:[{...response.sgps[0],legs:[{...base,target:undefined,line:60,direction:'over'}]}]};
+ const measured=auditVerifiedNflSgpGrade(withLine,options);
+ assert.equal(measured.audit.tiers.Small.wins,1);
+ const unknown={...response,sgps:[{...response.sgps[0],legs:[{...base,target:undefined,line:60,direction:undefined}]}]};
+ const rejected=auditVerifiedNflSgpGrade(unknown,options);
+ assert.equal(rejected.audit.exclusions.incomplete_settlement,1);
+});
