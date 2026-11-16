@@ -3,12 +3,16 @@ on:
   pull_request:
     paths:
       - 'lib/sgp-history-audit.js'
+      - 'lib/nfl-sgp-history-audit-adapter.js'
       - 'tests/sgp-history-audit.test.js'
+      - 'tests/nfl-sgp-history-audit-adapter.test.js'
       - '.github/workflows/sgp-history-audit.yml'
   push:
     paths:
       - 'lib/sgp-history-audit.js'
+      - 'lib/nfl-sgp-history-audit-adapter.js'
       - 'tests/sgp-history-audit.test.js'
+      - 'tests/nfl-sgp-history-audit-adapter.test.js'
       - '.github/workflows/sgp-history-audit.yml'
 jobs:
   audit-unit:
@@ -19,4 +23,4 @@ jobs:
         with:
           node-version: '24'
       - name: Run SGP historical audit unit tests
-        run: node --test tests/sgp-history-audit.test.js
+        run: node --test tests/sgp-history-audit.test.js tests/nfl-sgp-history-audit-adapter.test.js
