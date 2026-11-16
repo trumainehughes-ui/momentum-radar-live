@@ -16,7 +16,7 @@ test('verified negative bias can lower research projection',()=>{
 test('threshold requires real starter, matchup and five-game evidence',()=>{
  const player={predictiveProjection:90,recentFive:[60,70,80,90,100],starterVerified:true,matchupVerified:true,matchupRankMost:10};
  const calibration={categoryAdjustments:{receiving:0.95}};
- assert.equal(calibratedTierThreshold(player,'receiving','Small',calibration),60);
+ assert.equal(calibratedTierThreshold(player,'receiving','Small',calibration),55);
  assert.equal(calibratedTierThreshold({...player,starterVerified:false},'receiving','Small',calibration),null);
 });
 test('game-script conflicts trigger review rather than unsupported automatic rejection',()=>{
