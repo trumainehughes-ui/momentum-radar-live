@@ -294,6 +294,23 @@ button:focus-visible,a:focus-visible{outline:2px solid #45ef99;outline-offset:3p
 #nflSGP details.card,.mr-compact-drawer{background:#0b1924;border:1px solid #243e50;border-radius:12px;padding:10px 14px;margin:10px 0}
 #nflSGP details.card>summary,.mr-compact-drawer>summary{font-size:13.5px;font-weight:800;color:#9ee7ff;cursor:pointer}
 @media(max-width:760px){#nflSGP .mr-model-sgp-sets,#nflSGP .mr-public-sgp-grid,.mr-model-sgp-sets{grid-template-columns:minmax(0,1fr)}}
+
+/* Public picks visual polish based on the compact matchup design; existing controllers own behavior. */
+:root{--bg:#061018;--panel:#0b1924;--panel2:#08131c;--border:#1e3545;--ink:#f2f8fc;--muted:#93aebf;--green:#45ef99;--aqua:#58b4ff;--gold:#f0b44c}
+body{background:#061018;color:var(--ink);-webkit-font-smoothing:antialiased}
+.container{max-width:1080px}
+#nfl-module-tabs,#nba-module-tabs{position:sticky;top:0;z-index:31;background:rgba(6,16,24,.96);backdrop-filter:blur(8px);display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;scrollbar-width:none;padding:8px 4px 12px;border-bottom:1px solid #1e3545}
+#nfl-module-tabs::-webkit-scrollbar,#nba-module-tabs::-webkit-scrollbar{display:none}
+#nfl-module-tabs .nfl-module-tab,#nba-module-tabs .nfl-module-tab{flex:0 0 auto;min-height:40px;padding:7px 13px;border-radius:999px;background:#0b1924;border:1px solid #264254;color:#93aebf;font-size:12.5px;font-weight:800;white-space:nowrap}
+#nfl-module-tabs .nfl-module-tab.active,#nba-module-tabs .nfl-module-tab.active{background:rgba(69,239,153,.14);border-color:#45ef99;color:#45ef99}
+.mr-model-sgp-sets,.mr-public-sgp-grid,.nflSgpStrip{gap:10px}
+.mr-model-sgp-tier,.nflSgpMini{background:#0b1924;border-radius:14px}
+.mr-model-sgp-leg,.mr-public-sgp-pick,.nflSgpMini .sgpLeg{padding:9px 11px!important;margin:4px 0!important;border-radius:10px!important;background:#08131c!important;border:1px solid #182d3b!important}
+.mr-model-sgp-tier[data-risk="Small"],.nflSgpMini[data-risk="Small"]{border-top:3px solid #45ef99!important}
+.mr-model-sgp-tier[data-risk="Medium"],.nflSgpMini[data-risk="Medium"]{border-top:3px solid #58b4ff!important}
+.mr-model-sgp-tier[data-risk="Large"],.nflSgpMini[data-risk="Large"]{border-top:3px solid #f0b44c!important}
+.mr-model-sgp-tier[data-risk="Nuke"],.nflSgpMini[data-risk="Nuke"]{border-top:3px solid #b97aff!important}
+@media(max-width:760px){#nfl-module-tabs,#nba-module-tabs{top:0}.mr-model-sgp-sets,.mr-public-sgp-grid,.nflSgpStrip{grid-template-columns:minmax(0,1fr)!important}}
 </style><script type="module" src="/public-sgp-browser-bootstrap.js"></script>
 <script type="module" src="/public-automatic-dk-book-bootstrap.js"></script>
 <script type="module" src="/nfl-model-choice-bootstrap.js"></script><script type="module" src="/nfl-sgp-model-yardage-bootstrap.js"></script><script type="module" src="/nfl-public-compact-sgp-bootstrap.js"></script><script type="module" src="/nfl-public-matchup-intelligence-bootstrap.js"></script>
