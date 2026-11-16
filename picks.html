@@ -279,6 +279,21 @@ body{background:#061018;color:var(--ink);line-height:1.45;-webkit-font-smoothing
 #public-weather-impact h3{color:#a9ecda}
 button:focus-visible,a:focus-visible{outline:2px solid #45ef99;outline-offset:3px}
 @media(max-width:760px){.nflSgpStrip,.mr-model-sgp-sets{grid-template-columns:minmax(0,1fr)}.mr-public-header .nav{align-items:flex-start}.mr-public-header .toplinks{flex-wrap:wrap}.nfl-module-tabs{overflow-x:auto;flex-wrap:nowrap}.nfl-module-tab{flex:0 0 auto}}
+
+/* Public declutter: style existing tabs, don't override their event handlers or hide evidence. */
+.nflMatchTabs{position:sticky;top:0;z-index:30;background:rgba(6,16,24,.96);backdrop-filter:blur(8px);padding:8px 4px;border-bottom:1px solid #1e3545;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.nflMatchTabs::-webkit-scrollbar{display:none}
+#nflSGP .mr-model-sgp-sets,#nflSGP .mr-public-sgp-grid,.mr-model-sgp-sets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:10px 0}
+.mr-model-sgp-tier[data-risk="Small"],.nflSgpMini[data-risk="Small"]{border-top:3px solid #45ef99}
+.mr-model-sgp-tier[data-risk="Medium"],.nflSgpMini[data-risk="Medium"]{border-top:3px solid #58b4ff}
+.mr-model-sgp-tier[data-risk="Large"],.nflSgpMini[data-risk="Large"]{border-top:3px solid #f0b44c}
+.mr-model-sgp-tier[data-risk="Nuke"],.nflSgpMini[data-risk="Nuke"]{border-top:3px solid #b97aff}
+.mr-model-sgp-leg,.mr-public-sgp-pick,.nflSgpMini .sgpLeg{padding:8px 10px;margin:5px 0;border-radius:9px;background:#08131c;border:1px solid #182d3b}
+.mr-model-sgp-leg strong,.mr-public-sgp-name{font-size:14px;color:#f2f8fc}
+.mr-model-sgp-numeric{font-size:13.5px;color:#45ef99;margin:2px 0}
+#nflSGP details.card,.mr-compact-drawer{background:#0b1924;border:1px solid #243e50;border-radius:12px;padding:10px 14px;margin:10px 0}
+#nflSGP details.card>summary,.mr-compact-drawer>summary{font-size:13.5px;font-weight:800;color:#9ee7ff;cursor:pointer}
+@media(max-width:760px){#nflSGP .mr-model-sgp-sets,#nflSGP .mr-public-sgp-grid,.mr-model-sgp-sets{grid-template-columns:minmax(0,1fr)}}
 </style><script type="module" src="/public-sgp-browser-bootstrap.js"></script>
 <script type="module" src="/public-automatic-dk-book-bootstrap.js"></script>
 <script type="module" src="/nfl-model-choice-bootstrap.js"></script><script type="module" src="/nfl-sgp-model-yardage-bootstrap.js"></script><script type="module" src="/nfl-public-compact-sgp-bootstrap.js"></script><script type="module" src="/nfl-public-matchup-intelligence-bootstrap.js"></script>
