@@ -77,3 +77,14 @@ test('verified sportsbook ticket settlement overrides push or void ambiguity',()
  assert.equal(out.tiers.Nuke.oneLegAway,0);
  assert.equal(out.tiers.Nuke.ticketHitRate,0.5);
 });
+
+test('invalid ticket settlement cannot inflate audit denominators',()=>{
+ const out=auditSgpHistory([
+  {...ticket('bad',[leg('yards',70)]),settlement:'unknown'},
+  {...ticket('good',[leg('yards',70)]),settlement:'win'}
+ ]);
+ assert.equal(out.exclusions.invalid_ticket_settlement,1);
+ assert.equal(out.tiers.Nuke.tickets,1);
+ assert.equal(out.tiers.Nuke.ticketHitRate,1);
+ assert.equal(out.stats.yards.legs,1);
+});
