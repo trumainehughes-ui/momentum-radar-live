@@ -88,3 +88,15 @@ test('invalid ticket settlement cannot inflate audit denominators',()=>{
  assert.equal(out.tiers.Nuke.ticketHitRate,1);
  assert.equal(out.stats.yards.legs,1);
 });
+
+test('missing or invalid direction never counts as an under win, even with an explicit leg settlement',()=>{
+ const out=auditSgpHistory([
+  ticket('missing',[{...leg('yards',30),direction:null}]),
+  ticket('invalid',[{...leg('yards',30),direction:'sideways',settlement:'win'}]),
+  ticket('valid',[{...leg('yards',30),direction:'under'}])
+ ]);
+ assert.equal(out.exclusions.incomplete_settlement,2);
+ assert.equal(out.tiers.Nuke.tickets,1);
+ assert.equal(out.tiers.Nuke.wins,1);
+ assert.equal(out.stats.yards.legs,1);
+});
