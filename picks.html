@@ -240,12 +240,51 @@ button:focus-visible,a:focus-visible{outline:2px solid #4bf29a;outline-offset:3p
 .mr-leg-target{font-size:12px;font-weight:800;color:#45ef99;background:rgba(69,239,153,.12);border:1px solid rgba(69,239,153,.35);padding:2px 8px;border-radius:6px;white-space:nowrap}
 .mr-leg-sub{font-size:11.5px;color:#9bb4c2;line-height:1.35}
 @media(max-width:720px){.mr-model-sgp-sets,.mr-public-sgp-grid{grid-template-columns:minmax(0,1fr)}.nflSgpStrip{grid-template-columns:minmax(0,1fr)}}
+
+/* Public redesign: visual system and existing live app behavior remain connected. */
+:root{--bg:#061018;--panel:#0b1924;--panel2:#08131c;--border:#1e3545;--green:#45ef99;--aqua:#58b4ff;--gold:#f0b44c;--muted:#93aebf;--ink:#f2f8fc}
+body{background:#061018;color:var(--ink);line-height:1.45;-webkit-font-smoothing:antialiased}
+.container{width:min(1080px,calc(100% - 28px))}
+.mr-public-header{position:relative;top:auto;background:transparent;border:0;backdrop-filter:none;padding:14px 0 0}
+.mr-public-header .nav{height:auto;min-height:62px;display:flex;flex-wrap:wrap;padding:12px 14px;background:#0b1924;border:1px solid #1e3545;border-radius:14px;gap:10px}
+.mr-public-header .brand{font-size:17px;font-weight:850;gap:10px}
+.mr-brand-dot{width:10px;height:10px;border-radius:50%;background:#45ef99;box-shadow:0 0 10px #45ef99;flex:none}
+.mr-public-header .navpill{font-size:11px;color:#a9e8ff;background:#102838;border:1px solid #284c63;padding:5px 10px;border-radius:999px}
+.mr-public-header .soft{border-radius:999px;padding:7px 12px;font-size:12px;min-height:34px}
+.mr-public-info-drawer{margin:0 0 12px;background:#0b1924;border:1px solid #1e3545;border-radius:12px;padding:11px 14px;font-size:12.5px;color:#93aebf}
+.mr-public-info-drawer[hidden]{display:none}
+.hero{padding-top:16px;padding-bottom:16px}
+.hero h1{font-size:clamp(22px,3vw,32px)}
+.hero-stat{border-radius:14px}
+.section{margin-top:14px}
+.section>.panel,#game-section>.panel,.nfl-module-panel{background:#0b1924;border:1px solid #1e3545;border-radius:14px}
+.game-card,.panel,.player-card,.nflSgpMini,.mr-model-sgp-tier{border-radius:14px}
+.datebox,.controls select,.controls input[type=date]{min-height:42px;background:#0b1924;color:#f2f8fc;border:1px solid #2d4d63;border-radius:10px}
+.nfl-module-tabs{position:sticky;top:0;z-index:20;background:rgba(6,16,24,.94);backdrop-filter:blur(8px);padding:8px 0 12px}
+.nfl-module-tab{min-height:42px;border-radius:10px}
+.nfl-module-tab.active{background:rgba(69,239,153,.12);border-color:#45ef99;color:#45ef99}
+.nflSgpStrip{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.nflSgpMini{background:#0b1924;border:1px solid #1e3545;padding:14px;min-width:0}
+.nflSgpMini[data-risk="Small"]{border-top:3px solid #45ef99}
+.nflSgpMini[data-risk="Medium"]{border-top:3px solid #58b4ff}
+.nflSgpMini[data-risk="Large"]{border-top:3px solid #f0b44c}
+.nflSgpMini[data-risk="Nuke"]{border-top:3px solid #b97aff}
+.mr-model-sgp-sets{grid-template-columns:repeat(2,minmax(0,1fr))}
+.mr-model-sgp-tier[data-risk="Small"]{border-top:3px solid #45ef99}
+.mr-model-sgp-tier[data-risk="Medium"]{border-top:3px solid #58b4ff}
+.mr-model-sgp-tier[data-risk="Large"]{border-top:3px solid #f0b44c}
+.mr-model-sgp-tier[data-risk="Nuke"]{border-top:3px solid #b97aff}
+.mr-model-sgp-leg{background:#08131c;border:1px solid #172b38;border-radius:10px;padding:9px 11px;margin:6px 0}
+#public-weather-impact{background:#08131c;border:1px solid #1e3545;border-radius:14px}
+#public-weather-impact h3{color:#a9ecda}
+button:focus-visible,a:focus-visible{outline:2px solid #45ef99;outline-offset:3px}
+@media(max-width:760px){.nflSgpStrip,.mr-model-sgp-sets{grid-template-columns:minmax(0,1fr)}.mr-public-header .nav{align-items:flex-start}.mr-public-header .toplinks{flex-wrap:wrap}.nfl-module-tabs{overflow-x:auto;flex-wrap:nowrap}.nfl-module-tab{flex:0 0 auto}}
 </style><script type="module" src="/public-sgp-browser-bootstrap.js"></script>
 <script type="module" src="/public-automatic-dk-book-bootstrap.js"></script>
 <script type="module" src="/nfl-model-choice-bootstrap.js"></script><script type="module" src="/nfl-sgp-model-yardage-bootstrap.js"></script><script type="module" src="/nfl-public-compact-sgp-bootstrap.js"></script><script type="module" src="/nfl-public-matchup-intelligence-bootstrap.js"></script>
 </head>
 <body>
-<header><div class="container nav"><a class="brand" href="/picks" aria-label="Momentum Radar home"><span class="logo" aria-hidden="true">↗</span><span>Momentum <span style="color:#50e7ac">Radar</span></span></a><div class="toplinks"><span class="navpill">SPORTS INSIGHTS</span><button class="soft" id="refresh" type="button">↻ Refresh</button></div></div></header>
+<header class="mr-public-header"><div class="container nav"><a class="brand" href="/picks" aria-label="Momentum Radar home"><span class="mr-brand-dot" aria-hidden="true"></span><span>Momentum <span style="color:#45ef99">Radar Live</span></span></a><div class="toplinks"><span class="navpill">MODEL PROJECTIONS • CHECK BOOK ODDS</span><button class="soft" id="public-info-toggle" type="button" aria-expanded="false" aria-controls="public-info-drawer">How It Works</button><button class="soft" id="refresh" type="button">↻ Refresh</button></div></div></header><div class="container"><div id="public-info-drawer" class="mr-public-info-drawer" hidden>Momentum Radar displays model estimates and matchup research, not guaranteed outcomes or confirmed sportsbook wagers. Player availability, injuries, weather, offered lines and odds must be independently verified before use. Unverified or incomplete SGP tickets are not ready to place.</div></div>
 <main class="container">
 <section class="hero"><div><div class="eyebrow">Your game-day edge</div><h1>See the game <em>before it unfolds.</em></h1><p>Player projections, touchdown opportunities, matchup insights, and game parlays. One clear view, with none of the noise.</p></div><aside class="hero-stat" aria-label="Prediction coverage"><div class="small-label">Momentum at a glance</div><div class="number">GAME DAY</div><p>Explore player matchups and compare model picks before kickoff. Updated predictions appear when fresh, verified data is available.</p><div class="sparkline" aria-hidden="true"><i style="height:38%"></i><i style="height:63%"></i><i style="height:45%"></i><i style="height:76%"></i><i style="height:59%"></i><i style="height:98%"></i><i style="height:81%"></i></div></aside></section>
 <section class="section" aria-label="Choose a league"><div class="section-head"><div><h2>Explore matchups</h2><p class="sub">Choose a league, then select a game.</p></div><div class="controls"><input id="day" class="datebox" type="date" aria-label="Choose game date"><button id="today" class="soft" type="button">Upcoming</button></div></div><div class="chips" id="leagues"><button type="button" class="chip active" data-league="nfl">🏈 NFL</button><button type="button" class="chip" data-league="nba">🏀 NBA</button><a href="/#nba" class="chip" aria-label="Open NBA Edge Hunter research in Momentum Radar">🎯 NBA Edge Hunter</a></div>
@@ -1815,6 +1854,14 @@ function renderRanks(){const box=$('#rankings'),rows=state.rankings?.categories?
   if(id&&state.selected===id&&!state.weatherLoading)
    loadPublicWeather(date,id);
  }
+ // Public information drawer: no API calls and no impact on existing analysis controls.
+ const publicInfoToggle=$('#public-info-toggle');
+ const publicInfoDrawer=$('#public-info-drawer');
+ publicInfoToggle?.addEventListener('click',()=>{
+  const opening=publicInfoDrawer.hasAttribute('hidden');
+  publicInfoDrawer.toggleAttribute('hidden',!opening);
+  publicInfoToggle.setAttribute('aria-expanded',String(opening));
+ });
  // Automatic 5-minute public revalidation never generates new bookmaker or AI calls.
  window.addEventListener('momentum-public-matchup-intelligence-ready',()=>{
   if(state.league==='nfl'&&['matchup','ai'].includes(state.detailTab)&&state.selectedData)
