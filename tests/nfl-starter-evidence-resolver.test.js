@@ -11,13 +11,13 @@ const summary={header:{id:gameId,competitions:[{competitors:[
  {team:{abbreviation:'HOU'},roster:[
  {starter:true,athlete:{id:'20',displayName:'Away QB',position:{abbreviation:'QB'}}}]}]};
 const fetcher=async url=>({ok:true,json:async()=>url.includes('depthcharts')?
- {items:[{positions:{RB:{athletes:[{athlete:{id:'11',displayName:'Backup RB'},rank:1}]}}}]}:summary});
+ {items:[{positions:{RB:{athletes:[{athlete:{id:'12',displayName:'Depth RB'},rank:1}]}}}]}:summary});
 test('only player-specific ESPN starter flags are verified; depth chart remains research',async()=>{
  const v=await resolveVerifiedNflStarters({gameId,date,home:'JAX',away:'HOU',fetcher});
  assert.equal(v.starters.length,2);
  assert.equal(v.startersConfirmed,true);
  assert.equal(v.startersByTeam.JAX.find(x=>x.name==='Backup RB').starterVerified,false);
- assert.equal(v.projectedByTeam.JAX.some(x=>x.name==='Backup RB'&&x.starterVerified===false),true);
+ assert.equal(v.projectedByTeam.JAX.some(x=>x.name==='Depth RB'&&x.starterVerified===false),true);
 });
 test('wrong opponent is rejected',async()=>{
  await assert.rejects(resolveVerifiedNflStarters({gameId,date,home:'NYJ',away:'HOU',fetcher}),/team_mismatch/);
